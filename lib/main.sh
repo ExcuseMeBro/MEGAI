@@ -11,6 +11,9 @@ LIB="$MEGAI_HOME/lib"
 . "$LIB/detect.sh"
 # shellcheck source=state.sh
 . "$LIB/state.sh"
+# shellcheck source=banner.sh
+. "$LIB/banner.sh"
+megai_banner
 
 TOTAL=8
 

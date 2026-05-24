@@ -11,6 +11,8 @@ LIB="$MEGAI_HOME/lib"
 . "$LIB/detect.sh"
 # shellcheck source=../lib/state.sh
 . "$LIB/state.sh"
+# shellcheck source=../lib/banner.sh
+. "$LIB/banner.sh"
 
 usage() {
   cat <<EOF
@@ -250,6 +252,7 @@ cmd_project() {
   local proj; proj="$(pwd)"
   local name; name="$(basename "$proj")"
 
+  megai_banner
   printf "%s[megai]%s project: %s%s%s  (%s)\n" "$C_BLUE" "$C_OFF" "$C_GRN" "$name" "$C_OFF" "$proj"
 
   step 1 4 "agent-memory daemon"

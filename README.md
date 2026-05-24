@@ -1,3 +1,15 @@
+<!-- logo -->
+<pre align="center">
+███╗   ███╗███████╗ ██████╗  █████╗ ██╗
+████╗ ████║██╔════╝██╔════╝ ██╔══██╗██║
+██╔████╔██║█████╗  ██║  ███╗███████║██║
+██║╚██╔╝██║██╔══╝  ██║   ██║██╔══██║██║
+██║ ╚═╝ ██║███████╗╚██████╔╝██║  ██║██║
+╚═╝     ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝
+
+  THE ZERO-CONFIG AI AGENT STACK
+</pre>
+
 # MEGAI
 
 Zero-config one-line installer for the AI agent stack: **Fusion** + **agent-memory** + **codedb** + **cocoindex** + **caveman** + **rtk**, auto-wired into **Claude Code**, **Codex**, and **Pi**.

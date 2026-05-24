@@ -16,6 +16,21 @@ die()  { warn "$*"; exit 1; }
 
 [ -t 1 ] || { c_blue=""; c_grn=""; c_red=""; c_dim=""; c_off=""; }
 
+# inline mini-banner (full banner lives in lib/banner.sh, but install.sh runs before lib is on disk)
+if [ -t 1 ]; then printf '\033[97m'; fi
+cat <<'BNR'
+
+███╗   ███╗███████╗ ██████╗  █████╗ ██╗
+████╗ ████║██╔════╝██╔════╝ ██╔══██╗██║
+██╔████╔██║█████╗  ██║  ███╗███████║██║
+██║╚██╔╝██║██╔══╝  ██║   ██║██╔══██║██║
+██║ ╚═╝ ██║███████╗╚██████╔╝██║  ██║██║
+╚═╝     ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝
+BNR
+if [ -t 1 ]; then printf '\033[0m\033[2;37m'; fi
+printf '   THE ZERO-CONFIG AI AGENT STACK\n\n'
+if [ -t 1 ]; then printf '\033[0m'; fi
+
 say "MEGAI installer starting"
 say "target: $MEGAI_HOME"
 
