@@ -15,7 +15,7 @@ LIB="$MEGAI_HOME/lib"
 . "$LIB/banner.sh"
 megai_banner
 
-TOTAL=9
+TOTAL=8
 
 step 1 $TOTAL "Detecting OS / runtimes"
 detect_os
@@ -32,28 +32,25 @@ require_or_install_pipx
 state_init
 ok "state initialized -> $MEGAI_HOME/state.json"
 
-step 2 $TOTAL "Installing Fusion"
-bash "$LIB/install_fusion.sh"
-
-step 3 $TOTAL "Installing agent-memory"
+step 2 $TOTAL "Installing agent-memory"
 bash "$LIB/install_agent_memory.sh"
 
-step 4 $TOTAL "Installing codedb"
+step 3 $TOTAL "Installing codedb"
 bash "$LIB/install_codedb.sh"
 
-step 5 $TOTAL "Installing cocoindex"
+step 4 $TOTAL "Installing cocoindex"
 bash "$LIB/install_cocoindex.sh"
 
-step 6 $TOTAL "Installing caveman (token-compression skill)"
+step 5 $TOTAL "Installing caveman (token-compression skill)"
 bash "$LIB/install_caveman.sh"
 
-step 7 $TOTAL "Installing rtk (Rust Token Killer)"
+step 6 $TOTAL "Installing rtk (Rust Token Killer)"
 bash "$LIB/install_rtk.sh"
 
-step 8 $TOTAL "Installing graphify (knowledge-graph skill)"
+step 7 $TOTAL "Installing graphify (knowledge-graph skill)"
 bash "$LIB/install_graphify.sh"
 
-step 9 $TOTAL "Wiring MCP into cc / codex / pi + shell PATH"
+step 8 $TOTAL "Wiring MCP into cc / codex / pi + shell PATH"
 bash "$LIB/wire_cc.sh"    || warn "cc wiring skipped"
 bash "$LIB/wire_codex.sh" || warn "codex wiring skipped"
 bash "$LIB/wire_pi.sh"    || warn "pi wiring skipped"
@@ -64,7 +61,7 @@ echo
 echo "    Open a new shell (or 'source ~/.zshrc') so PATH picks up megai/bin"
 echo
 echo "    megai           # activate stack for the current folder"
-echo "    megai cc        # Claude Code + Fusion"
+echo "    megai cc        # Claude Code (full stack)"
 echo "    megai status"
 echo "    megai doctor"
 echo

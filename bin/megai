@@ -26,17 +26,16 @@ Usage:
                           • prints quick guide
 
 Commands:
-  cc                    Launch Claude Code CLI + Fusion dashboard (wired)
-  codex                 Launch Codex CLI + Fusion dashboard (wired)
-  pi                    Launch Pi CLI + Fusion dashboard (wired)
-  fusion                Launch Fusion dashboard only
+  cc                    Launch Claude Code CLI (full stack init)
+  codex                 Launch Codex CLI (full stack init)
+  pi                    Launch Pi CLI (full stack init)
   graph [path]          Build knowledge graph for current folder (graphify .)
   install               Re-run installer (idempotent)
   status                Show tools/ports/versions
   doctor                Diagnose problems
   reindex               Force re-index this project with codedb
   start [tool]          Start daemon (agent-memory)
-  stop  [tool]          Stop daemon (agent-memory | fusion)
+  stop  [tool]          Stop daemon (agent-memory)
   update                Update all tools
   wire <cc|codex|pi|path>  Re-wire MCP config / shell PATH (no launch)
   logs [tool]           Tail log
@@ -44,7 +43,7 @@ Commands:
   version               Print version
   help                  This message
 
-Tools: fusion, agent-memory, codedb, cocoindex, caveman, rtk, graphify
+Tools: agent-memory, codedb, cocoindex, caveman, rtk, graphify
 EOF
 }
 
@@ -55,7 +54,7 @@ cmd_install() {
 cmd_status() {
   detect_os; detect_runtimes; state_init
   printf "%-14s %-10s %-8s %s\n" TOOL VERSION PORT STATUS
-  for t in fusion agent-memory codedb cocoindex caveman rtk graphify; do
+  for t in agent-memory codedb cocoindex caveman rtk graphify; do
     local ver port stat bin
     ver=$(state_get ".tools[\"$t\"].version") || ver=""
     port=$(state_get ".tools[\"$t\"].port")   || port=""
@@ -79,14 +78,12 @@ cmd_doctor() {
   if command -v agentmemory >/dev/null 2>&1; then ok "agent-memory CLI present"; else err "agent-memory missing"; fi
   if command -v codedb      >/dev/null 2>&1; then ok "codedb CLI present";       else err "codedb missing"; fi
   if command -v cocoindex   >/dev/null 2>&1; then ok "cocoindex CLI present";    else skip "cocoindex missing"; fi
-  if command -v fn          >/dev/null 2>&1; then ok "fusion (fn) present";      else skip "fusion missing"; fi
   if command -v caveman     >/dev/null 2>&1; then ok "caveman CLI present";      else skip "caveman missing"; fi
   if command -v rtk         >/dev/null 2>&1; then ok "rtk CLI present";          else skip "rtk missing"; fi
   if command -v graphify    >/dev/null 2>&1; then ok "graphify CLI present";     else skip "graphify missing"; fi
 }
 
 cmd_update() {
-  bash "$LIB/install_fusion.sh"       || true
   bash "$LIB/install_agent_memory.sh" || true
   bash "$LIB/install_codedb.sh"       || true
   bash "$LIB/install_cocoindex.sh"    || true
@@ -123,18 +120,6 @@ cmd_start() {
 
 cmd_stop() {
   local t="${1:-agent-memory}"
-  case "$t" in
-    fusion)
-      if pgrep -f "fn dashboard" >/dev/null 2>&1; then
-        pkill -f "fn dashboard" || true
-        rm -f "$MEGAI_HOME/fusion.pid"
-        ok "fusion stopped"
-      else
-        skip "fusion not running"
-      fi
-      return
-      ;;
-  esac
   local pidf="$MEGAI_HOME/$t.pid"
   if [ -f "$pidf" ]; then
     kill "$(cat "$pidf")" 2>/dev/null || true
@@ -168,78 +153,6 @@ cmd_version() { echo "megai 0.1.0"; }
 
 # ---------- agent launchers ----------
 
-open_browser() {
-  [ -n "${MEGAI_NO_BROWSER:-}" ] && return 0
-  case "$(uname -s)" in
-    Darwin) open "$1" >/dev/null 2>&1 || true ;;
-    Linux)
-      if   command -v xdg-open >/dev/null 2>&1; then xdg-open "$1" >/dev/null 2>&1 &
-      elif command -v wslview  >/dev/null 2>&1; then wslview  "$1" >/dev/null 2>&1 &
-      fi
-      ;;
-  esac
-}
-
-fusion_url_from_log() {
-  local log="$MEGAI_HOME/logs/fusion.log"
-  [ -f "$log" ] || { echo ""; return 0; }
-  grep -oE 'https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)[^[:space:]]*' "$log" 2>/dev/null | head -1 || true
-  return 0
-}
-
-fusion_url_from_port_probe() {
-  local p
-  for p in 5173 4173 3000 3001 8080 8888; do
-    if lsof -iTCP:"$p" -sTCP:LISTEN >/dev/null 2>&1; then
-      echo "http://localhost:$p"
-      return 0
-    fi
-  done
-  return 0
-}
-
-launch_fusion_bg() {
-  if ! command -v fn >/dev/null 2>&1; then
-    skip "fusion (fn) not installed — skipping dashboard"
-    return 0
-  fi
-
-  local url=""
-  if pgrep -f "fn dashboard" >/dev/null 2>&1; then
-    url="$(fusion_url_from_log)"
-    [ -z "$url" ] && url="$(fusion_url_from_port_probe)"
-    if [ -n "$url" ]; then
-      ok "fusion already running -> ${C_GRN}${url}${C_OFF}"
-      open_browser "$url"
-    else
-      ok "fusion already running (URL not detected; megai logs fusion)"
-    fi
-    return 0
-  fi
-
-  mkdir -p "$MEGAI_HOME/logs"
-  : > "$MEGAI_HOME/logs/fusion.log"
-  nohup fn dashboard >"$MEGAI_HOME/logs/fusion.log" 2>&1 &
-  local pid=$!
-  echo "$pid" > "$MEGAI_HOME/fusion.pid"
-
-  # poll log for URL up to ~10s; only port-probe as last resort
-  local i
-  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-    url="$(fusion_url_from_log)"
-    [ -n "$url" ] && break
-    sleep 0.5
-  done
-  [ -z "$url" ] && url="$(fusion_url_from_port_probe)"
-
-  if [ -n "$url" ]; then
-    ok "fusion -> ${C_GRN}${url}${C_OFF}  (opening browser…)"
-    open_browser "$url"
-  else
-    warn "fusion launched but no URL detected — tail: megai logs fusion"
-  fi
-}
-
 ensure_wired() {
   state_init
   local agent="$1"
@@ -247,27 +160,6 @@ ensure_wired() {
   if [ "$wired" != "true" ]; then
     bash "$LIB/wire_${agent}.sh" || warn "$agent wiring had issues"
   fi
-}
-
-register_with_fusion() {
-  command -v fn >/dev/null 2>&1 || { skip "fusion (fn) missing — skip register"; return 0; }
-  state_init
-  local k name proj
-  k="$(project_key)"
-  proj="$(pwd)"
-  name="$(basename "$proj")"
-  local already; already="$(state_get ".projects[\"$k\"].fusion_registered")"
-  if [ "$already" = "true" ]; then
-    ok "fusion project '$name' already registered"
-    return 0
-  fi
-  # Idempotent on Fusion's side — duplicate-add returns non-zero, harmless.
-  if fn project add "$name" "$proj" >/dev/null 2>&1; then
-    ok "fusion: registered project '$name' -> $proj"
-  else
-    ok "fusion: project '$name' already known (or fn changed schema)"
-  fi
-  state_set ".projects[\"$k\"].fusion_registered" "true"
 }
 
 ensure_graphify_bg() {
@@ -320,16 +212,13 @@ prepare_stack() {
     printf "%s↑%s initialising project (first run)\n\n" "$C_BLUE" "$C_OFF"
   fi
 
-  step 1 5 "agent-memory daemon"
+  step 1 4 "agent-memory daemon"
   ensure_agent_memory
-  step 2 5 "codedb index"
+  step 2 4 "codedb index"
   ensure_codedb_index "$(pwd)"
-  step 3 5 "graphify knowledge graph"
+  step 3 4 "graphify knowledge graph"
   ensure_graphify_bg
-  step 4 5 "fusion dashboard + project register"
-  launch_fusion_bg
-  register_with_fusion
-  step 5 5 "token savers"
+  step 4 4 "token savers + skill checks"
   check_caveman
   check_rtk
 
@@ -379,15 +268,6 @@ cmd_graph() {
   megai_banner
   ok "graphify -> $target (building knowledge graph)"
   exec graphify "$target"
-}
-
-cmd_fusion() {
-  megai_banner
-  launch_fusion_bg
-  mkdir -p "$MEGAI_HOME/logs"
-  [ -f "$MEGAI_HOME/logs/fusion.log" ] || : > "$MEGAI_HOME/logs/fusion.log"
-  ok "tailing fusion log (Ctrl-C to detach; dashboard keeps running)"
-  tail -f "$MEGAI_HOME/logs/fusion.log"
 }
 
 # ---------- project bootstrap (default action) ----------
@@ -494,12 +374,10 @@ ${C_GRN}Knowledge graph${C_OFF}  (graphify)
   megai graph ./docs       # graph a sub-tree
   # inside cc/codex: /graphify .  /graphify query "<q>"
 
-${C_GRN}Agents${C_OFF}  (launches CLI + Fusion dashboard, MCP/skill already wired)
-  megai cc       — Claude Code   + Fusion dashboard
-  megai codex    — Codex CLI     + Fusion dashboard
-  megai pi       — Pi            + Fusion dashboard
-  megai fusion   — Fusion dashboard only (tails log)
-  Each launcher auto-registers the folder with Fusion (fn project add).
+${C_GRN}Agents${C_OFF}  (launches CLI with full stack already initialised)
+  megai cc       — Claude Code   (agentmemory + codedb MCP)
+  megai codex    — Codex CLI     (agentmemory + codedb MCP)
+  megai pi       — Pi            (megai-memory + megai-codedb extensions)
 
 ${C_GRN}Manage${C_OFF}
   megai status     megai doctor     megai stop     megai update
@@ -528,7 +406,6 @@ case "${1:-__project__}" in
   cc)        shift; cmd_cc        "$@" ;;
   codex)     shift; cmd_codex     "$@" ;;
   pi)        shift; cmd_pi        "$@" ;;
-  fusion)    shift; cmd_fusion    "$@" ;;
   graph)     shift; cmd_graph     "$@" ;;
   install)   shift; cmd_install   "$@" ;;
   status)    shift; cmd_status    "$@" ;;
