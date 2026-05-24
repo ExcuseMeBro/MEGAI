@@ -50,22 +50,18 @@ bash "$LIB/install_caveman.sh"
 step 7 $TOTAL "Installing rtk (Rust Token Killer)"
 bash "$LIB/install_rtk.sh"
 
-step 8 $TOTAL "Wiring MCP into cc / codex / pi"
+step 8 $TOTAL "Wiring MCP into cc / codex / pi + shell PATH"
 bash "$LIB/wire_cc.sh"    || warn "cc wiring skipped"
 bash "$LIB/wire_codex.sh" || warn "codex wiring skipped"
 bash "$LIB/wire_pi.sh"    || warn "pi wiring skipped"
-
-# PATH hint
-case ":$PATH:" in
-  *":$MEGAI_HOME/bin:"*) ;;
-  *)
-    warn "PATH ga qo'shing:  export PATH=\"$MEGAI_HOME/bin:\$PATH\""
-    ;;
-esac
+bash "$LIB/wire_path.sh"  || warn "PATH wiring skipped"
 
 ok "MEGAI ready"
 echo
+echo "    Open a new shell (or 'source ~/.zshrc') so PATH picks up megai/bin"
+echo
+echo "    megai           # activate stack for the current folder"
+echo "    megai cc        # Claude Code + Fusion"
 echo "    megai status"
 echo "    megai doctor"
-echo "    megai update"
 echo

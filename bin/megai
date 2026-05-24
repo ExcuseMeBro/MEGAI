@@ -37,7 +37,7 @@ Commands:
   start [tool]          Start daemon (agent-memory)
   stop  [tool]          Stop daemon (agent-memory | fusion)
   update                Update all tools
-  wire <cc|codex|pi>    Re-wire MCP config only (no launch)
+  wire <cc|codex|pi|path>  Re-wire MCP config / shell PATH (no launch)
   logs [tool]           Tail log
   uninstall             Remove megai + revert configs
   version               Print version
@@ -99,7 +99,8 @@ cmd_wire() {
     cc)    bash "$LIB/wire_cc.sh" ;;
     codex) bash "$LIB/wire_codex.sh" ;;
     pi)    bash "$LIB/wire_pi.sh" ;;
-    *)     die "usage: megai wire <cc|codex|pi>" ;;
+    path)  bash "$LIB/wire_path.sh" ;;
+    *)     die "usage: megai wire <cc|codex|pi|path>" ;;
   esac
 }
 
@@ -155,6 +156,7 @@ cmd_uninstall() {
   bash "$LIB/wire_cc.sh"    --remove || true
   bash "$LIB/wire_codex.sh" --remove || true
   bash "$LIB/wire_pi.sh"    --remove || true
+  bash "$LIB/wire_path.sh"  --remove || true
   rm -rf "$MEGAI_HOME"
   ok "uninstalled"
 }
