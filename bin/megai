@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+# megai — CLI entry
+set -euo pipefail
+
+MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
+LIB="$MEGAI_HOME/lib"
+
+# shellcheck source=../lib/ui.sh
+. "$LIB/ui.sh"
+# shellcheck source=../lib/detect.sh
+. "$LIB/detect.sh"
+# shellcheck source=../lib/state.sh
+. "$LIB/state.sh"
+
+usage() {
+  cat <<EOF
+megai — zero-config AI agent stack manager
+
+Commands:
+  install               Re-run installer (idempotent)
+  status                Show tools/ports/versions
+  doctor                Diagnose problems
+  start [tool]          Start daemon (agent-memory)
+  stop  [tool]          Stop daemon
+  update                Update all tools
+  wire <cc|codex|pi>    Re-wire MCP for an agent
+  logs [tool]           Tail log
+  uninstall             Remove megai + revert configs
+  version               Print version
+  help                  This message
+
+Tools: fusion, agent-memory, codedb, cocoindex, caveman, rtk
+EOF
+}
+
+cmd_install() {
+  bash "$LIB/main.sh"
+}
+
+cmd_status() {
+  detect_os; detect_runtimes; state_init
+  printf "%-14s %-10s %-8s %s\n" TOOL VERSION PORT STATUS
+  for t in fusion agent-memory codedb cocoindex caveman rtk; do
+    local ver port stat bin
+    ver=$(state_get ".tools[\"$t\"].version") || ver=""
+    port=$(state_get ".tools[\"$t\"].port")   || port=""
+    bin=$(state_get ".tools[\"$t\"].bin")     || bin=""
+    if [ -n "$bin" ] && [ -x "$bin" ]; then stat="installed"; else stat="missing"; fi
+    printf "%-14s %-10s %-8s %s\n" "$t" "${ver:--}" "${port:--}" "$stat"
+  done
+}
+
+cmd_doctor() {
+  detect_os; detect_runtimes
+  say "OS: $MEGAI_OS/$MEGAI_ARCH"
+  for c in curl jq node npm python3 pipx; do
+    if command -v "$c" >/dev/null 2>&1; then ok "$c -> $(command -v "$c")"
+    else err "$c missing"; fi
+  done
+  for f in "$HOME/.claude.json" "$HOME/.codex/config.toml" "$HOME/.pi/agent/skills/megai.md"; do
+    if [ -e "$f" ]; then ok "$f"
+    else skip "$f (not present)"; fi
+  done
+  if command -v agentmemory >/dev/null 2>&1; then ok "agent-memory CLI present"; else err "agent-memory missing"; fi
+  if command -v codedb      >/dev/null 2>&1; then ok "codedb CLI present";       else err "codedb missing"; fi
+  if command -v cocoindex   >/dev/null 2>&1; then ok "cocoindex CLI present";    else skip "cocoindex missing"; fi
+  if command -v fn          >/dev/null 2>&1; then ok "fusion (fn) present";      else skip "fusion missing"; fi
+  if command -v caveman     >/dev/null 2>&1; then ok "caveman CLI present";      else skip "caveman missing"; fi
+  if command -v rtk         >/dev/null 2>&1; then ok "rtk CLI present";          else skip "rtk missing"; fi
+}
+
+cmd_update() {
+  bash "$LIB/install_fusion.sh"       || true
+  bash "$LIB/install_agent_memory.sh" || true
+  bash "$LIB/install_codedb.sh"       || true
+  bash "$LIB/install_cocoindex.sh"    || true
+  bash "$LIB/install_caveman.sh"      || true
+  bash "$LIB/install_rtk.sh"          || true
+  ok "update complete"
+}
+
+cmd_wire() {
+  local agent="${1:-}"
+  case "$agent" in
+    cc)    bash "$LIB/wire_cc.sh" ;;
+    codex) bash "$LIB/wire_codex.sh" ;;
+    pi)    bash "$LIB/wire_pi.sh" ;;
+    *)     die "usage: megai wire <cc|codex|pi>" ;;
+  esac
+}
+
+cmd_start() {
+  local t="${1:-agent-memory}"
+  case "$t" in
+    agent-memory)
+      local port; port="$(state_get '.ports["agent-memory"]')"; port="${port:-3111}"
+      mkdir -p "$MEGAI_HOME/logs"
+      nohup agentmemory >"$MEGAI_HOME/logs/agent-memory.log" 2>&1 &
+      echo $! > "$MEGAI_HOME/agent-memory.pid"
+      ok "agent-memory started (pid=$(cat "$MEGAI_HOME/agent-memory.pid"), port=$port)"
+      ;;
+    *) die "start: only agent-memory is daemonized" ;;
+  esac
+}
+
+cmd_stop() {
+  local t="${1:-agent-memory}"
+  local pidf="$MEGAI_HOME/$t.pid"
+  if [ -f "$pidf" ]; then
+    kill "$(cat "$pidf")" 2>/dev/null || true
+    rm -f "$pidf"
+    ok "$t stopped"
+  else
+    skip "$t not running"
+  fi
+}
+
+cmd_logs() {
+  local t="${1:-agent-memory}"
+  local f="$MEGAI_HOME/logs/$t.log"
+  [ -f "$f" ] || die "no log: $f"
+  tail -f "$f"
+}
+
+cmd_uninstall() {
+  warn "Uninstall megai? This will remove ~/.megai and revert MCP configs. [y/N]"
+  read -r ans
+  [ "$ans" = "y" ] || { skip "cancelled"; return 0; }
+  bash "$LIB/wire_cc.sh"    --remove || true
+  bash "$LIB/wire_codex.sh" --remove || true
+  bash "$LIB/wire_pi.sh"    --remove || true
+  rm -rf "$MEGAI_HOME"
+  ok "uninstalled"
+}
+
+cmd_version() { echo "megai 0.1.0"; }
+
+case "${1:-help}" in
+  install)   shift; cmd_install   "$@" ;;
+  status)    shift; cmd_status    "$@" ;;
+  doctor)    shift; cmd_doctor    "$@" ;;
+  update)    shift; cmd_update    "$@" ;;
+  start)     shift; cmd_start     "$@" ;;
+  stop)      shift; cmd_stop      "$@" ;;
+  wire)      shift; cmd_wire      "$@" ;;
+  logs)      shift; cmd_logs      "$@" ;;
+  uninstall) shift; cmd_uninstall "$@" ;;
+  version|-v|--version) cmd_version ;;
+  help|-h|--help|"") usage ;;
+  *) usage; exit 1 ;;
+esac

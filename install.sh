@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# MEGAI installer — zero-config bundle of Fusion + agent-memory + codedb + cocoindex
+# Usage:  curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | bash
+set -euo pipefail
+
+MEGAI_REPO="${MEGAI_REPO:-ExcuseMeBro/MEGAI}"
+MEGAI_REF="${MEGAI_REF:-main}"
+MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
+MEGAI_TARBALL="https://codeload.github.com/${MEGAI_REPO}/tar.gz/refs/heads/${MEGAI_REF}"
+
+c_blue=$'\033[34m'; c_grn=$'\033[32m'; c_red=$'\033[31m'; c_dim=$'\033[2m'; c_off=$'\033[0m'
+say()  { printf "%s[megai]%s %s\n"   "$c_blue" "$c_off" "$*"; }
+ok()   { printf "%s  ✓%s %s\n"        "$c_grn"  "$c_off" "$*"; }
+warn() { printf "%s  !%s %s\n"        "$c_red"  "$c_off" "$*" >&2; }
+die()  { warn "$*"; exit 1; }
+
+[ -t 1 ] || { c_blue=""; c_grn=""; c_red=""; c_dim=""; c_off=""; }
+
+say "MEGAI installer starting"
+say "target: $MEGAI_HOME"
+
+# 1. download repo tarball
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+say "fetching $MEGAI_TARBALL"
+curl -fsSL "$MEGAI_TARBALL" | tar -xz -C "$tmp" --strip-components=1
+ok "source extracted -> $tmp"
+
+# 2. install into MEGAI_HOME
+mkdir -p "$MEGAI_HOME"/{bin,lib,logs,backups,pi-skill/extensions}
+cp -R "$tmp/bin/."        "$MEGAI_HOME/bin/"
+cp -R "$tmp/lib/."        "$MEGAI_HOME/lib/"
+cp -R "$tmp/pi-skill/."   "$MEGAI_HOME/pi-skill/"
+chmod +x "$MEGAI_HOME/bin/megai" "$MEGAI_HOME/lib/"*.sh "$MEGAI_HOME/pi-skill/extensions/"*.sh 2>/dev/null || true
+ok "files installed"
+
+# 3. run main pipeline
+export MEGAI_HOME
+exec bash "$MEGAI_HOME/lib/main.sh"
