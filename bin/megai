@@ -249,6 +249,38 @@ ensure_wired() {
   fi
 }
 
+ensure_graphify_bg() {
+  if ! command -v graphify >/dev/null 2>&1; then
+    skip "graphify not installed"
+    return 0
+  fi
+  if [ -d "graphify-out" ]; then
+    ok "graphify graph already built (graphify-out/)"
+    return 0
+  fi
+  mkdir -p "$MEGAI_HOME/logs"
+  local log="$MEGAI_HOME/logs/graphify.log"
+  : > "$log"
+  ( nohup graphify . --no-viz >"$log" 2>&1 & )
+  ok "graphify graph build started in background (megai logs graphify)"
+}
+
+# Bring every megai-managed tool up to ready state for the current project.
+prepare_stack() {
+  state_init
+  step 1 5 "agent-memory daemon"
+  ensure_agent_memory
+  step 2 5 "codedb index"
+  ensure_codedb_index "$(pwd)"
+  step 3 5 "graphify knowledge graph"
+  ensure_graphify_bg
+  step 4 5 "fusion dashboard"
+  launch_fusion_bg
+  step 5 5 "token savers"
+  check_caveman
+  check_rtk
+}
+
 # launch <agent-key> <cli-binary> [arg...]
 launch_agent() {
   local agent="$1"; shift
@@ -256,11 +288,10 @@ launch_agent() {
   local proj; proj="$(pwd)"
 
   megai_banner
-  printf "%s[megai]%s launching %s%s%s in %s\n" "$C_BLUE" "$C_OFF" "$C_GRN" "$agent" "$C_OFF" "$proj"
+  printf "%s[megai]%s launching %s%s%s in %s\n\n" "$C_BLUE" "$C_OFF" "$C_GRN" "$agent" "$C_OFF" "$proj"
 
   ensure_wired "$agent"
-  ensure_agent_memory
-  launch_fusion_bg
+  prepare_stack
 
   if ! command -v "$bin" >/dev/null 2>&1; then
     err "$bin CLI not found in PATH."
@@ -272,6 +303,7 @@ launch_agent() {
     return 1
   fi
 
+  echo
   ok "starting $bin …"
   exec "$bin" "$@"
 }
@@ -421,21 +453,12 @@ cmd_project() {
   local name; name="$(basename "$proj")"
 
   megai_banner
-  printf "%s[megai]%s project: %s%s%s  (%s)\n" "$C_BLUE" "$C_OFF" "$C_GRN" "$name" "$C_OFF" "$proj"
+  printf "%s[megai]%s project: %s%s%s  (%s)\n\n" "$C_BLUE" "$C_OFF" "$C_GRN" "$name" "$C_OFF" "$proj"
 
-  step 1 4 "agent-memory daemon"
-  ensure_agent_memory
+  prepare_stack
 
-  step 2 4 "codedb index"
-  ensure_codedb_index "$proj"
-
-  step 3 4 "MCP / skill bindings"
+  echo
   check_mcp_wired
-
-  step 4 4 "token savers + knowledge graph"
-  check_caveman
-  check_rtk
-  check_graphify
 
   print_quick_guide "$name"
 }
