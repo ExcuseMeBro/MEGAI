@@ -38,6 +38,28 @@ megai doctor
 | [caveman](https://github.com/JuliusBrussee/caveman) | Token-compression skill (~65% savings, auto-activates in cc/codex/pi) |
 | [rtk](https://github.com/rtk-ai/rtk) | Rust Token Killer — CLI output proxy (~60–90% savings, hooks into cc) |
 
+## Using Fusion (the orchestrator UI)
+
+`megai cc` (or `codex` / `pi` / `fusion`) starts `fn dashboard` in the background, parses its URL from the log, prints it, and opens your default browser. Disable auto-open with `MEGAI_NO_BROWSER=1 megai cc`.
+
+```bash
+megai cc                  # boots Fusion + opens browser + launches Claude Code
+megai fusion              # Fusion only (tails the log; dashboard keeps running)
+megai stop fusion         # kill the dashboard
+megai logs fusion         # tail
+```
+
+Inside Fusion, the day-to-day commands are:
+
+```bash
+fn project add  <name> <path>     # register the folder
+fn task create  "fix flaky test"  # create a task
+fn task import  owner/repo        # import GitHub issues as tasks
+fn mission create                 # build a hierarchical plan from tasks
+```
+
+Fusion executes each task in an isolated git worktree and plans / writes / reviews with the agent you launched (`claude`, `codex`, `pi`).
+
 **Wired into:**
 
 - **Claude Code** — MCP servers added to `~/.claude.json`; `rtk` PreToolUse hook registered; `caveman` skill auto-detected

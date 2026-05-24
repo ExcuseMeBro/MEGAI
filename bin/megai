@@ -165,26 +165,75 @@ cmd_version() { echo "megai 0.1.0"; }
 
 # ---------- agent launchers ----------
 
+open_browser() {
+  [ -n "${MEGAI_NO_BROWSER:-}" ] && return 0
+  case "$(uname -s)" in
+    Darwin) open "$1" >/dev/null 2>&1 || true ;;
+    Linux)
+      if   command -v xdg-open >/dev/null 2>&1; then xdg-open "$1" >/dev/null 2>&1 &
+      elif command -v wslview  >/dev/null 2>&1; then wslview  "$1" >/dev/null 2>&1 &
+      fi
+      ;;
+  esac
+}
+
+fusion_url_from_log() {
+  local log="$MEGAI_HOME/logs/fusion.log"
+  [ -f "$log" ] || { echo ""; return 0; }
+  grep -oE 'https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)[^[:space:]]*' "$log" 2>/dev/null | head -1 || true
+  return 0
+}
+
+fusion_url_from_port_probe() {
+  local p
+  for p in 5173 4173 3000 3001 8080 8888; do
+    if lsof -iTCP:"$p" -sTCP:LISTEN >/dev/null 2>&1; then
+      echo "http://localhost:$p"
+      return 0
+    fi
+  done
+  return 0
+}
+
 launch_fusion_bg() {
   if ! command -v fn >/dev/null 2>&1; then
     skip "fusion (fn) not installed — skipping dashboard"
     return 0
   fi
+
+  local url=""
   if pgrep -f "fn dashboard" >/dev/null 2>&1; then
-    ok "fusion dashboard already running"
+    url="$(fusion_url_from_log)"
+    [ -z "$url" ] && url="$(fusion_url_from_port_probe)"
+    if [ -n "$url" ]; then
+      ok "fusion already running -> ${C_GRN}${url}${C_OFF}"
+      open_browser "$url"
+    else
+      ok "fusion already running (URL not detected; megai logs fusion)"
+    fi
     return 0
   fi
+
   mkdir -p "$MEGAI_HOME/logs"
+  : > "$MEGAI_HOME/logs/fusion.log"
   nohup fn dashboard >"$MEGAI_HOME/logs/fusion.log" 2>&1 &
   local pid=$!
   echo "$pid" > "$MEGAI_HOME/fusion.pid"
-  sleep 2
-  local url
-  url="$(grep -oE 'https?://[^[:space:]]+' "$MEGAI_HOME/logs/fusion.log" 2>/dev/null | head -1 || true)"
+
+  # poll log for URL up to ~10s; only port-probe as last resort
+  local i
+  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    url="$(fusion_url_from_log)"
+    [ -n "$url" ] && break
+    sleep 0.5
+  done
+  [ -z "$url" ] && url="$(fusion_url_from_port_probe)"
+
   if [ -n "$url" ]; then
-    ok "fusion dashboard -> $url"
+    ok "fusion -> ${C_GRN}${url}${C_OFF}  (opening browser…)"
+    open_browser "$url"
   else
-    ok "fusion dashboard launched (pid=$pid, see: megai logs fusion)"
+    warn "fusion launched but no URL detected — tail: megai logs fusion"
   fi
 }
 
@@ -230,7 +279,8 @@ cmd_pi()     { launch_agent pi    pi     "$@"; }
 cmd_fusion() {
   megai_banner
   launch_fusion_bg
-  # Foreground: tail the log so the user sees activity.
+  mkdir -p "$MEGAI_HOME/logs"
+  [ -f "$MEGAI_HOME/logs/fusion.log" ] || : > "$MEGAI_HOME/logs/fusion.log"
   ok "tailing fusion log (Ctrl-C to detach; dashboard keeps running)"
   tail -f "$MEGAI_HOME/logs/fusion.log"
 }
