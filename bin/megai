@@ -249,6 +249,27 @@ ensure_wired() {
   fi
 }
 
+register_with_fusion() {
+  command -v fn >/dev/null 2>&1 || { skip "fusion (fn) missing — skip register"; return 0; }
+  state_init
+  local k name proj
+  k="$(project_key)"
+  proj="$(pwd)"
+  name="$(basename "$proj")"
+  local already; already="$(state_get ".projects[\"$k\"].fusion_registered")"
+  if [ "$already" = "true" ]; then
+    ok "fusion project '$name' already registered"
+    return 0
+  fi
+  # Idempotent on Fusion's side — duplicate-add returns non-zero, harmless.
+  if fn project add "$name" "$proj" >/dev/null 2>&1; then
+    ok "fusion: registered project '$name' -> $proj"
+  else
+    ok "fusion: project '$name' already known (or fn changed schema)"
+  fi
+  state_set ".projects[\"$k\"].fusion_registered" "true"
+}
+
 ensure_graphify_bg() {
   if ! command -v graphify >/dev/null 2>&1; then
     skip "graphify not installed"
@@ -305,8 +326,9 @@ prepare_stack() {
   ensure_codedb_index "$(pwd)"
   step 3 5 "graphify knowledge graph"
   ensure_graphify_bg
-  step 4 5 "fusion dashboard"
+  step 4 5 "fusion dashboard + project register"
   launch_fusion_bg
+  register_with_fusion
   step 5 5 "token savers"
   check_caveman
   check_rtk
@@ -473,10 +495,11 @@ ${C_GRN}Knowledge graph${C_OFF}  (graphify)
   # inside cc/codex: /graphify .  /graphify query "<q>"
 
 ${C_GRN}Agents${C_OFF}  (launches CLI + Fusion dashboard, MCP/skill already wired)
-  megai cc       — Claude Code   (agentmemory + codedb MCP)
-  megai codex    — Codex CLI     (agentmemory + codedb MCP)
-  megai pi       — Pi            (megai-memory + megai-codedb extensions)
-  megai fusion   — Fusion dashboard only
+  megai cc       — Claude Code   + Fusion dashboard
+  megai codex    — Codex CLI     + Fusion dashboard
+  megai pi       — Pi            + Fusion dashboard
+  megai fusion   — Fusion dashboard only (tails log)
+  Each launcher auto-registers the folder with Fusion (fn project add).
 
 ${C_GRN}Manage${C_OFF}
   megai status     megai doctor     megai stop     megai update
