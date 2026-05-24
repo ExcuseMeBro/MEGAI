@@ -51,14 +51,24 @@ megai doctor
 ## CLI
 
 ```
+# default — activate stack for the folder you're in
+megai                   # banner + start daemons + index + quick guide
+
+# launch an agent CLI with Fusion dashboard in the background
+megai cc                # ensure wired -> start agent-memory + Fusion -> exec `claude`
+megai codex             # same, then exec `codex`
+megai pi                # same, then exec `pi`
+megai fusion            # Fusion dashboard alone
+
+# manage
 megai install           # re-run installer (idempotent)
 megai status            # tool versions, ports, status
 megai doctor            # diagnose missing deps and broken configs
 megai start agent-memory
-megai stop  agent-memory
+megai stop  agent-memory|fusion
 megai update            # update all tools
-megai wire <cc|codex|pi>
-megai logs agent-memory
+megai wire <cc|codex|pi>  # only re-write MCP config (no launch)
+megai logs agent-memory|fusion
 megai uninstall
 ```
 

@@ -26,14 +26,18 @@ Usage:
                           • prints quick guide
 
 Commands:
+  cc                    Launch Claude Code CLI + Fusion dashboard (wired)
+  codex                 Launch Codex CLI + Fusion dashboard (wired)
+  pi                    Launch Pi CLI + Fusion dashboard (wired)
+  fusion                Launch Fusion dashboard only
   install               Re-run installer (idempotent)
   status                Show tools/ports/versions
   doctor                Diagnose problems
   reindex               Force re-index this project with codedb
   start [tool]          Start daemon (agent-memory)
-  stop  [tool]          Stop daemon
+  stop  [tool]          Stop daemon (agent-memory | fusion)
   update                Update all tools
-  wire <cc|codex|pi>    Re-wire MCP for an agent
+  wire <cc|codex|pi>    Re-wire MCP config only (no launch)
   logs [tool]           Tail log
   uninstall             Remove megai + revert configs
   version               Print version
@@ -115,6 +119,18 @@ cmd_start() {
 
 cmd_stop() {
   local t="${1:-agent-memory}"
+  case "$t" in
+    fusion)
+      if pgrep -f "fn dashboard" >/dev/null 2>&1; then
+        pkill -f "fn dashboard" || true
+        rm -f "$MEGAI_HOME/fusion.pid"
+        ok "fusion stopped"
+      else
+        skip "fusion not running"
+      fi
+      return
+      ;;
+  esac
   local pidf="$MEGAI_HOME/$t.pid"
   if [ -f "$pidf" ]; then
     kill "$(cat "$pidf")" 2>/dev/null || true
@@ -144,6 +160,78 @@ cmd_uninstall() {
 }
 
 cmd_version() { echo "megai 0.1.0"; }
+
+# ---------- agent launchers ----------
+
+launch_fusion_bg() {
+  if ! command -v fn >/dev/null 2>&1; then
+    skip "fusion (fn) not installed — skipping dashboard"
+    return 0
+  fi
+  if pgrep -f "fn dashboard" >/dev/null 2>&1; then
+    ok "fusion dashboard already running"
+    return 0
+  fi
+  mkdir -p "$MEGAI_HOME/logs"
+  nohup fn dashboard >"$MEGAI_HOME/logs/fusion.log" 2>&1 &
+  local pid=$!
+  echo "$pid" > "$MEGAI_HOME/fusion.pid"
+  sleep 2
+  local url
+  url="$(grep -oE 'https?://[^[:space:]]+' "$MEGAI_HOME/logs/fusion.log" 2>/dev/null | head -1 || true)"
+  if [ -n "$url" ]; then
+    ok "fusion dashboard -> $url"
+  else
+    ok "fusion dashboard launched (pid=$pid, see: megai logs fusion)"
+  fi
+}
+
+ensure_wired() {
+  state_init
+  local agent="$1"
+  local wired; wired="$(state_get ".agents[\"$agent\"].wired")"
+  if [ "$wired" != "true" ]; then
+    bash "$LIB/wire_${agent}.sh" || warn "$agent wiring had issues"
+  fi
+}
+
+# launch <agent-key> <cli-binary> [arg...]
+launch_agent() {
+  local agent="$1"; shift
+  local bin="$1";   shift
+  local proj; proj="$(pwd)"
+
+  megai_banner
+  printf "%s[megai]%s launching %s%s%s in %s\n" "$C_BLUE" "$C_OFF" "$C_GRN" "$agent" "$C_OFF" "$proj"
+
+  ensure_wired "$agent"
+  ensure_agent_memory
+  launch_fusion_bg
+
+  if ! command -v "$bin" >/dev/null 2>&1; then
+    err "$bin CLI not found in PATH."
+    case "$bin" in
+      claude) echo "    Install: https://docs.claude.com/en/docs/claude-code/setup" ;;
+      codex)  echo "    Install: https://github.com/openai/codex" ;;
+      pi)     echo "    Install: curl -fsSL https://pi.dev/install.sh | sh" ;;
+    esac
+    return 1
+  fi
+
+  ok "starting $bin …"
+  exec "$bin" "$@"
+}
+
+cmd_cc()     { launch_agent cc    claude "$@"; }
+cmd_codex()  { launch_agent codex codex  "$@"; }
+cmd_pi()     { launch_agent pi    pi     "$@"; }
+cmd_fusion() {
+  megai_banner
+  launch_fusion_bg
+  # Foreground: tail the log so the user sees activity.
+  ok "tailing fusion log (Ctrl-C to detach; dashboard keeps running)"
+  tail -f "$MEGAI_HOME/logs/fusion.log"
+}
 
 # ---------- project bootstrap (default action) ----------
 
@@ -234,11 +322,11 @@ ${C_GRN}Code search${C_OFF}
   megai-codedb outline <file>
   megai-codedb tree
 
-${C_GRN}Agents${C_OFF}  (start one and the MCP/skill is already wired)
-  cc          — Claude Code   (uses agentmemory + codedb MCP)
-  codex       — Codex CLI     (uses agentmemory + codedb MCP)
-  pi          — Pi            (uses megai-memory + megai-codedb extensions)
-  fn dashboard — Fusion UI
+${C_GRN}Agents${C_OFF}  (launches CLI + Fusion dashboard, MCP/skill already wired)
+  megai cc       — Claude Code   (agentmemory + codedb MCP)
+  megai codex    — Codex CLI     (agentmemory + codedb MCP)
+  megai pi       — Pi            (megai-memory + megai-codedb extensions)
+  megai fusion   — Fusion dashboard only
 
 ${C_GRN}Manage${C_OFF}
   megai status     megai doctor     megai stop     megai update
@@ -272,6 +360,10 @@ cmd_project() {
 }
 
 case "${1:-__project__}" in
+  cc)        shift; cmd_cc        "$@" ;;
+  codex)     shift; cmd_codex     "$@" ;;
+  pi)        shift; cmd_pi        "$@" ;;
+  fusion)    shift; cmd_fusion    "$@" ;;
   install)   shift; cmd_install   "$@" ;;
   status)    shift; cmd_status    "$@" ;;
   doctor)    shift; cmd_doctor    "$@" ;;
