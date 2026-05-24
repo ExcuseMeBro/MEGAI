@@ -16,10 +16,18 @@ usage() {
   cat <<EOF
 megai — zero-config AI agent stack manager
 
+Usage:
+  megai                 Activate stack for current project (default)
+                          • starts agent-memory daemon
+                          • indexes the folder with codedb
+                          • verifies MCP/skill bindings
+                          • prints quick guide
+
 Commands:
   install               Re-run installer (idempotent)
   status                Show tools/ports/versions
   doctor                Diagnose problems
+  reindex               Force re-index this project with codedb
   start [tool]          Start daemon (agent-memory)
   stop  [tool]          Stop daemon
   update                Update all tools
@@ -135,7 +143,132 @@ cmd_uninstall() {
 
 cmd_version() { echo "megai 0.1.0"; }
 
-case "${1:-help}" in
+# ---------- project bootstrap (default action) ----------
+
+is_port_listening() {
+  lsof -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1
+}
+
+ensure_agent_memory() {
+  state_init
+  local port; port="$(state_get '.ports["agent-memory"]')"; port="${port:-3111}"
+  if is_port_listening "$port"; then
+    ok "agent-memory running -> :$port"
+    return
+  fi
+  if ! command -v agentmemory >/dev/null 2>&1; then
+    warn "agent-memory missing — run: megai install"
+    return
+  fi
+  mkdir -p "$MEGAI_HOME/logs"
+  nohup agentmemory >"$MEGAI_HOME/logs/agent-memory.log" 2>&1 &
+  echo $! > "$MEGAI_HOME/agent-memory.pid"
+  sleep 1
+  if is_port_listening "$port"; then
+    ok "agent-memory started -> :$port (pid=$(cat "$MEGAI_HOME/agent-memory.pid"))"
+  else
+    warn "agent-memory failed to bind :$port — see $MEGAI_HOME/logs/agent-memory.log"
+  fi
+}
+
+ensure_codedb_index() {
+  local proj="$1"
+  if ! command -v codedb >/dev/null 2>&1; then
+    warn "codedb missing — run: megai install"
+    return
+  fi
+  state_init
+  local proj_key; proj_key="$(printf '%s' "$proj" | sed 's/[\"]/_/g')"
+  local indexed; indexed="$(state_get ".projects[\"$proj_key\"].indexed_at" 2>/dev/null)"
+  if [ -n "$indexed" ]; then
+    ok "codedb index ready ($indexed)"
+    return
+  fi
+  printf "  %s↻%s codedb indexing %s ...\n" "$C_BLUE" "$C_OFF" "$proj"
+  if codedb index "$proj" >/dev/null 2>&1; then
+    state_set ".projects[\"$proj_key\"]" "{\"path\":\"$proj\",\"indexed_at\":\"$(date -u +%FT%TZ)\"}"
+    ok "codedb indexed -> $proj"
+  else
+    warn "codedb index failed (continuing)"
+  fi
+}
+
+check_caveman() {
+  if command -v caveman >/dev/null 2>&1; then ok "caveman skill active"
+  else skip "caveman not installed"; fi
+}
+
+check_rtk() {
+  if command -v rtk >/dev/null 2>&1; then
+    local ver; ver="$(rtk --version 2>/dev/null | head -n1 || echo "rtk")"
+    ok "rtk proxy hook: $ver"
+  else
+    skip "rtk not installed"
+  fi
+}
+
+check_mcp_wired() {
+  state_init
+  local cc cx pi
+  cc="$(state_get '.agents["cc"].wired')";    [ "$cc" = "true" ] && ok "cc MCP wired"    || skip "cc MCP not wired (megai wire cc)"
+  cx="$(state_get '.agents["codex"].wired')"; [ "$cx" = "true" ] && ok "codex MCP wired" || skip "codex MCP not wired (megai wire codex)"
+  pi="$(state_get '.agents["pi"].wired')";    [ "$pi" = "true" ] && ok "pi skill wired"  || skip "pi skill not wired (megai wire pi)"
+}
+
+print_quick_guide() {
+  local proj="$1"
+  cat <<EOF
+
+${C_BLUE}━━━ MEGAI ready for ${proj} ━━━${C_OFF}
+
+${C_GRN}Memory${C_OFF}  (persistent across sessions)
+  megai-memory save "<observation>"
+  megai-memory recall "<query>"
+  megai-memory sessions
+
+${C_GRN}Code search${C_OFF}
+  megai-codedb search "<pattern>"
+  megai-codedb symbol <name>
+  megai-codedb outline <file>
+  megai-codedb tree
+
+${C_GRN}Agents${C_OFF}  (start one and the MCP/skill is already wired)
+  cc          — Claude Code   (uses agentmemory + codedb MCP)
+  codex       — Codex CLI     (uses agentmemory + codedb MCP)
+  pi          — Pi            (uses megai-memory + megai-codedb extensions)
+  fn dashboard — Fusion UI
+
+${C_GRN}Manage${C_OFF}
+  megai status     megai doctor     megai stop     megai update
+
+${C_DIM}Token savers active: caveman (skill), rtk (proxy hook).${C_OFF}
+EOF
+}
+
+cmd_project() {
+  detect_os; detect_runtimes; state_init
+  local proj; proj="$(pwd)"
+  local name; name="$(basename "$proj")"
+
+  printf "%s[megai]%s project: %s%s%s  (%s)\n" "$C_BLUE" "$C_OFF" "$C_GRN" "$name" "$C_OFF" "$proj"
+
+  step 1 4 "agent-memory daemon"
+  ensure_agent_memory
+
+  step 2 4 "codedb index"
+  ensure_codedb_index "$proj"
+
+  step 3 4 "MCP / skill bindings"
+  check_mcp_wired
+
+  step 4 4 "token savers"
+  check_caveman
+  check_rtk
+
+  print_quick_guide "$name"
+}
+
+case "${1:-__project__}" in
   install)   shift; cmd_install   "$@" ;;
   status)    shift; cmd_status    "$@" ;;
   doctor)    shift; cmd_doctor    "$@" ;;
@@ -145,7 +278,11 @@ case "${1:-help}" in
   wire)      shift; cmd_wire      "$@" ;;
   logs)      shift; cmd_logs      "$@" ;;
   uninstall) shift; cmd_uninstall "$@" ;;
+  reindex)   shift; bash "$LIB/state.sh" 2>/dev/null
+             jq 'del(.projects["'"$(pwd)"'"])' "$MEGAI_HOME/state.json" > "$MEGAI_HOME/state.json.tmp" && mv "$MEGAI_HOME/state.json.tmp" "$MEGAI_HOME/state.json"
+             cmd_project ;;
   version|-v|--version) cmd_version ;;
-  help|-h|--help|"") usage ;;
+  help|-h|--help) usage ;;
+  __project__) cmd_project ;;
   *) usage; exit 1 ;;
 esac

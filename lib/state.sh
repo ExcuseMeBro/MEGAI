@@ -9,7 +9,8 @@ state_init() {
   "version": "0.1.0",
   "tools": {},
   "ports": {},
-  "agents": {}
+  "agents": {},
+  "projects": {}
 }
 EOF
 }
