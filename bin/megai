@@ -265,9 +265,40 @@ ensure_graphify_bg() {
   ok "graphify graph build started in background (megai logs graphify)"
 }
 
+# --- project lifecycle ---
+
+project_key() { printf '%s' "$(pwd)" | sed 's/[\"]/_/g'; }
+
+is_project_initialized() {
+  local k; k="$(project_key)"
+  local v; v="$(state_get ".projects[\"$k\"].initialized_at")"
+  [ -n "$v" ]
+}
+
+mark_project_active() {
+  local k; k="$(project_key)"
+  local now; now="$(date -u +%FT%TZ)"
+  state_set ".projects[\"$k\"].path"            "\"$(pwd)\""
+  local existing; existing="$(state_get ".projects[\"$k\"].initialized_at")"
+  if [ -z "$existing" ]; then
+    state_set ".projects[\"$k\"].initialized_at" "\"$now\""
+  fi
+  state_set ".projects[\"$k\"].last_active_at" "\"$now\""
+}
+
 # Bring every megai-managed tool up to ready state for the current project.
+# Idempotent: if the project is already initialised, we resume instead of re-init.
 prepare_stack() {
   state_init
+  local resume=0
+  if is_project_initialized; then
+    resume=1
+    local last; last="$(state_get ".projects[\"$(project_key)\"].last_active_at")"
+    printf "%s↺%s resuming project (last active %s)\n\n" "$C_GRN" "$C_OFF" "${last:-unknown}"
+  else
+    printf "%s↑%s initialising project (first run)\n\n" "$C_BLUE" "$C_OFF"
+  fi
+
   step 1 5 "agent-memory daemon"
   ensure_agent_memory
   step 2 5 "codedb index"
@@ -279,6 +310,12 @@ prepare_stack() {
   step 5 5 "token savers"
   check_caveman
   check_rtk
+
+  mark_project_active
+  if [ "$resume" = "1" ]; then
+    echo
+    ok "resumed — every tool was already running or cached"
+  fi
 }
 
 # launch <agent-key> <cli-binary> [arg...]
@@ -369,12 +406,13 @@ ensure_codedb_index() {
   local proj_key; proj_key="$(printf '%s' "$proj" | sed 's/[\"]/_/g')"
   local indexed; indexed="$(state_get ".projects[\"$proj_key\"].indexed_at" 2>/dev/null)"
   if [ -n "$indexed" ]; then
-    ok "codedb index ready ($indexed)"
+    ok "codedb index cached ($indexed)"
     return
   fi
   printf "  %s↻%s codedb indexing %s ...\n" "$C_BLUE" "$C_OFF" "$proj"
   if codedb index "$proj" >/dev/null 2>&1; then
-    state_set ".projects[\"$proj_key\"]" "{\"path\":\"$proj\",\"indexed_at\":\"$(date -u +%FT%TZ)\"}"
+    state_set ".projects[\"$proj_key\"].path"       "\"$proj\""
+    state_set ".projects[\"$proj_key\"].indexed_at" "\"$(date -u +%FT%TZ)\""
     ok "codedb indexed -> $proj"
   else
     warn "codedb index failed (continuing)"
