@@ -30,6 +30,7 @@ Commands:
   codex                 Launch Codex CLI + Fusion dashboard (wired)
   pi                    Launch Pi CLI + Fusion dashboard (wired)
   fusion                Launch Fusion dashboard only
+  graph [path]          Build knowledge graph for current folder (graphify .)
   install               Re-run installer (idempotent)
   status                Show tools/ports/versions
   doctor                Diagnose problems
@@ -43,7 +44,7 @@ Commands:
   version               Print version
   help                  This message
 
-Tools: fusion, agent-memory, codedb, cocoindex, caveman, rtk
+Tools: fusion, agent-memory, codedb, cocoindex, caveman, rtk, graphify
 EOF
 }
 
@@ -54,7 +55,7 @@ cmd_install() {
 cmd_status() {
   detect_os; detect_runtimes; state_init
   printf "%-14s %-10s %-8s %s\n" TOOL VERSION PORT STATUS
-  for t in fusion agent-memory codedb cocoindex caveman rtk; do
+  for t in fusion agent-memory codedb cocoindex caveman rtk graphify; do
     local ver port stat bin
     ver=$(state_get ".tools[\"$t\"].version") || ver=""
     port=$(state_get ".tools[\"$t\"].port")   || port=""
@@ -81,6 +82,7 @@ cmd_doctor() {
   if command -v fn          >/dev/null 2>&1; then ok "fusion (fn) present";      else skip "fusion missing"; fi
   if command -v caveman     >/dev/null 2>&1; then ok "caveman CLI present";      else skip "caveman missing"; fi
   if command -v rtk         >/dev/null 2>&1; then ok "rtk CLI present";          else skip "rtk missing"; fi
+  if command -v graphify    >/dev/null 2>&1; then ok "graphify CLI present";     else skip "graphify missing"; fi
 }
 
 cmd_update() {
@@ -90,6 +92,7 @@ cmd_update() {
   bash "$LIB/install_cocoindex.sh"    || true
   bash "$LIB/install_caveman.sh"      || true
   bash "$LIB/install_rtk.sh"          || true
+  bash "$LIB/install_graphify.sh"     || true
   ok "update complete"
 }
 
@@ -276,6 +279,17 @@ launch_agent() {
 cmd_cc()     { launch_agent cc    claude "$@"; }
 cmd_codex()  { launch_agent codex codex  "$@"; }
 cmd_pi()     { launch_agent pi    pi     "$@"; }
+cmd_graph() {
+  if ! command -v graphify >/dev/null 2>&1; then
+    err "graphify not installed — run: megai install"
+    return 1
+  fi
+  local target="${1:-.}"
+  megai_banner
+  ok "graphify -> $target (building knowledge graph)"
+  exec graphify "$target"
+}
+
 cmd_fusion() {
   megai_banner
   launch_fusion_bg
@@ -349,6 +363,15 @@ check_rtk() {
   fi
 }
 
+check_graphify() {
+  if command -v graphify >/dev/null 2>&1; then
+    if [ -d "graphify-out" ]; then ok "graphify graph ready (graphify-out/)"
+    else ok "graphify skill installed (run: megai graph)"; fi
+  else
+    skip "graphify not installed"
+  fi
+}
+
 check_mcp_wired() {
   state_init
   local cc cx pi
@@ -373,6 +396,11 @@ ${C_GRN}Code search${C_OFF}
   megai-codedb symbol <name>
   megai-codedb outline <file>
   megai-codedb tree
+
+${C_GRN}Knowledge graph${C_OFF}  (graphify)
+  megai graph              # build graph of this folder -> graphify-out/
+  megai graph ./docs       # graph a sub-tree
+  # inside cc/codex: /graphify .  /graphify query "<q>"
 
 ${C_GRN}Agents${C_OFF}  (launches CLI + Fusion dashboard, MCP/skill already wired)
   megai cc       — Claude Code   (agentmemory + codedb MCP)
@@ -404,9 +432,10 @@ cmd_project() {
   step 3 4 "MCP / skill bindings"
   check_mcp_wired
 
-  step 4 4 "token savers"
+  step 4 4 "token savers + knowledge graph"
   check_caveman
   check_rtk
+  check_graphify
 
   print_quick_guide "$name"
 }
@@ -416,6 +445,7 @@ case "${1:-__project__}" in
   codex)     shift; cmd_codex     "$@" ;;
   pi)        shift; cmd_pi        "$@" ;;
   fusion)    shift; cmd_fusion    "$@" ;;
+  graph)     shift; cmd_graph     "$@" ;;
   install)   shift; cmd_install   "$@" ;;
   status)    shift; cmd_status    "$@" ;;
   doctor)    shift; cmd_doctor    "$@" ;;

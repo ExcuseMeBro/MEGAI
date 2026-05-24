@@ -15,7 +15,7 @@ LIB="$MEGAI_HOME/lib"
 . "$LIB/banner.sh"
 megai_banner
 
-TOTAL=8
+TOTAL=9
 
 step 1 $TOTAL "Detecting OS / runtimes"
 detect_os
@@ -50,7 +50,10 @@ bash "$LIB/install_caveman.sh"
 step 7 $TOTAL "Installing rtk (Rust Token Killer)"
 bash "$LIB/install_rtk.sh"
 
-step 8 $TOTAL "Wiring MCP into cc / codex / pi + shell PATH"
+step 8 $TOTAL "Installing graphify (knowledge-graph skill)"
+bash "$LIB/install_graphify.sh"
+
+step 9 $TOTAL "Wiring MCP into cc / codex / pi + shell PATH"
 bash "$LIB/wire_cc.sh"    || warn "cc wiring skipped"
 bash "$LIB/wire_codex.sh" || warn "codex wiring skipped"
 bash "$LIB/wire_pi.sh"    || warn "pi wiring skipped"

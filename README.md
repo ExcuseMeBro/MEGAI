@@ -12,7 +12,7 @@
 
 # MEGAI
 
-Zero-config one-line installer for the AI agent stack: **Fusion** + **agent-memory** + **codedb** + **cocoindex** + **caveman** + **rtk**, auto-wired into **Claude Code**, **Codex**, and **Pi**.
+Zero-config one-line installer for the AI agent stack: **Fusion** + **agent-memory** + **codedb** + **cocoindex** + **caveman** + **rtk** + **graphify**, auto-wired into **Claude Code**, **Codex**, and **Pi**.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | bash
@@ -37,6 +37,7 @@ megai doctor
 | [cocoindex](https://cocoindex.io) | Incremental indexing pipeline (Python) |
 | [caveman](https://github.com/JuliusBrussee/caveman) | Token-compression skill (~65% savings, auto-activates in cc/codex/pi) |
 | [rtk](https://github.com/rtk-ai/rtk) | Rust Token Killer — CLI output proxy (~60–90% savings, hooks into cc) |
+| [graphify](https://graphify.net) | Knowledge-graph skill for codebases (Tree-sitter + NetworkX + Leiden). `/graphify .` inside cc/codex/pi |
 
 ## Using Fusion (the orchestrator UI)
 
@@ -66,7 +67,6 @@ Fusion executes each task in an isolated git worktree and plans / writes / revie
 - **Codex** — MCP block added to `~/.codex/config.toml` (markered, idempotent); `caveman` registers itself
 - **Pi** — skill + bash extensions installed to `~/.pi/agent/` (Pi has no native MCP); `caveman` self-installs
 
-> Graphify is excluded from v1 (no public release).
 
 ---
 
@@ -81,6 +81,7 @@ megai cc                # ensure wired -> start agent-memory + Fusion -> exec `c
 megai codex             # same, then exec `codex`
 megai pi                # same, then exec `pi`
 megai fusion            # Fusion dashboard alone
+megai graph [path]      # build a graphify knowledge graph -> graphify-out/
 
 # manage
 megai install           # re-run installer (idempotent)
