@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MEGAI installer — zero-config bundle of Fusion + agent-memory + codedb + cocoindex
+# MEGAI installer — zero-config bundle of agent-memory + codedb + cocoindex + caveman + rtk + graphify
 # Usage:  curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | bash
 set -euo pipefail
 
@@ -42,11 +42,13 @@ curl -fsSL "$MEGAI_TARBALL" | tar -xz -C "$tmp" --strip-components=1
 ok "source extracted -> $tmp"
 
 # 2. install into MEGAI_HOME
-mkdir -p "$MEGAI_HOME"/{bin,lib,logs,backups,pi-skill/extensions}
+mkdir -p "$MEGAI_HOME"/{bin,lib,logs,backups,pi-skill/extensions,task-flow}
 cp -R "$tmp/bin/."        "$MEGAI_HOME/bin/"
 cp -R "$tmp/lib/."        "$MEGAI_HOME/lib/"
 cp -R "$tmp/pi-skill/."   "$MEGAI_HOME/pi-skill/"
+[ -d "$tmp/task-flow" ] && cp -R "$tmp/task-flow/." "$MEGAI_HOME/task-flow/"
 chmod +x "$MEGAI_HOME/bin/megai" "$MEGAI_HOME/lib/"*.sh "$MEGAI_HOME/pi-skill/extensions/"*.sh 2>/dev/null || true
+chmod +x "$MEGAI_HOME/task-flow/bin/"*.sh 2>/dev/null || true
 ok "files installed"
 
 # 3. run main pipeline

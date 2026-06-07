@@ -12,7 +12,7 @@
 
 # MEGAI
 
-Zero-config one-line installer for the AI agent stack: **agent-memory** + **codedb** + **cocoindex** + **caveman** + **rtk** + **graphify**, auto-wired into **Claude Code**, **Codex**, and **Pi**.
+Zero-config one-line installer for the AI agent stack: **agent-memory** + **codedb** + **cocoindex** + **caveman** + **rtk** + **graphify** + **task-flow**, auto-wired into **Claude Code**, **Codex**, and **Pi**.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | bash
@@ -37,13 +37,58 @@ megai doctor
 | [caveman](https://github.com/JuliusBrussee/caveman) | Token-compression skill (~65% savings, auto-activates in cc/codex/pi) |
 | [rtk](https://github.com/rtk-ai/rtk) | Rust Token Killer — CLI output proxy (~60–90% savings, hooks into cc) |
 | [graphify](https://graphify.net) | Knowledge-graph skill for codebases (Tree-sitter + NetworkX + Leiden). `/graphify .` inside cc/codex/pi |
+| task-flow | Priority-driven `.todos` board + full-ADLC protocol skill for Claude Code. Plan → split → queue → execute by priority, shown live in the statusline |
 
 **Wired into:**
 
-- **Claude Code** — MCP servers added to `~/.claude.json`; `rtk` PreToolUse hook registered; `caveman` + `graphify` skills auto-detected
+- **Claude Code** — MCP servers added to `~/.claude.json`; `rtk` PreToolUse hook registered; `caveman` + `graphify` skills auto-detected; `task-flow` skill + `.todos` board hook + board statusline installed
 - **Codex** — MCP block added to `~/.codex/config.toml` (markered, idempotent); `caveman` + `graphify` register themselves
 - **Pi** — skill + bash extensions installed to `~/.pi/agent/` (Pi has no native MCP); `caveman` + `graphify` self-install
 
+
+---
+
+## task-flow — `.todos` board + ADLC
+
+Every project gets a self-managing task board. Claude plans first, splits work into small tasks, queues them by priority, and runs each through the full **ADLC** (AI Development Life Cycle) — no stage skipped.
+
+**Board lives in the project** as plain markdown you can edit by hand:
+
+```
+<your-project>/.todos/
+  todo.md         # pending      (file = status)
+  inprogress.md   # active
+  done.md         # completed
+```
+
+Each line is a task; priority and ADLC stage are optional prefixes:
+
+```
+- [ ] !!!! (generate) Fix the production crash      # urgent, mid-ADLC
+- [ ] !!  (spec) Add CSV export                      # medium
+- [ ] just clean up the logs                         # no marker = medium
+```
+
+**Priority markers** (anywhere in your prompt or on the line): `!` low · `!!` medium · `!!!` high · `!!!!` urgent. Urgent **preempts** the running task; everything else waits its turn.
+
+**ADLC stages:** `spec → plan → generate (test-first) → verify → review → ship`. The active task's stage shows live in the statusline as `◐ n/6 <stage>`.
+
+**How it behaves:**
+
+- Claude **creates `.todos/` if missing** and re-reads it every turn — edit the files yourself anytime and Claude picks up the changes and continues.
+- New tasks arriving mid-work are **queued, not dropped**; the in-progress task keeps going.
+- After a task finishes, Claude **drains the queue** by priority. For hands-off draining while you're away, run `/loop`.
+
+What the installer wires into Claude Code:
+
+| Piece | Where | Purpose |
+|-------|-------|---------|
+| `task-flow` skill | `~/.claude/skills/task-flow/` | the protocol (auto-invoked for multi-step work) |
+| state hook | `~/.claude/hooks/task-state.js` | mirrors native Task tools for the statusline |
+| board statusline | `~/.claude/statusline-taskflow.sh` | renders the `.todos` board (set only if you have no statusline) |
+| always-on rule | `~/.claude/CLAUDE.md` | markered block enabling the protocol globally |
+
+All four are idempotent and reverted by `megai uninstall`. An existing `statusLine` is never overwritten.
 
 ---
 
@@ -88,6 +133,7 @@ megai uninstall
   bin/megai
   lib/*.sh
   pi-skill/{SKILL.md,extensions/}
+  task-flow/{skills/,hooks/,bin/,CLAUDE.snippet.md}
   state.json
   logs/
   backups/
@@ -101,7 +147,7 @@ megai uninstall
 megai uninstall
 ```
 
-Removes `~/.megai/` and reverts megai-managed MCP blocks in `~/.claude.json`, `~/.codex/config.toml`, and `~/.pi/agent/`.
+Removes `~/.megai/` and reverts megai-managed blocks in `~/.claude.json`, `~/.codex/config.toml`, `~/.pi/agent/`, and the `task-flow` skill/hook/statusline + CLAUDE.md rule in `~/.claude/`.
 
 ---
 

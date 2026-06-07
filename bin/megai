@@ -141,10 +141,11 @@ cmd_uninstall() {
   warn "Uninstall megai? This will remove ~/.megai and revert MCP configs. [y/N]"
   read -r ans
   [ "$ans" = "y" ] || { skip "cancelled"; return 0; }
-  bash "$LIB/wire_cc.sh"    --remove || true
-  bash "$LIB/wire_codex.sh" --remove || true
-  bash "$LIB/wire_pi.sh"    --remove || true
-  bash "$LIB/wire_path.sh"  --remove || true
+  bash "$LIB/wire_cc.sh"        --remove || true
+  bash "$LIB/wire_codex.sh"     --remove || true
+  bash "$LIB/wire_pi.sh"        --remove || true
+  bash "$LIB/wire_path.sh"      --remove || true
+  bash "$LIB/install_taskflow.sh" --remove || true
   rm -rf "$MEGAI_HOME"
   ok "uninstalled"
 }
