@@ -50,7 +50,16 @@ Every project has a `.todos/` folder at its root:
 
 **Always write emoji lines.** The `!`-markers and `(stage)` text are still parsed (for hand-typed input), but when *you* create or move a task, write the emoji form. The statusline and `monitoring.md` both read these emojis.
 
-**`monitoring.md` is auto-generated** by a hook on every board change (and by `/ta`) — it holds count tables by status, priority, and stage. Never edit it by hand; it regenerates from the other three files.
+**Commands (deterministic, keep the board in sync):**
+
+- `/ta <text>` — add a task to `todo.md`
+- `/ts <text|index>` — **start**: move todo → `inprogress.md`
+- `/td <text|index>` — **done**: move → `done.md`
+- `/tp <text|index>` — **pause**: move inprogress → `todo.md`
+
+Prefer these over hand-editing — they move the line atomically and refresh `monitoring.md`.
+
+**`monitoring.md` is auto-generated** by a hook on every board change (and by the commands) — it holds count tables by status, priority, and stage. Never edit it by hand; it regenerates from the other three files.
 
 ### Rules
 
@@ -60,7 +69,7 @@ Every project has a `.todos/` folder at its root:
 2. **The board, not memory, is the truth. Re-read every loop.** The user may edit, add, reorder, or delete lines between turns. Pick up those changes on the next read and continue from the board's current state — never from a stale in-memory list.
 3. **Break work into small lines.** Split into the smallest independently-completable units (3–8 beats one vague task). Append new tasks to `todo.md` with a priority marker.
 4. **Queue, never discard.** A new task arriving mid-work is **added** to `todo.md`, not a reason to abandon the in-progress one.
-5. **Execute by priority.** Take the highest-priority line in `todo.md`. Move it to `inprogress.md`, run its full ADLC, then move it to `done.md` (`[x]`).
+5. **Execute by priority.** Take the highest-priority line in `todo.md`. **Move it to `inprogress.md` BEFORE you start working** — run `/ts <task>` (or edit the files). This is mandatory: the board must show the task as in-progress while you work it. Run its full ADLC, then `/td <task>` to move it to `done.md`. Pause with `/tp`.
 6. **Drain until empty.** After a task moves to done, re-read and continue with the next by priority until `todo.md` + `inprogress.md` are empty or user input is needed. For unattended draining, suggest `/loop`.
 
 ## Inner Loop — ADLC (every task runs all 6 stages)
