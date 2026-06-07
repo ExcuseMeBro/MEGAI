@@ -20,7 +20,7 @@ NODE_BIN="$(command -v node || true)"
     stage: "\x1b[38;5;176m",
   };
 
-  let model = "?", durMs = 0, cost = 0, transcript = "", limit = 200000;
+  let model = "?", durMs = 0, cost = 0, transcript = "", limit = 200000, cwdJson = "";
   try {
     const j = JSON.parse(input || "{}");
     model = (j.model && (j.model.display_name || j.model.id)) || "?";
@@ -29,6 +29,7 @@ NODE_BIN="$(command -v node || true)"
     durMs = (j.cost && j.cost.total_duration_ms) || 0;
     cost = (j.cost && j.cost.total_cost_usd) || 0;
     transcript = j.transcript_path || "";
+    cwdJson = (j.workspace && (j.workspace.current_dir || j.workspace.project_dir)) || j.cwd || "";
   } catch {}
 
   // Context usage: read the most recent usage block from the transcript tail.
@@ -99,8 +100,16 @@ NODE_BIN="$(command -v node || true)"
     return items;
   };
 
-  const base = (cwd || ".") + "/.todos";
-  if (fs.existsSync(base)) {
+  // Resolve session cwd (JSON beats $PWD), then walk UP to the nearest .todos.
+  let base = "";
+  { let dir = cwdJson || cwd || ".";
+    for (let i = 0; i < 40; i++) {
+      if (fs.existsSync(dir + "/.todos")) { base = dir + "/.todos"; break; }
+      const parent = require("path").dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    } }
+  if (base && fs.existsSync(base)) {
     const rd = f => { try { return fs.readFileSync(base + "/" + f, "utf8"); } catch { return ""; } };
     const doing = parseList(rd("inprogress.md"), "in_progress");
     const pending = parseList(rd("todo.md"), "pending");
