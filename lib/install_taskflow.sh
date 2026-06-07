@@ -17,7 +17,7 @@ MODE="${1:-install}"  # install | --remove
 
 if [ "$MODE" = "--remove" ]; then
   rm -rf "$CLAUDE_DIR/skills/task-flow"
-  rm -f "$CLAUDE_DIR/hooks/task-state.js" "$CLAUDE_DIR/statusline-taskflow.sh"
+  rm -f "$CLAUDE_DIR/hooks/task-state.js" "$CLAUDE_DIR/hooks/taskflow-session.js" "$CLAUDE_DIR/statusline-taskflow.sh"
   # strip the markered CLAUDE.md block
   if [ -f "$CLAUDE_MD" ] && grep -q "megai:task-flow:begin" "$CLAUDE_MD" 2>/dev/null; then
     tmp="$(mktemp)"
@@ -28,6 +28,9 @@ if [ "$MODE" = "--remove" ]; then
     jq '
       (.hooks.PostToolUse) |= ( (. // []) | map(select(
         ([.hooks[]?.command // ""] | map(test("task-state.js")) | any) | not
+      )) ) |
+      (.hooks.SessionStart) |= ( (. // []) | map(select(
+        ([.hooks[]?.command // ""] | map(test("taskflow-session.js")) | any) | not
       )) ) |
       if (.statusLine.command // "") | test("statusline-taskflow.sh") then del(.statusLine) else . end
     ' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
@@ -41,6 +44,7 @@ fi
 mkdir -p "$CLAUDE_DIR/skills/task-flow" "$CLAUDE_DIR/hooks"
 cp -f "$SRC/skills/task-flow/SKILL.md"  "$CLAUDE_DIR/skills/task-flow/SKILL.md"
 cp -f "$SRC/hooks/task-state.js"        "$CLAUDE_DIR/hooks/task-state.js"
+cp -f "$SRC/hooks/taskflow-session.js"  "$CLAUDE_DIR/hooks/taskflow-session.js"
 cp -f "$SRC/bin/statusline-taskflow.sh" "$CLAUDE_DIR/statusline-taskflow.sh"
 chmod +x "$CLAUDE_DIR/statusline-taskflow.sh" 2>/dev/null || true
 ok "task-flow: skill + hook + statusline copied -> $CLAUDE_DIR"
@@ -65,6 +69,7 @@ cp "$SETTINGS" "$MEGAI_HOME/backups/settings.json.bak.$(date +%s)" 2>/dev/null |
 
 NODE_BIN="$(command -v node || echo node)"
 HOOK_CMD="$NODE_BIN \"$CLAUDE_DIR/hooks/task-state.js\""
+SESS_CMD="$NODE_BIN \"$CLAUDE_DIR/hooks/taskflow-session.js\""
 SL_CMD="bash \"$CLAUDE_DIR/statusline-taskflow.sh\""
 
 # 1) PostToolUse hook for TaskCreate|TaskUpdate (idempotent by command match).
@@ -83,7 +88,22 @@ else
   ok "task-flow: hook already registered"
 fi
 
-# 2) statusLine — only set when the user has none, never clobber an existing one.
+# 2) SessionStart hook — ensure/init the .todos board on every new session.
+sess_already="$(jq '[.. | objects | .command? // empty] | map(select(test("taskflow-session.js"))) | length' "$SETTINGS" 2>/dev/null || echo 0)"
+if [ "${sess_already:-0}" = "0" ]; then
+  tmp="$(mktemp)"
+  jq --arg cmd "$SESS_CMD" '
+    .hooks = (.hooks // {}) |
+    .hooks.SessionStart = ((.hooks.SessionStart // []) + [
+      { "hooks": [ { "type": "command", "command": $cmd, "timeout": 5 } ] }
+    ])
+  ' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
+  ok "task-flow: SessionStart board hook registered"
+else
+  ok "task-flow: SessionStart hook already registered"
+fi
+
+# 3) statusLine — only set when the user has none, never clobber an existing one.
 has_sl="$(jq 'has("statusLine")' "$SETTINGS" 2>/dev/null || echo false)"
 if [ "$has_sl" != "true" ]; then
   tmp="$(mktemp)"

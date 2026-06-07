@@ -75,7 +75,8 @@ Each line is a task; priority and ADLC stage are optional prefixes:
 
 **How it behaves:**
 
-- Claude **creates `.todos/` if missing** and re-reads it every turn — edit the files yourself anytime and Claude picks up the changes and continues.
+- **On every new session** a SessionStart hook checks for `.todos/`, creates it if missing (inside a real project), and feeds the current board into the session so Claude resumes the in-progress task automatically.
+- Claude re-reads the board every turn — edit the files yourself anytime and Claude picks up the changes and continues.
 - New tasks arriving mid-work are **queued, not dropped**; the in-progress task keeps going.
 - After a task finishes, Claude **drains the queue** by priority. For hands-off draining while you're away, run `/loop`.
 
@@ -84,6 +85,7 @@ What the installer wires into Claude Code:
 | Piece | Where | Purpose |
 |-------|-------|---------|
 | `task-flow` skill | `~/.claude/skills/task-flow/` | the protocol (auto-invoked for multi-step work) |
+| session hook | `~/.claude/hooks/taskflow-session.js` | SessionStart: ensures/creates `.todos/` and resumes the board |
 | state hook | `~/.claude/hooks/task-state.js` | mirrors native Task tools for the statusline |
 | board statusline | `~/.claude/statusline-taskflow.sh` | renders the `.todos` board (set only if you have no statusline) |
 | always-on rule | `~/.claude/CLAUDE.md` | markered block enabling the protocol globally |
