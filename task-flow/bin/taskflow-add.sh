@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Append a task line to <project>/.todos/todo.md, creating the board if missing.
 # Usage: taskflow-add.sh <task text...>   (priority markers !! !!! !!!! supported)
+# Writes pretty emoji lines:  - [ ] 🟠 fix the login bug
 set -euo pipefail
 
 TEXT="${*:-}"
@@ -19,20 +20,27 @@ done
 
 base="$root/.todos"
 mkdir -p "$base"
-[ -f "$base/todo.md" ]       || printf '# TODO\n\n'         > "$base/todo.md"
-[ -f "$base/inprogress.md" ] || printf '# IN PROGRESS\n\n' > "$base/inprogress.md"
-[ -f "$base/done.md" ]       || printf '# DONE\n\n'        > "$base/done.md"
+[ -f "$base/todo.md" ]       || printf '# 📋 TODO\n\n'         > "$base/todo.md"
+[ -f "$base/inprogress.md" ] || printf '# 🚧 IN PROGRESS\n\n' > "$base/inprogress.md"
+[ -f "$base/done.md" ]       || printf '# ✅ DONE\n\n'        > "$base/done.md"
 
-# Pick highest priority marker present, strip it from the text.
-prio=""
-case "$TEXT" in
-  *'!!!!'*) prio="!!!! "; TEXT="${TEXT//!!!!/}";;
-  *'!!!'*)  prio="!!! ";  TEXT="${TEXT//!!!/}";;
-  *'!!'*)   prio="!! ";   TEXT="${TEXT//!!/}";;
+# Pick highest priority marker -> emoji, strip it from the text.
+emoji="🟡"  # default: medium
+case " $TEXT " in
+  *'!!!!'*) emoji="🔴"; TEXT="${TEXT//!!!!/}";;
+  *'!!!'*)  emoji="🟠"; TEXT="${TEXT//!!!/}";;
+  *'!!'*)   emoji="🟡"; TEXT="${TEXT//!!/}";;
+  *' ! '*|*' !') emoji="🟢"; TEXT="${TEXT/ !/}";;
 esac
 TEXT="$(printf '%s' "$TEXT" | sed 's/  */ /g; s/^[[:space:]]*//; s/[[:space:]]*$//')"
 [ -n "$TEXT" ] || { echo "usage: /ta <task text>"; exit 0; }
 
-printf -- '- [ ] %s%s\n' "$prio" "$TEXT" >> "$base/todo.md"
-echo "added -> $base/todo.md"
-echo "  - [ ] ${prio}${TEXT}"
+printf -- '- [ ] %s %s\n' "$emoji" "$TEXT" >> "$base/todo.md"
+
+# Refresh the monitoring dashboard.
+if command -v node >/dev/null 2>&1 && [ -f "$HOME/.claude/hooks/taskflow-monitor.js" ]; then
+  node "$HOME/.claude/hooks/taskflow-monitor.js" "$base" 2>/dev/null || true
+fi
+
+echo "✅ added -> $base/todo.md"
+echo "   - [ ] ${emoji} ${TEXT}"

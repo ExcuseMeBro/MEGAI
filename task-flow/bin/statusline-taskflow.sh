@@ -77,16 +77,22 @@ NODE_BIN="$(command -v node || true)"
   const PMAP = { 1: "low", 2: "medium", 3: "high", 4: "urgent" };
   const PRANK = { urgent: 0, high: 1, medium: 2, low: 3 };
   const ADLC = ["spec", "plan", "generate", "verify", "review", "ship"];
+  const PEMO = { "🔴": "urgent", "🟠": "high", "🟡": "medium", "🟢": "low" };
+  const SEMO = { "📝": "spec", "📐": "plan", "🔨": "generate", "🧪": "verify", "🔍": "review", "🚀": "ship" };
+  const P2E = { urgent: "🔴", high: "🟠", medium: "🟡", low: "🟢" };
+  const S2E = { spec: "📝", plan: "📐", generate: "🔨", verify: "🧪", review: "🔍", ship: "🚀" };
   const parseList = (txt, status) => {
     const items = [];
     for (const raw of String(txt || "").split("\n")) {
       const m = raw.match(/^\s*[-*]\s+(?:\[[ xX~-]\]\s*)?(.*\S)\s*$/);
       if (!m) continue;
-      let rest = m[1], priority = "medium", stage = "";
-      const pm = rest.match(/^(!{1,4})(?:\s+|$)/);
-      if (pm) { priority = PMAP[pm[1].length]; rest = rest.slice(pm[0].length); }
-      const sm = rest.match(/^\(([a-zA-Z]+)\)\s*/);
-      if (sm) { stage = sm[1].toLowerCase(); rest = rest.slice(sm[0].length); }
+      let rest = m[1].trim(), priority = "medium", stage = "";
+      let hit = false;
+      for (const e in PEMO) { if (rest.startsWith(e)) { priority = PEMO[e]; rest = rest.slice(e.length).trim(); hit = true; break; } }
+      if (!hit) { const pm = rest.match(/^(!{1,4})(?:\s+|$)/); if (pm) { priority = PMAP[pm[1].length]; rest = rest.slice(pm[0].length).trim(); } }
+      let shit = false;
+      for (const e in SEMO) { if (rest.startsWith(e)) { stage = SEMO[e]; rest = rest.slice(e.length).trim(); shit = true; break; } }
+      if (!shit) { const sm = rest.match(/^\(([a-zA-Z]+)\)\s*/); if (sm) { stage = sm[1].toLowerCase(); rest = rest.slice(sm[0].length).trim(); } }
       const text = rest.trim();
       if (text) items.push({ status, priority, stage, text });
     }
@@ -105,34 +111,27 @@ NODE_BIN="$(command -v node || true)"
       s = String(s || "").replace(/[\r\n\t]+/g, " ").trim();
       return s.length > 44 ? s.slice(0, 43) + "…" : s;
     };
-    const badge = t => t.priority === "urgent" ? `${C.crit}${C.bold}‼${C.reset} `
-      : t.priority === "high" ? `${C.warn}!${C.reset} `
-      : t.priority === "low" ? `${C.dim}↓${C.reset} ` : "";
-    const chip = t => {
-      const i = ADLC.indexOf(t.stage);
-      return i < 0 ? "" : `  ${C.stage}◐ ${i + 1}/6 ${t.stage}${C.reset}`;
-    };
+    const badge = t => (P2E[t.priority] || "🟡") + " ";
+    const chip = t => (t.stage && S2E[t.stage]) ? `  ${S2E[t.stage]} ${C.stage}${t.stage}${C.reset}` : "";
 
     if (open.length === 0) {
       out.push(doneCount > 0
-        ? `${C.dim}✓ todos clear${C.reset}  ${C.done}(${doneCount} done)${C.reset}  ${C.dim}[todos]${C.reset}`
-        : `${C.dim}✓ no tasks${C.reset}  ${C.dim}[todos]${C.reset}`);
+        ? `${C.dim}📁 todos${C.reset}  ${C.done}✅ ${doneCount} done${C.reset}  ${C.dim}— board clear${C.reset}`
+        : `${C.dim}📁 todos — no tasks${C.reset}`);
     } else {
-      const parts = [];
-      if (doing.length)   parts.push(`${C.doing}▸ ${doing.length}${C.reset} ${C.dim}doing${C.reset}`);
-      if (pending.length) parts.push(`${C.pend}☐ ${pending.length}${C.reset} ${C.dim}todo${C.reset}`);
-      if (doneCount)      parts.push(`${C.done}✓ ${doneCount}${C.reset} ${C.dim}done${C.reset}`);
-      parts.push(`${C.dim}[todos]${C.reset}`);
+      const parts = [`${C.dim}📁 todos${C.reset}`];
+      if (doing.length)   parts.push(`${C.doing}🚧 ${doing.length}${C.reset}`);
+      if (pending.length) parts.push(`${C.pend}📋 ${pending.length}${C.reset}`);
+      if (doneCount)      parts.push(`${C.done}✅ ${doneCount}${C.reset}`);
       out.push(parts.join("  "));
 
       const LIMIT = 3;
       for (const t of open.slice(0, LIMIT)) {
         const isDoing = doing.includes(t);
-        const mark = isDoing ? `${C.doing}▸${C.reset}` : `${C.pend}☐${C.reset}`;
         const col = isDoing ? `${C.doing}${trim(t.text)}${C.reset}` : `${C.dim}${trim(t.text)}${C.reset}`;
-        out.push(`  ${mark} ${badge(t)}${col}${isDoing ? chip(t) : ""}`);
+        out.push(`  ${badge(t)}${col}${isDoing ? chip(t) : ""}`);
       }
-      if (open.length > LIMIT) out.push(`  ${C.dim}(+${open.length - LIMIT} more)${C.reset}`);
+      if (open.length > LIMIT) out.push(`  ${C.dim}…(+${open.length - LIMIT} more)${C.reset}`);
     }
   }
 

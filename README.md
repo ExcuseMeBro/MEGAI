@@ -56,20 +56,25 @@ Every project gets a self-managing task board. Claude plans first, splits work i
 
 ```
 <your-project>/.todos/
-  todo.md         # pending      (file = status)
-  inprogress.md   # active
-  done.md         # completed
+  todo.md         # 📋 pending     (file = status)
+  inprogress.md   # 🚧 active
+  done.md         # ✅ completed
+  monitoring.md   # 📊 auto-generated dashboard (counts by status/priority/stage)
 ```
 
 The `.todos/` files are the **single source of truth** — there is no other task store, so the board, the statusline, and Claude stay in perfect sync.
 
-Each line is a task; priority and ADLC stage are optional prefixes:
+Each line is a task with an **emoji priority** (and optional ADLC-stage emoji):
 
 ```
-- [ ] !!!! (generate) Fix the production crash      # urgent, mid-ADLC
-- [ ] !!  (spec) Add CSV export                      # medium
-- [ ] just clean up the logs                         # no marker = medium
+- [ ] 🔴 🔨 Fix the production crash      # urgent, in the generate stage
+- [ ] 🟠 Add CSV export                    # high
+- [ ] 🟡 Clean up the logs                 # medium
 ```
+
+Priority: 🔴 urgent · 🟠 high · 🟡 medium · 🟢 low.  Stage: 📝 spec · 📐 plan · 🔨 generate · 🧪 verify · 🔍 review · 🚀 ship.
+
+`monitoring.md` regenerates automatically on every board change — a live table of task counts by status, priority, and ADLC stage.
 
 **Add tasks fast with `/ta`:**
 
@@ -100,7 +105,8 @@ What the installer wires into Claude Code:
 | `/ta` command | `~/.claude/commands/ta.md` + `~/.claude/bin/taskflow-add.sh` | `/ta <text>` appends a task straight into `.todos/todo.md` |
 | prompt hook | `~/.claude/hooks/taskflow-prompt.sh` | UserPromptSubmit: analyze the prompt → write the task first → run the ADLC |
 | session hook | `~/.claude/hooks/taskflow-session.js` | SessionStart: ensures/creates `.todos/` and resumes the board |
-| board statusline | `~/.claude/statusline-taskflow.sh` | renders the `.todos` board (set only if you have no statusline) |
+| monitor hook | `~/.claude/hooks/taskflow-monitor.js` | PostToolUse: regenerates `monitoring.md` whenever the board changes |
+| board statusline | `~/.claude/statusline-taskflow.sh` | renders the `.todos` board with emoji (set only if you have no statusline) |
 | always-on rule | `~/.claude/CLAUDE.md` | markered block enabling the protocol globally |
 
 All four are idempotent and reverted by `megai uninstall`. An existing `statusLine` is never overwritten.

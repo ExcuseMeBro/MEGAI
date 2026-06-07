@@ -18,25 +18,39 @@ Standing protocol. The queue lives **only** in a per-project markdown board (`.t
 
 ## Project Board — the source of truth
 
-Every project has a `.todos/` folder at its root with three files:
+Every project has a `.todos/` folder at its root:
 
 ```
 .todos/
-  todo.md         # pending tasks
-  inprogress.md   # active tasks (ideally one)
-  done.md         # completed
+  todo.md         # 📋 pending tasks
+  inprogress.md   # 🚧 active tasks (ideally one)
+  done.md         # ✅ completed
+  monitoring.md   # 📊 auto-generated dashboard — DO NOT hand-edit
 ```
 
 **File = status.** A task is wherever its line lives — moving a task means cutting the line from one file and appending it to another.
 
-**Task line format** (priority + ADLC stage optional, so hand-edited lines work too):
+**Task line format — use emoji** (priority emoji first, optional ADLC-stage emoji, then text):
 
 ```
-- [ ] !!! (generate) Add payment flow
-- [ ] do a simple thing          # no marker = medium, stage defaults to spec
+- [ ] 🔴 🔨 Add payment flow      # urgent, in generate stage
+- [ ] 🟡 Clean up the logs        # medium, no stage yet
 ```
 
-Priority markers: `!`=low (standalone), `!!`=medium, `!!!`=high, `!!!!`=urgent. Stage in `(...)`: one of `spec plan generate verify review ship`.
+| Priority | emoji | marker |
+|----------|-------|--------|
+| urgent | 🔴 | `!!!!` |
+| high   | 🟠 | `!!!`  |
+| medium | 🟡 | `!!` / none |
+| low    | 🟢 | `!`    |
+
+| Stage | emoji |
+|-------|-------|
+| spec / plan / generate / verify / review / ship | 📝 / 📐 / 🔨 / 🧪 / 🔍 / 🚀 |
+
+**Always write emoji lines.** The `!`-markers and `(stage)` text are still parsed (for hand-typed input), but when *you* create or move a task, write the emoji form. The statusline and `monitoring.md` both read these emojis.
+
+**`monitoring.md` is auto-generated** by a hook on every board change (and by `/ta`) — it holds count tables by status, priority, and stage. Never edit it by hand; it regenerates from the other three files.
 
 ### Rules
 
@@ -51,7 +65,7 @@ Priority markers: `!`=low (standalone), `!!`=medium, `!!!`=high, `!!!!`=urgent. 
 
 ## Inner Loop — ADLC (every task runs all 6 stages)
 
-Advance the stage by editing the `(stage)` token on the task's line in `inprogress.md` as you enter each — the statusline reads it and shows `◐ n/6 <stage>` on the active task.
+Advance the stage by updating the stage emoji (📝→📐→🔨→🧪→🔍→🚀) on the task's line in `inprogress.md` as you enter each — the statusline shows it on the active task.
 
 | # | Stage | Do | Tools |
 |---|-------|----|----|
@@ -78,7 +92,7 @@ The user encodes priority in the prompt. Mapping:
 
 - A single `!` attached to a word (`done!`, `login page!`) is **normal punctuation, not a marker** — ignore it.
 - Markers may appear anywhere in the prompt. If several appear for one task, use the highest.
-- Write the marker as a prefix on the task line in `todo.md` (`- [ ] !!! the task`). The statusline reads it, shows it (‼ urgent, ! high, ↓ low), and orders the queue by it. Quickest way to add: the `/ta` command (`/ta fix the login bug !!!`) appends it for you.
+- Write the priority as an **emoji prefix** on the task line in `todo.md` (`- [ ] 🟠 the task`). The statusline shows it and orders the queue by it. Quickest way to add: the `/ta` command (`/ta fix the login bug !!!`) converts the marker to an emoji and appends it for you.
 
 ## Urgent Preemption
 
@@ -94,7 +108,7 @@ High/medium/low tasks do **not** preempt — they wait their turn. Only urgent i
 
 - **Never skip an ADLC stage.** The order is spec → plan → generate → verify → review → ship. Jumping straight to generate (code without spec/plan) or shipping without verify+review is the failure this protocol exists to prevent. Scale the depth, not the coverage.
 - **`generate` means test-first.** Don't write implementation then bolt on tests. Red (failing test) → green (make it pass) → refactor. That is the generate stage, not a separate optional step.
-- **Advance the stage marker as you go.** Edit the `(stage)` token in `inprogress.md` at each transition so the statusline reflects reality. A task stuck showing `1/6 spec` while you write code means the marker is lying.
+- **Advance the stage emoji as you go.** Update 📝→📐→🔨→🧪→🔍→🚀 in `inprogress.md` at each transition so the statusline + `monitoring.md` reflect reality. A task stuck on 📝 while you write code means the marker is lying.
 - **Re-read the board every loop — trust the files, not your memory.** The user edits `todo.md`/`inprogress.md` between turns. If you skip the re-read, you will work a stale list and miss tasks the user added or reprioritised.
 - **Keep one line in `inprogress.md`.** Moving several tasks to in-progress at once destroys the "what am I doing now" signal and breaks the timer/stage display. Finish or move the current one back to `todo.md` before starting the next.
 - **Move lines, don't duplicate them.** When advancing status, cut the line from the old file before appending to the new one. A task appearing in both `todo.md` and `done.md` is a sync bug.

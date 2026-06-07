@@ -42,17 +42,23 @@ function findRoot(start) {
 
 const PMAP = { 1: "low", 2: "medium", 3: "high", 4: "urgent" };
 const PRANK = { urgent: 0, high: 1, medium: 2, low: 3 };
+const PEMO = { "🔴": "urgent", "🟠": "high", "🟡": "medium", "🟢": "low" };
+const SEMO = { "📝": "spec", "📐": "plan", "🔨": "generate", "🧪": "verify", "🔍": "review", "🚀": "ship" };
+const P2E = { urgent: "🔴", high: "🟠", medium: "🟡", low: "🟢" };
+const S2E = { spec: "📝", plan: "📐", generate: "🔨", verify: "🧪", review: "🔍", ship: "🚀" };
 
 function parseList(txt) {
   const items = [];
   for (const raw of String(txt || "").split("\n")) {
     const m = raw.match(/^\s*[-*]\s+(?:\[[ xX~-]\]\s*)?(.*\S)\s*$/);
     if (!m) continue;
-    let rest = m[1], priority = "medium", stage = "";
-    const pm = rest.match(/^(!{1,4})(?:\s+|$)/);
-    if (pm) { priority = PMAP[pm[1].length]; rest = rest.slice(pm[0].length); }
-    const sm = rest.match(/^\(([a-zA-Z]+)\)\s*/);
-    if (sm) { stage = sm[1].toLowerCase(); rest = rest.slice(sm[0].length); }
+    let rest = m[1].trim(), priority = "medium", stage = "";
+    let hit = false;
+    for (const e in PEMO) { if (rest.startsWith(e)) { priority = PEMO[e]; rest = rest.slice(e.length).trim(); hit = true; break; } }
+    if (!hit) { const pm = rest.match(/^(!{1,4})(?:\s+|$)/); if (pm) { priority = PMAP[pm[1].length]; rest = rest.slice(pm[0].length).trim(); } }
+    let shit = false;
+    for (const e in SEMO) { if (rest.startsWith(e)) { stage = SEMO[e]; rest = rest.slice(e.length).trim(); shit = true; break; } }
+    if (!shit) { const sm = rest.match(/^\(([a-zA-Z]+)\)\s*/); if (sm) { stage = sm[1].toLowerCase(); rest = rest.slice(sm[0].length).trim(); } }
     const text = rest.trim();
     if (text) items.push({ priority, stage, text });
   }
@@ -85,9 +91,9 @@ function create(dir) {
   try {
     fs.mkdirSync(dir, { recursive: true });
     const seed = {
-      "todo.md": "# TODO\n\n",
-      "inprogress.md": "# IN PROGRESS\n\n",
-      "done.md": "# DONE\n\n",
+      "todo.md": "# 📋 TODO\n\n",
+      "inprogress.md": "# 🚧 IN PROGRESS\n\n",
+      "done.md": "# ✅ DONE\n\n",
     };
     for (const [f, body] of Object.entries(seed)) {
       const p = path.join(dir, f);
@@ -119,17 +125,17 @@ function print(dir, created) {
     );
   } else {
     if (doing.length) {
-      lines.push(`IN PROGRESS (${doing.length}) — resume this first:`);
+      lines.push(`🚧 IN PROGRESS (${doing.length}) — resume this first:`);
       for (const t of doing) {
-        lines.push(`  - ${t.text}${t.stage ? ` (stage: ${t.stage})` : ""}`);
+        lines.push(`  ${P2E[t.priority] || "🟡"} ${t.text}${t.stage ? ` ${S2E[t.stage] || ""} ${t.stage}` : ""}`);
       }
     }
     if (pending.length) {
-      lines.push(`TODO (${pending.length}, highest priority first):`);
+      lines.push(`📋 TODO (${pending.length}, highest priority first):`);
       for (const t of pending.slice(0, 8)) {
-        lines.push(`  - [${t.priority}] ${t.text}`);
+        lines.push(`  ${P2E[t.priority] || "🟡"} ${t.text}`);
       }
-      if (pending.length > 8) lines.push(`  - (+${pending.length - 8} more)`);
+      if (pending.length > 8) lines.push(`  … (+${pending.length - 8} more)`);
     }
     lines.push(
       `ACTION: re-read .todos/, resume the in-progress task, then drain the queue ` +
@@ -138,6 +144,12 @@ function print(dir, created) {
   }
 
   process.stdout.write(lines.join("\n") + "\n");
+
+  // Refresh the monitoring dashboard for this board.
+  try {
+    const { execFileSync } = require("child_process");
+    execFileSync(process.execPath, [path.join(__dirname, "taskflow-monitor.js"), dir], { stdio: "ignore" });
+  } catch {}
 }
 
 try { main(); } catch {}

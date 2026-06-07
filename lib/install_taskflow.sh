@@ -21,6 +21,7 @@ if [ "$MODE" = "--remove" ]; then
   rm -rf "$CLAUDE_DIR/skills/task-flow"
   rm -f "$CLAUDE_DIR/hooks/taskflow-session.js" \
         "$CLAUDE_DIR/hooks/taskflow-prompt.sh" \
+        "$CLAUDE_DIR/hooks/taskflow-monitor.js" \
         "$CLAUDE_DIR/hooks/task-state.js" \
         "$CLAUDE_DIR/bin/taskflow-add.sh" \
         "$CLAUDE_DIR/commands/ta.md" \
@@ -33,7 +34,7 @@ if [ "$MODE" = "--remove" ]; then
     tmp="$(mktemp)"
     jq '
       (.hooks.PostToolUse) |= ( (. // []) | map(select(
-        ([.hooks[]?.command // ""] | map(test("task-state.js")) | any) | not
+        ([.hooks[]?.command // ""] | map(test("task-state.js|taskflow-monitor.js")) | any) | not
       )) ) |
       (.hooks.SessionStart) |= ( (. // []) | map(select(
         ([.hooks[]?.command // ""] | map(test("taskflow-session.js")) | any) | not
@@ -54,6 +55,7 @@ mkdir -p "$CLAUDE_DIR/skills/task-flow" "$CLAUDE_DIR/hooks" "$CLAUDE_DIR/bin" "$
 cp -f "$SRC/skills/task-flow/SKILL.md"  "$CLAUDE_DIR/skills/task-flow/SKILL.md"
 cp -f "$SRC/hooks/taskflow-session.js"  "$CLAUDE_DIR/hooks/taskflow-session.js"
 cp -f "$SRC/hooks/taskflow-prompt.sh"   "$CLAUDE_DIR/hooks/taskflow-prompt.sh"
+cp -f "$SRC/hooks/taskflow-monitor.js"  "$CLAUDE_DIR/hooks/taskflow-monitor.js"
 cp -f "$SRC/bin/taskflow-add.sh"        "$CLAUDE_DIR/bin/taskflow-add.sh"
 cp -f "$SRC/bin/statusline-taskflow.sh" "$CLAUDE_DIR/statusline-taskflow.sh"
 cp -f "$SRC/commands/ta.md"             "$CLAUDE_DIR/commands/ta.md"
@@ -83,6 +85,7 @@ cp "$SETTINGS" "$MEGAI_HOME/backups/settings.json.bak.$(date +%s)" 2>/dev/null |
 NODE_BIN="$(command -v node || echo node)"
 SESS_CMD="$NODE_BIN \"$CLAUDE_DIR/hooks/taskflow-session.js\""
 PROMPT_CMD="bash \"$CLAUDE_DIR/hooks/taskflow-prompt.sh\""
+MON_CMD="$NODE_BIN \"$CLAUDE_DIR/hooks/taskflow-monitor.js\""
 SL_CMD="bash \"$CLAUDE_DIR/statusline-taskflow.sh\""
 
 # Drop any legacy PostToolUse task-state.js hook from prior versions (pure .todos now).
@@ -121,7 +124,23 @@ else
   ok "task-flow: UserPromptSubmit hook already registered"
 fi
 
-# 3) statusLine — only set when the user has none, never clobber an existing one.
+# 3) PostToolUse hook — regenerate .todos/monitoring.md when the board changes.
+mon_already="$(jq '[.. | objects | .command? // empty] | map(select(test("taskflow-monitor.js"))) | length' "$SETTINGS" 2>/dev/null || echo 0)"
+if [ "${mon_already:-0}" = "0" ]; then
+  tmp="$(mktemp)"
+  jq --arg cmd "$MON_CMD" '
+    .hooks = (.hooks // {}) |
+    .hooks.PostToolUse = ((.hooks.PostToolUse // []) + [
+      { "matcher": "Edit|Write|MultiEdit",
+        "hooks": [ { "type": "command", "command": $cmd, "timeout": 5 } ] }
+    ])
+  ' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
+  ok "task-flow: monitoring.md auto-update hook registered"
+else
+  ok "task-flow: monitoring hook already registered"
+fi
+
+# 4) statusLine — only set when the user has none, never clobber an existing one.
 has_sl="$(jq 'has("statusLine")' "$SETTINGS" 2>/dev/null || echo false)"
 if [ "$has_sl" != "true" ]; then
   tmp="$(mktemp)"
