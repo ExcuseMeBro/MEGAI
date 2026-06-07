@@ -45,6 +45,8 @@ Priority markers: `!`=low (standalone), `!!`=medium, `!!!`=high, `!!!!`=urgent. 
 
 ### Rules
 
+**Order is fixed: analyze → write the task → then act.** When a prompt arrives, first analyze what it asks. If it is actionable work, write the task line(s) into the board **before** doing any of the work — the task must exist in `.todos/` first, then you execute it. Never start coding before the task is written. (Pure questions and trivial one-liners are answered directly without a board entry.)
+
 1. **Always locate or create the board first.** At the start of every task — and every `/loop` iteration — find `<project>/.todos/`. If missing, create the folder and the three files (with `# TODO` / `# IN PROGRESS` / `# DONE` headers). Then **read all three**.
 2. **The board, not memory, is the truth. Re-read every loop.** The user may edit, add, reorder, or delete lines between turns. Pick up those changes on the next read and continue from the board's current state — never from a stale in-memory list.
 3. **Break work into small lines.** Split into the smallest independently-completable units (3–8 beats one vague task). Append new tasks to `todo.md` with a priority marker.

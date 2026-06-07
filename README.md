@@ -75,6 +75,7 @@ Each line is a task; priority and ADLC stage are optional prefixes:
 
 **How it behaves:**
 
+- **On every prompt** the request is analyzed and the task is written to `.todos/todo.md` **first**, then executed through the ADLC — the board entry always precedes the work. (Pure questions / trivial one-liners are answered directly.)
 - **On every new session** a SessionStart hook checks for `.todos/`, creates it if missing (inside a real project), and feeds the current board into the session so Claude resumes the in-progress task automatically.
 - Claude re-reads the board every turn — edit the files yourself anytime and Claude picks up the changes and continues.
 - New tasks arriving mid-work are **queued, not dropped**; the in-progress task keeps going.
@@ -85,6 +86,7 @@ What the installer wires into Claude Code:
 | Piece | Where | Purpose |
 |-------|-------|---------|
 | `task-flow` skill | `~/.claude/skills/task-flow/` | the protocol (auto-invoked for multi-step work) |
+| prompt hook | `~/.claude/hooks/taskflow-prompt.sh` | UserPromptSubmit: analyze the prompt → write the task first → run the ADLC |
 | session hook | `~/.claude/hooks/taskflow-session.js` | SessionStart: ensures/creates `.todos/` and resumes the board |
 | state hook | `~/.claude/hooks/task-state.js` | mirrors native Task tools for the statusline |
 | board statusline | `~/.claude/statusline-taskflow.sh` | renders the `.todos` board (set only if you have no statusline) |

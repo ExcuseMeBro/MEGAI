@@ -17,7 +17,7 @@ MODE="${1:-install}"  # install | --remove
 
 if [ "$MODE" = "--remove" ]; then
   rm -rf "$CLAUDE_DIR/skills/task-flow"
-  rm -f "$CLAUDE_DIR/hooks/task-state.js" "$CLAUDE_DIR/hooks/taskflow-session.js" "$CLAUDE_DIR/statusline-taskflow.sh"
+  rm -f "$CLAUDE_DIR/hooks/task-state.js" "$CLAUDE_DIR/hooks/taskflow-session.js" "$CLAUDE_DIR/hooks/taskflow-prompt.sh" "$CLAUDE_DIR/statusline-taskflow.sh"
   # strip the markered CLAUDE.md block
   if [ -f "$CLAUDE_MD" ] && grep -q "megai:task-flow:begin" "$CLAUDE_MD" 2>/dev/null; then
     tmp="$(mktemp)"
@@ -32,6 +32,9 @@ if [ "$MODE" = "--remove" ]; then
       (.hooks.SessionStart) |= ( (. // []) | map(select(
         ([.hooks[]?.command // ""] | map(test("taskflow-session.js")) | any) | not
       )) ) |
+      (.hooks.UserPromptSubmit) |= ( (. // []) | map(select(
+        ([.hooks[]?.command // ""] | map(test("taskflow-prompt.sh")) | any) | not
+      )) ) |
       if (.statusLine.command // "") | test("statusline-taskflow.sh") then del(.statusLine) else . end
     ' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
   fi
@@ -45,8 +48,9 @@ mkdir -p "$CLAUDE_DIR/skills/task-flow" "$CLAUDE_DIR/hooks"
 cp -f "$SRC/skills/task-flow/SKILL.md"  "$CLAUDE_DIR/skills/task-flow/SKILL.md"
 cp -f "$SRC/hooks/task-state.js"        "$CLAUDE_DIR/hooks/task-state.js"
 cp -f "$SRC/hooks/taskflow-session.js"  "$CLAUDE_DIR/hooks/taskflow-session.js"
+cp -f "$SRC/hooks/taskflow-prompt.sh"   "$CLAUDE_DIR/hooks/taskflow-prompt.sh"
 cp -f "$SRC/bin/statusline-taskflow.sh" "$CLAUDE_DIR/statusline-taskflow.sh"
-chmod +x "$CLAUDE_DIR/statusline-taskflow.sh" 2>/dev/null || true
+chmod +x "$CLAUDE_DIR/statusline-taskflow.sh" "$CLAUDE_DIR/hooks/taskflow-prompt.sh" 2>/dev/null || true
 ok "task-flow: skill + hook + statusline copied -> $CLAUDE_DIR"
 
 # Always-on rule in CLAUDE.md (markered, idempotent).
@@ -70,6 +74,7 @@ cp "$SETTINGS" "$MEGAI_HOME/backups/settings.json.bak.$(date +%s)" 2>/dev/null |
 NODE_BIN="$(command -v node || echo node)"
 HOOK_CMD="$NODE_BIN \"$CLAUDE_DIR/hooks/task-state.js\""
 SESS_CMD="$NODE_BIN \"$CLAUDE_DIR/hooks/taskflow-session.js\""
+PROMPT_CMD="bash \"$CLAUDE_DIR/hooks/taskflow-prompt.sh\""
 SL_CMD="bash \"$CLAUDE_DIR/statusline-taskflow.sh\""
 
 # 1) PostToolUse hook for TaskCreate|TaskUpdate (idempotent by command match).
@@ -103,7 +108,22 @@ else
   ok "task-flow: SessionStart hook already registered"
 fi
 
-# 3) statusLine — only set when the user has none, never clobber an existing one.
+# 3) UserPromptSubmit hook — analyze prompt -> create task first -> run ADLC.
+prompt_already="$(jq '[.. | objects | .command? // empty] | map(select(test("taskflow-prompt.sh"))) | length' "$SETTINGS" 2>/dev/null || echo 0)"
+if [ "${prompt_already:-0}" = "0" ]; then
+  tmp="$(mktemp)"
+  jq --arg cmd "$PROMPT_CMD" '
+    .hooks = (.hooks // {}) |
+    .hooks.UserPromptSubmit = ((.hooks.UserPromptSubmit // []) + [
+      { "hooks": [ { "type": "command", "command": $cmd, "timeout": 5 } ] }
+    ])
+  ' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
+  ok "task-flow: UserPromptSubmit (analyze->task->ADLC) hook registered"
+else
+  ok "task-flow: UserPromptSubmit hook already registered"
+fi
+
+# 4) statusLine — only set when the user has none, never clobber an existing one.
 has_sl="$(jq 'has("statusLine")' "$SETTINGS" 2>/dev/null || echo false)"
 if [ "$has_sl" != "true" ]; then
   tmp="$(mktemp)"
