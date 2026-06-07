@@ -61,6 +61,8 @@ Every project gets a self-managing task board. Claude plans first, splits work i
   done.md         # completed
 ```
 
+The `.todos/` files are the **single source of truth** — there is no other task store, so the board, the statusline, and Claude stay in perfect sync.
+
 Each line is a task; priority and ADLC stage are optional prefixes:
 
 ```
@@ -68,6 +70,15 @@ Each line is a task; priority and ADLC stage are optional prefixes:
 - [ ] !!  (spec) Add CSV export                      # medium
 - [ ] just clean up the logs                         # no marker = medium
 ```
+
+**Add tasks fast with `/ta`:**
+
+```
+/ta fix the login redirect bug !!!
+/ta refactor the auth module
+```
+
+`/ta` appends the task to `.todos/todo.md` (creating the board if missing), parsing any `!!`/`!!!`/`!!!!` priority marker.
 
 **Priority markers** (anywhere in your prompt or on the line): `!` low · `!!` medium · `!!!` high · `!!!!` urgent. Urgent **preempts** the running task; everything else waits its turn.
 
@@ -86,9 +97,9 @@ What the installer wires into Claude Code:
 | Piece | Where | Purpose |
 |-------|-------|---------|
 | `task-flow` skill | `~/.claude/skills/task-flow/` | the protocol (auto-invoked for multi-step work) |
+| `/ta` command | `~/.claude/commands/ta.md` + `~/.claude/bin/taskflow-add.sh` | `/ta <text>` appends a task straight into `.todos/todo.md` |
 | prompt hook | `~/.claude/hooks/taskflow-prompt.sh` | UserPromptSubmit: analyze the prompt → write the task first → run the ADLC |
 | session hook | `~/.claude/hooks/taskflow-session.js` | SessionStart: ensures/creates `.todos/` and resumes the board |
-| state hook | `~/.claude/hooks/task-state.js` | mirrors native Task tools for the statusline |
 | board statusline | `~/.claude/statusline-taskflow.sh` | renders the `.todos` board (set only if you have no statusline) |
 | always-on rule | `~/.claude/CLAUDE.md` | markered block enabling the protocol globally |
 
@@ -137,7 +148,7 @@ megai uninstall
   bin/megai
   lib/*.sh
   pi-skill/{SKILL.md,extensions/}
-  task-flow/{skills/,hooks/,bin/,CLAUDE.snippet.md}
+  task-flow/{skills/,hooks/,bin/,commands/,CLAUDE.snippet.md}
   state.json
   logs/
   backups/

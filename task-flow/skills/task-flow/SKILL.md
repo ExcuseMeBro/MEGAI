@@ -8,18 +8,13 @@ allowed_tools:
   - Glob
   - Grep
   - Bash
-  - TaskCreate
-  - TaskUpdate
-  - TaskList
-  - TaskGet
-  - Task
   - Workflow
   - Skill
 ---
 
 # task-flow
 
-Standing protocol. The queue lives in a **per-project markdown board**, executed by priority through the **full ADLC** (AI Development Life Cycle). No stage is skipped.
+Standing protocol. The queue lives **only** in a per-project markdown board (`.todos/`), executed by priority through the **full ADLC** (AI Development Life Cycle). No stage is skipped. The `.todos/` files are the single source of truth — there is no other task store; keep them in sync at all times by editing them as status changes.
 
 ## Project Board — the source of truth
 
@@ -56,7 +51,7 @@ Priority markers: `!`=low (standalone), `!!`=medium, `!!!`=high, `!!!!`=urgent. 
 
 ## Inner Loop — ADLC (every task runs all 6 stages)
 
-Advance the stage by editing the `(stage)` token on the task's line in `inprogress.md` as you enter each — the statusline reads it and shows `◐ n/6 <stage>` on the active task. (For projects driven by the Task tools instead of a board, use `TaskUpdate { taskId, metadata: { stage } }`.)
+Advance the stage by editing the `(stage)` token on the task's line in `inprogress.md` as you enter each — the statusline reads it and shows `◐ n/6 <stage>` on the active task.
 
 | # | Stage | Do | Tools |
 |---|-------|----|----|
@@ -83,14 +78,13 @@ The user encodes priority in the prompt. Mapping:
 
 - A single `!` attached to a word (`done!`, `login page!`) is **normal punctuation, not a marker** — ignore it.
 - Markers may appear anywhere in the prompt. If several appear for one task, use the highest.
-- Strip the marker from the task text before saving the subject.
-- Pass priority into every `TaskCreate` via `metadata`: `metadata: { priority: "urgent" | "high" | "medium" | "low" }`. The task-state hook reads this; the statusline shows it (‼ urgent, ! high, ↓ low) and orders the queue by it.
+- Write the marker as a prefix on the task line in `todo.md` (`- [ ] !!! the task`). The statusline reads it, shows it (‼ urgent, ! high, ↓ low), and orders the queue by it. Quickest way to add: the `/ta` command (`/ta fix the login bug !!!`) appends it for you.
 
 ## Urgent Preemption
 
 When an **urgent** (`!!!!`) task arrives while another task is `in_progress`:
 
-1. **Pause** the running task: move its line back to `todo.md` (or `TaskUpdate { taskId, status: "pending" }`). It keeps its place by priority.
+1. **Pause** the running task: move its line back to `todo.md`. It keeps its place by priority.
 2. **Create + run** the urgent task to completion.
 3. **Resume** the paused task: move it back to `inprogress.md` and continue.
 
@@ -107,6 +101,7 @@ High/medium/low tasks do **not** preempt — they wait their turn. Only urgent i
 - **Claude is turn-based — "never stops" is bounded.** True background continuation while the user types is impossible. What this protocol guarantees: the queue persists, in-progress work is never silently dropped, urgent preempts, and the queue is drained within each turn. For hands-off draining, the user must start `/loop`.
 - **Single `!` is usually punctuation.** Do not downgrade a normal sentence ending in `!` to low priority. Only a standalone `!` token counts.
 - **Don't skip the plan on "just do X" phrasing.** A terse instruction is still a task — plan and split it. The exception is genuinely trivial single-file edits (typo, one-liner), which run without the full protocol.
-- **Set `metadata.priority` on every TaskCreate.** If you omit it, the task defaults to medium and the statusline can't show or order it correctly.
-- **Resume after urgent — don't forget the paused task.** After an urgent preemption completes, the previously-running task is still `pending`; pick it back up rather than leaving it stranded.
-- **One task `in_progress` at a time.** Marking several `in_progress` makes the "what am I doing now" signal meaningless. Start the next only after completing or pausing the current.
+- **`.todos/` is the ONLY task store.** There is no session/Task-tools mirror. Every status change is a file edit (move the line between `todo.md` / `inprogress.md` / `done.md`). If the files and reality disagree, the files win — fix them.
+- **Put a priority marker on every line.** A line with no marker defaults to medium; the statusline still shows and orders it, but be explicit for anything non-default.
+- **Resume after urgent — don't forget the paused task.** After an urgent preemption completes, the previously-running task is back in `todo.md`; pick it up rather than leaving it stranded.
+- **One line in `inprogress.md` at a time.** More than one destroys the "what am I doing now" signal. Move the current one to `done.md` (or back to `todo.md`) before starting the next.

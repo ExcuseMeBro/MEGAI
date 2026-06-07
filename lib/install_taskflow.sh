@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# task-flow — priority-driven .todos board + full-ADLC protocol for Claude Code.
-# Installs the skill, the TaskCreate/TaskUpdate state hook, and a board-aware
-# statusline, then wires them into ~/.claude (idempotent, non-destructive).
+# task-flow — pure `.todos` board + full-ADLC protocol for Claude Code.
+# The .todos/{todo,inprogress,done}.md files are the single source of truth.
+# Installs: the skill, a SessionStart board-init hook, a UserPromptSubmit
+# order-enforcer hook, the `/ta` add command, and a board statusline.
+# Idempotent and non-destructive (an existing statusLine is never overwritten).
 set -euo pipefail
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 # shellcheck source=ui.sh
@@ -17,8 +19,12 @@ MODE="${1:-install}"  # install | --remove
 
 if [ "$MODE" = "--remove" ]; then
   rm -rf "$CLAUDE_DIR/skills/task-flow"
-  rm -f "$CLAUDE_DIR/hooks/task-state.js" "$CLAUDE_DIR/hooks/taskflow-session.js" "$CLAUDE_DIR/hooks/taskflow-prompt.sh" "$CLAUDE_DIR/statusline-taskflow.sh"
-  # strip the markered CLAUDE.md block
+  rm -f "$CLAUDE_DIR/hooks/taskflow-session.js" \
+        "$CLAUDE_DIR/hooks/taskflow-prompt.sh" \
+        "$CLAUDE_DIR/hooks/task-state.js" \
+        "$CLAUDE_DIR/bin/taskflow-add.sh" \
+        "$CLAUDE_DIR/commands/ta.md" \
+        "$CLAUDE_DIR/statusline-taskflow.sh"
   if [ -f "$CLAUDE_MD" ] && grep -q "megai:task-flow:begin" "$CLAUDE_MD" 2>/dev/null; then
     tmp="$(mktemp)"
     sed '/<!-- megai:task-flow:begin -->/,/<!-- megai:task-flow:end -->/d' "$CLAUDE_MD" > "$tmp" && mv "$tmp" "$CLAUDE_MD"
@@ -44,14 +50,17 @@ fi
 
 [ -d "$SRC" ] || { warn "task-flow source missing ($SRC) — skipped"; exit 0; }
 
-mkdir -p "$CLAUDE_DIR/skills/task-flow" "$CLAUDE_DIR/hooks"
+mkdir -p "$CLAUDE_DIR/skills/task-flow" "$CLAUDE_DIR/hooks" "$CLAUDE_DIR/bin" "$CLAUDE_DIR/commands"
 cp -f "$SRC/skills/task-flow/SKILL.md"  "$CLAUDE_DIR/skills/task-flow/SKILL.md"
-cp -f "$SRC/hooks/task-state.js"        "$CLAUDE_DIR/hooks/task-state.js"
 cp -f "$SRC/hooks/taskflow-session.js"  "$CLAUDE_DIR/hooks/taskflow-session.js"
 cp -f "$SRC/hooks/taskflow-prompt.sh"   "$CLAUDE_DIR/hooks/taskflow-prompt.sh"
+cp -f "$SRC/bin/taskflow-add.sh"        "$CLAUDE_DIR/bin/taskflow-add.sh"
 cp -f "$SRC/bin/statusline-taskflow.sh" "$CLAUDE_DIR/statusline-taskflow.sh"
-chmod +x "$CLAUDE_DIR/statusline-taskflow.sh" "$CLAUDE_DIR/hooks/taskflow-prompt.sh" 2>/dev/null || true
-ok "task-flow: skill + hook + statusline copied -> $CLAUDE_DIR"
+cp -f "$SRC/commands/ta.md"             "$CLAUDE_DIR/commands/ta.md"
+chmod +x "$CLAUDE_DIR/statusline-taskflow.sh" "$CLAUDE_DIR/hooks/taskflow-prompt.sh" "$CLAUDE_DIR/bin/taskflow-add.sh" 2>/dev/null || true
+# Drop the legacy Task-tools mirror hook — the board is the single source now.
+rm -f "$CLAUDE_DIR/hooks/task-state.js"
+ok "task-flow: skill + hooks + /ta command + statusline copied -> $CLAUDE_DIR"
 
 # Always-on rule in CLAUDE.md (markered, idempotent).
 if [ -f "$CLAUDE_MD" ] && grep -q "megai:task-flow:begin" "$CLAUDE_MD" 2>/dev/null; then
@@ -62,7 +71,7 @@ else
 fi
 
 if ! command -v jq >/dev/null 2>&1; then
-  warn "jq missing — settings.json not auto-wired (hook + statusline). Re-run after installing jq."
+  warn "jq missing — settings.json not auto-wired (hooks + statusline). Re-run after installing jq."
   state_set '.tools["task-flow"]' "{\"skill\":\"$CLAUDE_DIR/skills/task-flow/SKILL.md\",\"wired\":false}"
   exit 0
 fi
@@ -72,28 +81,17 @@ mkdir -p "$MEGAI_HOME/backups"
 cp "$SETTINGS" "$MEGAI_HOME/backups/settings.json.bak.$(date +%s)" 2>/dev/null || true
 
 NODE_BIN="$(command -v node || echo node)"
-HOOK_CMD="$NODE_BIN \"$CLAUDE_DIR/hooks/task-state.js\""
 SESS_CMD="$NODE_BIN \"$CLAUDE_DIR/hooks/taskflow-session.js\""
 PROMPT_CMD="bash \"$CLAUDE_DIR/hooks/taskflow-prompt.sh\""
 SL_CMD="bash \"$CLAUDE_DIR/statusline-taskflow.sh\""
 
-# 1) PostToolUse hook for TaskCreate|TaskUpdate (idempotent by command match).
-already="$(jq '[.. | objects | .command? // empty] | map(select(test("task-state.js"))) | length' "$SETTINGS" 2>/dev/null || echo 0)"
-if [ "${already:-0}" = "0" ]; then
-  tmp="$(mktemp)"
-  jq --arg cmd "$HOOK_CMD" '
-    .hooks = (.hooks // {}) |
-    .hooks.PostToolUse = ((.hooks.PostToolUse // []) + [
-      { "matcher": "TaskCreate|TaskUpdate",
-        "hooks": [ { "type": "command", "command": $cmd, "timeout": 5 } ] }
-    ])
-  ' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
-  ok "task-flow: PostToolUse hook registered"
-else
-  ok "task-flow: hook already registered"
-fi
+# Drop any legacy PostToolUse task-state.js hook from prior versions (pure .todos now).
+tmp="$(mktemp)"
+jq '(.hooks.PostToolUse) |= ( (. // []) | map(select(
+      ([.hooks[]?.command // ""] | map(test("task-state.js")) | any) | not )) )' \
+  "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
 
-# 2) SessionStart hook — ensure/init the .todos board on every new session.
+# 1) SessionStart hook — ensure/init the .todos board on every new session.
 sess_already="$(jq '[.. | objects | .command? // empty] | map(select(test("taskflow-session.js"))) | length' "$SETTINGS" 2>/dev/null || echo 0)"
 if [ "${sess_already:-0}" = "0" ]; then
   tmp="$(mktemp)"
@@ -108,7 +106,7 @@ else
   ok "task-flow: SessionStart hook already registered"
 fi
 
-# 3) UserPromptSubmit hook — analyze prompt -> create task first -> run ADLC.
+# 2) UserPromptSubmit hook — analyze prompt -> create task first -> run ADLC.
 prompt_already="$(jq '[.. | objects | .command? // empty] | map(select(test("taskflow-prompt.sh"))) | length' "$SETTINGS" 2>/dev/null || echo 0)"
 if [ "${prompt_already:-0}" = "0" ]; then
   tmp="$(mktemp)"
@@ -123,7 +121,7 @@ else
   ok "task-flow: UserPromptSubmit hook already registered"
 fi
 
-# 4) statusLine — only set when the user has none, never clobber an existing one.
+# 3) statusLine — only set when the user has none, never clobber an existing one.
 has_sl="$(jq 'has("statusLine")' "$SETTINGS" 2>/dev/null || echo false)"
 if [ "$has_sl" != "true" ]; then
   tmp="$(mktemp)"
@@ -133,5 +131,5 @@ else
   warn "task-flow: existing statusLine kept — board view available via $CLAUDE_DIR/statusline-taskflow.sh"
 fi
 
-state_set '.tools["task-flow"]' "{\"skill\":\"$CLAUDE_DIR/skills/task-flow/SKILL.md\",\"hook\":\"$CLAUDE_DIR/hooks/task-state.js\",\"wired\":true}"
+state_set '.tools["task-flow"]' "{\"skill\":\"$CLAUDE_DIR/skills/task-flow/SKILL.md\",\"command\":\"/ta\",\"wired\":true}"
 ok "task-flow ready"
