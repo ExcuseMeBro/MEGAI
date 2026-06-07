@@ -53,7 +53,8 @@ Every project has a `.todos/` folder at its root:
 **Commands (deterministic, keep the board in sync):**
 
 - `/ta <text>` — add a task to `todo.md`
-- `/ts <text|index>` — **start**: move todo → `inprogress.md`
+- `/ts <text|index>` — **start**: move todo → `inprogress.md` (stage set to 📝 spec)
+- `/tg <stage|next>` — **advance stage** of the in-progress task (spec→plan→generate→verify→review→ship)
 - `/td <text|index>` — **done**: move → `done.md`
 - `/tp <text|index>` — **pause**: move inprogress → `todo.md`
 
@@ -74,7 +75,7 @@ Prefer these over hand-editing — they move the line atomically and refresh `mo
 
 ## Inner Loop — ADLC (every task runs all 6 stages)
 
-Advance the stage by updating the stage emoji (📝→📐→🔨→🧪→🔍→🚀) on the task's line in `inprogress.md` as you enter each — the statusline shows it on the active task.
+Advance the stage with `/tg next` (or `/tg generate`, etc.) as you enter each — it updates the stage emoji (📝→📐→🔨→🧪→🔍→🚀) on the in-progress line and refreshes the statusline + `monitoring.md`. `/ts` enters at 📝 spec.
 
 | # | Stage | Do | Tools |
 |---|-------|----|----|

@@ -29,6 +29,7 @@ if [ "$MODE" = "--remove" ]; then
         "$CLAUDE_DIR/commands/ts.md" \
         "$CLAUDE_DIR/commands/td.md" \
         "$CLAUDE_DIR/commands/tp.md" \
+        "$CLAUDE_DIR/commands/tg.md" \
         "$CLAUDE_DIR/statusline-taskflow.sh"
   if [ -f "$CLAUDE_MD" ] && grep -q "megai:task-flow:begin" "$CLAUDE_MD" 2>/dev/null; then
     tmp="$(mktemp)"
