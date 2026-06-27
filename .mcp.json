@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "headroom": {
+      "type": "stdio",
+      "command": "headroom",
+      "args": ["mcp", "serve"],
+      "env": {}
+    },
+    "codebase-memory-mcp": {
+      "command": "codebase-memory-mcp"
+    }
+  }
+}
