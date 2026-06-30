@@ -10,9 +10,22 @@
   THE ZERO-CONFIG AI AGENT STACK
 </pre>
 
+<p align="center">
+  <a href="https://github.com/ExcuseMeBro/MEGAI/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/install-one--line-brightgreen.svg" alt="One-line install">
+  <img src="https://img.shields.io/badge/harnesses-Claude%20Code%20%7C%20Codex%20%7C%20Pi-8A2BE2.svg" alt="Harnesses">
+  <img src="https://img.shields.io/badge/tools-8-orange.svg" alt="Tools">
+</p>
+
+<p align="center">
+  <b>One command. Eight tools. Three agent harnesses. Zero config.</b><br>
+  Memory · code intelligence · indexing · token compression · knowledge graphs · task flow · design system — wired in and ready.
+</p>
+
 # MEGAI
 
-Zero-config one-line installer for the AI agent stack: **agent-memory** + **codedb** + **cocoindex** + **caveman** + **rtk** + **graphify** + **task-flow**, auto-wired into **Claude Code**, **Codex**, and **Pi**.
+Zero-config one-line installer for the AI agent stack: **agent-memory** + **codedb** + **cocoindex** + **caveman** + **rtk** + **graphify** + **task-flow** + **ui-craft**, auto-wired into **Claude Code**, **Codex**, and **Pi**.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | bash
@@ -38,12 +51,13 @@ megai doctor
 | [rtk](https://github.com/rtk-ai/rtk) | Rust Token Killer — CLI output proxy (~60–90% savings, hooks into cc) |
 | [graphify](https://graphify.net) | Knowledge-graph skill for codebases (Tree-sitter + NetworkX + Leiden). `/graphify .` inside cc/codex/pi |
 | task-flow | Priority-driven `.todos` board + full-ADLC protocol skill for Claude Code. Plan → split → queue → execute by priority, shown live in the statusline |
+| [ui-craft](https://skills.smoothui.dev) | Design-system skill + MCP gates + review agents for AI harnesses. Anti-slop UI rules, design memory, and per-project tokens. `/ui-craft` inside cc/codex/cursor/gemini/opencode |
 
 **Wired into:**
 
-- **Claude Code** — MCP servers added to `~/.claude.json`; `rtk` PreToolUse hook registered; `caveman` + `graphify` skills auto-detected; `task-flow` skill + `.todos` board hook + board statusline installed
-- **Codex** — MCP block added to `~/.codex/config.toml` (markered, idempotent); `caveman` + `graphify` register themselves
-- **Pi** — skill + bash extensions installed to `~/.pi/agent/` (Pi has no native MCP); `caveman` + `graphify` self-install
+- **Claude Code** — MCP servers added to `~/.claude.json`; `rtk` PreToolUse hook registered; `caveman` + `graphify` skills auto-detected; `task-flow` skill + `.todos` board hook + board statusline installed; `ui-craft` skill + commands + MCP gates + design-memory written to `~/.claude/`
+- **Codex** — MCP block added to `~/.codex/config.toml` (markered, idempotent); `caveman` + `graphify` register themselves; `ui-craft` writes its skill + gates into the Codex config
+- **Pi** — skill + bash extensions installed to `~/.pi/agent/` (Pi has no native MCP); `caveman` + `graphify` self-install; `ui-craft` registers where Pi supports it
 
 
 ---
@@ -139,6 +153,21 @@ megai uninstall
 
 ---
 
+## ui-craft — design system for your agent
+
+Stops AI-generated UIs from looking generic. `ui-craft` installs an anti-slop design skill, MCP gates, review agents, and a per-project **design memory** into every detected harness — so any agent you run already knows your tokens, patterns, and decisions.
+
+```bash
+ui-craft install --yes      # wire into detected harnesses (run by `megai install`)
+ui-craft doctor             # health check
+ui-craft backup             # snapshot harness configs before changes
+ui-craft rollback           # restore the latest snapshot
+```
+
+Inside Claude Code / Codex / Cursor / Gemini / OpenCode you get the `ui-craft` skill plus focused presets — `minimal`, `editorial`, `dense-dashboard` — and per-pass commands (`/craft`, `/polish`, `/audit`, `/harden`, …). Design memory lives in `<project>/.ui-craft/` (`brief.md`, `tokens.md`, `patterns.md`, `decisions.md`) and is read by the agent on every UI task.
+
+---
+
 ## Requirements
 
 - macOS or Linux (Windows: use WSL)
@@ -168,7 +197,7 @@ megai uninstall
 megai uninstall
 ```
 
-Removes `~/.megai/` and reverts megai-managed blocks in `~/.claude.json`, `~/.codex/config.toml`, `~/.pi/agent/`, and the `task-flow` skill/hook/statusline + CLAUDE.md rule in `~/.claude/`.
+Removes `~/.megai/` and reverts megai-managed blocks in `~/.claude.json`, `~/.codex/config.toml`, `~/.pi/agent/`, the `task-flow` skill/hook/statusline + CLAUDE.md rule in `~/.claude/`, and the `ui-craft` components (via `ui-craft uninstall`).
 
 ---
 

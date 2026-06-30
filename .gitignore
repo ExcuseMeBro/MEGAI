@@ -6,3 +6,5 @@ node_modules/
 .agents/
 data/
 skills-lock.json
+.ui-craft/
+.todos/

@@ -15,7 +15,7 @@ LIB="$MEGAI_HOME/lib"
 . "$LIB/banner.sh"
 megai_banner
 
-TOTAL=9
+TOTAL=10
 
 step 1 $TOTAL "Detecting OS / runtimes"
 detect_os
@@ -53,7 +53,10 @@ bash "$LIB/install_graphify.sh"
 step 8 $TOTAL "Installing task-flow (.todos board + ADLC skill)"
 bash "$LIB/install_taskflow.sh" || warn "task-flow install skipped"
 
-step 9 $TOTAL "Wiring MCP into cc / codex / pi + shell PATH"
+step 9 $TOTAL "Installing ui-craft (design-system skill + MCP gates)"
+bash "$LIB/install_ui_craft.sh" || warn "ui-craft install skipped"
+
+step 10 $TOTAL "Wiring MCP into cc / codex / pi + shell PATH"
 bash "$LIB/wire_cc.sh"    || warn "cc wiring skipped"
 bash "$LIB/wire_codex.sh" || warn "codex wiring skipped"
 bash "$LIB/wire_pi.sh"    || warn "pi wiring skipped"

@@ -43,7 +43,7 @@ Commands:
   version               Print version
   help                  This message
 
-Tools: agent-memory, codedb, cocoindex, caveman, rtk, graphify
+Tools: agent-memory, codedb, cocoindex, caveman, rtk, graphify, ui-craft
 EOF
 }
 
@@ -54,7 +54,7 @@ cmd_install() {
 cmd_status() {
   detect_os; detect_runtimes; state_init
   printf "%-14s %-10s %-8s %s\n" TOOL VERSION PORT STATUS
-  for t in agent-memory codedb cocoindex caveman rtk graphify; do
+  for t in agent-memory codedb cocoindex caveman rtk graphify ui-craft; do
     local ver port stat bin
     ver=$(state_get ".tools[\"$t\"].version") || ver=""
     port=$(state_get ".tools[\"$t\"].port")   || port=""
@@ -81,6 +81,7 @@ cmd_doctor() {
   if command -v caveman     >/dev/null 2>&1; then ok "caveman CLI present";      else skip "caveman missing"; fi
   if command -v rtk         >/dev/null 2>&1; then ok "rtk CLI present";          else skip "rtk missing"; fi
   if command -v graphify    >/dev/null 2>&1; then ok "graphify CLI present";     else skip "graphify missing"; fi
+  if command -v ui-craft    >/dev/null 2>&1; then ok "ui-craft CLI present";     else skip "ui-craft missing"; fi
 }
 
 cmd_update() {
@@ -90,6 +91,7 @@ cmd_update() {
   bash "$LIB/install_caveman.sh"      || true
   bash "$LIB/install_rtk.sh"          || true
   bash "$LIB/install_graphify.sh"     || true
+  bash "$LIB/install_ui_craft.sh"     || true
   ok "update complete"
 }
 
@@ -146,6 +148,7 @@ cmd_uninstall() {
   bash "$LIB/wire_pi.sh"        --remove || true
   bash "$LIB/wire_path.sh"      --remove || true
   bash "$LIB/install_taskflow.sh" --remove || true
+  command -v ui-craft >/dev/null 2>&1 && ui-craft uninstall --yes >/dev/null 2>&1 || true
   rm -rf "$MEGAI_HOME"
   ok "uninstalled"
 }
