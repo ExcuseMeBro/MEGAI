@@ -43,7 +43,7 @@ Commands:
   version               Print version
   help                  This message
 
-Tools: agent-memory, codedb, cocoindex, caveman, rtk, graphify, ui-craft
+Tools: agent-memory, codedb, cocoindex, caveman, rtk, graphify, ui-craft, mattpocock-skills
 EOF
 }
 
@@ -90,8 +90,9 @@ cmd_update() {
   bash "$LIB/install_cocoindex.sh"    || true
   bash "$LIB/install_caveman.sh"      || true
   bash "$LIB/install_rtk.sh"          || true
-  bash "$LIB/install_graphify.sh"     || true
-  bash "$LIB/install_ui_craft.sh"     || true
+  bash "$LIB/install_graphify.sh"           || true
+  bash "$LIB/install_ui_craft.sh"           || true
+  bash "$LIB/install_mattpocock_skills.sh"  || true
   ok "update complete"
 }
 

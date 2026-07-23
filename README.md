@@ -15,17 +15,17 @@
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/install-one--line-brightgreen.svg" alt="One-line install">
   <img src="https://img.shields.io/badge/harnesses-Claude%20Code%20%7C%20Codex%20%7C%20Pi-8A2BE2.svg" alt="Harnesses">
-  <img src="https://img.shields.io/badge/tools-8-orange.svg" alt="Tools">
+  <img src="https://img.shields.io/badge/tools-9-orange.svg" alt="Tools">
 </p>
 
 <p align="center">
-  <b>One command. Eight tools. Three agent harnesses. Zero config.</b><br>
+  <b>One command. Nine tools. Three agent harnesses. Zero config.</b><br>
   Memory · code intelligence · indexing · token compression · knowledge graphs · task flow · design system — wired in and ready.
 </p>
 
 # MEGAI
 
-Zero-config one-line installer for the AI agent stack: **agent-memory** + **codedb** + **cocoindex** + **caveman** + **rtk** + **graphify** + **task-flow** + **ui-craft**, auto-wired into **Claude Code**, **Codex**, and **Pi**.
+Zero-config one-line installer for the AI agent stack: **agent-memory** + **codedb** + **cocoindex** + **caveman** + **rtk** + **graphify** + **task-flow** + **ui-craft** + **Matt Pocock's skills**, auto-wired into **Claude Code**, **Codex**, and **Pi**.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | bash
@@ -52,13 +52,27 @@ megai doctor
 | [graphify](https://graphify.net) | Knowledge-graph skill for codebases (Tree-sitter + NetworkX + Leiden). `/graphify .` inside cc/codex/pi |
 | task-flow | Priority-driven `.todos` board + full-ADLC protocol skill for Claude Code. Plan → split → queue → execute by priority, shown live in the statusline |
 | [ui-craft](https://skills.smoothui.dev) | Design-system skill + MCP gates + review agents for AI harnesses. Anti-slop UI rules, design memory, and per-project tokens. `/ui-craft` inside cc/codex/cursor/gemini/opencode |
+| [Matt Pocock's skills](https://github.com/mattpocock/skills) | 22 promoted engineering/productivity skills: grilling, specs, tickets, TDD, review, domain modeling, and more |
 
 **Wired into:**
 
 - **Claude Code** — MCP servers added to `~/.claude.json`; `rtk` PreToolUse hook registered; `caveman` + `graphify` skills auto-detected; `task-flow` skill + `.todos` board hook + board statusline installed; `ui-craft` skill + commands + MCP gates + design-memory written to `~/.claude/`
 - **Codex** — MCP block added to `~/.codex/config.toml` (markered, idempotent); `caveman` + `graphify` register themselves; `ui-craft` writes its skill + gates into the Codex config
-- **Pi** — skill + bash extensions installed to `~/.pi/agent/` (Pi has no native MCP); `caveman` + `graphify` self-install; `ui-craft` registers where Pi supports it
+- **Pi** — skill + bash extensions installed to `~/.pi/agent/` (Pi has no native MCP); the first authenticated model is saved as the global default when no valid default exists; `caveman` + `graphify` self-install; `ui-craft` registers where Pi supports it. Provider credentials cannot be bundled: on first use, run `pi` and `/login` once; Pi stores them globally in `~/.pi/agent/auth.json`.
+- **All three** — Matt Pocock's 22 promoted skills are installed globally for Claude Code, Codex, and Pi via `skills.sh`. Run `/setup-matt-pocock-skills` once in each project before using the engineering flows.
 
+MEGAI also installs this recommended Pi package stack globally (user scope):
+
+- `@vigolium/piolium`
+- `pi-mcp-adapter`
+- `pi-web-access`
+- `pi-subagents`
+- `bigpowers`
+- `@dietrichgebert/ponytail`
+- `pi-lens`
+- `@narumitw/pi-statusline`
+
+Existing package entries are preserved and skipped on repeat installs.
 
 ---
 
