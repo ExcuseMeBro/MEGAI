@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MEGAI installer — zero-config bundle of agent-memory + codedb + cocoindex + caveman + rtk + graphify
+# MEGAI installer — zero-config AI agent stack bundle
 # Usage:  curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | bash
 set -euo pipefail
 

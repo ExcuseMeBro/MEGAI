@@ -43,7 +43,7 @@ Commands:
   version               Print version
   help                  This message
 
-Tools: agent-memory, codedb, cocoindex, caveman, rtk, graphify, ui-craft, mattpocock-skills
+Tools: agent-memory, codedb, cocoindex, caveman, rtk, graphify, ui-craft, ux-ui-agent-skills, dembrandt, ix, repowise, argent, mattpocock-skills
 EOF
 }
 
@@ -54,7 +54,7 @@ cmd_install() {
 cmd_status() {
   detect_os; detect_runtimes; state_init
   printf "%-14s %-10s %-8s %s\n" TOOL VERSION PORT STATUS
-  for t in agent-memory codedb cocoindex caveman rtk graphify ui-craft; do
+  for t in agent-memory codedb cocoindex caveman rtk graphify ui-craft dembrandt ix repowise argent; do
     local ver port stat bin
     ver=$(state_get ".tools[\"$t\"].version") || ver=""
     port=$(state_get ".tools[\"$t\"].port")   || port=""
@@ -75,13 +75,44 @@ cmd_doctor() {
     if [ -e "$f" ]; then ok "$f"
     else skip "$f (not present)"; fi
   done
-  if command -v agentmemory >/dev/null 2>&1; then ok "agent-memory CLI present"; else err "agent-memory missing"; fi
+  if command -v agentmemory >/dev/null 2>&1; then
+    ok "agent-memory CLI present"
+    local agentmemory_port
+    agentmemory_port="$(state_get '.ports["agent-memory"]')"; agentmemory_port="${agentmemory_port:-3111}"
+    AGENTMEMORY_URL="http://127.0.0.1:$agentmemory_port" agentmemory status >/dev/null 2>&1 \
+      && ok "agent-memory daemon healthy -> :$agentmemory_port" \
+      || warn "agent-memory daemon unavailable -> :$agentmemory_port"
+  else
+    err "agent-memory missing"
+  fi
   if command -v codedb      >/dev/null 2>&1; then ok "codedb CLI present";       else err "codedb missing"; fi
   if command -v cocoindex   >/dev/null 2>&1; then ok "cocoindex CLI present";    else skip "cocoindex missing"; fi
   if command -v caveman     >/dev/null 2>&1; then ok "caveman CLI present";      else skip "caveman missing"; fi
   if command -v rtk         >/dev/null 2>&1; then ok "rtk CLI present";          else skip "rtk missing"; fi
   if command -v graphify    >/dev/null 2>&1; then ok "graphify CLI present";     else skip "graphify missing"; fi
   if command -v ui-craft    >/dev/null 2>&1; then ok "ui-craft CLI present";     else skip "ui-craft missing"; fi
+  if [ -f "$HOME/.agents/skills/design-code/SKILL.md" ] && [ -f "$HOME/.claude/skills/design-code/SKILL.md" ] && [ -f "$HOME/.pi/agent/skills/design-code/SKILL.md" ]; then
+    ok "ux-ui-agent-skills ready for Codex, Claude Code, and Pi"
+  else
+    skip "ux-ui-agent-skills missing or incomplete"
+  fi
+  if command -v dembrandt   >/dev/null 2>&1; then ok "dembrandt CLI present";    else skip "dembrandt missing"; fi
+  if command -v ix          >/dev/null 2>&1; then
+    ok "Ix CLI present"
+    ix status >/dev/null 2>&1 && ok "Ix backend healthy" || warn "Ix backend unavailable"
+    if command -v claude >/dev/null 2>&1; then
+      claude plugin list 2>/dev/null | grep -q 'ix-memory' && ok "Ix Claude plugin ready" || warn "Ix Claude plugin missing"
+    fi
+    if command -v codex >/dev/null 2>&1; then
+      codex plugin list --json 2>/dev/null | jq -e '
+        .installed[]? | select(.pluginId == "ix-memory@ix-codex-plugin" and .installed == true and .enabled == true)
+      ' >/dev/null && ok "Ix Codex plugin ready" || warn "Ix Codex plugin missing"
+    fi
+  else
+    skip "Ix missing"
+  fi
+  if command -v repowise    >/dev/null 2>&1; then ok "RepoWise CLI present";     else skip "RepoWise missing"; fi
+  if command -v argent      >/dev/null 2>&1; then ok "Argent CLI present";       else skip "Argent missing"; fi
 }
 
 cmd_update() {
@@ -92,7 +123,15 @@ cmd_update() {
   bash "$LIB/install_rtk.sh"          || true
   bash "$LIB/install_graphify.sh"           || true
   bash "$LIB/install_ui_craft.sh"           || true
+  bash "$LIB/install_ux_ui_agent_skills.sh"  || true
+  MEGAI_UPDATE=1 bash "$LIB/install_dembrandt.sh" || true
+  bash "$LIB/install_ix.sh"                 || true
+  MEGAI_UPDATE=1 bash "$LIB/install_repowise.sh" || true
+  MEGAI_UPDATE=1 bash "$LIB/install_argent.sh"  || true
   bash "$LIB/install_mattpocock_skills.sh"  || true
+  bash "$LIB/wire_cc.sh"                    || true
+  bash "$LIB/wire_codex.sh"                 || true
+  bash "$LIB/wire_pi.sh"                    || true
   ok "update complete"
 }
 
@@ -113,7 +152,7 @@ cmd_start() {
     agent-memory)
       local port; port="$(state_get '.ports["agent-memory"]')"; port="${port:-3111}"
       mkdir -p "$MEGAI_HOME/logs"
-      nohup agentmemory >"$MEGAI_HOME/logs/agent-memory.log" 2>&1 &
+      nohup agentmemory --port "$port" >"$MEGAI_HOME/logs/agent-memory.log" 2>&1 &
       echo $! > "$MEGAI_HOME/agent-memory.pid"
       ok "agent-memory started (pid=$(cat "$MEGAI_HOME/agent-memory.pid"), port=$port)"
       ;;
@@ -134,8 +173,13 @@ cmd_stop() {
 }
 
 cmd_logs() {
-  local t="${1:-agent-memory}"
-  local f="$MEGAI_HOME/logs/$t.log"
+  local t="${1:-agent-memory}" f root key
+  f="$MEGAI_HOME/logs/$t.log"
+  if [ "$t" = "repowise" ]; then
+    root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+    key="$(printf '%s' "$root" | cksum | awk '{print $1}')"
+    f="$MEGAI_HOME/logs/repowise-$key.log"
+  fi
   [ -f "$f" ] || die "no log: $f"
   tail -f "$f"
 }
@@ -149,6 +193,7 @@ cmd_uninstall() {
   bash "$LIB/wire_pi.sh"        --remove || true
   bash "$LIB/wire_path.sh"      --remove || true
   bash "$LIB/install_taskflow.sh" --remove || true
+  bash "$LIB/install_ux_ui_agent_skills.sh" --remove || true
   command -v ui-craft >/dev/null 2>&1 && ui-craft uninstall --yes >/dev/null 2>&1 || true
   rm -rf "$MEGAI_HOME"
   ok "uninstalled"
@@ -165,6 +210,46 @@ ensure_wired() {
   if [ "$wired" != "true" ]; then
     bash "$LIB/wire_${agent}.sh" || warn "$agent wiring had issues"
   fi
+}
+
+ensure_repowise_bg() {
+  if ! command -v repowise >/dev/null 2>&1; then
+    skip "RepoWise not installed"
+    return 0
+  fi
+  local root
+  root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  if [ -z "$root" ]; then
+    skip "RepoWise needs a git repository"
+    return 0
+  fi
+  if [ -f "$root/.repowise/state.json" ]; then
+    ok "RepoWise index ready"
+    return 0
+  fi
+
+  mkdir -p "$MEGAI_HOME/logs"
+  local key pidf pid log
+  key="$(printf '%s' "$root" | cksum | awk '{print $1}')"
+  pidf="$MEGAI_HOME/logs/repowise-$key.pid"
+  log="$MEGAI_HOME/logs/repowise-$key.log"
+  if [ -f "$pidf" ]; then
+    pid="$(cat "$pidf" 2>/dev/null || true)"
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null \
+      && ps -p "$pid" -o command= 2>/dev/null | grep -q 'repowise init --yes --no-prose'; then
+      ok "RepoWise index is being prepared"
+      return 0
+    fi
+    rm -f "$pidf"
+  fi
+
+  printf '\n--- RepoWise init %s ---\n' "$(date -u +%FT%TZ)" >> "$log"
+  nohup sh -c '
+    cd "$1" || exit 1
+    REPOWISE_SKIP_EDITOR_SETUP=1 repowise init --yes --no-prose --no-claude-md >>"$2" 2>&1
+  ' sh "$root" "$log" >/dev/null 2>&1 &
+  echo $! > "$pidf"
+  ok "RepoWise index started in background (megai logs repowise)"
 }
 
 ensure_graphify_bg() {
@@ -217,13 +302,15 @@ prepare_stack() {
     printf "%s↑%s initialising project (first run)\n\n" "$C_BLUE" "$C_OFF"
   fi
 
-  step 1 4 "agent-memory daemon"
+  step 1 5 "agent-memory daemon"
   ensure_agent_memory
-  step 2 4 "codedb index"
+  step 2 5 "codedb index"
   ensure_codedb_index "$(pwd)"
-  step 3 4 "graphify knowledge graph"
+  step 3 5 "graphify knowledge graph"
   ensure_graphify_bg
-  step 4 4 "token savers + skill checks"
+  step 4 5 "RepoWise intelligence index"
+  ensure_repowise_bg
+  step 5 5 "token savers + skill checks"
   check_caveman
   check_rtk
 
@@ -284,7 +371,7 @@ is_port_listening() {
 ensure_agent_memory() {
   state_init
   local port; port="$(state_get '.ports["agent-memory"]')"; port="${port:-3111}"
-  if is_port_listening "$port"; then
+  if AGENTMEMORY_URL="http://127.0.0.1:$port" agentmemory status >/dev/null 2>&1; then
     ok "agent-memory running -> :$port"
     return
   fi
@@ -293,7 +380,11 @@ ensure_agent_memory() {
     return
   fi
   mkdir -p "$MEGAI_HOME/logs"
-  nohup agentmemory >"$MEGAI_HOME/logs/agent-memory.log" 2>&1 &
+  if is_port_listening "$port"; then
+    warn "agent-memory port :$port is occupied but unhealthy"
+    return
+  fi
+  nohup agentmemory --port "$port" >"$MEGAI_HOME/logs/agent-memory.log" 2>&1 &
   echo $! > "$MEGAI_HOME/agent-memory.pid"
   sleep 1
   if is_port_listening "$port"; then
@@ -379,10 +470,30 @@ ${C_GRN}Knowledge graph${C_OFF}  (graphify)
   megai graph ./docs       # graph a sub-tree
   # inside cc/codex: /graphify .  /graphify query "<q>"
 
+${C_GRN}Design extraction${C_OFF}  (Dembrandt)
+  dembrandt example.com --design-md
+  # agents can call Dembrandt through MCP
+
+${C_GRN}System map${C_OFF}  (Ix)
+  ix map .                 # map this codebase
+  ix explain auth-service # understand a component
+  ix trace user_login     # trace a flow
+  ix impact database      # analyze change impact
+
+${C_GRN}Code health + wiki${C_OFF}  (RepoWise)
+  repowise health         # health and refactoring targets
+  repowise risk main..HEAD
+  repowise serve          # dashboard on localhost:3000
+
+${C_GRN}App testing${C_OFF}  (Argent)
+  argent tools              # list device/browser testing tools
+  argent server status      # inspect the local testing server
+  # agents can drive iOS, Android, TV, Electron, and Chromium through MCP
+
 ${C_GRN}Agents${C_OFF}  (launches CLI with full stack already initialised)
-  megai cc       — Claude Code   (agentmemory + codedb MCP)
-  megai codex    — Codex CLI     (agentmemory + codedb MCP)
-  megai pi       — Pi            (megai-memory + megai-codedb extensions)
+  megai cc       — Claude Code   (memory + code + design + testing MCP)
+  megai codex    — Codex CLI     (memory + code + design + testing MCP)
+  megai pi       — Pi            (memory + code + design + testing MCP)
 
 ${C_GRN}Manage${C_OFF}
   megai status     megai doctor     megai stop     megai update

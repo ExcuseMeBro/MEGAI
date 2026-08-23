@@ -15,7 +15,14 @@ else
   ok "agent-memory installed"
 fi
 
-port="$(find_free_port 3111)"
+port="$(state_get '.ports["agent-memory"]')"
+if ! [[ "$port" =~ ^[0-9]+$ ]]; then
+  port="$(find_free_port 3111)"
+elif ! AGENTMEMORY_URL="http://127.0.0.1:$port" agentmemory status >/dev/null 2>&1 \
+  && lsof -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
+  warn "agent-memory port $port is occupied — selecting a free port"
+  port="$(find_free_port 3111)"
+fi
 bin="$(command -v agentmemory || true)"
 ver="$(agentmemory --version 2>/dev/null | head -n1 || echo "")"
 

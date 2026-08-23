@@ -15,17 +15,17 @@
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/install-one--line-brightgreen.svg" alt="One-line install">
   <img src="https://img.shields.io/badge/harnesses-Claude%20Code%20%7C%20Codex%20%7C%20Pi-8A2BE2.svg" alt="Harnesses">
-  <img src="https://img.shields.io/badge/tools-9-orange.svg" alt="Tools">
+  <img src="https://img.shields.io/badge/tools-14-orange.svg" alt="Tools">
 </p>
 
 <p align="center">
-  <b>One command. Nine tools. Three agent harnesses. Zero config.</b><br>
-  Memory · code intelligence · indexing · token compression · knowledge graphs · task flow · design system — wired in and ready.
+  <b>One command. Fourteen tools. Three agent harnesses. Zero config.</b><br>
+  Memory · code intelligence · indexing · token compression · knowledge graphs · task flow · design extraction · app testing — wired in and ready.
 </p>
 
 # MEGAI
 
-Zero-config one-line installer for the AI agent stack: **agent-memory** + **codedb** + **cocoindex** + **caveman** + **rtk** + **graphify** + **task-flow** + **ui-craft** + **Matt Pocock's skills**, auto-wired into **Claude Code**, **Codex**, and **Pi**.
+Zero-config one-line installer for the AI agent stack: **agent-memory** + **codedb** + **cocoindex** + **caveman** + **rtk** + **graphify** + **task-flow** + **ui-craft** + **ux-ui-agent-skills** + **Dembrandt** + **Ix** + **RepoWise** + **Argent** + **Matt Pocock's skills**, auto-wired into **Claude Code**, **Codex**, and **Pi**.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | bash
@@ -43,23 +43,28 @@ megai doctor
 ## What you get
 
 | Tool | Role |
-|------|------|
+| ------ | ------ |
 | [agent-memory](https://www.agent-memory.dev/) | Persistent memory MCP server (53 tools, port 3111) |
 | [codedb](https://github.com/justrach/codedb) | Code intelligence MCP server (16 tools, Zig binary) |
 | [cocoindex](https://cocoindex.io) | Incremental indexing pipeline (Python) |
 | [caveman](https://github.com/JuliusBrussee/caveman) | Token-compression skill (~65% savings, auto-activates in cc/codex/pi) |
 | [rtk](https://github.com/rtk-ai/rtk) | Rust Token Killer — CLI output proxy (~60–90% savings, hooks into cc) |
 | [graphify](https://graphify.net) | Knowledge-graph skill for codebases (Tree-sitter + NetworkX + Leiden). `/graphify .` inside cc/codex/pi |
-| task-flow | Priority-driven `.todos` board + full-ADLC protocol skill for Claude Code. Plan → split → queue → execute by priority, shown live in the statusline |
+| task-flow | Priority-driven `.todos` board + full-ADLC protocol for Claude Code; Pi also mirrors project tasks and status to Asana |
 | [ui-craft](https://skills.smoothui.dev) | Design-system skill + MCP gates + review agents for AI harnesses. Anti-slop UI rules, design memory, and per-project tokens. `/ui-craft` inside cc/codex/cursor/gemini/opencode |
+| [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | 17 global design skills plus tokens, components, WCAG references, framework adapters, and 138 design-system profiles |
+| [Dembrandt](https://github.com/dembrandt/dembrandt) | Extracts live websites into design tokens, palettes, typography, WCAG findings, reports, and `DESIGN.md`; available as CLI and MCP |
+| [Ix](https://github.com/ix-infrastructure/Ix) | Persistent system map and codebase memory: map architecture, explain components, trace flows, and analyze change impact |
+| [RepoWise](https://github.com/repowise-dev/repowise) | Local code intelligence: dependency graph, generated wiki, git history, architectural decisions, code health, risk analysis, and ten MCP tools |
+| [Argent](https://github.com/software-mansion/argent) | Agent-driven testing for iOS, Android, TV, Electron, and Chromium apps: device control, recording, visual regression, logs, network inspection, and profiling via CLI and MCP |
 | [Matt Pocock's skills](https://github.com/mattpocock/skills) | 22 promoted engineering/productivity skills: grilling, specs, tickets, TDD, review, domain modeling, and more |
 
 **Wired into:**
 
-- **Claude Code** — MCP servers added to `~/.claude.json`; `rtk` PreToolUse hook registered; `caveman` + `graphify` skills auto-detected; `task-flow` skill + `.todos` board hook + board statusline installed; `ui-craft` skill + commands + MCP gates + design-memory written to `~/.claude/`
-- **Codex** — MCP block added to `~/.codex/config.toml` (markered, idempotent); `caveman` + `graphify` register themselves; `ui-craft` writes its skill + gates into the Codex config
-- **Pi** — skill + bash extensions installed to `~/.pi/agent/` (Pi has no native MCP); the first authenticated model is saved as the global default when no valid default exists; `caveman` + `graphify` self-install; `ui-craft` registers where Pi supports it. Provider credentials cannot be bundled: on first use, run `pi` and `/login` once; Pi stores them globally in `~/.pi/agent/auth.json`.
-- **All three** — Matt Pocock's 22 promoted skills are installed globally for Claude Code, Codex, and Pi via `skills.sh`. Run `/setup-matt-pocock-skills` once in each project before using the engineering flows.
+- **Claude Code** — agent-memory, codedb, Dembrandt, Argent, and RepoWise MCP servers added to `~/.claude.json`; Ix's official `ix-memory` plugin installed; `rtk` PreToolUse hook registered; `caveman` + `graphify` skills auto-detected; `task-flow` skill + `.todos` board hook + board statusline installed; `ui-craft` skill + commands + MCP gates + design-memory written to `~/.claude/`
+- **Codex** — agent-memory, codedb, Dembrandt, Argent, and RepoWise MCP block added to `~/.codex/config.toml` (markered, idempotent); Ix's official plugin, hooks, and MCP installed; `caveman` + `graphify` register themselves; `ui-craft` writes its skill + gates into the Codex config
+- **Pi** — MEGAI and dual-store task-flow skills plus bash extensions are installed to `~/.pi/agent/`; task-flow keeps Asana and `.todos` synchronized. Dembrandt, Argent, and RepoWise are added to Pi MCP Adapter's global config; Ix, Argent, and RepoWise guidance is included in the MEGAI skill; the first authenticated model is saved as the global default when no valid default exists; `caveman` + `graphify` self-install; `ui-craft` registers where Pi supports it. Provider credentials cannot be bundled: on first use, run `pi` and `/login` once; Pi stores them globally in `~/.pi/agent/auth.json`.
+- **All three** — `ux-ui-agent-skills` installs 17 global design capabilities with their shared references and scripts; its conflicting `prototype` skill is exposed as `ux-ui-prototype`. Matt Pocock's 22 promoted skills are installed globally via `skills.sh`; run `/setup-matt-pocock-skills` once in each project before using those engineering flows.
 
 MEGAI also installs this recommended Pi package stack globally (user scope):
 
@@ -78,7 +83,7 @@ Existing package entries are preserved and skipped on repeat installs.
 
 ## task-flow — `.todos` board + ADLC
 
-Every project gets a self-managing task board. Claude plans first, splits work into small tasks, queues them by priority, and runs each through the full **ADLC** (AI Development Life Cycle) — no stage skipped.
+Every project gets a self-managing task board. Claude uses `.todos` directly. Pi mirrors the same execution flow to the matching Asana project and links tasks by GID. Both run each task through the full **ADLC** (AI Development Life Cycle) — no stage skipped.
 
 **Board lives in the project** as plain markdown you can edit by hand:
 
@@ -90,7 +95,7 @@ Every project gets a self-managing task board. Claude plans first, splits work i
   monitoring.md   # 📊 auto-generated dashboard (counts by status/priority/stage)
 ```
 
-The `.todos/` files are the **single source of truth** — there is no other task store, so the board, the statusline, and Claude stay in perfect sync.
+For Claude Code, `.todos/` is the single source of truth. In Pi, Asana is the coordination source and `.todos/` is the local execution mirror; an embedded Asana GID keeps each task linked without duplication.
 
 Each line is a task with an **emoji priority** (and optional ADLC-stage emoji):
 
@@ -128,7 +133,7 @@ Priority: 🔴 urgent · 🟠 high · 🟡 medium · 🟢 low.  Stage: 📝 spec
 What the installer wires into Claude Code:
 
 | Piece | Where | Purpose |
-|-------|-------|---------|
+| ------- | ------- | --------- |
 | `task-flow` skill | `~/.claude/skills/task-flow/` | the protocol (auto-invoked for multi-step work) |
 | `/ta` command | `~/.claude/commands/ta.md` + `~/.claude/bin/taskflow-add.sh` | `/ta <text>` appends a task straight into `.todos/todo.md` |
 | prompt hook | `~/.claude/hooks/taskflow-prompt.sh` | UserPromptSubmit: analyze the prompt → write the task first → run the ADLC |
@@ -182,11 +187,66 @@ Inside Claude Code / Codex / Cursor / Gemini / OpenCode you get the `ui-craft` s
 
 ---
 
+## ux-ui-agent-skills — global design knowledge
+
+MEGAI installs the full [plugin87 kit](https://github.com/plugin87/ux-ui-agent-skills) under `~/.megai/ux-ui-agent-skills/` and links its 17 skills into Claude Code, Codex, and Pi user scopes. Shared tokens, component specs, accessibility references, framework adapters, scripts, and design-system profiles stay available from every linked skill.
+
+The upstream `prototype` name overlaps Matt Pocock's engineering skill, so MEGAI preserves both by exposing the UI/UX version as `/ux-ui-prototype`.
+
+---
+
+## Dembrandt — website to design tokens
+
+```bash
+dembrandt example.com --design-md
+dembrandt example.com --wcag --save-output
+```
+
+The installer adds the Dembrandt MCP server to Claude Code, Codex, and Pi, so agents can extract palettes, typography, spacing, component styles, and brand identity directly.
+
+---
+
+## Ix — persistent system map
+
+```bash
+ix map .
+ix explain auth-service
+ix trace user_login_flow
+ix impact database.schema
+```
+
+Ix uses a local Docker backend on ports `8090` and `8529`. Set `IX_SKIP_BACKEND=1` before installation only if you want the CLI without the backend.
+
+---
+
+## RepoWise — code health, wiki, and MCP
+
+```bash
+repowise health
+repowise risk main..HEAD
+repowise serve
+```
+
+MEGAI starts a free, keyless `repowise init --no-prose --no-claude-md` index in the background the first time a Git repository is activated. The dashboard runs on `localhost:3000`; the API uses port `7337`.
+
+---
+
+## Argent — agent-driven app testing
+
+```bash
+argent tools
+argent server status
+```
+
+Agents can drive iOS and Android devices, TV platforms, Electron apps, and Chromium through Argent's MCP server. Platform testing still requires the native SDK: Xcode for Apple targets, Android SDK Platform Tools for Android, and Vega SDK for Fire TV/Vega.
+
+---
+
 ## Requirements
 
 - macOS or Linux (Windows: use WSL)
 - `curl`
-- The installer brings in: `jq`, `node` (via `fnm` if missing), `python3` + `pipx`
+- The installer brings in: `jq`, Node.js 20.12+, `python3`, `pipx`, `uv`, `ripgrep`, Docker, and Docker Compose
 
 ---
 
@@ -198,6 +258,7 @@ Inside Claude Code / Codex / Cursor / Gemini / OpenCode you get the `ui-craft` s
   lib/*.sh
   pi-skill/{SKILL.md,extensions/}
   task-flow/{skills/,hooks/,bin/,commands/,CLAUDE.snippet.md}
+  ux-ui-agent-skills/
   state.json
   logs/
   backups/
@@ -211,7 +272,9 @@ Inside Claude Code / Codex / Cursor / Gemini / OpenCode you get the `ui-craft` s
 megai uninstall
 ```
 
-Removes `~/.megai/` and reverts megai-managed blocks in `~/.claude.json`, `~/.codex/config.toml`, `~/.pi/agent/`, the `task-flow` skill/hook/statusline + CLAUDE.md rule in `~/.claude/`, and the `ui-craft` components (via `ui-craft uninstall`).
+Removes `~/.megai/` and reverts megai-managed MCP entries (including Dembrandt and Argent) in `~/.claude.json`, `~/.codex/config.toml`, and `~/.pi/agent/`; removes the task-flow and ux-ui-agent-skills links; and uninstalls the `ui-craft` components.
+
+Ix, RepoWise, and their local index data are intentionally kept to prevent data loss. Remove Ix separately with `curl -fsSL https://ix-infra.com/uninstall.sh | sh`; remove RepoWise with `uv tool uninstall repowise` and delete a project's `.repowise/` only when its index is no longer needed.
 
 ---
 

@@ -8,3 +8,5 @@ data/
 skills-lock.json
 .ui-craft/
 .todos/
+.pi-subagents/
+.repowise/
