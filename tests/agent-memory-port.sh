@@ -8,16 +8,16 @@ export HOME="$TMP/home"
 export MEGAI_HOME="$TMP/megai"
 mkdir -p "$MEGAI_HOME/lib" "$TMP/bin"
 cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$ROOT/lib/detect.sh" "$MEGAI_HOME/lib/"
-printf '%s\n' '{"tools":{},"ports":{"agent-memory":3111},"agents":{},"projects":{}}' > "$MEGAI_HOME/state.json"
+printf '%s\n' '{"tools":{},"ports":{"agent-memory":3111},"agents":{},"projects":{}}' >"$MEGAI_HOME/state.json"
 
-cat > "$TMP/bin/agentmemory" <<'SH'
+cat >"$TMP/bin/agentmemory" <<'SH'
 #!/bin/sh
 case "${1:-}" in
   --version) echo "agentmemory 1.0.0" ;;
   status) exit 1 ;;
 esac
 SH
-cat > "$TMP/bin/lsof" <<'SH'
+cat >"$TMP/bin/lsof" <<'SH'
 #!/bin/sh
 case "$*" in
   *-iTCP:3111*) exit 0 ;;

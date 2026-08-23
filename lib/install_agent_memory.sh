@@ -18,8 +18,8 @@ fi
 port="$(state_get '.ports["agent-memory"]')"
 if ! [[ "$port" =~ ^[0-9]+$ ]]; then
   port="$(find_free_port 3111)"
-elif ! AGENTMEMORY_URL="http://127.0.0.1:$port" agentmemory status >/dev/null 2>&1 \
-  && lsof -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
+elif ! AGENTMEMORY_URL="http://127.0.0.1:$port" agentmemory status >/dev/null 2>&1 &&
+  lsof -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
   warn "agent-memory port $port is occupied — selecting a free port"
   port="$(find_free_port 3111)"
 fi
