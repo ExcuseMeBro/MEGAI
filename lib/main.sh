@@ -15,7 +15,7 @@ LIB="$MEGAI_HOME/lib"
 . "$LIB/banner.sh"
 megai_banner
 
-TOTAL=17
+TOTAL=18
 
 step 1 $TOTAL "Detecting OS / runtimes"
 detect_os
@@ -71,13 +71,16 @@ bash "$LIB/install_repowise.sh" || warn "RepoWise install skipped"
 step 14 $TOTAL "Installing Argent (agent-driven app testing CLI + MCP)"
 bash "$LIB/install_argent.sh" || warn "Argent install skipped"
 
-step 15 $TOTAL "Installing Matt Pocock's engineering skills (global, 3 agents)"
+step 15 $TOTAL "Installing Numasec (authorized security CLI + global skill)"
+bash "$LIB/install_numasec.sh" || warn "Numasec install skipped"
+
+step 16 $TOTAL "Installing Matt Pocock's engineering skills (global, 3 agents)"
 bash "$LIB/install_mattpocock_skills.sh" || warn "Matt Pocock skills install skipped"
 
-step 16 $TOTAL "Installing recommended Pi packages (global)"
+step 17 $TOTAL "Installing recommended Pi packages (global)"
 bash "$LIB/install_pi_packages.sh" || warn "Pi package install skipped"
 
-step 17 $TOTAL "Wiring MCP into cc / codex / pi + shell PATH"
+step 18 $TOTAL "Wiring MCP into cc / codex / pi + shell PATH"
 bash "$LIB/wire_cc.sh"    || warn "cc wiring skipped"
 bash "$LIB/wire_codex.sh" || warn "codex wiring skipped"
 bash "$LIB/wire_pi.sh"    || warn "pi wiring skipped"

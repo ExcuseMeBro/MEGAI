@@ -29,6 +29,7 @@ Commands:
   cc                    Launch Claude Code CLI (full stack init)
   codex                 Launch Codex CLI (full stack init)
   pi                    Launch Pi CLI (full stack init)
+  security [args]       Launch Numasec for authorized security work
   graph [path]          Build knowledge graph for current folder (graphify .)
   install               Re-run installer (idempotent)
   status                Show tools/ports/versions
@@ -43,7 +44,7 @@ Commands:
   version               Print version
   help                  This message
 
-Tools: agent-memory, codedb, cocoindex, caveman, rtk, graphify, ui-craft, ux-ui-agent-skills, dembrandt, ix, repowise, argent, mattpocock-skills
+Tools: agent-memory, codedb, cocoindex, caveman, rtk, graphify, ui-craft, ux-ui-agent-skills, dembrandt, ix, repowise, argent, numasec, mattpocock-skills
 EOF
 }
 
@@ -54,7 +55,7 @@ cmd_install() {
 cmd_status() {
   detect_os; detect_runtimes; state_init
   printf "%-14s %-10s %-8s %s\n" TOOL VERSION PORT STATUS
-  for t in agent-memory codedb cocoindex caveman rtk graphify ui-craft dembrandt ix repowise argent; do
+  for t in agent-memory codedb cocoindex caveman rtk graphify ui-craft dembrandt ix repowise argent numasec; do
     local ver port stat bin
     ver=$(state_get ".tools[\"$t\"].version") || ver=""
     port=$(state_get ".tools[\"$t\"].port")   || port=""
@@ -113,6 +114,16 @@ cmd_doctor() {
   fi
   if command -v repowise    >/dev/null 2>&1; then ok "RepoWise CLI present";     else skip "RepoWise missing"; fi
   if command -v argent      >/dev/null 2>&1; then ok "Argent CLI present";       else skip "Argent missing"; fi
+  if command -v numasec     >/dev/null 2>&1; then
+    ok "Numasec CLI present"
+    if [ -f "$HOME/.agents/skills/numasec-security/SKILL.md" ] && [ -f "$HOME/.claude/skills/numasec-security/SKILL.md" ] && [ -f "$HOME/.pi/agent/skills/numasec-security/SKILL.md" ]; then
+      ok "Numasec security handoff ready for Codex, Claude Code, and Pi"
+    else
+      warn "Numasec skill links missing or incomplete"
+    fi
+  else
+    skip "Numasec missing"
+  fi
 }
 
 cmd_update() {
@@ -128,6 +139,7 @@ cmd_update() {
   bash "$LIB/install_ix.sh"                 || true
   MEGAI_UPDATE=1 bash "$LIB/install_repowise.sh" || true
   MEGAI_UPDATE=1 bash "$LIB/install_argent.sh"  || true
+  MEGAI_UPDATE=1 bash "$LIB/install_numasec.sh" || true
   bash "$LIB/install_mattpocock_skills.sh"  || true
   bash "$LIB/wire_cc.sh"                    || true
   bash "$LIB/wire_codex.sh"                 || true
@@ -194,12 +206,18 @@ cmd_uninstall() {
   bash "$LIB/wire_path.sh"      --remove || true
   bash "$LIB/install_taskflow.sh" --remove || true
   bash "$LIB/install_ux_ui_agent_skills.sh" --remove || true
+  bash "$LIB/install_numasec.sh" --remove || true
   command -v ui-craft >/dev/null 2>&1 && ui-craft uninstall --yes >/dev/null 2>&1 || true
   rm -rf "$MEGAI_HOME"
   ok "uninstalled"
 }
 
 cmd_version() { echo "megai 0.1.0"; }
+
+cmd_security() {
+  command -v numasec >/dev/null 2>&1 || die "Numasec missing; run: megai install"
+  exec numasec "$@"
+}
 
 # ---------- agent launchers ----------
 
@@ -490,6 +508,10 @@ ${C_GRN}App testing${C_OFF}  (Argent)
   argent server status      # inspect the local testing server
   # agents can drive iOS, Android, TV, Electron, and Chromium through MCP
 
+${C_GRN}Security${C_OFF}  (Numasec; authorized targets only)
+  megai security            # launch the interactive security agent
+  # start with /doctor, /opsec strict, then a scoped runbook
+
 ${C_GRN}Agents${C_OFF}  (launches CLI with full stack already initialised)
   megai cc       — Claude Code   (memory + code + design + testing MCP)
   megai codex    — Codex CLI     (memory + code + design + testing MCP)
@@ -522,6 +544,7 @@ case "${1:-__project__}" in
   cc)        shift; cmd_cc        "$@" ;;
   codex)     shift; cmd_codex     "$@" ;;
   pi)        shift; cmd_pi        "$@" ;;
+  security)  shift; cmd_security  "$@" ;;
   graph)     shift; cmd_graph     "$@" ;;
   install)   shift; cmd_install   "$@" ;;
   status)    shift; cmd_status    "$@" ;;

@@ -15,17 +15,17 @@
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/install-one--line-brightgreen.svg" alt="One-line install">
   <img src="https://img.shields.io/badge/harnesses-Claude%20Code%20%7C%20Codex%20%7C%20Pi-8A2BE2.svg" alt="Harnesses">
-  <img src="https://img.shields.io/badge/tools-14-orange.svg" alt="Tools">
+  <img src="https://img.shields.io/badge/tools-15-orange.svg" alt="Tools">
 </p>
 
 <p align="center">
-  <b>🚀 One command · 🧰 Fourteen tools · 🤖 Three agent harnesses · ⚙️ Zero manual wiring</b><br>
-  Memory · code intelligence · indexing · token compression · system maps · task flow · UI/UX · app testing
+  <b>🚀 One command · 🧰 Fifteen tools · 🤖 Three agent harnesses · ⚙️ Zero manual wiring</b><br>
+  Memory · code intelligence · indexing · token compression · system maps · task flow · UI/UX · app testing · security operations
 </p>
 
 # 🧠 MEGAI
 
-MEGAI is a one-line installer and manager for a complete AI coding-agent stack. It installs, configures, updates, and connects **14 tools** to **Claude Code**, **OpenAI Codex**, and **Pi** while preserving existing user configuration.
+MEGAI is a one-line installer and manager for a complete AI coding-agent stack. It installs, configures, updates, and connects **15 tools** to **Claude Code**, **OpenAI Codex**, and **Pi** while preserving existing user configuration.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | bash
@@ -49,6 +49,7 @@ megai doctor
 - [🎨 Design and UI/UX stack](#-design-and-uiux-stack)
 - [🗃️ Code intelligence and memory](#️-code-intelligence-and-memory)
 - [🧪 App testing](#-app-testing)
+- [🛡️ Security operations](#️-security-operations)
 - [📦 Pi package stack](#-pi-package-stack)
 - [🏗️ How it works](#️-how-it-works)
 - [📁 Installed files](#-installed-files)
@@ -107,6 +108,7 @@ Without MEGAI, every agent needs separate MCP entries, skills, hooks, plugins, p
 - 🎨 **Design-system, accessibility, and UI quality skills**
 - 🌐 **Website-to-design-token extraction**
 - 🧪 **Mobile, TV, Electron, and browser testing**
+- 🛡️ **Scoped AppSec and pentest operations with evidence-backed findings**
 - 🔌 **Global Claude Code, Codex, and Pi wiring**
 
 MEGAI reuses existing installations and preserves unrelated user configuration on repeated runs.
@@ -130,6 +132,7 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🗺️ | [Ix](https://github.com/ix-infrastructure/Ix) | Persistent system map, architecture explanation, traces, impact analysis | CLI + plugins + MCP |
 | 📚 | [RepoWise](https://github.com/repowise-dev/repowise) | Dependency graph, generated wiki, code health, risk, and history | MCP + CLI + background index |
 | 🧪 | [Argent](https://github.com/software-mansion/argent) | Agent-driven mobile, TV, Electron, and Chromium testing | MCP + CLI |
+| 🛡️ | [Numasec](https://github.com/FrancescoStabile/numasec) | Authorized AppSec/pentest operations, evidence, replay, and reports | CLI + global handoff skill |
 | 🛠️ | [Matt Pocock's skills](https://github.com/mattpocock/skills) | Specs, TDD, diagnosis, review, domain modeling, architecture, and delivery flows | Global skills |
 
 ---
@@ -184,6 +187,7 @@ megai                         Activate the stack for the current project
 megai cc                      Launch Claude Code with the stack ready
 megai codex                   Launch Codex with the stack ready
 megai pi                      Launch Pi with the stack ready
+megai security [args]         Launch Numasec (authorized targets only)
 megai graph [path]            Build a graphify knowledge graph
 
 megai install                 Re-run the installed MEGAI pipeline
@@ -384,6 +388,19 @@ Native targets still require their platform SDKs: Xcode for Apple, Android Platf
 
 ---
 
+## 🛡️ Security operations
+
+Numasec runs as an isolated interactive security specialist while MEGAI remains the project and task orchestrator:
+
+```bash
+cd ~/path/to/authorized-target
+megai security
+```
+
+Start with `/doctor`, `/opsec strict`, and a narrowly scoped runbook. Use Numasec only for systems you own, labs/CTFs, or targets where you have explicit testing permission. Its `numasec-security` handoff skill is linked globally for Claude Code, Codex, and Pi; generated reports or share artifacts can return to MEGAI for remediation.
+
+---
+
 ## 📦 Pi package stack
 
 MEGAI installs these Pi packages globally and preserves existing entries:
@@ -449,6 +466,7 @@ The installer:
 ├── lib/                         installer and wiring scripts
 ├── pi-skill/                    Pi MEGAI skill and extensions
 ├── task-flow/                   skills, hooks, commands, and monitor
+├── skills/numasec-security/     authorized security handoff guidance
 ├── ux-ui-agent-skills/          global plugin87 source and wrappers
 ├── logs/
 ├── backups/
@@ -492,7 +510,7 @@ megai status
 megai doctor
 ```
 
-A healthy installation reports the core CLIs, agent configuration files, agent-memory daemon, Ix backend/plugins, global UX/UI skills, RepoWise, and Argent.
+A healthy installation reports the core CLIs, agent configuration files, agent-memory daemon, Ix backend/plugins, global UX/UI and Numasec skills, RepoWise, Argent, and Numasec.
 
 ### Useful checks
 
@@ -527,6 +545,7 @@ The installer resolves supported missing dependencies where possible and reports
 - 💾 Configuration files are backed up before MEGAI changes them.
 - 🧱 Only MEGAI-owned MCP entries and marked blocks are replaced or removed.
 - 🏠 agent-memory, Ix, and RepoWise services run locally by default.
+- 🛡️ Numasec execution is opt-in and must stay within an explicitly authorized target scope.
 
 ---
 
@@ -536,7 +555,7 @@ The installer resolves supported missing dependencies where possible and reports
 megai uninstall
 ```
 
-MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI skill links, shell PATH entries, and ui-craft components.
+MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI and Numasec skill links, shell PATH entries, and ui-craft components. The Numasec CLI is retained to avoid deleting an independently usable security tool.
 
 To prevent data loss, Ix, RepoWise, and their local project indexes are retained. Remove them separately only when their data is no longer needed:
 

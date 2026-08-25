@@ -42,11 +42,12 @@ curl -fsSL "$MEGAI_TARBALL" | tar -xz -C "$tmp" --strip-components=1
 ok "source extracted -> $tmp"
 
 # 2. install into MEGAI_HOME
-mkdir -p "$MEGAI_HOME"/{bin,lib,logs,backups,pi-skill/extensions,task-flow}
+mkdir -p "$MEGAI_HOME"/{bin,lib,logs,backups,pi-skill/extensions,task-flow,skills}
 cp -R "$tmp/bin/."        "$MEGAI_HOME/bin/"
 cp -R "$tmp/lib/."        "$MEGAI_HOME/lib/"
 cp -R "$tmp/pi-skill/."   "$MEGAI_HOME/pi-skill/"
 [ -d "$tmp/task-flow" ] && cp -R "$tmp/task-flow/." "$MEGAI_HOME/task-flow/"
+[ -d "$tmp/skills" ] && cp -R "$tmp/skills/." "$MEGAI_HOME/skills/"
 chmod +x "$MEGAI_HOME/bin/megai" "$MEGAI_HOME/lib/"*.sh "$MEGAI_HOME/pi-skill/extensions/"*.sh 2>/dev/null || true
 chmod +x "$MEGAI_HOME/task-flow/bin/"*.sh 2>/dev/null || true
 ok "files installed"
