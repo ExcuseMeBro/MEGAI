@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# UserPromptSubmit hook — enforces the task-flow order on every prompt:
-# analyze the request, create the task(s) in .todos FIRST, then run the ADLC.
+# UserPromptSubmit hook — keeps local task state cheap and boundary-driven.
 # Output on stdout is injected as additional context for the turn.
-# Pure questions / trivial one-liners are explicitly exempt so chat stays light.
+# Pure questions, trivial edits, and steering for the already-active task avoid
+# board discovery and repeated reads.
 cat <<'EOF'
-[task-flow] Handle this request in order: (1) ANALYZE it. If it is actionable work (not a pure question or trivial one-liner): (2) re-read .todos/ (create it if missing), (3) write the task(s) into .todos/todo.md FIRST, each with a priority marker (! low, !! medium, !!! high, !!!! urgent), (4) move the task you start into inprogress.md (run `/ts <task>` — mandatory, the board must show it in-progress while you work), (5) execute it through the FULL ADLC — spec -> plan -> generate (test-first) -> verify -> review -> ship — advancing the (stage) token as you go, (6) move it to done.md, then drain the rest by priority. Urgent (!!!!) preempts the running task. Pure questions and trivial single-edits skip the board and are answered directly.
+[task-flow] For actionable work: satisfy any required external start boundary once, then create or resume one local task. Read only .todos/todo.md and .todos/inprogress.md when starting/resuming work, the queue changed, or a prior mutation failed; read done.md only for identity lookup or completion. Do not re-read unchanged board files between ADLC stages or for steering on the active task. Keep one line in inprogress.md and run full ADLC locally: spec -> plan -> generate (test-first) -> verify -> review -> ship. External systems sync only at their start/completion boundaries; never mirror local stages or routine comments. Pure questions and trivial single-edits skip the board.
 EOF

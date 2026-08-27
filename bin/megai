@@ -29,6 +29,7 @@ Commands:
   cc                    Launch Claude Code CLI (full stack init)
   codex                 Launch Codex CLI (full stack init)
   pi                    Launch Pi CLI (full stack init)
+  omp                   Launch Oh My Pi CLI (full stack init)
   security [args]       Launch Numasec for authorized security work
   graph [path]          Build knowledge graph for current folder (graphify .)
   install               Re-run installer (idempotent)
@@ -38,7 +39,7 @@ Commands:
   start [tool]          Start daemon (agent-memory)
   stop  [tool]          Stop daemon (agent-memory)
   update                Update all tools
-  wire <cc|codex|pi|path>  Re-wire MCP config / shell PATH (no launch)
+  wire <cc|codex|pi|omp|path>  Re-wire MCP config / shell PATH (no launch)
   logs [tool]           Tail log
   uninstall             Remove megai + revert configs
   version               Print version
@@ -72,7 +73,7 @@ cmd_doctor() {
     if command -v "$c" >/dev/null 2>&1; then ok "$c -> $(command -v "$c")"
     else err "$c missing"; fi
   done
-  for f in "$HOME/.claude.json" "$HOME/.codex/config.toml" "$HOME/.pi/agent/skills/megai.md"; do
+  for f in "$HOME/.claude.json" "$HOME/.codex/config.toml" "$HOME/.pi/agent/skills/megai.md" "$HOME/.omp/agent/skills/megai/SKILL.md"; do
     if [ -e "$f" ]; then ok "$f"
     else skip "$f (not present)"; fi
   done
@@ -91,6 +92,7 @@ cmd_doctor() {
   if command -v caveman     >/dev/null 2>&1; then ok "caveman CLI present";      else skip "caveman missing"; fi
   if command -v rtk         >/dev/null 2>&1; then ok "rtk CLI present";          else skip "rtk missing"; fi
   if command -v graphify    >/dev/null 2>&1; then ok "graphify CLI present";     else skip "graphify missing"; fi
+  if command -v omp >/dev/null 2>&1; then ok "OMP CLI present"; else skip "OMP missing"; fi
   if command -v ui-craft    >/dev/null 2>&1; then ok "ui-craft CLI present";     else skip "ui-craft missing"; fi
   if [ -f "$HOME/.agents/skills/design-code/SKILL.md" ] && [ -f "$HOME/.claude/skills/design-code/SKILL.md" ] && [ -f "$HOME/.pi/agent/skills/design-code/SKILL.md" ]; then
     ok "ux-ui-agent-skills ready for Codex, Claude Code, and Pi"
@@ -144,6 +146,7 @@ cmd_update() {
   bash "$LIB/wire_cc.sh"                    || true
   bash "$LIB/wire_codex.sh"                 || true
   bash "$LIB/wire_pi.sh"                    || true
+  bash "$LIB/wire_omp.sh"                   || true
   ok "update complete"
 }
 
@@ -153,8 +156,9 @@ cmd_wire() {
     cc)    bash "$LIB/wire_cc.sh" ;;
     codex) bash "$LIB/wire_codex.sh" ;;
     pi)    bash "$LIB/wire_pi.sh" ;;
+    omp)   bash "$LIB/wire_omp.sh" ;;
     path)  bash "$LIB/wire_path.sh" ;;
-    *)     die "usage: megai wire <cc|codex|pi|path>" ;;
+    *)     die "usage: megai wire <cc|codex|pi|omp|path>" ;;
   esac
 }
 
@@ -203,6 +207,7 @@ cmd_uninstall() {
   bash "$LIB/wire_cc.sh"        --remove || true
   bash "$LIB/wire_codex.sh"     --remove || true
   bash "$LIB/wire_pi.sh"        --remove || true
+  bash "$LIB/wire_omp.sh"       --remove || true
   bash "$LIB/wire_path.sh"      --remove || true
   bash "$LIB/install_taskflow.sh" --remove || true
   bash "$LIB/install_ux_ui_agent_skills.sh" --remove || true
@@ -224,6 +229,10 @@ cmd_security() {
 ensure_wired() {
   state_init
   local agent="$1"
+  if [ "$agent" = "omp" ]; then
+    bash "$LIB/wire_omp.sh" || warn "OMP wiring had issues"
+    return
+  fi
   local wired; wired="$(state_get ".agents[\"$agent\"].wired")"
   if [ "$wired" != "true" ]; then
     bash "$LIB/wire_${agent}.sh" || warn "$agent wiring had issues"
@@ -357,6 +366,7 @@ launch_agent() {
       claude) echo "    Install: https://docs.claude.com/en/docs/claude-code/setup" ;;
       codex)  echo "    Install: https://github.com/openai/codex" ;;
       pi)     echo "    Install: curl -fsSL https://pi.dev/install.sh | sh" ;;
+      omp)    echo "    Install: https://github.com/can1357/oh-my-pi" ;;
     esac
     return 1
   fi
@@ -369,6 +379,24 @@ launch_agent() {
 cmd_cc()     { launch_agent cc    claude "$@"; }
 cmd_codex()  { launch_agent codex codex  "$@"; }
 cmd_pi()     { launch_agent pi    pi     "$@"; }
+cmd_omp() {
+  local profile="${OMP_PROFILE:-${PI_PROFILE:-}}" expect_profile=0 arg
+  for arg in "$@"; do
+    if [ "$expect_profile" = "1" ]; then
+      profile="$arg"
+      break
+    fi
+    case "$arg" in
+      --profile|--alias) expect_profile=1 ;;
+      --profile=*|--alias=*) profile="${arg#*=}"; break ;;
+    esac
+  done
+  if [ -n "$profile" ]; then
+    OMP_PROFILE="$profile" launch_agent omp omp "$@"
+  else
+    launch_agent omp omp "$@"
+  fi
+}
 cmd_graph() {
   if ! command -v graphify >/dev/null 2>&1; then
     err "graphify not installed — run: megai install"
@@ -460,10 +488,11 @@ check_graphify() {
 
 check_mcp_wired() {
   state_init
-  local cc cx pi
-  cc="$(state_get '.agents["cc"].wired')";    [ "$cc" = "true" ] && ok "cc MCP wired"    || skip "cc MCP not wired (megai wire cc)"
-  cx="$(state_get '.agents["codex"].wired')"; [ "$cx" = "true" ] && ok "codex MCP wired" || skip "codex MCP not wired (megai wire codex)"
-  pi="$(state_get '.agents["pi"].wired')";    [ "$pi" = "true" ] && ok "pi skill wired"  || skip "pi skill not wired (megai wire pi)"
+  local cc cx pi omp
+  cc="$(state_get '.agents["cc"].wired')";     [ "$cc" = "true" ] && ok "cc MCP wired"     || skip "cc MCP not wired (megai wire cc)"
+  cx="$(state_get '.agents["codex"].wired')";  [ "$cx" = "true" ] && ok "codex MCP wired"  || skip "codex MCP not wired (megai wire codex)"
+  pi="$(state_get '.agents["pi"].wired')";     [ "$pi" = "true" ] && ok "pi skill wired"   || skip "pi skill not wired (megai wire pi)"
+  omp="$(state_get '.agents["omp"].wired')";   [ "$omp" = "true" ] && ok "OMP MCP wired"   || skip "OMP MCP not wired (megai wire omp)"
 }
 
 print_quick_guide() {
@@ -544,6 +573,7 @@ case "${1:-__project__}" in
   cc)        shift; cmd_cc        "$@" ;;
   codex)     shift; cmd_codex     "$@" ;;
   pi)        shift; cmd_pi        "$@" ;;
+  omp)       shift; cmd_omp       "$@" ;;
   security)  shift; cmd_security  "$@" ;;
   graph)     shift; cmd_graph     "$@" ;;
   install)   shift; cmd_install   "$@" ;;

@@ -61,13 +61,9 @@ AGM_PORT="$(state_get '.ports["agent-memory"]')"
 AGM_PORT="${AGM_PORT:-3111}"
 CODEDB_BIN="$(state_get '.tools["codedb"].bin')"
 CODEDB_BIN="${CODEDB_BIN:-codedb}"
-DEMBRANDT_MCP_BIN="$(state_get '.tools["dembrandt"].mcpBin')"
-ARGENT_BIN="$(state_get '.tools["argent"].bin')"
-REPOWISE_BIN="$(state_get '.tools["repowise"].bin')"
-[ -n "$DEMBRANDT_MCP_BIN" ] && [ -x "$DEMBRANDT_MCP_BIN" ] || warn "codex: Dembrandt MCP skipped — executable missing"
-[ -n "$ARGENT_BIN" ] && [ -x "$ARGENT_BIN" ] || warn "codex: Argent MCP skipped — executable missing"
-[ -n "$REPOWISE_BIN" ] && [ -x "$REPOWISE_BIN" ] || warn "codex: RepoWise MCP skipped — executable missing"
 
+# Specialist tools remain callable through their CLIs and skills. Only memory
+# and code search belong in every Codex session's MCP surface.
 {
   printf "%s\n" "$stripped"
   printf "\n%s\n" "$MARK_BEG"
@@ -81,29 +77,6 @@ env     = { AGENTMEMORY_URL = "http://127.0.0.1:$AGM_PORT" }
 command = "$CODEDB_BIN"
 args    = ["mcp"]
 EOF
-  if [ -n "$DEMBRANDT_MCP_BIN" ] && [ -x "$DEMBRANDT_MCP_BIN" ]; then
-    cat <<EOF
-
-[mcp_servers.megai-dembrandt]
-command = "$DEMBRANDT_MCP_BIN"
-EOF
-  fi
-  if [ -n "$ARGENT_BIN" ] && [ -x "$ARGENT_BIN" ]; then
-    cat <<EOF
-
-[mcp_servers.megai-argent]
-command = "$ARGENT_BIN"
-args    = ["mcp"]
-EOF
-  fi
-  if [ -n "$REPOWISE_BIN" ] && [ -x "$REPOWISE_BIN" ]; then
-    cat <<EOF
-
-[mcp_servers.megai-repowise]
-command = "$REPOWISE_BIN"
-args    = ["mcp"]
-EOF
-  fi
   printf "%s\n" "$MARK_END"
 } >"$CX_FILE"
 

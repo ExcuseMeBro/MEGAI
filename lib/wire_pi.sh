@@ -29,32 +29,13 @@ wire_megai_mcp() {
   cp "$PI_MCP_CONFIG" "$backup"
   local tmp
   tmp="$(mktemp)"
-  if [ "$MODE" = "--remove" ]; then
-    jq 'del(.mcpServers["megai-dembrandt"], .mcpServers["megai-argent"], .mcpServers["megai-repowise"])' "$PI_MCP_CONFIG" >"$tmp" && mv "$tmp" "$PI_MCP_CONFIG"
-    return 0
-  fi
-
-  local dembrandt_bin argent_bin repowise_bin has_dembrandt=false has_argent=false has_repowise=false
-  dembrandt_bin="$(state_get '.tools["dembrandt"].mcpBin')"
-  argent_bin="$(state_get '.tools["argent"].bin')"
-  repowise_bin="$(state_get '.tools["repowise"].bin')"
-  if [ -n "$dembrandt_bin" ] && [ -x "$dembrandt_bin" ]; then
-    has_dembrandt=true
-  else warn "pi: Dembrandt MCP skipped — executable missing"; fi
-  if [ -n "$argent_bin" ] && [ -x "$argent_bin" ]; then
-    has_argent=true
-  else warn "pi: Argent MCP skipped — executable missing"; fi
-  if [ -n "$repowise_bin" ] && [ -x "$repowise_bin" ]; then
-    has_repowise=true
-  else warn "pi: RepoWise MCP skipped — executable missing"; fi
-  jq --arg dembrandt "$dembrandt_bin" --arg argent "$argent_bin" --arg repowise "$repowise_bin" \
-    --argjson hasDembrandt "$has_dembrandt" --argjson hasArgent "$has_argent" --argjson hasRepowise "$has_repowise" '
-    .mcpServers = (.mcpServers // {})
-    | if $hasDembrandt then .mcpServers["megai-dembrandt"] = {command: $dembrandt} else del(.mcpServers["megai-dembrandt"]) end
-    | if $hasArgent then .mcpServers["megai-argent"] = {command: $argent, args: ["mcp"]} else del(.mcpServers["megai-argent"]) end
-    | if $hasRepowise then .mcpServers["megai-repowise"] = {command: $repowise, args: ["mcp"]} else del(.mcpServers["megai-repowise"]) end
+  # Pi gets memory and code search through lightweight shell extensions.
+  # Remove legacy specialist MCP entries and keep Asana lazy: its cached direct
+  # tools remain registered while the remote connection waits for first use.
+  jq '
+    del(.mcpServers["megai-dembrandt"], .mcpServers["megai-argent"], .mcpServers["megai-repowise"])
+    | if .mcpServers.asana? then .mcpServers.asana.lifecycle = "lazy" else . end
   ' "$PI_MCP_CONFIG" >"$tmp" && mv "$tmp" "$PI_MCP_CONFIG"
-  ok "pi: available MCP tools wired -> $PI_MCP_CONFIG"
 }
 
 configure_default_model() {

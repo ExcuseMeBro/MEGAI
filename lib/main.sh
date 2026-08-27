@@ -80,10 +80,11 @@ bash "$LIB/install_mattpocock_skills.sh" || warn "Matt Pocock skills install ski
 step 17 $TOTAL "Installing recommended Pi packages (global)"
 bash "$LIB/install_pi_packages.sh" || warn "Pi package install skipped"
 
-step 18 $TOTAL "Wiring MCP into cc / codex / pi + shell PATH"
+step 18 $TOTAL "Wiring MCP into cc / codex / pi / OMP + shell PATH"
 bash "$LIB/wire_cc.sh"    || warn "cc wiring skipped"
 bash "$LIB/wire_codex.sh" || warn "codex wiring skipped"
 bash "$LIB/wire_pi.sh"    || warn "pi wiring skipped"
+bash "$LIB/wire_omp.sh"   || warn "OMP wiring skipped"
 bash "$LIB/wire_path.sh"  || warn "PATH wiring skipped"
 
 ok "MEGAI ready"
@@ -92,6 +93,7 @@ echo "    Open a new shell (or 'source ~/.zshrc') so PATH picks up megai/bin"
 echo
 echo "    megai           # activate stack for the current folder"
 echo "    megai cc        # Claude Code (full stack)"
+echo "    megai omp       # Oh My Pi (full stack)"
 echo "    megai status"
 echo "    megai doctor"
 echo

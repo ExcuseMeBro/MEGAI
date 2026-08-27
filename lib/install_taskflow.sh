@@ -70,11 +70,26 @@ chmod +x "$CLAUDE_DIR/statusline-taskflow.sh" "$CLAUDE_DIR/hooks/taskflow-prompt
 rm -f "$CLAUDE_DIR/hooks/task-state.js"
 ok "task-flow: skill + hooks + /ta command + statusline copied -> $CLAUDE_DIR"
 
-# Always-on rule in CLAUDE.md (markered, idempotent).
+# Always refresh the managed CLAUDE.md rule so policy improvements replace
+# stale installs without disturbing user-authored content around the block.
 if [ -f "$CLAUDE_MD" ] && grep -q "megai:task-flow:begin" "$CLAUDE_MD" 2>/dev/null; then
-  ok "task-flow: CLAUDE.md rule already present"
+  tmp="$(mktemp)"
+  awk -v replacement="$SRC/CLAUDE.snippet.md" '
+    /<!-- megai:task-flow:begin -->/ {
+      if (!emitted) {
+        while ((getline line < replacement) > 0) print line
+        close(replacement)
+        emitted=1
+      }
+      skip=1
+      next
+    }
+    skip && /<!-- megai:task-flow:end -->/ { skip=0; next }
+    !skip { print }
+  ' "$CLAUDE_MD" >"$tmp" && mv "$tmp" "$CLAUDE_MD"
+  ok "task-flow: CLAUDE.md rule refreshed"
 else
-  { [ -f "$CLAUDE_MD" ] && echo ""; cat "$SRC/CLAUDE.snippet.md"; } >> "$CLAUDE_MD"
+  { [ -f "$CLAUDE_MD" ] && echo ""; cat "$SRC/CLAUDE.snippet.md"; } >>"$CLAUDE_MD"
   ok "task-flow: always-on rule added to CLAUDE.md"
 fi
 

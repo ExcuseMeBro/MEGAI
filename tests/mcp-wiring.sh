@@ -22,7 +22,7 @@ cat >"$HOME/.claude.json" <<'JSON'
 JSON
 printf 'keep = true\n\n[mcp_servers.dembrandt]\ncommand = "user-dembrandt"\n\n[mcp_servers.argent]\ncommand = "user-argent"\n\n[mcp_servers.repowise]\ncommand = "user-repowise"\n' >"$HOME/.codex/config.toml"
 cat >"$PI_CODING_AGENT_DIR/mcp.json" <<'JSON'
-{"mcpServers":{"keep":{"command":"keep"}}}
+{"mcpServers":{"keep":{"command":"keep"},"asana":{"url":"https://mcp.asana.com/v2/mcp","lifecycle":"keep-alive"}}}
 JSON
 printf '#!/usr/bin/env bash\nexit 0\n' >"$TMP/bin/pi"
 chmod +x "$TMP/bin/pi"
@@ -80,21 +80,22 @@ bash "$MEGAI_HOME/lib/wire_cc.sh" >/dev/null
 bash "$MEGAI_HOME/lib/wire_codex.sh" >/dev/null
 bash "$MEGAI_HOME/lib/wire_pi.sh" >/dev/null 2>&1
 
-jq --arg dembrandt "$TMP/bin/dembrandt-mcp" --arg argent "$TMP/bin/argent" --arg repowise "$TMP/bin/repowise" -e '
+jq -e '
   .mcpServers.dembrandt.command == "user-dembrandt"
   and .mcpServers.argent.command == "user-argent"
   and .mcpServers.repowise.command == "user-repowise"
   and .mcpServers.agentmemory.env.AGENTMEMORY_URL == "http://127.0.0.1:3111"
-  and .mcpServers["megai-dembrandt"].command == $dembrandt
-  and .mcpServers["megai-argent"] == {command:$argent, args:["mcp"]}
-  and .mcpServers["megai-repowise"] == {command:$repowise, args:["mcp"]}
+  and .mcpServers.codedb.args == ["mcp"]
+  and (.mcpServers["megai-dembrandt"] | not)
+  and (.mcpServers["megai-argent"] | not)
+  and (.mcpServers["megai-repowise"] | not)
 ' "$HOME/.claude.json" >/dev/null
 [ "$(grep -c '^\[mcp_servers.dembrandt\]$' "$HOME/.codex/config.toml")" = "1" ]
 [ "$(grep -c '^\[mcp_servers.repowise\]$' "$HOME/.codex/config.toml")" = "1" ]
 [ "$(grep -c '^\[mcp_servers.argent\]$' "$HOME/.codex/config.toml")" = "1" ]
-[ "$(grep -c '^\[mcp_servers.megai-dembrandt\]$' "$HOME/.codex/config.toml")" = "1" ]
-[ "$(grep -c '^\[mcp_servers.megai-argent\]$' "$HOME/.codex/config.toml")" = "1" ]
-[ "$(grep -c '^\[mcp_servers.megai-repowise\]$' "$HOME/.codex/config.toml")" = "1" ]
+! grep -q '^\[mcp_servers.megai-dembrandt\]$' "$HOME/.codex/config.toml"
+! grep -q '^\[mcp_servers.megai-argent\]$' "$HOME/.codex/config.toml"
+! grep -q '^\[mcp_servers.megai-repowise\]$' "$HOME/.codex/config.toml"
 [ "$(grep -c '^\[mcp_servers.agentmemory\]$' "$HOME/.codex/config.toml")" = "1" ]
 [ "$(grep -c '^\[mcp_servers.agentmemory.env\]$' "$HOME/.codex/config.toml")" = "0" ]
 [ "$(grep -c '^\[mcp_servers.codedb\]$' "$HOME/.codex/config.toml")" = "1" ]
@@ -103,11 +104,13 @@ grep -q 'AGENTMEMORY_URL = "http://127.0.0.1:3111"' "$HOME/.codex/config.toml"
 [ "$(grep -c '^\[mcp_servers.external-app.env\]$' "$HOME/.codex/config.toml")" = "1" ]
 grep -q '^KEEP = "true"$' "$HOME/.codex/config.toml"
 python3 -c 'import sys, tomllib; tomllib.load(open(sys.argv[1], "rb"))' "$HOME/.codex/config.toml"
-jq --arg dembrandt "$TMP/bin/dembrandt-mcp" --arg argent "$TMP/bin/argent" --arg repowise "$TMP/bin/repowise" -e '
+jq -e '
   .mcpServers.keep
-  and .mcpServers["megai-dembrandt"].command == $dembrandt
-  and .mcpServers["megai-argent"] == {command:$argent, args:["mcp"]}
-  and .mcpServers["megai-repowise"] == {command:$repowise, args:["mcp"]}
+  and .mcpServers.asana.lifecycle == "lazy"
+  and .mcpServers.asana.url == "https://mcp.asana.com/v2/mcp"
+  and (.mcpServers["megai-dembrandt"] | not)
+  and (.mcpServers["megai-argent"] | not)
+  and (.mcpServers["megai-repowise"] | not)
 ' "$PI_CODING_AGENT_DIR/mcp.json" >/dev/null
 
 bash "$MEGAI_HOME/lib/wire_cc.sh" --remove >/dev/null
@@ -123,7 +126,7 @@ jq -e '.mcpServers.dembrandt.command == "user-dembrandt" and .mcpServers.argent.
 ! grep -q '^\[mcp_servers.megai-repowise\]$' "$HOME/.codex/config.toml"
 [ "$(grep -c '^\[mcp_servers.external-app\]$' "$HOME/.codex/config.toml")" = "1" ]
 [ "$(grep -c '^\[mcp_servers.external-app.env\]$' "$HOME/.codex/config.toml")" = "1" ]
-jq -e '.mcpServers.keep and (.mcpServers["megai-dembrandt"] | not) and (.mcpServers["megai-argent"] | not) and (.mcpServers["megai-repowise"] | not)' "$PI_CODING_AGENT_DIR/mcp.json" >/dev/null
+jq -e '.mcpServers.keep and .mcpServers.asana.lifecycle == "lazy" and .mcpServers.asana.url == "https://mcp.asana.com/v2/mcp" and (.mcpServers["megai-dembrandt"] | not) and (.mcpServers["megai-argent"] | not) and (.mcpServers["megai-repowise"] | not)' "$PI_CODING_AGENT_DIR/mcp.json" >/dev/null
 
 # Missing optional executables must not leave broken MCP entries.
 jq 'del(.tools.dembrandt, .tools.argent, .tools.repowise)' "$MEGAI_HOME/state.json" >"$MEGAI_HOME/state.tmp"

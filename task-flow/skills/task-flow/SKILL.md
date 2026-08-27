@@ -64,14 +64,14 @@ Prefer these over hand-editing — they move the line atomically and refresh `mo
 
 ### Rules
 
-**Order is fixed: analyze → write the task → then act.** When a prompt arrives, first analyze what it asks. If it is actionable work, write the task line(s) into the board **before** doing any of the work — the task must exist in `.todos/` first, then you execute it. Never start coding before the task is written. (Pure questions and trivial one-liners are answered directly without a board entry.)
+**Order is fixed: analyze → satisfy any required external start boundary → write the local task → act.** Pure questions and trivial one-liners are answered directly without a board entry.
 
-1. **Always locate or create the board first.** At the start of every task — and every `/loop` iteration — find `<project>/.todos/`. If missing, create the folder and the three files (with `# TODO` / `# IN PROGRESS` / `# DONE` headers). Then **read all three**.
-2. **The board, not memory, is the truth. Re-read every loop.** The user may edit, add, reorder, or delete lines between turns. Pick up those changes on the next read and continue from the board's current state — never from a stale in-memory list.
-3. **Break work into small lines.** Split into the smallest independently-completable units (3–8 beats one vague task). Append new tasks to `todo.md` with a priority marker.
-4. **Queue, never discard.** A new task arriving mid-work is **added** to `todo.md`, not a reason to abandon the in-progress one.
-5. **Execute by priority.** Take the highest-priority line in `todo.md`. **Move it to `inprogress.md` BEFORE you start working** — run `/ts <task>` (or edit the files). This is mandatory: the board must show the task as in-progress while you work it. Run its full ADLC, then `/td <task>` to move it to `done.md`. Pause with `/tp`.
-6. **Drain until empty.** After a task moves to done, re-read and continue with the next by priority until `todo.md` + `inprogress.md` are empty or user input is needed. For unattended draining, suggest `/loop`.
+1. **Locate or create the board once per task/resume.** Ensure `<project>/.todos/` contains `todo.md`, `inprogress.md`, and `done.md`.
+2. **Read only what decides current work.** Read `todo.md` and `inprogress.md` once at task start, resume, or a new user turn where external edits are possible. Read `done.md` only to resolve prior identity or complete a task. Do not re-read unchanged board files between ADLC stages.
+3. **The board, not memory, is the truth.** Re-read after a user edit, session resume, failed board mutation, or `/loop` boundary.
+4. **Break work into small lines.** Split into independently completable units while keeping one active line.
+5. **Execute by priority.** Move the selected line to `inprogress.md` before implementation, run full ADLC, then move it to `done.md`.
+6. **Drain until empty.** After completion, read `todo.md` and `inprogress.md` once to select the next task.
 
 ## Inner Loop — ADLC (every task runs all 6 stages)
 
@@ -119,7 +119,7 @@ High/medium/low tasks do **not** preempt — they wait their turn. Only urgent i
 - **Never skip an ADLC stage.** The order is spec → plan → generate → verify → review → ship. Jumping straight to generate (code without spec/plan) or shipping without verify+review is the failure this protocol exists to prevent. Scale the depth, not the coverage.
 - **`generate` means test-first.** Don't write implementation then bolt on tests. Red (failing test) → green (make it pass) → refactor. That is the generate stage, not a separate optional step.
 - **Advance the stage emoji as you go.** Update 📝→📐→🔨→🧪→🔍→🚀 in `inprogress.md` at each transition so the statusline + `monitoring.md` reflect reality. A task stuck on 📝 while you write code means the marker is lying.
-- **Re-read the board every loop — trust the files, not your memory.** The user edits `todo.md`/`inprogress.md` between turns. If you skip the re-read, you will work a stale list and miss tasks the user added or reprioritised.
+- **Do not poll the board between stages.** Re-read only at a new user turn, session resume, failed mutation, explicit `/loop` boundary, or known external edit.
 - **Keep one line in `inprogress.md`.** Moving several tasks to in-progress at once destroys the "what am I doing now" signal and breaks the timer/stage display. Finish or move the current one back to `todo.md` before starting the next.
 - **Move lines, don't duplicate them.** When advancing status, cut the line from the old file before appending to the new one. A task appearing in both `todo.md` and `done.md` is a sync bug.
 - **Claude is turn-based — "never stops" is bounded.** True background continuation while the user types is impossible. What this protocol guarantees: the queue persists, in-progress work is never silently dropped, urgent preempts, and the queue is drained within each turn. For hands-off draining, the user must start `/loop`.

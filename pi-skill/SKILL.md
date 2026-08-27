@@ -5,7 +5,7 @@ description: "MEGAI bridge for Pi — access persistent memory, code intelligenc
 
 # MEGAI for Pi
 
-This skill exposes agent-memory and codedb through shell extensions, Dembrandt, Argent, and RepoWise through Pi MCP Adapter, and Ix through its CLI.
+This skill exposes agent-memory and codedb through shell extensions. Specialist tools—Dembrandt, Argent, RepoWise, and Ix—run through their CLIs only when a task needs them.
 
 ## When to use
 
@@ -40,7 +40,7 @@ This skill exposes agent-memory and codedb through shell extensions, Dembrandt, 
 
 ### Dembrandt — website design extraction
 
-Use the `mcp` proxy to find and call Dembrandt tools such as `get_design_tokens`, `get_color_palette`, `get_typography`, and `get_brand_identity`. For direct CLI use:
+Run Dembrandt only for website-design extraction:
 
 ```bash
 dembrandt example.com --design-md
@@ -57,7 +57,7 @@ dembrandt example.com --design-md
 
 ### Argent — agent-driven app testing
 
-Use the `mcp` proxy to find and call Argent tools for device control, gestures, screenshots, recording/replay, visual regression, logs, network inspection, and profiling. The CLI can inspect available tools and server state:
+Run Argent only for device or app testing. Inspect available tools and server state with:
 
 ```bash
 argent tools
@@ -66,7 +66,7 @@ argent server status
 
 ### RepoWise — code health and generated wiki
 
-Use the `mcp` proxy for task-shaped RepoWise tools such as `get_overview`, `get_context`, `get_risk`, and `get_why`. Direct CLI commands:
+Run RepoWise only for code-health, risk, or generated-wiki tasks:
 
 ```bash
 repowise health

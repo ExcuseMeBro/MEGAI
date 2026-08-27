@@ -23,10 +23,37 @@ skill="$PI_CODING_AGENT_DIR/skills/megai-task-flow/SKILL.md"
 grep -q '^name: megai-task-flow$' "$skill"
 grep -q '<!-- asana:121234567890 -->' "$skill"
 grep -q 'Never create a second task while a linked GID exists' "$skill"
-grep -q '| Queued or paused | `todo.md` | `Todo` | `false` |' "$skill"
-grep -q '| Spec through verify | `inprogress.md` | `In Progress` | `false` |' "$skill"
-grep -q '| Review or ship | `inprogress.md` | `In Review` | `false` |' "$skill"
+grep -q 'Boundary-only Asana sync' "$skill"
+grep -q 'Do not mirror individual ADLC stages to Asana' "$skill"
+grep -q 'Routine stage changes and milestone comments are forbidden' "$skill"
+grep -q '| Active from spec through ship | `inprogress.md` | `In Progress` | `false` |' "$skill"
 grep -q '| Verified and finished | `done.md` | `Done` | `true` |' "$skill"
+! grep -q '| Review or ship .* `In Review`' "$skill"
+grep -q 'Put it in `In Progress` with `completed=false` in one mutation' "$skill"
+! grep -q 'when the API permits' "$skill"
+! grep -q 'before final completion' "$skill"
+
+# Reinstall must replace an older managed policy block instead of leaving stale rules.
+mkdir -p "$HOME/.claude"
+cat >"$HOME/.claude/CLAUDE.md" <<'MD'
+before
+<!-- megai:task-flow:begin -->
+old synchronous policy one
+<!-- megai:task-flow:end -->
+middle
+<!-- megai:task-flow:begin -->
+old synchronous policy two
+<!-- megai:task-flow:end -->
+after
+MD
+printf '%s\n' '{}' >"$HOME/.claude/settings.json"
+bash "$MEGAI_HOME/lib/install_taskflow.sh" >/dev/null 2>&1
+bash "$MEGAI_HOME/lib/install_taskflow.sh" >/dev/null 2>&1
+grep -q 'Boundary-only Asana sync' "$HOME/.claude/CLAUDE.md"
+! grep -q 'old synchronous policy' "$HOME/.claude/CLAUDE.md"
+[ "$(grep -c 'megai:task-flow:begin' "$HOME/.claude/CLAUDE.md")" = "1" ]
+grep -q 'Do not re-read unchanged board files between ADLC stages' "$HOME/.claude/skills/task-flow/SKILL.md"
+grep -q 'never mirror local stages or routine comments' "$HOME/.claude/hooks/taskflow-prompt.sh"
 
 bash "$MEGAI_HOME/lib/wire_pi.sh" --remove >/dev/null 2>&1
 [ ! -e "$PI_CODING_AGENT_DIR/skills/megai-task-flow" ]

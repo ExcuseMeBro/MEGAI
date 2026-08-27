@@ -13,16 +13,22 @@ fi
 
 PI_AGENT="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
 SETTINGS="$PI_AGENT/settings.json"
-PACKAGES=(
-  "npm:@vigolium/piolium"
+CORE_PACKAGES=(
   "npm:pi-mcp-adapter"
+  "npm:@narumitw/pi-statusline"
+)
+OPTIONAL_PACKAGES=(
+  "npm:@vigolium/piolium"
   "npm:pi-web-access"
   "npm:pi-subagents"
   "npm:bigpowers"
   "npm:@dietrichgebert/ponytail"
   "npm:pi-lens"
-  "npm:@narumitw/pi-statusline"
 )
+PACKAGES=("${CORE_PACKAGES[@]}")
+if [ "${MEGAI_PI_FULL:-0}" = "1" ]; then
+  PACKAGES+=("${OPTIONAL_PACKAGES[@]}")
+fi
 
 package_configured() {
   local source="$1"
@@ -30,7 +36,7 @@ package_configured() {
   jq -e --arg source "$source" '
     (.packages // []) | any(
       if type == "string" then . == $source
-      elif type == "object" then .source == $source
+      elif type == "object" then .source == $source and .enabled != false
       else false
       end
     )
@@ -53,6 +59,32 @@ for package in "${PACKAGES[@]}"; do
     failed=$((failed + 1))
   fi
 done
+
+if [ "${MEGAI_PI_FULL:-0}" != "1" ] && [ -f "$SETTINGS" ] && jq -e 'type == "object"' "$SETTINGS" >/dev/null 2>&1; then
+  tmp="$(mktemp "$PI_AGENT/settings.json.XXXXXX")"
+  jq '
+    def package_source:
+      if type == "string" then .
+      elif type == "object" then .source
+      else null
+      end;
+    .packages = [
+      (.packages // [])[]
+      | . as $package
+      | select(([
+          "npm:@vigolium/piolium",
+          "npm:pi-web-access",
+          "npm:pi-subagents",
+          "npm:bigpowers",
+          "npm:@dietrichgebert/ponytail",
+          "npm:pi-lens"
+        ] | index($package | package_source)) == null)
+    ]
+  ' "$SETTINGS" >"$tmp"
+  chmod 600 "$tmp"
+  mv "$tmp" "$SETTINGS"
+  ok "pi: lean package profile active (set MEGAI_PI_FULL=1 for optional extensions)"
+fi
 
 if [ "$failed" -gt 0 ]; then
   warn "pi packages: $installed installed, $failed failed"

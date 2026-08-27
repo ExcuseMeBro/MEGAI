@@ -35,10 +35,9 @@ AGM_PORT="$(state_get '.ports["agent-memory"]')"
 AGM_PORT="${AGM_PORT:-3111}"
 AGM_BIN="$(state_get '.tools["agent-memory"].bin')"
 CODEDB_BIN="$(state_get '.tools["codedb"].bin')"
-DEMBRANDT_MCP_BIN="$(state_get '.tools["dembrandt"].mcpBin')"
-ARGENT_BIN="$(state_get '.tools["argent"].bin')"
-REPOWISE_BIN="$(state_get '.tools["repowise"].bin')"
 
+# Keep every session lean. Specialist tools stay available through their CLIs
+# and skills without adding MCP processes and schemas to the default surface.
 mcp_block=$(
   cat <<EOF
 {
@@ -54,22 +53,6 @@ mcp_block=$(
 }
 EOF
 )
-
-if [ -n "$DEMBRANDT_MCP_BIN" ] && [ -x "$DEMBRANDT_MCP_BIN" ]; then
-  mcp_block="$(jq --arg command "$DEMBRANDT_MCP_BIN" '. + {"megai-dembrandt": {command: $command}}' <<<"$mcp_block")"
-else
-  warn "cc: Dembrandt MCP skipped — executable missing"
-fi
-if [ -n "$ARGENT_BIN" ] && [ -x "$ARGENT_BIN" ]; then
-  mcp_block="$(jq --arg command "$ARGENT_BIN" '. + {"megai-argent": {command: $command, args: ["mcp"]}}' <<<"$mcp_block")"
-else
-  warn "cc: Argent MCP skipped — executable missing"
-fi
-if [ -n "$REPOWISE_BIN" ] && [ -x "$REPOWISE_BIN" ]; then
-  mcp_block="$(jq --arg command "$REPOWISE_BIN" '. + {"megai-repowise": {command: $command, args: ["mcp"]}}' <<<"$mcp_block")"
-else
-  warn "cc: RepoWise MCP skipped — executable missing"
-fi
 
 tmp="$(mktemp)"
 jq --argjson add "$mcp_block" '

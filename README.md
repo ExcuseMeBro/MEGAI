@@ -14,18 +14,18 @@
   <a href="https://github.com/ExcuseMeBro/MEGAI/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/install-one--line-brightgreen.svg" alt="One-line install">
-  <img src="https://img.shields.io/badge/harnesses-Claude%20Code%20%7C%20Codex%20%7C%20Pi-8A2BE2.svg" alt="Harnesses">
+  <img src="https://img.shields.io/badge/harnesses-Claude%20Code%20%7C%20Codex%20%7C%20Pi%20%7C%20OMP-8A2BE2.svg" alt="Harnesses">
   <img src="https://img.shields.io/badge/tools-15-orange.svg" alt="Tools">
 </p>
 
 <p align="center">
-  <b>🚀 One command · 🧰 Fifteen tools · 🤖 Three agent harnesses · ⚙️ Zero manual wiring</b><br>
+  <b>🚀 One command · 🧰 Fifteen tools · 🤖 Four agent harnesses · ⚙️ Zero manual wiring</b><br>
   Memory · code intelligence · indexing · token compression · system maps · task flow · UI/UX · app testing · security operations
 </p>
 
 # 🧠 MEGAI
 
-MEGAI is a one-line installer and manager for a complete AI coding-agent stack. It installs, configures, updates, and connects **15 tools** to **Claude Code**, **OpenAI Codex**, and **Pi** while preserving existing user configuration.
+MEGAI is a one-line installer and manager for a complete AI coding-agent stack. It installs, configures, updates, and connects **15 tools** to **Claude Code**, **OpenAI Codex**, **Pi**, and **Oh My Pi (OMP)** while preserving existing user configuration.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | bash
@@ -88,6 +88,7 @@ MEGAI starts or verifies agent-memory, indexes the repository, prepares the know
 megai cc       # Claude Code
 megai codex    # OpenAI Codex
 megai pi       # Pi coding agent
+megai omp      # Oh My Pi
 ```
 
 Provider credentials are never bundled. Authenticate each agent normally on first use; for Pi, run `pi` and `/login` once.
@@ -109,7 +110,7 @@ Without MEGAI, every agent needs separate MCP entries, skills, hooks, plugins, p
 - 🌐 **Website-to-design-token extraction**
 - 🧪 **Mobile, TV, Electron, and browser testing**
 - 🛡️ **Scoped AppSec and pentest operations with evidence-backed findings**
-- 🔌 **Global Claude Code, Codex, and Pi wiring**
+- 🔌 **Global Claude Code, Codex, Pi, and OMP wiring**
 
 MEGAI reuses existing installations and preserves unrelated user configuration on repeated runs.
 
@@ -128,10 +129,10 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 📋 | task-flow | `.todos` board, priority queue, ADLC, monitoring, Asana mirror | Claude hooks + Pi skill |
 | 🎨 | [ui-craft](https://skills.smoothui.dev) | Anti-slop UI rules, design memory, review gates, presets | Global skills and commands |
 | 🖌️ | [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | 17 UI/UX skills, WCAG references, tokens, components, adapters | Global skills |
-| 🌐 | [Dembrandt](https://github.com/dembrandt/dembrandt) | Extract design tokens, typography, palette, brand, and WCAG data from websites | MCP + CLI |
+| 🌐 | [Dembrandt](https://github.com/dembrandt/dembrandt) | Extract design tokens, typography, palette, brand, and WCAG data from websites | On-demand CLI |
 | 🗺️ | [Ix](https://github.com/ix-infrastructure/Ix) | Persistent system map, architecture explanation, traces, impact analysis | CLI + plugins + MCP |
-| 📚 | [RepoWise](https://github.com/repowise-dev/repowise) | Dependency graph, generated wiki, code health, risk, and history | MCP + CLI + background index |
-| 🧪 | [Argent](https://github.com/software-mansion/argent) | Agent-driven mobile, TV, Electron, and Chromium testing | MCP + CLI |
+| 📚 | [RepoWise](https://github.com/repowise-dev/repowise) | Dependency graph, generated wiki, code health, risk, and history | On-demand CLI + background index |
+| 🧪 | [Argent](https://github.com/software-mansion/argent) | Agent-driven mobile, TV, Electron, and Chromium testing | On-demand CLI |
 | 🛡️ | [Numasec](https://github.com/FrancescoStabile/numasec) | Authorized AppSec/pentest operations, evidence, replay, and reports | CLI + global handoff skill |
 | 🛠️ | [Matt Pocock's skills](https://github.com/mattpocock/skills) | Specs, TDD, diagnosis, review, domain modeling, architecture, and delivery flows | Global skills |
 
@@ -143,8 +144,8 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 
 MEGAI configures:
 
-- MCP servers in `~/.claude.json`
-- `agentmemory`, `codedb`, Dembrandt, Argent, and RepoWise
+- lean default MCP surface in `~/.claude.json`: `agentmemory` and `codedb`
+- Dembrandt, Argent, and RepoWise CLIs available on demand
 - Ix's `ix-memory` plugin
 - `rtk` `PreToolUse` hook
 - caveman and graphify skills
@@ -158,8 +159,8 @@ Existing MCP servers, hooks, and statusline settings are preserved.
 
 MEGAI configures:
 
-- a marked, idempotent MCP block in `~/.codex/config.toml`
-- `agentmemory`, `codedb`, Dembrandt, Argent, and RepoWise
+- a lean, marked MCP block in `~/.codex/config.toml` with `agentmemory` and `codedb`
+- Dembrandt, Argent, and RepoWise CLIs available on demand
 - Ix plugin, hooks, and MCP integration
 - caveman, graphify, ui-craft, Matt Pocock, and UX/UI skills
 
@@ -172,11 +173,23 @@ MEGAI configures:
 - global MEGAI skill at `~/.pi/agent/skills/megai.md`
 - Asana-aware task-flow skill at `~/.pi/agent/skills/megai-task-flow/`
 - memory and codedb shell extensions
-- Dembrandt, Argent, and RepoWise through Pi MCP Adapter
+- Dembrandt, Argent, and RepoWise CLIs available on demand instead of permanent MCP entries
 - global UX/UI, caveman, graphify, and Matt Pocock skills
 - the first authenticated model as the global default when no valid default exists
 
 Pi keeps provider authentication in `~/.pi/agent/auth.json`; MEGAI never writes credentials.
+
+### ⚪ Oh My Pi (OMP)
+
+MEGAI configures:
+
+- native MCP entries for `agentmemory` and `codedb` in the active OMP profile
+- native MEGAI and Asana-aware task-flow skills under the active profile's `skills/` directory
+- preservation of unrelated OMP servers, allowlists, denylists, credentials, and user settings
+- Paseo placement rules that open additional agents as sibling tabs in the current workspace unless isolation is explicitly requested
+- Dembrandt, Argent, RepoWise, Numasec, and global skills through OMP's existing CLI and skill discovery surfaces
+
+OMP provider authentication remains in OMP's own credential store; MEGAI never writes provider credentials.
 
 ---
 
@@ -187,6 +200,8 @@ megai                         Activate the stack for the current project
 megai cc                      Launch Claude Code with the stack ready
 megai codex                   Launch Codex with the stack ready
 megai pi                      Launch Pi with the stack ready
+megai omp                     Launch Oh My Pi with the stack ready
+megai omp --profile work      Launch OMP and wire the named profile
 megai security [args]         Launch Numasec (authorized targets only)
 megai graph [path]            Build a graphify knowledge graph
 
@@ -204,6 +219,7 @@ megai logs repowise           Follow this project's RepoWise init log
 megai wire cc                 Re-wire Claude Code only
 megai wire codex              Re-wire Codex only
 megai wire pi                 Re-wire Pi only
+megai wire omp                Re-wire Oh My Pi only
 megai wire path               Re-wire shell PATH only
 
 megai uninstall               Remove MEGAI-managed files and config
@@ -246,16 +262,16 @@ A task line carries priority and ADLC stage:
 
 `📝 spec → 📐 plan → 🔨 generate → 🧪 verify → 🔍 review → 🚀 ship`
 
-### 🔗 Pi + Asana mapping
+### 🔗 Boundary-only Asana mapping
 
-For Pi, Asana is the coordination source of truth and `.todos` is the local execution mirror. Linked tasks store the Asana GID in an HTML comment to prevent duplicates.
+Asana synchronizes only at task boundaries; `.todos` owns the six local ADLC stages. Linked tasks store the Asana GID in an HTML comment to prevent duplicate searches.
 
-| State | `.todos` | Asana section | Completed |
+| Boundary | `.todos` | Asana section | Completed |
 | --- | --- | --- | --- |
-| Queued | `todo.md` | `Todo` | `false` |
-| Active | `inprogress.md` | `In Progress` | `false` |
-| Review | `inprogress.md` | `In Review` | `false` |
-| Verified | `done.md` | `Done` | `true` |
+| Start | `inprogress.md` | `In Progress` | `false` |
+| Finish | `done.md` | `Done` | `true` |
+
+Routine stage changes, `In Review` moves, milestone comments, and repeated board reads are skipped. An Asana comment is reserved for a real external blocker.
 
 ### 🧩 Claude task-flow pieces
 
@@ -403,20 +419,20 @@ Start with `/doctor`, `/opsec strict`, and a narrowly scoped runbook. Use Numase
 
 ## 📦 Pi package stack
 
-MEGAI installs these Pi packages globally and preserves existing entries:
+MEGAI keeps Pi's default startup lean:
 
-| Package | Role |
+| Default package | Role |
 | --- | --- |
-| `@vigolium/piolium` | Pi productivity tools |
-| `pi-mcp-adapter` | MCP server support |
-| `pi-web-access` | web search and content access |
-| `pi-subagents` | managed subagent workflows |
-| `bigpowers` | extended Pi capabilities |
-| `@dietrichgebert/ponytail` | minimal-code workflow |
-| `pi-lens` | LSP, diagnostics, symbols, and code intelligence |
+| `pi-mcp-adapter` | lazy MCP support with cached direct tools |
 | `@narumitw/pi-statusline` | statusline integration |
 
-Repeated installs skip package entries that already exist.
+Optional extensions are available through the full profile:
+
+```bash
+MEGAI_PI_FULL=1 megai install
+```
+
+The full profile also enables `@vigolium/piolium`, `pi-web-access`, `pi-subagents`, `bigpowers`, `@dietrichgebert/ponytail`, and `pi-lens`. Without `MEGAI_PI_FULL=1`, repeated installs remove only those MEGAI-owned optional entries from Pi's startup list; unrelated user packages are preserved.
 
 ---
 
@@ -429,14 +445,14 @@ Repeated installs skip package entries that already exist.
                                │
                     ┌──────────▼──────────┐
                     │  ~/.megai/lib/main  │
-                    │  17-step pipeline   │
+                    │  18-step pipeline   │
                     └──────────┬──────────┘
                                │
           ┌────────────────────┼────────────────────┐
           │                    │                    │
 ┌─────────▼─────────┐ ┌────────▼────────┐ ┌────────▼────────┐
-│   Claude Code     │ │      Codex      │ │       Pi        │
-│ MCP/hooks/plugins │ │ MCP/hooks/skills│ │ MCP/skills/exts │
+│   Claude Code     │ │   Codex / Pi    │ │      OMP        │
+│ MCP/hooks/plugins │ │ MCP/skills/exts │ │ MCP/skills      │
 └───────────────────┘ └─────────────────┘ └─────────────────┘
 ```
 
@@ -445,7 +461,7 @@ The installer:
 1. 🔍 Detects OS, architecture, and runtimes.
 2. 📦 Installs or reuses each tool.
 3. 🧾 Records paths, ports, and versions in `~/.megai/state.json`.
-4. 🔌 Merges MEGAI-owned MCP entries into each harness.
+4. 🔌 Wires the core MCP pair into Claude Code, Codex, and OMP, while Pi uses lightweight shell extensions.
 5. 🧩 Installs global skills, hooks, plugins, and extensions.
 6. 🛡️ Preserves unrelated user configuration and creates backups.
 7. ✅ Repeats safely on future installs and updates.
@@ -465,6 +481,7 @@ The installer:
 │   └── repowise
 ├── lib/                         installer and wiring scripts
 ├── pi-skill/                    Pi MEGAI skill and extensions
+├── omp-skill/                   OMP-native MEGAI skill
 ├── task-flow/                   skills, hooks, commands, and monitor
 ├── skills/numasec-security/     authorized security handoff guidance
 ├── ux-ui-agent-skills/          global plugin87 source and wrappers
@@ -478,6 +495,7 @@ Agent-specific configuration remains in its normal user directory:
 - 🟠 Claude Code: `~/.claude/` and `~/.claude.json`
 - 🔵 Codex: `~/.codex/` and `~/.agents/skills/`
 - 🟣 Pi: `~/.pi/agent/`
+- ⚪ OMP: `~/.omp/agent/`
 
 ---
 
@@ -517,7 +535,7 @@ A healthy installation reports the core CLIs, agent configuration files, agent-m
 ```bash
 megai start agent-memory       # restart persistent memory
 megai reindex                  # rebuild codedb state for this project
-megai wire pi                  # repair Pi MCP/skills/extensions
+megai wire pi                  # repair Pi skills/extensions and clean legacy MCP entries
 megai wire codex               # repair Codex MCP block
 megai wire cc                  # repair Claude MCP entries
 megai logs repowise            # inspect background RepoWise indexing
