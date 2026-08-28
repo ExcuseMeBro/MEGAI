@@ -2,7 +2,7 @@
 name: terra-scout
 description: Deep read-only explorer used only by smart-router for cross-module architecture, data-flow, convention, and impact questions.
 managed-by: megai
-model: "@terra"
+model: openai-codex/gpt-5.6-terra
 thinking: medium
 blocking: true
 tools: read, grep, glob, lsp

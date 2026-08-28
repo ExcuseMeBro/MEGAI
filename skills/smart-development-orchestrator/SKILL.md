@@ -27,7 +27,9 @@ One parent owns decomposition, routing, contracts, integration, and final accept
 
 Default to trusted OMP, Codex, or Claude agents. They are mandatory for private/proprietary code, credentials, personal data, auth/security, schemas, migrations, irreversible changes, integration, and final review.
 
-Free OpenCode dispatch is default-deny. Before every free-provider task, require both: (1) explicit classification of the exact payload as public code or a synthetic fixture, and (2) an operator-approved provider privacy attestation covering every upstream provider, terms, logging/retention, key storage, data residency, model quality, and fallback behavior. Missing either gate routes the task to a trusted provider.
+Use OMP as the single model gateway. Keep GPT roles on `openai-codex/gpt-5.6-sol`, `terra`, and `luna`; do not duplicate Chinese-provider configuration in Pi. MiniMax is unavailable while `MINIMAX_API_KEY` is absent. A trusted parent MUST classify the exact payload before creating any process that receives the key; do not inject the key into the global OMP/Paseo daemon environment. Create a MiniMax-enabled worker only for explicitly public/synthetic content or an operator-approved MiniMax privacy attestation. Otherwise use a trusted worker. The worker's own prompt check is defense-in-depth, not the disclosure gate.
+
+Free OpenCode dispatch is also default-deny. Before every free-provider task, require both: (1) explicit classification of the exact payload as public code or a synthetic fixture, and (2) an operator-approved provider privacy attestation covering every upstream provider, terms, logging/retention, key storage, data residency, model quality, and fallback behavior. Missing either gate routes the task to a trusted provider.
 
 After those gates pass, use:
 
@@ -39,7 +41,18 @@ After those gates pass, use:
 | `opencode/hy3-free` | Public architecture second opinion |
 | `opencode/mimo-v2.5-free` | General public-code fallback |
 
-Never send secrets, credentials, personal data, private code, or unclassified context to a free provider. A trusted model must review every free-provider change before integration.
+Never send secrets, credentials, personal data, private code, or unclassified context to MiniMax or a free provider. A trusted model must review every external cheap-provider change before integration.
+
+## High-speed ADLC
+
+- **Spec + risk:** one Sol turn for acceptance and protected boundaries.
+- **Discovery:** Luna returns compact `path:line` evidence in at most two focused tool waves.
+- **Plan:** Terra emits worker-ready contracts with non-overlapping ownership and focused test commands.
+- **Generate:** up to four `minimax-worker` agents implement independent approved slices in parallel worktrees; each runs focused tests and commits.
+- **Verify + review:** Terra reviews worker diffs in one pass; Sol handles only escalations and final integrated acceptance.
+- **Ship:** integrate verified commits into `dev`, run the integrated suite once, push `dev`, open/reuse the `dev` → `main` PR/MR, then archive only successfully merged worker workspaces.
+
+Do not run a separate model/tool round trip for every ADLC label. Do not run the full suite in each worker. One failed worker diagnosis may escalate to Terra; repeated retries route to a trusted worker.
 
 ## Fanout
 

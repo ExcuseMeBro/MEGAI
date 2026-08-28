@@ -129,6 +129,7 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 📋 | task-flow | `.todos` board, priority queue, ADLC, monitoring, Asana mirror | Claude hooks + global skills |
 | 🌿 | agent-worktree-lifecycle | Default work to `dev`; push and open/reuse `dev` → `main` PR/MR; clean merged worktrees | Global policy + `megai dev`/`finish` |
 | 🧭 | smart-development-orchestrator | Luna/Terra discovery routing, multi-provider Paseo fanout, safe free-model use, and hybrid tab/worktree placement | Global skill + OMP agents |
+| ⚙️ | MiniMax M2.7 OMP worker | Optional independent-capacity implementation worker; inactive until `MINIMAX_API_KEY` resolves | Managed OMP provider + agent |
 | 🎨 | [ui-craft](https://skills.smoothui.dev) | Anti-slop UI rules, design memory, review gates, presets | Global skills and commands |
 | 🖌️ | [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | 17 UI/UX skills, WCAG references, tokens, components, adapters | Global skills |
 | 🌐 | [Dembrandt](https://github.com/dembrandt/dembrandt) | Extract design tokens, typography, palette, brand, and WCAG data from websites | On-demand CLI |
@@ -187,12 +188,17 @@ MEGAI configures:
 
 - native MCP entries for `agentmemory` and `codedb` in the active OMP profile
 - native MEGAI, Asana-aware task-flow, safe worktree-lifecycle, and smart-development-orchestrator skills under the active profile's `skills/` directory
-- Luna-backed `smart-router` plus its read-only Terra escalation worker under the active profile's `agents/` directory
-- preservation of unrelated OMP servers, allowlists, denylists, credentials, agents, and user settings
+- Luna-backed `smart-router`, read-only Terra escalation worker, and gated `minimax-worker` under the active profile's `agents/` directory
+- OMP's native MiniMax catalog and provider-specific transport compatibility; MEGAI never rewrites user `models.yml`
+- preservation of unrelated OMP servers, model providers, allowlists, denylists, credentials, agents, and user settings
 - hybrid Paseo placement: read-only subagents stay as tabs in the current workspace; every concurrent writer receives a separate managed worktree workspace, which is archived only after its verified merge, dev push, PR/MR creation, and worktree cleanup succeed
 - Dembrandt, Argent, RepoWise, Numasec, and global skills through OMP's existing CLI and skill discovery surfaces
 
 OMP provider authentication remains in OMP's own credential store; MEGAI never writes provider credentials.
+
+MiniMax is optional and runs through OMP, not Pi. OMP already discovers it through the native `minimax` provider. Do not export `MINIMAX_API_KEY` into the global OMP/Paseo daemon environment. The trusted orchestrator first classifies the exact payload, then injects the key only into a dedicated MiniMax worker process; without that scoped key the provider stays unavailable. MEGAI never stores the key. Only explicitly public/synthetic or privacy-attested bounded tasks may use `minimax-worker`; Terra reviews its diff and Sol remains the integration gate.
+
+`megai omp` automatically loads `~/.megai/omp-config/high-speed.yml`: Codex Code Mode `auto`, provider concurrency (`openai-codex: 2`, `minimax: 4`), six-agent fanout, async batch execution, and branch-merge isolation. For Paseo-launched OMP sessions, set the OMP provider environment variable `PI_CONFIG_FILES` to the absolute path of this overlay so the same settings apply to future agent tabs.
 
 ---
 
@@ -497,7 +503,8 @@ The installer:
 ├── skills/numasec-security/     authorized security handoff guidance
 ├── skills/agent-worktree-lifecycle/  dev-default, dev-to-main PR, safe cleanup
 ├── skills/smart-development-orchestrator/  Luna/Terra and multi-provider routing policy
-├── omp-agents/                   smart-router and Terra read-only escalation worker
+├── omp-agents/                   smart-router, Terra scout, and gated MiniMax worker
+├── omp-config/                   reusable high-speed OMP overlay
 ├── ux-ui-agent-skills/          global plugin87 source and wrappers
 ├── logs/
 ├── backups/

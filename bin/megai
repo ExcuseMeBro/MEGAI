@@ -406,19 +406,34 @@ cmd_cc()     { launch_agent cc    claude "$@"; }
 cmd_codex()  { launch_agent codex codex  "$@"; }
 cmd_pi()     { launch_agent pi    pi     "$@"; }
 cmd_omp() {
-  local profile="${OMP_PROFILE:-${PI_PROFILE:-}}" expect_profile=0 arg
+  local profile="${OMP_PROFILE:-${PI_PROFILE:-}}" expect_profile=0 expect_config=0 arg
+  local performance_config="$MEGAI_HOME/omp-config/high-speed.yml"
   for arg in "$@"; do
     if [ "$expect_profile" = "1" ]; then
       profile="$arg"
-      break
+      expect_profile=0
+      continue
+    fi
+    if [ "$expect_config" = "1" ]; then
+      [ "$arg" != "$performance_config" ] || performance_config=""
+      expect_config=0
+      continue
     fi
     case "$arg" in
       --profile|--alias) expect_profile=1 ;;
-      --profile=*|--alias=*) profile="${arg#*=}"; break ;;
+      --profile=*|--alias=*) profile="${arg#*=}" ;;
+      --config) expect_config=1 ;;
+      --config=*) [ "${arg#*=}" != "$performance_config" ] || performance_config="" ;;
     esac
   done
   if [ -n "$profile" ]; then
-    OMP_PROFILE="$profile" launch_agent omp omp "$@"
+    if [ -n "$performance_config" ] && [ -f "$performance_config" ]; then
+      OMP_PROFILE="$profile" launch_agent omp omp --config "$performance_config" "$@"
+    else
+      OMP_PROFILE="$profile" launch_agent omp omp "$@"
+    fi
+  elif [ -n "$performance_config" ] && [ -f "$performance_config" ]; then
+    launch_agent omp omp --config "$performance_config" "$@"
   else
     launch_agent omp omp "$@"
   fi
