@@ -31,6 +31,35 @@ Use `minimax-code/MiniMax-M3` for routine exploration, implementation, CRUD/API 
 
 Use GPT-5.6 through OMP for planning, architecture, hard debugging, critical review, payment/auth/security, destructive or production configuration, complex refactors, and final integrated acceptance. A trusted parent classifies the task before dispatch. Before sending private code to MiniMax, require operator approval covering MiniMax terms, logging/retention, key storage, data residency, model quality, and fallback behavior.
 
+## Model portfolio
+
+Choose the narrowest capable model. Paseo workers use the explicit `omp/<selector>` model, while MEGAI-managed OMP agents provide stable operational bindings for every portfolio tier.
+
+| Selector | Role | Use |
+| --- | --- | --- |
+| `minimax-code/MiniMax-M3:medium` | default/task | General routine work and 1M-context implementation |
+| `minimax-code/MiniMax-M3:low` | smol | Lightweight routine work |
+| `minimax-code/MiniMax-M3:minimal` | tiny / commit | Metadata and commit generation |
+| `minimax-code/MiniMax-M2.1-lightning:low` | repo | Long-context repository exploration |
+| `minimax-code/MiniMax-M2.7-highspeed:medium` | worker-fast | Fast CRUD/API and bounded implementation |
+| `minimax-code/MiniMax-M2.7:high` | worker-quality | Higher-quality routine refactors |
+| `minimax-code/MiniMax-M2.5-highspeed:low` | tests | Fast focused test generation |
+| `minimax-code/MiniMax-M2.5-lightning:low` | docker | Docker, scripts, and mechanical operations |
+| `minimax-code/MiniMax-M2.5:medium` | migration | Ordinary non-sensitive migrations |
+| `minimax-code/MiniMax-M2.1:medium` | worker-stable | Stable compatibility work |
+| `minimax-code/MiniMax-M2:low` | worker-legacy | Last low-risk MiniMax fallback |
+| `openai-codex/gpt-5.6-sol:high` | plan / slow / advisor / final | Critical planning, hard decisions, final gate |
+| `openai-codex/gpt-5.6-sol:medium` | vision | Visual reasoning |
+| `openai-codex/gpt-5.6-terra:high` | architecture / review | Architecture, impact, and mandatory review |
+| `openai-codex/gpt-5.6-terra:medium` | terra | Balanced deep analysis |
+| `openai-codex/gpt-5.6-luna:low` | luna / scout | Fast trusted discovery |
+| `openai-codex/gpt-5.5:high` | debug | Hard debugging and complex refactor fallback |
+| `openai-codex/gpt-5.4:high` | long-context | Trusted 1M-context analysis |
+| `openai-codex/gpt-5.4-mini:medium` | review-fast | Cheap trusted MEDIUM review |
+| `openai-codex/gpt-5.3-codex-spark:low` | trusted-fast | Very fast small trusted tasks |
+
+Every MiniMax fallback crosses directly to a trusted GPT model, so provider-wide quota failures exit MiniMax after one failed selector instead of burning retries across sibling models. GPT chains progress toward Terra/Sol only; `cooldown-expiry` returns to the original primary after recovery. GPT never falls back to MiniMax, and Sol has no reverse fallback, so HIGH/CRITICAL work stops when its final gate is unavailable.
+
 ## Complexity routing
 
 - **LOW:** MiniMax exploration → MiniMax implementation/test → focused verification → done. GPT review only on a concrete risk trigger.
@@ -46,7 +75,7 @@ Treat 60% MiniMax / 40% GPT as a non-binding observed-token target, not a routin
 - **Discovery:** MiniMax returns compact evidence in at most two focused tool waves; Luna is the trusted fallback.
 - **Plan:** MiniMax produces routine contracts; Terra/Sol produces architecture and critical contracts.
 - **Generate:** up to four `minimax-worker` agents implement independent bounded slices in parallel worktrees; each runs focused tests and commits.
-- **Verify + review:** workers verify locally; Terra reviews sampled MEDIUM and every HIGH diff; Sol owns CRITICAL and final integrated acceptance.
+- **Verify + review:** workers verify locally; Terra reviews sampled MEDIUM and every HIGH diff; the Sol-backed `sol-gate` owns CRITICAL and final integrated acceptance.
 - **Ship:** integrate verified commits into `dev`, run the integrated suite once, push `dev`, open/reuse the `dev` → `main` PR/MR, then archive only successfully merged worker workspaces.
 
 Do not run a separate model/tool round trip for every ADLC label. Do not run the full suite in each worker. One failed MiniMax diagnosis escalates to Terra; repeated failure routes implementation to GPT.
@@ -60,8 +89,9 @@ Do not run a separate model/tool round trip for every ADLC label. Do not run the
 5. Give each child: goal, repository/cwd, scope, authority boundary, evidence, acceptance, validation, compact output, and stop rules.
 6. Require each writer to commit a clean, focused task branch after verification.
 7. Integrate successful branches into `dev`, then verify the integrated tree once.
-8. Run `megai finish --verified --target dev` to push `dev`, open or reuse the `dev` → `main` PR/MR, and clean only successfully merged registered worktrees/branches.
-9. After the dev push, PR/MR, and worktree cleanup succeed, call Paseo `archive_workspace` for each successfully merged worker workspace. Never archive the orchestrator/primary `dev` workspace or any dirty, unmerged, failed, or ambiguous workspace.
-10. Never auto-merge `main`; human review or protected CI merges the PR/MR.
+8. For HIGH/CRITICAL work, require `sol-gate` to return `APPROVE`; fail closed if Sol is unavailable.
+9. Run `megai finish --verified --target dev` to push `dev`, open or reuse the `dev` → `main` PR/MR, and clean only successfully merged registered worktrees/branches.
+10. After the dev push, PR/MR, and worktree cleanup succeed, call Paseo `archive_workspace` for each successfully merged worker workspace. Never archive the orchestrator/primary `dev` workspace or any dirty, unmerged, failed, or ambiguous workspace.
+11. Never auto-merge `main`; human review or protected CI merges the PR/MR.
 
 Stop on dirty or ambiguous ownership, missing branches/origin, failed verification, conflicts, provider/auth failures, or failed push/PR creation. Keep external work incomplete until the PR/MR and required cleanup succeed.

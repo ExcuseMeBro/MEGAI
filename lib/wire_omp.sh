@@ -28,6 +28,8 @@ ORCHESTRATOR_SKILL="$MEGAI_HOME/skills/smart-development-orchestrator/SKILL.md"
 OMP_RULES="$OMP_AGENT/RULES.md"
 OMP_RULES_SOURCE="$MEGAI_HOME/omp-skill/RULES.md"
 OMP_AGENTS_SOURCE="$MEGAI_HOME/omp-agents"
+ROUTER_AGENT_NAMES="smart-router luna-scout terra-scout"
+PORTFOLIO_AGENT_NAMES="minimax-worker minimax-fast-worker minimax-quality-worker minimax-test-worker minimax-ops-worker minimax-migration-worker minimax-stable-worker minimax-legacy-worker sol-gate gpt-debugger gpt-long-context gpt-fast-reviewer gpt-trusted-fast"
 RULES_BEGIN="<!-- megai:paseo-placement:begin -->"
 RULES_END="<!-- megai:paseo-placement:end -->"
 validate_placement_rules() {
@@ -136,16 +138,16 @@ remove_managed_copy() {
   rmdir "$(dirname "$dest")" 2>/dev/null || true
 }
 
-remove_smart_agents() {
-  remove_managed_copy "$OMP_AGENTS_SOURCE/smart-router.md" "$OMP_AGENT/agents/smart-router.md"
-  remove_managed_copy "$OMP_AGENTS_SOURCE/luna-scout.md" "$OMP_AGENT/agents/luna-scout.md"
-  remove_managed_copy "$OMP_AGENTS_SOURCE/terra-scout.md" "$OMP_AGENT/agents/terra-scout.md"
-  remove_managed_copy "$OMP_AGENTS_SOURCE/minimax-worker.md" "$OMP_AGENT/agents/minimax-worker.md"
+remove_managed_agents() {
+  local name
+  for name in $ROUTER_AGENT_NAMES $PORTFOLIO_AGENT_NAMES; do
+    remove_managed_copy "$OMP_AGENTS_SOURCE/$name.md" "$OMP_AGENT/agents/$name.md"
+  done
 }
 
 install_router_group() {
   local name source dest safe=1
-  for name in smart-router luna-scout terra-scout; do
+  for name in $ROUTER_AGENT_NAMES; do
     source="$OMP_AGENTS_SOURCE/$name.md"
     dest="$OMP_AGENT/agents/$name.md"
     if [ ! -f "$source" ]; then
@@ -157,14 +159,26 @@ install_router_group() {
     fi
   done
   if [ "$safe" != 1 ]; then
-    for name in smart-router luna-scout terra-scout; do
+    for name in $ROUTER_AGENT_NAMES; do
       remove_managed_copy "$OMP_AGENTS_SOURCE/$name.md" "$OMP_AGENT/agents/$name.md"
     done
     warn "OMP: managed smart-router group skipped to avoid spawning user-owned dependencies"
     return 0
   fi
-  for name in smart-router luna-scout terra-scout; do
+  for name in $ROUTER_AGENT_NAMES; do
     install_managed_copy "$OMP_AGENTS_SOURCE/$name.md" "$OMP_AGENT/agents/$name.md"
+  done
+}
+
+install_portfolio_agents() {
+  local name source
+  for name in $PORTFOLIO_AGENT_NAMES; do
+    source="$OMP_AGENTS_SOURCE/$name.md"
+    if [ ! -f "$source" ]; then
+      warn "OMP: portfolio agent missing: $source"
+      continue
+    fi
+    install_managed_copy "$source" "$OMP_AGENT/agents/$name.md"
   done
 }
 MODE="${1:-install}"
@@ -174,7 +188,7 @@ if [ "$MODE" = "--remove" ]; then
   rm -rf "$OMP_AGENT/skills/megai" "$OMP_AGENT/skills/megai-task-flow"
   remove_managed_copy "$WORKTREE_SKILL" "$OMP_AGENT/skills/agent-worktree-lifecycle/SKILL.md"
   remove_managed_copy "$ORCHESTRATOR_SKILL" "$OMP_AGENT/skills/smart-development-orchestrator/SKILL.md"
-  remove_smart_agents
+  remove_managed_agents
   if [ ! -f "$OMP_MCP_CONFIG" ]; then
     ok "OMP: no native MEGAI wiring to remove"
     exit 0
@@ -274,11 +288,7 @@ else
   warn "OMP: smart development orchestrator skill missing — skipped"
 fi
 install_router_group
-if [ -f "$OMP_AGENTS_SOURCE/minimax-worker.md" ]; then
-  install_managed_copy "$OMP_AGENTS_SOURCE/minimax-worker.md" "$OMP_AGENT/agents/minimax-worker.md"
-else
-  warn "OMP: MiniMax worker agent missing — skipped"
-fi
+install_portfolio_agents
 
-ok "OMP: native MCP servers, skills, smart routing agents, and placement rules wired -> $OMP_AGENT"
+ok "OMP: native MCP servers, skills, routing and model-portfolio agents, and placement rules wired -> $OMP_AGENT"
 state_set '.agents["omp"]' "{\"config\":\"$OMP_AGENT\",\"wired\":true}"

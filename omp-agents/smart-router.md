@@ -2,7 +2,7 @@
 name: smart-router
 description: MiniMax-first code discovery router with trusted Luna lookup and Terra architecture escalation.
 managed-by: megai
-model: minimax-code/MiniMax-M3
+model: minimax-code/MiniMax-M2.1-lightning
 thinking: low
 blocking: true
 tools: read, grep, glob, lsp, task, hub

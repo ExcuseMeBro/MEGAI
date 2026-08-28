@@ -18,6 +18,7 @@ task:
 
 retry:
   modelFallback: true
+  maxDelayMs: 300000
   fallbackRevertPolicy: cooldown-expiry
   fallbackChains:
     "openai-codex/gpt-5.6-luna":
