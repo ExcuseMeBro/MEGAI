@@ -32,6 +32,8 @@ Commands:
   omp                   Launch Oh My Pi CLI (full stack init)
   security [args]       Launch Numasec for authorized security work
   graph [path]          Build knowledge graph for current folder (graphify .)
+  dev                   Switch a clean primary checkout from main/master to dev
+  finish [options]      Merge/publish verified dev work and open dev-to-main PR
   install               Re-run installer (idempotent)
   status                Show tools/ports/versions
   doctor                Diagnose problems
@@ -73,7 +75,11 @@ cmd_doctor() {
     if command -v "$c" >/dev/null 2>&1; then ok "$c -> $(command -v "$c")"
     else err "$c missing"; fi
   done
-  for f in "$HOME/.claude.json" "$HOME/.codex/config.toml" "$HOME/.pi/agent/skills/megai.md" "$HOME/.omp/agent/skills/megai/SKILL.md"; do
+  if command -v gh >/dev/null 2>&1; then ok "GitHub PR CLI -> $(command -v gh)"; else warn "gh missing (required for GitHub dev-to-main PRs)"; fi
+  if command -v glab >/dev/null 2>&1; then ok "GitLab MR CLI -> $(command -v glab)"; else warn "glab missing (required for GitLab dev-to-main MRs)"; fi
+  for f in "$HOME/.claude.json" "$HOME/.codex/config.toml" "$HOME/.pi/agent/skills/megai.md" "$HOME/.omp/agent/skills/megai/SKILL.md" \
+    "$HOME/.agents/skills/agent-worktree-lifecycle/SKILL.md" "$HOME/.claude/skills/agent-worktree-lifecycle/SKILL.md" \
+    "$HOME/.pi/agent/skills/agent-worktree-lifecycle/SKILL.md" "$HOME/.omp/agent/skills/agent-worktree-lifecycle/SKILL.md"; do
     if [ -e "$f" ]; then ok "$f"
     else skip "$f (not present)"; fi
   done
@@ -135,6 +141,8 @@ cmd_update() {
   bash "$LIB/install_caveman.sh"      || true
   bash "$LIB/install_rtk.sh"          || true
   bash "$LIB/install_graphify.sh"           || true
+  bash "$LIB/install_taskflow.sh"           || true
+  bash "$LIB/install_worktree_lifecycle.sh" || true
   bash "$LIB/install_ui_craft.sh"           || true
   bash "$LIB/install_ux_ui_agent_skills.sh"  || true
   MEGAI_UPDATE=1 bash "$LIB/install_dembrandt.sh" || true
@@ -201,15 +209,24 @@ cmd_logs() {
 }
 
 cmd_uninstall() {
+  local ans agent_dir profile
   warn "Uninstall megai? This will remove ~/.megai and revert MCP configs. [y/N]"
   read -r ans
   [ "$ans" = "y" ] || { skip "cancelled"; return 0; }
   bash "$LIB/wire_cc.sh"        --remove || true
   bash "$LIB/wire_codex.sh"     --remove || true
   bash "$LIB/wire_pi.sh"        --remove || true
-  bash "$LIB/wire_omp.sh"       --remove || true
+  if [ -d "$HOME/.omp/profiles" ]; then
+    for agent_dir in "$HOME/.omp/profiles/"*/agent; do
+      [ -d "$agent_dir" ] || continue
+      profile="$(basename "$(dirname "$agent_dir")")"
+      OMP_PROFILE="$profile" PI_PROFILE= bash "$LIB/wire_omp.sh" --remove || true
+    done
+  fi
+  OMP_PROFILE= PI_PROFILE= bash "$LIB/wire_omp.sh" --remove || true
   bash "$LIB/wire_path.sh"      --remove || true
   bash "$LIB/install_taskflow.sh" --remove || true
+  bash "$LIB/install_worktree_lifecycle.sh" --remove || true
   bash "$LIB/install_ux_ui_agent_skills.sh" --remove || true
   bash "$LIB/install_numasec.sh" --remove || true
   command -v ui-craft >/dev/null 2>&1 && ui-craft uninstall --yes >/dev/null 2>&1 || true
@@ -222,6 +239,14 @@ cmd_version() { echo "megai 0.1.0"; }
 cmd_security() {
   command -v numasec >/dev/null 2>&1 || die "Numasec missing; run: megai install"
   exec numasec "$@"
+}
+
+cmd_dev() {
+  bash "$LIB/ensure_dev.sh"
+}
+
+cmd_finish() {
+  bash "$LIB/finish_worktree.sh" "$@"
 }
 
 # ---------- agent launchers ----------
@@ -319,6 +344,7 @@ mark_project_active() {
 # Bring every megai-managed tool up to ready state for the current project.
 # Idempotent: if the project is already initialised, we resume instead of re-init.
 prepare_stack() {
+  bash "$LIB/ensure_dev.sh" --launch
   state_init
   local resume=0
   if is_project_initialized; then
@@ -380,19 +406,34 @@ cmd_cc()     { launch_agent cc    claude "$@"; }
 cmd_codex()  { launch_agent codex codex  "$@"; }
 cmd_pi()     { launch_agent pi    pi     "$@"; }
 cmd_omp() {
-  local profile="${OMP_PROFILE:-${PI_PROFILE:-}}" expect_profile=0 arg
+  local profile="${OMP_PROFILE:-${PI_PROFILE:-}}" expect_profile=0 expect_config=0 arg
+  local performance_config="$MEGAI_HOME/omp-config/high-speed.yml"
   for arg in "$@"; do
     if [ "$expect_profile" = "1" ]; then
       profile="$arg"
-      break
+      expect_profile=0
+      continue
+    fi
+    if [ "$expect_config" = "1" ]; then
+      [ "$arg" != "$performance_config" ] || performance_config=""
+      expect_config=0
+      continue
     fi
     case "$arg" in
       --profile|--alias) expect_profile=1 ;;
-      --profile=*|--alias=*) profile="${arg#*=}"; break ;;
+      --profile=*|--alias=*) profile="${arg#*=}" ;;
+      --config) expect_config=1 ;;
+      --config=*) [ "${arg#*=}" != "$performance_config" ] || performance_config="" ;;
     esac
   done
   if [ -n "$profile" ]; then
-    OMP_PROFILE="$profile" launch_agent omp omp "$@"
+    if [ -n "$performance_config" ] && [ -f "$performance_config" ]; then
+      OMP_PROFILE="$profile" launch_agent omp omp --config "$performance_config" "$@"
+    else
+      OMP_PROFILE="$profile" launch_agent omp omp "$@"
+    fi
+  elif [ -n "$performance_config" ] && [ -f "$performance_config" ]; then
+    launch_agent omp omp --config "$performance_config" "$@"
   else
     launch_agent omp omp "$@"
   fi
@@ -519,7 +560,7 @@ ${C_GRN}Knowledge graph${C_OFF}  (graphify)
 
 ${C_GRN}Design extraction${C_OFF}  (Dembrandt)
   dembrandt example.com --design-md
-  # agents can call Dembrandt through MCP
+  # specialist CLI: starts only when requested
 
 ${C_GRN}System map${C_OFF}  (Ix)
   ix map .                 # map this codebase
@@ -535,16 +576,22 @@ ${C_GRN}Code health + wiki${C_OFF}  (RepoWise)
 ${C_GRN}App testing${C_OFF}  (Argent)
   argent tools              # list device/browser testing tools
   argent server status      # inspect the local testing server
-  # agents can drive iOS, Android, TV, Electron, and Chromium through MCP
+  # specialist CLI: starts only when requested
 
 ${C_GRN}Security${C_OFF}  (Numasec; authorized targets only)
   megai security            # launch the interactive security agent
   # start with /doctor, /opsec strict, then a scoped runbook
 
-${C_GRN}Agents${C_OFF}  (launches CLI with full stack already initialised)
-  megai cc       — Claude Code   (memory + code + design + testing MCP)
-  megai codex    — Codex CLI     (memory + code + design + testing MCP)
-  megai pi       — Pi            (memory + code + design + testing MCP)
+${C_GRN}Agents${C_OFF}  (launches CLI with the lean stack initialised)
+  megai cc       — Claude Code
+  megai codex    — Codex CLI
+  megai pi       — Pi
+  megai omp      — Oh My Pi
+
+${C_GRN}Development + ship${C_OFF}
+  megai dev                              # default primary checkout: dev
+  megai finish --dry-run --target dev    # preview dev -> main PR flow
+  megai finish --verified --target dev   # merge/push dev and open/reuse PR
 
 ${C_GRN}Manage${C_OFF}
   megai status     megai doctor     megai stop     megai update
@@ -576,6 +623,8 @@ case "${1:-__project__}" in
   omp)       shift; cmd_omp       "$@" ;;
   security)  shift; cmd_security  "$@" ;;
   graph)     shift; cmd_graph     "$@" ;;
+  dev)       shift; cmd_dev       "$@" ;;
+  finish)    shift; cmd_finish    "$@" ;;
   install)   shift; cmd_install   "$@" ;;
   status)    shift; cmd_status    "$@" ;;
   doctor)    shift; cmd_doctor    "$@" ;;

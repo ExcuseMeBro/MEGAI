@@ -126,7 +126,10 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🪨 | [caveman](https://github.com/JuliusBrussee/caveman) | Compressed agent communication and workflow skills | Global skills/plugins |
 | ⚡ | [rtk](https://github.com/rtk-ai/rtk) | Rust Token Killer for compact command output | CLI + Claude hook |
 | 🕸️ | [graphify](https://graphify.net) | Tree-sitter knowledge graph and code relationships | CLI + global skill |
-| 📋 | task-flow | `.todos` board, priority queue, ADLC, monitoring, Asana mirror | Claude hooks + Pi skill |
+| 📋 | task-flow | `.todos` board, priority queue, ADLC, monitoring, Asana mirror | Claude hooks + global skills |
+| 🌿 | agent-worktree-lifecycle | Default work to `dev`; push and open/reuse `dev` → `main` PR/MR; clean merged worktrees | Global policy + `megai dev`/`finish` |
+| 🧭 | smart-development-orchestrator | Luna/Terra discovery routing, multi-provider Paseo fanout, safe free-model use, and hybrid tab/worktree placement | Global skill + OMP agents |
+| ⚙️ | MiniMax M2.7 OMP worker | Optional independent-capacity implementation worker; inactive until `MINIMAX_API_KEY` resolves | Managed OMP provider + agent |
 | 🎨 | [ui-craft](https://skills.smoothui.dev) | Anti-slop UI rules, design memory, review gates, presets | Global skills and commands |
 | 🖌️ | [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | 17 UI/UX skills, WCAG references, tokens, components, adapters | Global skills |
 | 🌐 | [Dembrandt](https://github.com/dembrandt/dembrandt) | Extract design tokens, typography, palette, brand, and WCAG data from websites | On-demand CLI |
@@ -149,7 +152,7 @@ MEGAI configures:
 - Ix's `ix-memory` plugin
 - `rtk` `PreToolUse` hook
 - caveman and graphify skills
-- task-flow skill, hooks, commands, monitoring, and optional statusline
+- task-flow skill, hooks, commands, monitoring, optional statusline, and safe `dev` merge/worktree cleanup policy
 - ui-craft commands, review agents, and design memory
 - global Matt Pocock and UX/UI skills
 
@@ -162,7 +165,7 @@ MEGAI configures:
 - a lean, marked MCP block in `~/.codex/config.toml` with `agentmemory` and `codedb`
 - Dembrandt, Argent, and RepoWise CLIs available on demand
 - Ix plugin, hooks, and MCP integration
-- caveman, graphify, ui-craft, Matt Pocock, and UX/UI skills
+- caveman, graphify, ui-craft, Matt Pocock, UX/UI, and safe worktree-lifecycle skills
 
 Only MEGAI-owned MCP tables are replaced or removed; unrelated Codex configuration remains intact.
 
@@ -171,7 +174,7 @@ Only MEGAI-owned MCP tables are replaced or removed; unrelated Codex configurati
 MEGAI configures:
 
 - global MEGAI skill at `~/.pi/agent/skills/megai.md`
-- Asana-aware task-flow skill at `~/.pi/agent/skills/megai-task-flow/`
+- Asana-aware task-flow and safe worktree-lifecycle skills under `~/.pi/agent/skills/`
 - memory and codedb shell extensions
 - Dembrandt, Argent, and RepoWise CLIs available on demand instead of permanent MCP entries
 - global UX/UI, caveman, graphify, and Matt Pocock skills
@@ -184,12 +187,18 @@ Pi keeps provider authentication in `~/.pi/agent/auth.json`; MEGAI never writes 
 MEGAI configures:
 
 - native MCP entries for `agentmemory` and `codedb` in the active OMP profile
-- native MEGAI and Asana-aware task-flow skills under the active profile's `skills/` directory
-- preservation of unrelated OMP servers, allowlists, denylists, credentials, and user settings
-- Paseo placement rules that open additional agents as sibling tabs in the current workspace unless isolation is explicitly requested
+- native MEGAI, Asana-aware task-flow, safe worktree-lifecycle, and smart-development-orchestrator skills under the active profile's `skills/` directory
+- Luna-backed `smart-router`, read-only Terra escalation worker, and gated `minimax-worker` under the active profile's `agents/` directory
+- OMP's native MiniMax catalog and provider-specific transport compatibility; MEGAI never rewrites user `models.yml`
+- preservation of unrelated OMP servers, model providers, allowlists, denylists, credentials, agents, and user settings
+- hybrid Paseo placement: read-only subagents stay as tabs in the current workspace; every concurrent writer receives a separate managed worktree workspace, which is archived only after its verified merge, dev push, PR/MR creation, and worktree cleanup succeed
 - Dembrandt, Argent, RepoWise, Numasec, and global skills through OMP's existing CLI and skill discovery surfaces
 
 OMP provider authentication remains in OMP's own credential store; MEGAI never writes provider credentials.
+
+MiniMax is optional and runs through OMP, not Pi. OMP already discovers it through the native `minimax` provider. Do not export `MINIMAX_API_KEY` into the global OMP/Paseo daemon environment. The trusted orchestrator first classifies the exact payload, then injects the key only into a dedicated MiniMax worker process; without that scoped key the provider stays unavailable. MEGAI never stores the key. Only explicitly public/synthetic or privacy-attested bounded tasks may use `minimax-worker`; Terra reviews its diff and Sol remains the integration gate.
+
+`megai omp` automatically loads `~/.megai/omp-config/high-speed.yml`: Codex Code Mode `auto`, provider concurrency (`openai-codex: 2`, `minimax: 4`), six-agent fanout, async batch execution, and branch-merge isolation. For Paseo-launched OMP sessions, set the OMP provider environment variable `PI_CONFIG_FILES` to the absolute path of this overlay so the same settings apply to future agent tabs.
 
 ---
 
@@ -204,6 +213,10 @@ megai omp                     Launch Oh My Pi with the stack ready
 megai omp --profile work      Launch OMP and wire the named profile
 megai security [args]         Launch Numasec (authorized targets only)
 megai graph [path]            Build a graphify knowledge graph
+megai dev                     Switch a clean primary main/master checkout to dev
+megai finish --dry-run --target dev
+megai finish --verified --target dev
+                              Push verified dev, open/reuse dev-to-main PR/MR, clean merged worktree
 
 megai install                 Re-run the installed MEGAI pipeline
 megai update                  Update managed tools and re-wire agents
@@ -272,6 +285,10 @@ Asana synchronizes only at task boundaries; `.todos` owns the six local ADLC sta
 | Finish | `done.md` | `Done` | `true` |
 
 Routine stage changes, `In Review` moves, milestone comments, and repeated board reads are skipped. An Asana comment is reserved for a real external blocker.
+
+### 🌿 Agent branch ship gate
+
+Primary development defaults to `dev` (`megai dev` switches a clean `main`/`master` checkout). Isolated agent branches start from `dev`. At 🚀 ship, `megai finish --verified --target dev` merges task work when needed, pushes `dev`, and creates or reuses an open `dev` → `main` GitHub PR or GitLab merge request before the Asana finish boundary. It never auto-merges `main`, deletes remote refs, or deletes primary/dirty/unmerged repositories. Missing branches/origin, failed verification, conflicts, forge authentication, push, or PR/MR creation stop completion.
 
 ### 🧩 Claude task-flow pieces
 
@@ -484,6 +501,10 @@ The installer:
 ├── omp-skill/                   OMP-native MEGAI skill
 ├── task-flow/                   skills, hooks, commands, and monitor
 ├── skills/numasec-security/     authorized security handoff guidance
+├── skills/agent-worktree-lifecycle/  dev-default, dev-to-main PR, safe cleanup
+├── skills/smart-development-orchestrator/  Luna/Terra and multi-provider routing policy
+├── omp-agents/                   smart-router, Terra scout, and gated MiniMax worker
+├── omp-config/                   reusable high-speed OMP overlay
 ├── ux-ui-agent-skills/          global plugin87 source and wrappers
 ├── logs/
 ├── backups/

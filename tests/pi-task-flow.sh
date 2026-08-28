@@ -9,7 +9,7 @@ export HOME="$TMP/home"
 export MEGAI_HOME="$TMP/megai"
 export PI_CODING_AGENT_DIR="$HOME/.pi/agent"
 mkdir -p "$MEGAI_HOME" "$PI_CODING_AGENT_DIR" "$TMP/bin"
-cp -R "$ROOT/lib" "$ROOT/pi-skill" "$ROOT/task-flow" "$MEGAI_HOME/"
+cp -R "$ROOT/lib" "$ROOT/pi-skill" "$ROOT/task-flow" "$ROOT/skills" "$MEGAI_HOME/"
 printf '%s\n' '{"tools":{},"agents":{},"projects":{}}' >"$MEGAI_HOME/state.json"
 printf '%s\n' '{"mcpServers":{}}' >"$PI_CODING_AGENT_DIR/mcp.json"
 printf '#!/usr/bin/env bash\nexit 0\n' >"$TMP/bin/pi"
@@ -32,6 +32,8 @@ grep -q '| Verified and finished | `done.md` | `Done` | `true` |' "$skill"
 grep -q 'Put it in `In Progress` with `completed=false` in one mutation' "$skill"
 ! grep -q 'when the API permits' "$skill"
 ! grep -q 'before final completion' "$skill"
+grep -q 'megai finish --verified --target dev' "$skill"
+[ -f "$PI_CODING_AGENT_DIR/skills/agent-worktree-lifecycle/SKILL.md" ]
 
 # Reinstall must replace an older managed policy block instead of leaving stale rules.
 mkdir -p "$HOME/.claude"
@@ -49,13 +51,22 @@ MD
 printf '%s\n' '{}' >"$HOME/.claude/settings.json"
 bash "$MEGAI_HOME/lib/install_taskflow.sh" >/dev/null 2>&1
 bash "$MEGAI_HOME/lib/install_taskflow.sh" >/dev/null 2>&1
-grep -q 'Boundary-only Asana sync' "$HOME/.claude/CLAUDE.md"
+grep -q 'Risk-scaled Asana sync' "$HOME/.claude/CLAUDE.md"
+grep -q 'Bounded fast path' "$HOME/.claude/CLAUDE.md"
+grep -q 'Target at most eight assistant requests' "$HOME/.claude/CLAUDE.md"
+grep -q 'Never discover or sync Plane, Jira' "$HOME/.claude/CLAUDE.md"
+grep -q 'Parallel implementation invariant' "$HOME/.claude/CLAUDE.md"
+grep -q 'one registered isolated worktree/task branch' "$HOME/.claude/CLAUDE.md"
+! grep -q 'Every task runs full ADLC' "$HOME/.claude/CLAUDE.md"
 ! grep -q 'old synchronous policy' "$HOME/.claude/CLAUDE.md"
 [ "$(grep -c 'megai:task-flow:begin' "$HOME/.claude/CLAUDE.md")" = "1" ]
 grep -q 'Do not re-read unchanged board files between ADLC stages' "$HOME/.claude/skills/task-flow/SKILL.md"
-grep -q 'never mirror local stages or routine comments' "$HOME/.claude/hooks/taskflow-prompt.sh"
+grep -q 'ADLC is phase coverage, not one tool/model round trip per phase' "$HOME/.claude/skills/task-flow/SKILL.md"
+grep -q 'Use the bounded fast path' "$HOME/.claude/hooks/taskflow-prompt.sh"
+grep -q 'Never discover or sync another tracker' "$HOME/.claude/hooks/taskflow-prompt.sh"
 
 bash "$MEGAI_HOME/lib/wire_pi.sh" --remove >/dev/null 2>&1
 [ ! -e "$PI_CODING_AGENT_DIR/skills/megai-task-flow" ]
+[ ! -e "$PI_CODING_AGENT_DIR/skills/agent-worktree-lifecycle" ]
 
 echo "Pi task-flow wiring: ok"

@@ -23,8 +23,11 @@ fi
 OMP_MCP_CONFIG="$OMP_AGENT/mcp.json"
 OMP_SKILL="$MEGAI_HOME/omp-skill/SKILL.md"
 TASK_FLOW_SKILL="$MEGAI_HOME/task-flow/skills/megai-task-flow/SKILL.md"
+WORKTREE_SKILL="$MEGAI_HOME/skills/agent-worktree-lifecycle/SKILL.md"
+ORCHESTRATOR_SKILL="$MEGAI_HOME/skills/smart-development-orchestrator/SKILL.md"
 OMP_RULES="$OMP_AGENT/RULES.md"
 OMP_RULES_SOURCE="$MEGAI_HOME/omp-skill/RULES.md"
+OMP_AGENTS_SOURCE="$MEGAI_HOME/omp-agents"
 RULES_BEGIN="<!-- megai:paseo-placement:begin -->"
 RULES_END="<!-- megai:paseo-placement:end -->"
 validate_placement_rules() {
@@ -96,11 +99,56 @@ refresh_placement_rules() {
     cp "$OMP_RULES_SOURCE" "$OMP_RULES"
   fi
 }
+
+is_managed_copy() {
+  local source="$1" dest="$2" legacy
+  [ -f "$dest" ] || return 1
+  grep -Fxq 'managed-by: megai' "$dest" && return 0
+  [ -f "$source" ] || return 1
+  legacy="$(mktemp)"
+  awk '$0 != "managed-by: megai"' "$source" >"$legacy"
+  if cmp -s "$legacy" "$dest"; then
+    rm -f "$legacy"
+    return 0
+  fi
+  rm -f "$legacy"
+  return 1
+}
+
+install_managed_copy() {
+  local source="$1" dest="$2"
+  if [ -e "$dest" ] && ! is_managed_copy "$source" "$dest"; then
+    warn "OMP: preserving user-owned collision: $dest"
+    return 0
+  fi
+  mkdir -p "$(dirname "$dest")"
+  cp "$source" "$dest"
+}
+
+remove_managed_copy() {
+  local source="$1" dest="$2"
+  [ -e "$dest" ] || return 0
+  if ! is_managed_copy "$source" "$dest"; then
+    warn "OMP: preserving user-owned file: $dest"
+    return 0
+  fi
+  rm -f "$dest"
+  rmdir "$(dirname "$dest")" 2>/dev/null || true
+}
+
+remove_smart_agents() {
+  remove_managed_copy "$OMP_AGENTS_SOURCE/smart-router.md" "$OMP_AGENT/agents/smart-router.md"
+  remove_managed_copy "$OMP_AGENTS_SOURCE/terra-scout.md" "$OMP_AGENT/agents/terra-scout.md"
+  remove_managed_copy "$OMP_AGENTS_SOURCE/minimax-worker.md" "$OMP_AGENT/agents/minimax-worker.md"
+}
 MODE="${1:-install}"
 
 if [ "$MODE" = "--remove" ]; then
   remove_placement_rules
   rm -rf "$OMP_AGENT/skills/megai" "$OMP_AGENT/skills/megai-task-flow"
+  remove_managed_copy "$WORKTREE_SKILL" "$OMP_AGENT/skills/agent-worktree-lifecycle/SKILL.md"
+  remove_managed_copy "$ORCHESTRATOR_SKILL" "$OMP_AGENT/skills/smart-development-orchestrator/SKILL.md"
+  remove_smart_agents
   if [ ! -f "$OMP_MCP_CONFIG" ]; then
     ok "OMP: no native MEGAI wiring to remove"
     exit 0
@@ -130,7 +178,7 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 0
 fi
 
-mkdir -p "$OMP_AGENT/skills" "$MEGAI_HOME/backups"
+mkdir -p "$OMP_AGENT/skills" "$OMP_AGENT/agents" "$MEGAI_HOME/backups"
 refresh_placement_rules
 if [ ! -f "$OMP_MCP_CONFIG" ]; then
   cat >"$OMP_MCP_CONFIG" <<'JSON'
@@ -189,6 +237,27 @@ if [ -f "$TASK_FLOW_SKILL" ]; then
 else
   warn "OMP: MEGAI task-flow skill missing — skipped"
 fi
+if [ -f "$WORKTREE_SKILL" ]; then
+  install_managed_copy "$WORKTREE_SKILL" "$OMP_AGENT/skills/agent-worktree-lifecycle/SKILL.md"
+else
+  warn "OMP: worktree lifecycle skill missing — skipped"
+fi
+if [ -f "$ORCHESTRATOR_SKILL" ]; then
+  install_managed_copy "$ORCHESTRATOR_SKILL" "$OMP_AGENT/skills/smart-development-orchestrator/SKILL.md"
+else
+  warn "OMP: smart development orchestrator skill missing — skipped"
+fi
+if [ -f "$OMP_AGENTS_SOURCE/smart-router.md" ] && [ -f "$OMP_AGENTS_SOURCE/terra-scout.md" ]; then
+  install_managed_copy "$OMP_AGENTS_SOURCE/smart-router.md" "$OMP_AGENT/agents/smart-router.md"
+  install_managed_copy "$OMP_AGENTS_SOURCE/terra-scout.md" "$OMP_AGENT/agents/terra-scout.md"
+else
+  warn "OMP: smart routing agents missing — skipped"
+fi
+if [ -f "$OMP_AGENTS_SOURCE/minimax-worker.md" ]; then
+  install_managed_copy "$OMP_AGENTS_SOURCE/minimax-worker.md" "$OMP_AGENT/agents/minimax-worker.md"
+else
+  warn "OMP: MiniMax worker agent missing — skipped"
+fi
 
-ok "OMP: native MCP servers, skills, and placement rules wired -> $OMP_AGENT"
+ok "OMP: native MCP servers, skills, smart routing agents, and placement rules wired -> $OMP_AGENT"
 state_set '.agents["omp"]' "{\"config\":\"$OMP_AGENT\",\"wired\":true}"

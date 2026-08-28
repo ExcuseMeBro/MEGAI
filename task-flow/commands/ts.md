@@ -6,4 +6,4 @@ allowed-tools: Bash(node:*)
 
 !`node ~/.claude/hooks/taskflow-move.js start "$ARGUMENTS"`
 
-The task is now in `inprogress.md`. Work it through the full ADLC (spec → plan → generate → verify → review → ship), advancing its stage emoji as you go.
+The task is now in `inprogress.md`. Cover spec → plan → generate → verify → review → ship at risk-appropriate depth, collapsing phases into the same evidence pass when safe; advance the stage emoji as the work crosses each boundary.

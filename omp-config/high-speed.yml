@@ -1,0 +1,31 @@
+providers:
+  openai-codex:
+    codeMode: auto
+  maxInFlightRequests:
+    openai-codex: 2
+    minimax: 4
+
+async:
+  enabled: true
+
+task:
+  batch: true
+  maxConcurrency: 6
+  isolation:
+    mode: auto
+    merge: branch
+    apply: true
+
+retry:
+  modelFallback: true
+  fallbackRevertPolicy: cooldown-expiry
+  fallbackChains:
+    "openai-codex/gpt-5.6-luna":
+      - openai-codex/gpt-5.6-luna:low
+      - openai-codex/gpt-5.6-terra:medium
+    "openai-codex/gpt-5.6-terra":
+      - openai-codex/gpt-5.6-terra:medium
+      - openai-codex/gpt-5.6-sol:medium
+    "minimax/MiniMax-M2.7":
+      - minimax/MiniMax-M2.7
+      - openai-codex/gpt-5.6-terra:medium
