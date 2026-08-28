@@ -138,8 +138,34 @@ remove_managed_copy() {
 
 remove_smart_agents() {
   remove_managed_copy "$OMP_AGENTS_SOURCE/smart-router.md" "$OMP_AGENT/agents/smart-router.md"
+  remove_managed_copy "$OMP_AGENTS_SOURCE/luna-scout.md" "$OMP_AGENT/agents/luna-scout.md"
   remove_managed_copy "$OMP_AGENTS_SOURCE/terra-scout.md" "$OMP_AGENT/agents/terra-scout.md"
   remove_managed_copy "$OMP_AGENTS_SOURCE/minimax-worker.md" "$OMP_AGENT/agents/minimax-worker.md"
+}
+
+install_router_group() {
+  local name source dest safe=1
+  for name in smart-router luna-scout terra-scout; do
+    source="$OMP_AGENTS_SOURCE/$name.md"
+    dest="$OMP_AGENT/agents/$name.md"
+    if [ ! -f "$source" ]; then
+      warn "OMP: routing agent missing: $source"
+      safe=0
+    elif [ -e "$dest" ] && ! is_managed_copy "$source" "$dest"; then
+      warn "OMP: preserving user-owned routing dependency collision: $dest"
+      safe=0
+    fi
+  done
+  if [ "$safe" != 1 ]; then
+    for name in smart-router luna-scout terra-scout; do
+      remove_managed_copy "$OMP_AGENTS_SOURCE/$name.md" "$OMP_AGENT/agents/$name.md"
+    done
+    warn "OMP: managed smart-router group skipped to avoid spawning user-owned dependencies"
+    return 0
+  fi
+  for name in smart-router luna-scout terra-scout; do
+    install_managed_copy "$OMP_AGENTS_SOURCE/$name.md" "$OMP_AGENT/agents/$name.md"
+  done
 }
 MODE="${1:-install}"
 
@@ -247,12 +273,7 @@ if [ -f "$ORCHESTRATOR_SKILL" ]; then
 else
   warn "OMP: smart development orchestrator skill missing — skipped"
 fi
-if [ -f "$OMP_AGENTS_SOURCE/smart-router.md" ] && [ -f "$OMP_AGENTS_SOURCE/terra-scout.md" ]; then
-  install_managed_copy "$OMP_AGENTS_SOURCE/smart-router.md" "$OMP_AGENT/agents/smart-router.md"
-  install_managed_copy "$OMP_AGENTS_SOURCE/terra-scout.md" "$OMP_AGENT/agents/terra-scout.md"
-else
-  warn "OMP: smart routing agents missing — skipped"
-fi
+install_router_group
 if [ -f "$OMP_AGENTS_SOURCE/minimax-worker.md" ]; then
   install_managed_copy "$OMP_AGENTS_SOURCE/minimax-worker.md" "$OMP_AGENT/agents/minimax-worker.md"
 else

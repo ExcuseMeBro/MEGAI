@@ -1,8 +1,8 @@
 ---
 name: minimax-worker
-description: Bounded MiniMax implementation worker for explicitly approved public, synthetic, or privacy-attested tasks.
+description: Routine MiniMax Code M3 implementation worker for bounded, pre-classified tasks.
 managed-by: megai
-model: minimax/MiniMax-M2.7
+model: minimax-code/MiniMax-M3
 thinking: medium
 tools: read, grep, glob, lsp, edit, write, bash, eval, hub
 read-summarize: true

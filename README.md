@@ -128,8 +128,8 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🕸️ | [graphify](https://graphify.net) | Tree-sitter knowledge graph and code relationships | CLI + global skill |
 | 📋 | task-flow | `.todos` board, priority queue, ADLC, monitoring, Asana mirror | Claude hooks + global skills |
 | 🌿 | agent-worktree-lifecycle | Default work to `dev`; push and open/reuse `dev` → `main` PR/MR; clean merged worktrees | Global policy + `megai dev`/`finish` |
-| 🧭 | smart-development-orchestrator | Luna/Terra discovery routing, multi-provider Paseo fanout, safe free-model use, and hybrid tab/worktree placement | Global skill + OMP agents |
-| ⚙️ | MiniMax M2.7 OMP worker | Optional independent-capacity implementation worker; inactive until `MINIMAX_API_KEY` resolves | Managed OMP provider + agent |
+| 🧭 | smart-development-orchestrator | Token-aware MiniMax/GPT complexity routing, Paseo fanout, and hybrid tab/worktree placement | Global skill + OMP agents |
+| ⚙️ | MiniMax Code M3 OMP worker | Routine exploration/implementation tier targeting roughly 60% of inference tokens | Native OMP provider + managed agent |
 | 🎨 | [ui-craft](https://skills.smoothui.dev) | Anti-slop UI rules, design memory, review gates, presets | Global skills and commands |
 | 🖌️ | [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | 17 UI/UX skills, WCAG references, tokens, components, adapters | Global skills |
 | 🌐 | [Dembrandt](https://github.com/dembrandt/dembrandt) | Extract design tokens, typography, palette, brand, and WCAG data from websites | On-demand CLI |
@@ -188,7 +188,7 @@ MEGAI configures:
 
 - native MCP entries for `agentmemory` and `codedb` in the active OMP profile
 - native MEGAI, Asana-aware task-flow, safe worktree-lifecycle, and smart-development-orchestrator skills under the active profile's `skills/` directory
-- Luna-backed `smart-router`, read-only Terra escalation worker, and gated `minimax-worker` under the active profile's `agents/` directory
+- MiniMax-first `smart-router`, trusted Luna lookup scout, Terra architecture worker, and routine `minimax-worker` under the active profile's `agents/` directory
 - OMP's native MiniMax catalog and provider-specific transport compatibility; MEGAI never rewrites user `models.yml`
 - preservation of unrelated OMP servers, model providers, allowlists, denylists, credentials, agents, and user settings
 - hybrid Paseo placement: read-only subagents stay as tabs in the current workspace; every concurrent writer receives a separate managed worktree workspace, which is archived only after its verified merge, dev push, PR/MR creation, and worktree cleanup succeed
@@ -196,9 +196,11 @@ MEGAI configures:
 
 OMP provider authentication remains in OMP's own credential store; MEGAI never writes provider credentials.
 
-MiniMax is optional and runs through OMP, not Pi. OMP already discovers it through the native `minimax` provider. Do not export `MINIMAX_API_KEY` into the global OMP/Paseo daemon environment. The trusted orchestrator first classifies the exact payload, then injects the key only into a dedicated MiniMax worker process; without that scoped key the provider stays unavailable. MEGAI never stores the key. Only explicitly public/synthetic or privacy-attested bounded tasks may use `minimax-worker`; Terra reviews its diff and Sol remains the integration gate.
+MiniMax Code M3 runs through OMP's native `minimax-code` provider, never Pi. A key pasted into chat or logs is compromised and must be revoked before use. Configure the rotated Token Plan key through OMP auth or `MINIMAX_CODE_API_KEY` outside source; MEGAI never stores credentials.
 
-`megai omp` automatically loads `~/.megai/omp-config/high-speed.yml`: Codex Code Mode `auto`, provider concurrency (`openai-codex: 2`, `minimax: 4`), six-agent fanout, async batch execution, and branch-merge isolation. For Paseo-launched OMP sessions, set the OMP provider environment variable `PI_CONFIG_FILES` to the absolute path of this overlay so the same settings apply to future agent tabs.
+`megai omp` always loads `~/.megai/omp-config/high-speed.yml` for Codex Code Mode `auto`, provider concurrency (`openai-codex: 2`, `minimax-code: 4`), six-agent fanout, async batch execution, and branch-merge isolation. It adds `balanced-minimax.yml` only when the selected OMP profile reports authenticated `MiniMax-M3` availability; without MiniMax auth, the trusted existing default remains unchanged.
+
+The authenticated balanced overlay maps routine roles (`default`, `task`) to MiniMax Code M3 `medium`, `smol` to `low`, and `tiny`/`commit` to the supported `minimal` effort. GPT-5.6 Sol owns `plan`, `slow`, `advisor`, and `vision`; Luna/Terra remain trusted discovery/review roles. For Paseo-launched OMP sessions, add both overlay paths to `PI_CONFIG_FILES` only after MiniMax Code auth. The 60/40 split is an advisory observed-token target, never a reason to weaken HIGH/CRITICAL GPT gates. No free OpenCode models participate.
 
 ---
 
@@ -503,7 +505,7 @@ The installer:
 ├── skills/numasec-security/     authorized security handoff guidance
 ├── skills/agent-worktree-lifecycle/  dev-default, dev-to-main PR, safe cleanup
 ├── skills/smart-development-orchestrator/  Luna/Terra and multi-provider routing policy
-├── omp-agents/                   smart-router, Terra scout, and gated MiniMax worker
+├── omp-agents/                   MiniMax router/worker plus Luna and Terra trusted scouts
 ├── omp-config/                   reusable high-speed OMP overlay
 ├── ux-ui-agent-skills/          global plugin87 source and wrappers
 ├── logs/

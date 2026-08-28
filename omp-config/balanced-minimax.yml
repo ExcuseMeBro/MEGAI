@@ -1,0 +1,28 @@
+modelRoles:
+  default: minimax-code/MiniMax-M3:medium
+  task: minimax-code/MiniMax-M3:medium
+  smol: minimax-code/MiniMax-M3:low
+  tiny: minimax-code/MiniMax-M3:minimal
+  commit: minimax-code/MiniMax-M3:minimal
+  plan: openai-codex/gpt-5.6-sol:high
+  slow: openai-codex/gpt-5.6-sol:high
+  advisor: openai-codex/gpt-5.6-sol:high
+  vision: openai-codex/gpt-5.6-sol:medium
+  luna: openai-codex/gpt-5.6-luna:low
+  terra: openai-codex/gpt-5.6-terra:medium
+  review: openai-codex/gpt-5.6-terra:high
+
+defaultThinkingLevel: medium
+
+advisor:
+  enabled: false
+  syncBacklog: off
+
+task:
+  agentAdvisor: {}
+
+retry:
+  fallbackChains:
+    "minimax-code/MiniMax-M3":
+      - openai-codex/gpt-5.6-terra:medium
+      - openai-codex/gpt-5.6-sol:high

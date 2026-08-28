@@ -1,6 +1,6 @@
 ---
 name: smart-development-orchestrator
-description: Route development across Luna, Terra, trusted coding models, and approved free OpenCode models; coordinate parallel agents with safe Paseo workspace and dev-branch integration rules.
+description: Route development across OMP MiniMax Code M3 and GPT-5.6 roles with token-aware complexity escalation, parallel worktrees, and safe dev integration.
 managed-by: megai
 ---
 
@@ -18,41 +18,38 @@ One parent owns decomposition, routing, contracts, integration, and final accept
 
 ## Discovery routing
 
-- Exact file, symbol, reference, caller, test, config, or narrow-range lookup: OMP GPT-5.6 Luna at low effort.
-- Cross-module architecture, data flow, impact, conflicting conventions, or an unresolved Luna lookup: one read-only OMP GPT-5.6 Terra worker at medium effort.
-- Use LSP/symbol/index search before broad reads. Batch independent lookups and return compact `path:line` evidence.
-- The parent does not repeat resolved reads; it reads only an exact edit or verification range.
+- Exact file, symbol, reference, caller, test, config, and routine repository exploration: OMP MiniMax Code M3 at low effort.
+- If the first focused MiniMax lookup is empty, conflicting, or requires a trusted reading path, use one GPT-5.6 Luna scout.
+- Cross-module architecture, data flow, impact, or hard-debugging exploration: GPT-5.6 Terra or Sol.
+- Use LSP/symbol/index search before broad reads. Batch independent lookups, return compact `path:line` evidence, and never repeat resolved ranges.
 
 ## Provider routing
 
-Default to trusted OMP, Codex, or Claude agents. They are mandatory for private/proprietary code, credentials, personal data, auth/security, schemas, migrations, irreversible changes, integration, and final review.
+OMP is the single model gateway. Do not duplicate MiniMax configuration in Pi and do not route work to free OpenCode models.
 
-Use OMP as the single model gateway. Keep GPT roles on `openai-codex/gpt-5.6-sol`, `terra`, and `luna`; do not duplicate Chinese-provider configuration in Pi. MiniMax is unavailable while `MINIMAX_API_KEY` is absent. A trusted parent MUST classify the exact payload before creating any process that receives the key; do not inject the key into the global OMP/Paseo daemon environment. Create a MiniMax-enabled worker only for explicitly public/synthetic content or an operator-approved MiniMax privacy attestation. Otherwise use a trusted worker. The worker's own prompt check is defense-in-depth, not the disclosure gate.
+Use `minimax-code/MiniMax-M3` for routine exploration, implementation, CRUD/API work, tests, Docker, ordinary migrations, and routine refactors. The provider is unavailable while `MINIMAX_CODE_API_KEY` is absent. The key must be rotated if disclosed and stored outside source; do not paste it into prompts, config, logs, or task contracts.
 
-Free OpenCode dispatch is also default-deny. Before every free-provider task, require both: (1) explicit classification of the exact payload as public code or a synthetic fixture, and (2) an operator-approved provider privacy attestation covering every upstream provider, terms, logging/retention, key storage, data residency, model quality, and fallback behavior. Missing either gate routes the task to a trusted provider.
+Use GPT-5.6 through OMP for planning, architecture, hard debugging, critical review, payment/auth/security, destructive or production configuration, complex refactors, and final integrated acceptance. A trusted parent classifies the task before dispatch. Before sending private code to MiniMax, require operator approval covering MiniMax terms, logging/retention, key storage, data residency, model quality, and fallback behavior.
 
-After those gates pass, use:
+## Complexity routing
 
-| Model | Use |
-| --- | --- |
-| `opencode/nemotron-3.5-lightning-free` | Tiny mechanical edits and data collection |
-| `opencode/muse-spark-1.2-contributor-free` | Large-context public implementation |
-| `opencode/nemotron-3-ultra-free` | Public repo-wide read-only analysis |
-| `opencode/hy3-free` | Public architecture second opinion |
-| `opencode/mimo-v2.5-free` | General public-code fallback |
+- **LOW:** MiniMax exploration → MiniMax implementation/test → focused verification → done. GPT review only on a concrete risk trigger.
+- **MEDIUM:** MiniMax implementation → Terra review when the diff changes a contract, crosses modules, fails once, or is selected by quality sampling.
+- **HIGH:** Sol/Terra plan → MiniMax bounded implementation workers → mandatory GPT final review.
+- **CRITICAL:** Sol plan → GPT owns sensitive core implementation; MiniMax may handle only isolated non-sensitive mechanical slices → Sol review/fix.
 
-Never send secrets, credentials, personal data, private code, or unclassified context to MiniMax or a free provider. A trusted model must review every external cheap-provider change before integration.
+Treat 60% MiniMax / 40% GPT as a non-binding observed-token target, not a routing gate. Report the measured provider share when reliable telemetry is available, but change routing only from task complexity, defect/retry evidence, or explicit operator policy. Never reduce a required review to chase the ratio.
 
 ## High-speed ADLC
 
-- **Spec + risk:** one Sol turn for acceptance and protected boundaries.
-- **Discovery:** Luna returns compact `path:line` evidence in at most two focused tool waves.
-- **Plan:** Terra emits worker-ready contracts with non-overlapping ownership and focused test commands.
-- **Generate:** up to four `minimax-worker` agents implement independent approved slices in parallel worktrees; each runs focused tests and commits.
-- **Verify + review:** Terra reviews worker diffs in one pass; Sol handles only escalations and final integrated acceptance.
+- **Spec + risk:** MiniMax handles LOW/MEDIUM; Sol handles HIGH/CRITICAL and protected boundaries.
+- **Discovery:** MiniMax returns compact evidence in at most two focused tool waves; Luna is the trusted fallback.
+- **Plan:** MiniMax produces routine contracts; Terra/Sol produces architecture and critical contracts.
+- **Generate:** up to four `minimax-worker` agents implement independent bounded slices in parallel worktrees; each runs focused tests and commits.
+- **Verify + review:** workers verify locally; Terra reviews sampled MEDIUM and every HIGH diff; Sol owns CRITICAL and final integrated acceptance.
 - **Ship:** integrate verified commits into `dev`, run the integrated suite once, push `dev`, open/reuse the `dev` → `main` PR/MR, then archive only successfully merged worker workspaces.
 
-Do not run a separate model/tool round trip for every ADLC label. Do not run the full suite in each worker. One failed worker diagnosis may escalate to Terra; repeated retries route to a trusted worker.
+Do not run a separate model/tool round trip for every ADLC label. Do not run the full suite in each worker. One failed MiniMax diagnosis escalates to Terra; repeated failure routes implementation to GPT.
 
 ## Fanout
 
