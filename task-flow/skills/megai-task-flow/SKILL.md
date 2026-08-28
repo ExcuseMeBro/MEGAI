@@ -5,16 +5,16 @@ description: Synchronizes MEGAI's per-project .todos execution board with Asana 
 
 # MEGAI Task Flow
 
-Keep Asana and `.todos/` synchronized for every non-trivial project task.
+Keep Asana and `.todos/` synchronized for tracked or high-risk project tasks. Bounded fast-path changes do not enter this protocol.
 
-## Hard gates
+## Hard gates for tracked/high-risk work
 
 - Treat Asana as the coordination source of truth at task boundaries.
 - Treat `.todos` as the local ADLC execution source between boundaries.
-- Stop before implementation when Asana is unavailable or unauthenticated.
+- Stop before implementation when required Asana access is unavailable or unauthenticated.
 - Do not guess when workspace or project matching is ambiguous.
-- Start work only after one Asana mutation leaves the task in `In Progress`.
-- Complete the task only after verification succeeds.
+- Start tracked work only after one Asana mutation leaves the task in `In Progress`.
+- Complete tracked work only after verification and its required delivery succeed. A dev-to-main PR and worktree cleanup are required only when the task must ship through that lifecycle.
 
 ## Project setup
 
@@ -26,7 +26,7 @@ Keep Asana and `.todos/` synchronized for every non-trivial project task.
 6. Create the project only when absent. Ask when multiple projects match.
 7. Read sections only when their GIDs are unknown; reuse known `In Progress` and `Done` section GIDs for later tasks.
 
-Boundary-only Asana sync is mandatory: one start mutation and one completion mutation. Avoid routine reads, comments, and section changes between them.
+Boundary-only Asana sync is mandatory after a task enters this protocol: one start mutation and one completion mutation. Avoid routine reads, comments, and section changes between them.
 
 ## Task identity
 
@@ -60,12 +60,14 @@ At each boundary, mutate Asana first and then move the `.todos` line. Stop and r
 
 ## Work cycle
 
-1. **Start boundary:** use a linked GID directly. For an unlinked task, use at most one exact lookup, then reuse or create it. Put it in `In Progress` with `completed=false` in one mutation; stop and reconcile if that mutation fails.
-2. Add the GID marker and move the local line to `inprogress.md` at 📝 spec.
-3. Run `spec → plan → generate → verify → review → ship`; update only the local stage emoji.
-4. Routine stage changes and milestone comments are forbidden. Add one Asana comment only when an external blocker needs human visibility.
-5. **Completion boundary:** after verification and review, move the Asana task to `Done` and set `completed=true` in one mutation. Do not add a routine completion comment.
-6. Move the local line to `done.md` and let the task-flow monitor regenerate `monitoring.md`.
+1. **Classify first:** bounded localized copy/style/layout or presentation-only constant changes across at most three directly related files use the fast path only after an explicit blast-radius check confirms no public API/schema/auth/security/dependency/data-migration, production/CI/deployment, infrastructure, permissions, retention, destructive-behavior, or operational-config impact.
+2. **Start boundary:** for tracked/high-risk work, use a linked GID directly. For an unlinked task, use at most one exact lookup, then reuse or create it. Put it in `In Progress` with `completed=false` in one mutation; stop and reconcile if that mutation fails.
+3. Add the GID marker and move the local line to `inprogress.md` at 📝 spec.
+4. Cover `spec → plan → generate → verify → review → ship` at risk-appropriate depth. Phase coverage does not require a separate model/tool round trip per label.
+5. Routine stage changes and milestone comments are forbidden. Never discover or sync Plane, Jira, or another tracker unless the user explicitly asks.
+6. **Ship boundary when required:** run `megai finish --verified --target dev` only when the tracked delivery requires commit/PR publication. It merges task work into `dev` when needed, pushes `dev`, opens/reuses a `dev` → `main` PR/MR, then removes only merged task branches/registered worktrees. Stop on dirty state, conflict, missing branches/remote, failed verification, forge/auth/push/PR failure, or ambiguous ownership. Never auto-merge `main`.
+7. **Completion boundary:** after verification and any required delivery succeed, move the Asana task to `Done` and set `completed=true` in one mutation. Do not add a routine completion comment.
+8. Move the local line to `done.md` and let the task-flow monitor regenerate `monitoring.md`.
 
 ## Reconciliation
 
@@ -77,4 +79,4 @@ Reconcile only when starting/resuming work and boundary state may differ, or whe
 4. Prefer Asana for title, completion, assignment, and due-date conflicts.
 5. Never create a second task while a linked GID exists.
 
-Pure questions and trivial one-line edits do not require a mirrored task.
+Pure questions and bounded fast-path changes do not require a mirrored task.

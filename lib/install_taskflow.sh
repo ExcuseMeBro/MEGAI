@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# task-flow — pure `.todos` board + full-ADLC protocol for Claude Code.
-# The .todos/{todo,inprogress,done}.md files are the single source of truth.
+# task-flow — pure `.todos` board + risk-scaled ADLC protocol for Claude Code.
+# The .todos/{todo,inprogress,done}.md files are the single source of truth for tracked work.
 # Installs: the skill, a SessionStart board-init hook, a UserPromptSubmit
 # order-enforcer hook, the `/ta` add command, and a board statusline.
 # Idempotent and non-destructive (an existing statusLine is never overwritten).
@@ -130,7 +130,7 @@ else
   ok "task-flow: SessionStart hook already registered"
 fi
 
-# 2) UserPromptSubmit hook — analyze prompt -> create task first -> run ADLC.
+# 2) UserPromptSubmit hook — classify fast path vs tracked/high-risk work.
 prompt_already="$(jq '[.. | objects | .command? // empty] | map(select(test("taskflow-prompt.sh"))) | length' "$SETTINGS" 2>/dev/null || echo 0)"
 if [ "${prompt_already:-0}" = "0" ]; then
   tmp="$(mktemp)"
