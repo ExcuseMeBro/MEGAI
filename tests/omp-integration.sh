@@ -54,7 +54,14 @@ cat >"$TMP/bin/rtk" <<'SH'
 exit 0
 SH
 cat >"$TMP/bin/omp" <<SH
-#!/usr/bin/env bash
+if [ "\${1:-}" = models ]; then
+  if [ "\${MOCK_MINIMAX_AUTH:-0}" = 1 ]; then
+    printf '%s\n' '{"models":[{"id":"MiniMax-M3"}]}'
+  else
+    printf '%s\n' '{"models":[]}'
+  fi
+  exit 0
+fi
 printf '%s\n' "\$@" >"$TMP/omp.args"
 SH
 chmod +x "$TMP/bin/rtk" "$TMP/bin/omp" "$MEGAI_HOME/bin/megai"
@@ -91,16 +98,19 @@ grep -q 'one task batch with `isolated: true`' "$HOME/.omp/agent/skills/megai/SK
 grep -q 'parent is the sole integration owner' "$HOME/.omp/agent/skills/megai/SKILL.md"
 grep -q 'task.isolation.merge: branch' "$HOME/.omp/agent/skills/agent-worktree-lifecycle/SKILL.md"
 [ -f "$HOME/.omp/agent/agents/smart-router.md" ]
+[ -f "$HOME/.omp/agent/agents/luna-scout.md" ]
 [ -f "$HOME/.omp/agent/agents/terra-scout.md" ]
 [ -f "$HOME/.omp/agent/agents/minimax-worker.md" ]
-grep -q '^model: minimax/MiniMax-M2.7$' "$HOME/.omp/agent/agents/minimax-worker.md"
-grep -q '^managed-by: megai$' "$HOME/.omp/agent/agents/minimax-worker.md"
-grep -q '^model: openai-codex/gpt-5.6-luna$' "$HOME/.omp/agent/agents/smart-router.md"
-grep -q '^managed-by: megai$' "$HOME/.omp/agent/agents/smart-router.md"
-grep -q '^managed-by: megai$' "$HOME/.omp/agent/agents/terra-scout.md"
-grep -q '^spawns: terra-scout$' "$HOME/.omp/agent/agents/smart-router.md"
-grep -q '^blocking: true$' "$HOME/.omp/agent/agents/smart-router.md"
+grep -q '^model: minimax-code/MiniMax-M3$' "$HOME/.omp/agent/agents/minimax-worker.md"
+grep -q '^model: minimax-code/MiniMax-M3$' "$HOME/.omp/agent/agents/smart-router.md"
+grep -q '^model: openai-codex/gpt-5.6-luna$' "$HOME/.omp/agent/agents/luna-scout.md"
 grep -q '^model: openai-codex/gpt-5.6-terra$' "$HOME/.omp/agent/agents/terra-scout.md"
+grep -q '^managed-by: megai$' "$HOME/.omp/agent/agents/minimax-worker.md"
+grep -q '^managed-by: megai$' "$HOME/.omp/agent/agents/smart-router.md"
+grep -q '^managed-by: megai$' "$HOME/.omp/agent/agents/luna-scout.md"
+grep -q '^managed-by: megai$' "$HOME/.omp/agent/agents/terra-scout.md"
+grep -q '^spawns: luna-scout, terra-scout$' "$HOME/.omp/agent/agents/smart-router.md"
+grep -q '^blocking: true$' "$HOME/.omp/agent/agents/smart-router.md"
 grep -q 'Route non-trivial file location' "$HOME/.omp/agent/RULES.md"
 jq -e '.agents.omp.wired == true and .agents.omp.config == $config' \
   --arg config "$HOME/.omp/agent" "$MEGAI_HOME/state.json" >/dev/null
@@ -116,24 +126,31 @@ grep -q 'For zero or multiple matches, ask once' "$HOME/.omp/agent/RULES.md"
 mkdir -p "$HOME/.omp/profiles/work/agent"
 printf '%s\n' 'named-profile user rule' >"$HOME/.omp/profiles/work/agent/RULES.md"
 # Public launcher must prepare the stack, preserve arguments, and exec OMP.
+export MOCK_MINIMAX_AUTH=1
 (
   cd "$TMP/project"
   bash "$MEGAI_HOME/bin/megai" omp --profile work >/dev/null
 )
-printf '%s\n' '--config' "$MEGAI_HOME/omp-config/high-speed.yml" '--profile' 'work' >"$TMP/expected.args"
+printf '%s\n' '--config' "$MEGAI_HOME/omp-config/high-speed.yml" '--config' "$MEGAI_HOME/omp-config/balanced-minimax.yml" '--profile' 'work' >"$TMP/expected.args"
 cmp "$TMP/expected.args" "$TMP/omp.args"
 (
   cd "$TMP/project"
   bash "$MEGAI_HOME/bin/megai" omp --config "$MEGAI_HOME/omp-config/high-speed.yml" --profile work >/dev/null
 )
-printf '%s\n' '--config' "$MEGAI_HOME/omp-config/high-speed.yml" '--profile' 'work' >"$TMP/expected.args"
+printf '%s\n' '--config' "$MEGAI_HOME/omp-config/balanced-minimax.yml" '--config' "$MEGAI_HOME/omp-config/high-speed.yml" '--profile' 'work' >"$TMP/expected.args"
 cmp "$TMP/expected.args" "$TMP/omp.args"
 printf 'task:\n  maxConcurrency: 3\n' >"$TMP/custom-omp.yml"
 (
   cd "$TMP/project"
   bash "$MEGAI_HOME/bin/megai" omp --profile work --config "$TMP/custom-omp.yml" >/dev/null
 )
-printf '%s\n' '--config' "$MEGAI_HOME/omp-config/high-speed.yml" '--profile' 'work' '--config' "$TMP/custom-omp.yml" >"$TMP/expected.args"
+printf '%s\n' '--config' "$MEGAI_HOME/omp-config/high-speed.yml" '--config' "$MEGAI_HOME/omp-config/balanced-minimax.yml" '--profile' 'work' '--config' "$TMP/custom-omp.yml" >"$TMP/expected.args"
+cmp "$TMP/expected.args" "$TMP/omp.args"
+(
+  cd "$TMP/project"
+  MOCK_MINIMAX_AUTH=0 bash "$MEGAI_HOME/bin/megai" omp --profile work >/dev/null
+)
+printf '%s\n' '--config' "$MEGAI_HOME/omp-config/high-speed.yml" '--profile' 'work' >"$TMP/expected.args"
 cmp "$TMP/expected.args" "$TMP/omp.args"
 [ -f "$HOME/.omp/profiles/work/agent/mcp.json" ]
 [ -f "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md" ]
@@ -141,12 +158,12 @@ cmp "$TMP/expected.args" "$TMP/omp.args"
 grep -q 'subagent, reviewer, parallel worker, or new tab' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
 grep -q 'do not create a workspace first' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
 [ -f "$HOME/.omp/profiles/work/agent/agents/minimax-worker.md" ]
+[ -f "$HOME/.omp/profiles/work/agent/agents/smart-router.md" ]
+[ -f "$HOME/.omp/profiles/work/agent/agents/luna-scout.md" ]
+[ -f "$HOME/.omp/profiles/work/agent/agents/terra-scout.md" ]
+grep -q '^spawns: luna-scout, terra-scout$' "$HOME/.omp/profiles/work/agent/agents/smart-router.md"
 grep -q 'one task batch with `isolated: true`' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
 grep -q 'task.isolation.merge: branch' "$HOME/.omp/profiles/work/agent/skills/agent-worktree-lifecycle/SKILL.md"
-[ -f "$HOME/.omp/profiles/work/agent/skills/smart-development-orchestrator/SKILL.md" ]
-[ -f "$HOME/.omp/profiles/work/agent/agents/smart-router.md" ]
-[ -f "$HOME/.omp/profiles/work/agent/agents/terra-scout.md" ]
-grep -q '^spawns: terra-scout$' "$HOME/.omp/profiles/work/agent/agents/smart-router.md"
 grep -q 'named-profile user rule' "$HOME/.omp/profiles/work/agent/RULES.md"
 grep -q 'call `create_agent` without `workspaceId`' "$HOME/.omp/profiles/work/agent/RULES.md"
 grep -q 'pass that `workspaceId` explicitly to `create_agent`' "$HOME/.omp/profiles/work/agent/RULES.md"
@@ -171,6 +188,7 @@ jq -e '
 [ ! -e "$HOME/.omp/agent/skills/megai-task-flow" ]
 [ ! -e "$HOME/.omp/agent/skills/agent-worktree-lifecycle" ]
 [ ! -e "$HOME/.omp/agent/agents/smart-router.md" ]
+[ ! -e "$HOME/.omp/agent/agents/luna-scout.md" ]
 [ ! -e "$HOME/.omp/agent/skills/smart-development-orchestrator" ]
 [ ! -e "$HOME/.omp/agent/agents/terra-scout.md" ]
 [ ! -e "$HOME/.omp/agent/agents/minimax-worker.md" ]
@@ -184,6 +202,7 @@ jq -e '(.mcpServers.agentmemory | not) and (.mcpServers.codedb | not)' \
 [ ! -e "$HOME/.omp/profiles/work/agent/skills/megai-task-flow" ]
 [ ! -e "$HOME/.omp/profiles/work/agent/skills/agent-worktree-lifecycle" ]
 [ ! -e "$HOME/.omp/profiles/work/agent/agents/smart-router.md" ]
+[ ! -e "$HOME/.omp/profiles/work/agent/agents/luna-scout.md" ]
 [ ! -e "$HOME/.omp/profiles/work/agent/skills/smart-development-orchestrator" ]
 [ ! -e "$HOME/.omp/profiles/work/agent/agents/terra-scout.md" ]
 [ ! -e "$HOME/.omp/profiles/work/agent/agents/minimax-worker.md" ]
@@ -193,15 +212,19 @@ grep -q 'named-profile user rule' "$HOME/.omp/profiles/work/agent/RULES.md"
 # User-owned agent collisions survive install and removal; independent managed
 # agents still install and clean up.
 COLLISION_HOME="$TMP/collision-home"
-mkdir -p "$COLLISION_HOME/.omp/agent/agents"
+HOME="$COLLISION_HOME" bash "$MEGAI_HOME/lib/wire_omp.sh" >/dev/null
+grep -q '^managed-by: megai$' "$COLLISION_HOME/.omp/agent/agents/luna-scout.md"
+grep -q '^managed-by: megai$' "$COLLISION_HOME/.omp/agent/agents/terra-scout.md"
 printf '%s\n' 'user-owned smart router' >"$COLLISION_HOME/.omp/agent/agents/smart-router.md"
 HOME="$COLLISION_HOME" bash "$MEGAI_HOME/lib/wire_omp.sh" >/dev/null
 grep -q '^user-owned smart router$' "$COLLISION_HOME/.omp/agent/agents/smart-router.md"
-grep -q '^managed-by: megai$' "$COLLISION_HOME/.omp/agent/agents/terra-scout.md"
+[ ! -e "$COLLISION_HOME/.omp/agent/agents/terra-scout.md" ]
+[ ! -e "$COLLISION_HOME/.omp/agent/agents/luna-scout.md" ]
 grep -q '^managed-by: megai$' "$COLLISION_HOME/.omp/agent/agents/minimax-worker.md"
 HOME="$COLLISION_HOME" bash "$MEGAI_HOME/lib/wire_omp.sh" --remove >/dev/null
 grep -q '^user-owned smart router$' "$COLLISION_HOME/.omp/agent/agents/smart-router.md"
 [ ! -e "$COLLISION_HOME/.omp/agent/agents/terra-scout.md" ]
+[ ! -e "$COLLISION_HOME/.omp/agent/agents/luna-scout.md" ]
 [ ! -e "$COLLISION_HOME/.omp/agent/agents/minimax-worker.md" ]
 
 # Global uninstall enumerates named OMP profiles before removing MEGAI_HOME.
@@ -213,6 +236,8 @@ HOME="$UNINSTALL_HOME" MEGAI_HOME="$UNINSTALL_MEGAI" OMP_PROFILE=work bash "$UNI
 printf 'y\n' | HOME="$UNINSTALL_HOME" MEGAI_HOME="$UNINSTALL_MEGAI" bash "$UNINSTALL_MEGAI/bin/megai" uninstall >/dev/null
 [ ! -e "$UNINSTALL_HOME/.omp/agent/agents/terra-scout.md" ]
 [ ! -e "$UNINSTALL_HOME/.omp/profiles/work/agent/agents/terra-scout.md" ]
+[ ! -e "$UNINSTALL_HOME/.omp/agent/agents/luna-scout.md" ]
+[ ! -e "$UNINSTALL_HOME/.omp/profiles/work/agent/agents/luna-scout.md" ]
 [ ! -e "$UNINSTALL_HOME/.omp/agent/agents/minimax-worker.md" ]
 [ ! -e "$UNINSTALL_HOME/.omp/profiles/work/agent/agents/minimax-worker.md" ]
 [ ! -e "$UNINSTALL_MEGAI" ]

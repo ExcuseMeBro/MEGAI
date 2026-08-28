@@ -12,11 +12,12 @@ cwd="${OMP_LIVE_CWD:-$(cd "$(dirname "$0")/.." && pwd)}"
 output="$(
   cd "$cwd"
   omp -p --no-session --no-title --thinking low --max-time 3m \
-    "Delegate two read-only tasks in one batch. Use smart-router to locate where wire_omp.sh installs smart-router.md. Use terra-scout to locate the global worktree policy that enforces dev-to-main delivery. Return compact path:line evidence from both agents. Do not edit or run tests."
+    "Delegate two read-only tasks in one batch to smart-router. Task A: treat the first MiniMax lookup as unresolved, escalate exactly once to luna-scout, locate where wire_omp.sh installs luna-scout.md, and include route=luna-scout. Task B: treat this as cross-module lifecycle reasoning, escalate exactly once to terra-scout, locate the global dev-to-main worktree policy, and include route=terra-scout. Return compact path:line evidence. Do not edit or run tests."
 )"
 
 printf '%s\n' "$output" | grep -q 'lib/wire_omp.sh'
 printf '%s\n' "$output" | grep -Eq 'install_worktree_lifecycle.sh|agent-worktree-lifecycle|CLAUDE.md'
-printf '%s\n' "$output" | grep -q 'smart-router'
+printf '%s\n' "$output" | grep -q 'route=luna-scout'
+printf '%s\n' "$output" | grep -q 'route=terra-scout'
 
 echo "OMP live agent discovery: ok"

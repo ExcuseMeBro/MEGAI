@@ -408,6 +408,7 @@ cmd_pi()     { launch_agent pi    pi     "$@"; }
 cmd_omp() {
   local profile="${OMP_PROFILE:-${PI_PROFILE:-}}" expect_profile=0 expect_config=0 arg
   local performance_config="$MEGAI_HOME/omp-config/high-speed.yml"
+  local balanced_config="$MEGAI_HOME/omp-config/balanced-minimax.yml"
   for arg in "$@"; do
     if [ "$expect_profile" = "1" ]; then
       profile="$arg"
@@ -416,6 +417,7 @@ cmd_omp() {
     fi
     if [ "$expect_config" = "1" ]; then
       [ "$arg" != "$performance_config" ] || performance_config=""
+      [ "$arg" != "$balanced_config" ] || balanced_config=""
       expect_config=0
       continue
     fi
@@ -423,17 +425,43 @@ cmd_omp() {
       --profile|--alias) expect_profile=1 ;;
       --profile=*|--alias=*) profile="${arg#*=}" ;;
       --config) expect_config=1 ;;
-      --config=*) [ "${arg#*=}" != "$performance_config" ] || performance_config="" ;;
+      --config=*)
+        [ "${arg#*=}" != "$performance_config" ] || performance_config=""
+        [ "${arg#*=}" != "$balanced_config" ] || balanced_config=""
+        ;;
     esac
   done
+
+  if [ -n "$balanced_config" ] && [ -f "$balanced_config" ] && command -v jq >/dev/null 2>&1; then
+    if [ -n "$profile" ]; then
+      OMP_PROFILE="$profile" omp models minimax-code --json 2>/dev/null |
+        jq -e '(if type == "array" then . else .models end) | any(.id == "MiniMax-M3")' >/dev/null ||
+        balanced_config=""
+    else
+      omp models minimax-code --json 2>/dev/null |
+        jq -e '(if type == "array" then . else .models end) | any(.id == "MiniMax-M3")' >/dev/null ||
+        balanced_config=""
+    fi
+  else
+    balanced_config=""
+  fi
+
   if [ -n "$profile" ]; then
-    if [ -n "$performance_config" ] && [ -f "$performance_config" ]; then
+    if [ -n "$performance_config" ] && [ -f "$performance_config" ] && [ -n "$balanced_config" ]; then
+      OMP_PROFILE="$profile" launch_agent omp omp --config "$performance_config" --config "$balanced_config" "$@"
+    elif [ -n "$performance_config" ] && [ -f "$performance_config" ]; then
       OMP_PROFILE="$profile" launch_agent omp omp --config "$performance_config" "$@"
+    elif [ -n "$balanced_config" ]; then
+      OMP_PROFILE="$profile" launch_agent omp omp --config "$balanced_config" "$@"
     else
       OMP_PROFILE="$profile" launch_agent omp omp "$@"
     fi
+  elif [ -n "$performance_config" ] && [ -f "$performance_config" ] && [ -n "$balanced_config" ]; then
+    launch_agent omp omp --config "$performance_config" --config "$balanced_config" "$@"
   elif [ -n "$performance_config" ] && [ -f "$performance_config" ]; then
     launch_agent omp omp --config "$performance_config" "$@"
+  elif [ -n "$balanced_config" ]; then
+    launch_agent omp omp --config "$balanced_config" "$@"
   else
     launch_agent omp omp "$@"
   fi
