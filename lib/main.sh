@@ -50,8 +50,9 @@ bash "$LIB/install_rtk.sh"
 step 7 $TOTAL "Installing graphify (knowledge-graph skill)"
 bash "$LIB/install_graphify.sh"
 
-step 8 $TOTAL "Installing task-flow (.todos board + ADLC skill)"
+step 8 $TOTAL "Installing task-flow + safe agent worktree lifecycle"
 bash "$LIB/install_taskflow.sh" || warn "task-flow install skipped"
+bash "$LIB/install_worktree_lifecycle.sh" || warn "worktree lifecycle install skipped"
 
 step 9 $TOTAL "Installing ui-craft (design-system skill + MCP gates)"
 bash "$LIB/install_ui_craft.sh" || warn "ui-craft install skipped"

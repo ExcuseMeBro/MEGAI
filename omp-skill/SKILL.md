@@ -13,6 +13,7 @@ MEGAI wires agent-memory and codedb as native OMP MCP servers. Use their discove
 - Search code, locate symbols, inspect outlines, or analyze dependencies with codedb.
 - Use `megai-task-flow` when non-trivial work must stay synchronized with Asana and `.todos/`.
 - Run specialist CLIs only when the task needs their domain.
+- Use `agent-worktree-lifecycle` to fan independent implementation slices out concurrently in registered isolated worktrees from `dev`, integrate verified task branches into `dev`, publish `dev`, open/reuse the `dev` → `main` PR/MR, and clean merged worktrees safely.
 
 ## Core tools
 
@@ -23,6 +24,10 @@ Use the connected agent-memory MCP tools for saving observations, recalling prio
 ### codedb
 
 Use the connected codedb MCP tools for project trees, full-text search, symbol lookup, outlines, dependency analysis, bundles, and snapshots. `megai omp` prepares the current project before launching OMP; run `megai reindex` when the index must be rebuilt.
+
+### smart-router
+
+Use the single `smart-router` task agent for non-trivial file location, cross-file search, caller/reference tracing, and read-heavy repository exploration. It handles focused discovery on Luna and owns the decision to escalate once to its internal read-only Terra worker. The parent must not duplicate returned reads; it keeps edits, integration, and final verification.
 
 ## Specialist CLIs
 
@@ -37,3 +42,5 @@ Check each CLI's help or status command before use. Do not keep specialist MCP s
 ## Paseo agent tabs
 
 When OMP runs inside Paseo, a request for another agent, subagent, reviewer, parallel worker, or new tab means another session in the current workspace. Use `create_agent` in the caller's workspace; do not create a workspace first. `create_workspace` is reserved for an explicit request for a new workspace, worktree, isolated branch, or PR checkout.
+
+At start, use `megai dev` for a clean primary checkout. For two or more independent implementation slices, use one task batch with `isolated: true` on every writing item; one writer owns each non-overlapping file set, while the parent is the sole integration owner. Branch every isolated task from the same `dev` baseline and keep OMP isolation in branch-merge mode. At ship, require clean committed task branches, preview if needed, then run `megai finish --verified --target dev`; complete Asana and `.todos` only after `dev` is pushed, the `dev` → `main` PR/MR exists, and registered-worktree cleanup succeeds. Then call Paseo `archive_workspace` for each successfully merged worker workspace. Never archive the primary `dev` workspace or dirty/unmerged/failed work. Human review or protected CI merges the PR/MR; never auto-merge `main`.

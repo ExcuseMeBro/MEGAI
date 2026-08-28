@@ -33,7 +33,12 @@ SH
 chmod +x "$TMP/bin/"*
 JQ_DIR="$(dirname "$(command -v jq)")"
 export PATH="$TMP/bin:$JQ_DIR:/usr/bin:/bin"
-git -C "$TMP/repo" init -q
+git -C "$TMP/repo" init -q -b main
+git -C "$TMP/repo" config user.name "MEGAI Test"
+git -C "$TMP/repo" config user.email "megai@example.test"
+printf 'base\n' >"$TMP/repo/README"
+git -C "$TMP/repo" add README
+git -C "$TMP/repo" commit -qm "base"
 
 wait_for_failed_run() {
   local pidf pid i=0

@@ -10,6 +10,7 @@ MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 PI_AGENT="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
 PI_MCP_CONFIG="$PI_AGENT/mcp.json"
 TASK_FLOW_SKILL="$MEGAI_HOME/task-flow/skills/megai-task-flow/SKILL.md"
+WORKTREE_SKILL="$MEGAI_HOME/skills/agent-worktree-lifecycle/SKILL.md"
 MODE="${1:-install}"
 
 wire_megai_mcp() {
@@ -85,7 +86,7 @@ configure_default_model() {
 if [ "$MODE" = "--remove" ]; then
   wire_megai_mcp
   rm -f "$PI_AGENT/skills/megai.md"
-  rm -rf "$PI_AGENT/skills/megai-task-flow"
+  rm -rf "$PI_AGENT/skills/megai-task-flow" "$PI_AGENT/skills/agent-worktree-lifecycle"
   rm -f "$PI_AGENT/extensions/megai-memory.sh" "$PI_AGENT/extensions/megai-codedb.sh"
   ok "pi: megai skills + extensions + MCP tools removed"
   exit 0
@@ -101,6 +102,12 @@ if [ -f "$TASK_FLOW_SKILL" ]; then
   cp "$TASK_FLOW_SKILL" "$PI_AGENT/skills/megai-task-flow/SKILL.md"
 else
   warn "pi: MEGAI task-flow skill missing — skipped"
+fi
+if [ -f "$WORKTREE_SKILL" ]; then
+  mkdir -p "$PI_AGENT/skills/agent-worktree-lifecycle"
+  cp "$WORKTREE_SKILL" "$PI_AGENT/skills/agent-worktree-lifecycle/SKILL.md"
+else
+  warn "pi: worktree lifecycle skill missing — skipped"
 fi
 
 # Extensions: symlink (so updates propagate)

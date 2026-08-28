@@ -138,8 +138,8 @@ function print(dir, created) {
       if (pending.length > 8) lines.push(`  … (+${pending.length - 8} more)`);
     }
     lines.push(
-      `ACTION: re-read .todos/, resume the in-progress task, then drain the queue ` +
-      `by priority through the full ADLC. Invoke the task-flow skill to continue.`,
+      `ACTION: re-read .todos/, resume the in-progress tracked task, then drain the queue ` +
+      `by priority with risk-scaled ADLC coverage. Invoke the task-flow skill to continue.`,
     );
   }
 
