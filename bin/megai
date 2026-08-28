@@ -442,6 +442,37 @@ cmd_omp() {
         jq -e '(if type == "array" then . else .models end) | any(.id == "MiniMax-M3")' >/dev/null ||
         balanced_config=""
     fi
+    if [ -n "$balanced_config" ]; then
+      if [ -n "$profile" ]; then
+        OMP_PROFILE="$profile" omp models openai-codex --json 2>/dev/null |
+          jq -e '
+            (if type == "array" then . else .models end) | map(.id) as $ids
+            | ([
+                "gpt-5.3-codex-spark",
+                "gpt-5.4-mini",
+                "gpt-5.4",
+                "gpt-5.5",
+                "gpt-5.6-luna",
+                "gpt-5.6-terra",
+                "gpt-5.6-sol"
+              ] - $ids | length == 0)
+          ' >/dev/null || balanced_config=""
+      else
+        omp models openai-codex --json 2>/dev/null |
+          jq -e '
+            (if type == "array" then . else .models end) | map(.id) as $ids
+            | ([
+                "gpt-5.3-codex-spark",
+                "gpt-5.4-mini",
+                "gpt-5.4",
+                "gpt-5.5",
+                "gpt-5.6-luna",
+                "gpt-5.6-terra",
+                "gpt-5.6-sol"
+              ] - $ids | length == 0)
+          ' >/dev/null || balanced_config=""
+      fi
+    fi
   else
     balanced_config=""
   fi
