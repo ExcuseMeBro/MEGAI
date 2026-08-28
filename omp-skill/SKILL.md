@@ -27,11 +27,11 @@ Use the connected codedb MCP tools for project trees, full-text search, symbol l
 
 ### smart-router
 
-Use the single `smart-router` task agent for non-trivial file location, cross-file search, caller/reference tracing, and read-heavy repository exploration. It handles focused discovery on Luna and owns the decision to escalate once to its internal read-only Terra worker. The parent must not duplicate returned reads; it keeps edits, integration, and final verification.
+Use the single `smart-router` task agent for non-trivial file location, cross-file search, caller/reference tracing, and read-heavy repository exploration. It handles routine discovery on MiniMax Code M3, escalates an empty/conflicting lookup to its trusted Luna scout, and delegates architecture/data-flow/impact reasoning to Terra. The parent must not duplicate returned reads; it keeps integration and final verification.
 
 ### minimax-worker
 
-Use the managed `minimax-worker` only for bounded implementation after the trusted parent explicitly classifies the exact payload as public/synthetic or covered by an operator-approved MiniMax privacy attestation. OMP already ships the native MiniMax catalog and provider-specific transport/streaming compatibility; MEGAI does not duplicate it. The provider remains unavailable until `MINIMAX_API_KEY` is scoped to the approved worker process. Keep Sol as final orchestrator, Terra as planner/reviewer, and Luna as scout. Never fall back from a trusted GPT role to MiniMax automatically.
+Use the managed `minimax-worker` for bounded routine implementation after the trusted parent classifies the task. OMP already ships the native `minimax-code` catalog and provider-specific transport/streaming compatibility; MEGAI does not duplicate it. The provider remains unavailable until a rotated `MINIMAX_CODE_API_KEY` is configured outside source. Target roughly 60% MiniMax for exploration/implementation/tests and 40% GPT for planning, architecture, hard debugging, critical review, sensitive domains, and final acceptance. Never weaken HIGH/CRITICAL GPT gates to meet the ratio.
 
 ## Specialist CLIs
 
