@@ -29,6 +29,10 @@ Use the connected codedb MCP tools for project trees, full-text search, symbol l
 
 Use the single `smart-router` task agent for non-trivial file location, cross-file search, caller/reference tracing, and read-heavy repository exploration. It handles focused discovery on Luna and owns the decision to escalate once to its internal read-only Terra worker. The parent must not duplicate returned reads; it keeps edits, integration, and final verification.
 
+### minimax-worker
+
+Use the managed `minimax-worker` only for bounded implementation after the trusted parent explicitly classifies the exact payload as public/synthetic or covered by an operator-approved MiniMax privacy attestation. OMP already ships the native MiniMax catalog and provider-specific transport/streaming compatibility; MEGAI does not duplicate it. The provider remains unavailable until `MINIMAX_API_KEY` is scoped to the approved worker process. Keep Sol as final orchestrator, Terra as planner/reviewer, and Luna as scout. Never fall back from a trusted GPT role to MiniMax automatically.
+
 ## Specialist CLIs
 
 - `dembrandt` — website design extraction.

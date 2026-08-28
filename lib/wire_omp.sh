@@ -139,6 +139,7 @@ remove_managed_copy() {
 remove_smart_agents() {
   remove_managed_copy "$OMP_AGENTS_SOURCE/smart-router.md" "$OMP_AGENT/agents/smart-router.md"
   remove_managed_copy "$OMP_AGENTS_SOURCE/terra-scout.md" "$OMP_AGENT/agents/terra-scout.md"
+  remove_managed_copy "$OMP_AGENTS_SOURCE/minimax-worker.md" "$OMP_AGENT/agents/minimax-worker.md"
 }
 MODE="${1:-install}"
 
@@ -251,6 +252,11 @@ if [ -f "$OMP_AGENTS_SOURCE/smart-router.md" ] && [ -f "$OMP_AGENTS_SOURCE/terra
   install_managed_copy "$OMP_AGENTS_SOURCE/terra-scout.md" "$OMP_AGENT/agents/terra-scout.md"
 else
   warn "OMP: smart routing agents missing — skipped"
+fi
+if [ -f "$OMP_AGENTS_SOURCE/minimax-worker.md" ]; then
+  install_managed_copy "$OMP_AGENTS_SOURCE/minimax-worker.md" "$OMP_AGENT/agents/minimax-worker.md"
+else
+  warn "OMP: MiniMax worker agent missing — skipped"
 fi
 
 ok "OMP: native MCP servers, skills, smart routing agents, and placement rules wired -> $OMP_AGENT"

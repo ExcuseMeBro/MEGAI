@@ -2,7 +2,7 @@
 name: smart-router
 description: Single entry point for fast code search and file reading. Uses Luna for focused discovery and escalates only genuinely complex exploration to Terra.
 managed-by: megai
-model: "@luna"
+model: openai-codex/gpt-5.6-luna
 thinking: low
 blocking: true
 tools: read, grep, glob, lsp, task, hub

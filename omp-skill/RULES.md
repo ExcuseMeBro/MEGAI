@@ -7,6 +7,12 @@
 - `smart-router` uses Luna for focused lookup and may escalate exactly once to its read-only Terra worker for cross-module, ambiguous, architectural, data-flow, or impact questions.
 - Direct parent reads are for an already-known exact edit or verification range. Do not duplicate ranges returned by the router.
 
+## Worker model routing
+
+- GPT models run through OMP: Sol owns orchestration and final integration, Terra owns detailed planning/review, and Luna owns search/read discovery.
+- A trusted parent classifies the exact payload before creating a MiniMax-enabled process and scopes `MINIMAX_API_KEY` to that worker only. Use `minimax-worker` only for a bounded public/synthetic or privacy-attested writing slice. Never send secrets, personal data, private code, auth/security, schemas, migrations, or production configuration.
+- Never configure the same Chinese provider in Pi and OMP. OMP is the single model gateway; Pi remains an emergency/local lightweight fallback.
+
 ## Paseo agent placement
 
 - New agent or tab means the current Paseo workspace. Create another agent session so it appears as a sibling tab.
