@@ -89,6 +89,13 @@ Treat 60% MiniMax / 40% GPT as a non-binding observed-token target, not a routin
 
 Do not run a separate model/tool round trip for every ADLC label. Do not run the full suite in each worker. One failed MiniMax diagnosis escalates to Terra; repeated failure routes implementation to GPT.
 
+## Execution budgets
+
+- LOW/MEDIUM workers get one discovery wave, one edit wave, one focused verification wave, and at most 12 model requests by policy.
+- OMP enforces a 30-request soft budget and a 10-minute hard runtime for every subagent; workers that hit either boundary stop and return recovery evidence.
+- One failed diagnosis may escalate once. Never restart broad discovery or create replacement workers repeatedly.
+- Goal auto-continuation is disabled, repeated identical tool calls are corrected after three occurrences, and the integrated full suite runs once on `dev`.
+
 ## Fanout
 
 1. Resolve the target Git repository and observable acceptance conditions.

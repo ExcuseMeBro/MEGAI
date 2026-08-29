@@ -14,6 +14,12 @@ grep -q 'codeMode: auto' "$performance"
 grep -q 'maxConcurrency: 6' "$performance"
 grep -q 'minimax-code: 4' "$performance"
 grep -q 'showResolvedModelBadge: true' "$performance"
+grep -q 'maxJobs: 12' "$performance"
+grep -q 'maxEffort: high' "$performance"
+grep -q 'softRequestBudget: 30' "$performance"
+grep -q 'maxRuntimeMs: 600000' "$performance"
+grep -q 'enabled: false' "$performance"
+grep -q 'threshold: 3' "$performance"
 for model in \
   minimax-code/MiniMax-M2 \
   minimax-code/MiniMax-M2.1 \
@@ -98,6 +104,12 @@ PI_CONFIG_FILES="$performance:$balanced" MINIMAX_CODE_API_KEY=test-only omp conf
     and .["task.maxConcurrency"].value == 6
     and .["task.batch"].value == true
     and .["task.showResolvedModelBadge"].value == true
+    and .["async.maxJobs"].value == 12
+    and .["task.maxEffort"].value == "high"
+    and .["task.softRequestBudget"].value == 30
+    and .["task.maxRuntimeMs"].value == 600000
+    and .["goal.enabled"].value == false
+    and .["model.toolCallLoopGuard.threshold"].value == 3
     and .["task.agentModelOverrides"].value.task == "minimax-code/MiniMax-M3:medium"
     and .["task.agentModelOverrides"].value.scout == "minimax-code/MiniMax-M2.1-lightning:low"
     and .["task.agentModelOverrides"].value["cavecrew-investigator"] == "minimax-code/MiniMax-M2.1-lightning:low"
