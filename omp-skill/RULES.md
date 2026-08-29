@@ -16,9 +16,11 @@
 
 ## Paseo agent placement
 
-- New agent or tab means the current Paseo workspace. Create another agent session so it appears as a sibling tab.
-- In an agent-scoped Paseo session, call `create_agent` without `workspaceId`; Paseo inherits the caller's workspace.
-- In a top-level context, require exactly one workspace whose `cwd` equals the current `cwd`, then pass that `workspaceId` explicitly to `create_agent`.
-- Never call `create_workspace` unless the user explicitly requests a new workspace, worktree, isolated branch, or PR checkout.
-- For zero or multiple matches, ask once and do not call `create_agent` or `create_workspace` until placement is resolved.
+- The orchestrator stays in the primary `dev` workspace.
+- In an agent-scoped Paseo session, read-only discovery, planning, and review workers use `create_agent` without `workspaceId`, so they appear as tabs in the orchestrator workspace.
+- In a top-level context, require exactly one workspace whose `cwd` equals the current `cwd`, then pass its ID to `create_agent` for read-only workers; ask once on zero or multiple matches.
+- Every worker with write authority MUST first use `create_workspace` with `isolation: "worktree"`, `mode: "branch-off"`, `baseBranch: "dev"`, and a unique `task/<slug>` branch, then use `create_agent` with the returned `workspaceId`.
+- Never create concurrent writers in the parent workspace and never use bare `create_agent` for a writer. Shared-file/schema/migration boundaries are serialized through one writer.
+- Cross-workspace workers remain attached to the parent Subagents track. After verified merge, dev push, PR/MR creation, and worktree cleanup, call `archive_workspace` for that worker workspace. Never archive primary `dev`, dirty, failed, conflicted, or unmerged work.
+- Outside Paseo, OMP native task isolation may provide ephemeral worktree/branch isolation; inside Paseo, visible writer workspaces take precedence.
 <!-- megai:paseo-placement:end -->

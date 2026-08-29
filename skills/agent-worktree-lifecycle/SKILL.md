@@ -13,10 +13,11 @@ Use `dev` as the default development and integration branch; `main` changes only
 When a request has two or more independent implementation slices:
 
 1. The parent is the sole integration owner and defines shared interfaces before spawning.
-2. Fan all independent slices out in one batch so they run concurrently.
-3. Give every writing agent exactly one isolated registered worktree and task branch from the same `dev` baseline. In OMP, use batch task items with `isolated: true`; keep `task.isolation.merge: branch`.
-4. Assign one writer per file set. If slices touch the same file, schema, migration, or ordered dependency, serialize that boundary instead of racing.
-5. Each worker commits only its slice and reports focused verification evidence. The integration owner merges successful branches into `dev`, resolves no ambiguous overlap, and verifies the integrated tree once.
+2. Inside Paseo, create one managed worktree workspace per writer from the same `dev` baseline, then launch each agent with the returned workspace ID. Start those agents concurrently.
+3. Keep read-only discovery/review agents as tabs in the parent workspace. Never launch a writer there.
+4. Outside Paseo, native OMP batch items with `isolated: true` and `task.isolation.merge: branch` may provide equivalent ephemeral isolation.
+5. Assign one writer per file set. If slices touch the same file, schema, migration, or ordered dependency, serialize that boundary instead of racing.
+6. Each worker commits only its slice and reports focused verification evidence. The integration owner merges successful branches into `dev`, resolves no ambiguous overlap, and verifies the integrated tree once.
 
 A single indivisible task runs in one worktree; parallelism is required only when genuine independent slices exist.
 

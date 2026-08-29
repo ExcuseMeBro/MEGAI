@@ -45,6 +45,12 @@ Check each CLI's help or status command before use. Do not keep specialist MCP s
 
 ## Paseo agent tabs
 
-When OMP runs inside Paseo, a request for another agent, subagent, reviewer, parallel worker, or new tab means another session in the current workspace. Use `create_agent` in the caller's workspace; do not create a workspace first. `create_workspace` is reserved for an explicit request for a new workspace, worktree, isolated branch, or PR checkout.
+When OMP runs inside Paseo, placement depends on write authority:
 
-At start, use `megai dev` for a clean primary checkout. For two or more independent implementation slices, use one task batch with `isolated: true` on every writing item; one writer owns each non-overlapping file set, while the parent is the sole integration owner. Branch every isolated task from the same `dev` baseline and keep OMP isolation in branch-merge mode. At ship, require clean committed task branches, preview if needed, then run `megai finish --verified --target dev`; complete Asana and `.todos` only after `dev` is pushed, the `dev` → `main` PR/MR exists, and registered-worktree cleanup succeeds. Then call Paseo `archive_workspace` for each successfully merged worker workspace. Never archive the primary `dev` workspace or dirty/unmerged/failed work. Human review or protected CI merges the PR/MR; never auto-merge `main`.
+- In an agent-scoped Paseo session, read-only discovery, planning, and review workers are tabs in the caller's workspace; call `create_agent` without `workspaceId`.
+- In a top-level context, require exactly one workspace whose `cwd` equals the current `cwd`, then pass that workspace ID to `create_agent` for read-only workers. Ask once on zero or multiple matches.
+- Every writing worker MUST receive a visible Paseo-managed worktree workspace. Call `create_workspace` with `isolation: "worktree"`, `mode: "branch-off"`, `baseBranch: "dev"`, and a unique `task/<slug>` branch; then call `create_agent` with that returned `workspaceId`.
+- Never launch concurrent writers in the parent workspace. Cross-workspace workers remain attached to the orchestrator's Subagents track and are not detached automatically.
+- OMP native `task` isolation is reserved for execution outside Paseo. When Paseo is available, every writer uses a visible Paseo-managed worktree workspace.
+
+At start, use `megai dev` for a clean primary checkout. The parent is the sole integration owner and assigns non-overlapping files. At ship, require clean committed task branches, preview if needed, then run `megai finish --verified --target dev`; complete Asana and `.todos` only after `dev` is pushed, the `dev` → `main` PR/MR exists, and registered-worktree cleanup succeeds. Then call Paseo `archive_workspace` for each successfully merged worker workspace. Never archive the primary `dev` workspace or dirty/unmerged/failed work. Human review or protected CI merges the PR/MR; never auto-merge `main`.

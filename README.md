@@ -229,6 +229,8 @@ Token-heavy operations are enforced through agent overrides: `smart-router` and 
 
 Model settings apply to new sessions and new task resolutions. Existing OMP/Paseo tabs keep their launch model. `task.showResolvedModelBadge: true` exposes the actual worker model; if a token-heavy task shows GPT unexpectedly, relaunch the session instead of continuing.
 
+Paseo-visible workspaces require Paseo orchestration tools: native OMP `task` isolation creates internal worktrees but not Paseo workspace rows. Inside Paseo, each writer is launched with `create_workspace(isolation: "worktree", mode: "branch-off", baseBranch: "dev", branchName: "task/<slug>")`, then `create_agent(workspaceId: ...)`. Read-only workers stay as tabs in the orchestrator workspace. Native OMP isolation is used only outside Paseo.
+
 ---
 
 ## ⌨️ CLI reference
