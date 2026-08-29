@@ -29,7 +29,7 @@ OMP_RULES="$OMP_AGENT/RULES.md"
 OMP_RULES_SOURCE="$MEGAI_HOME/omp-skill/RULES.md"
 OMP_AGENTS_SOURCE="$MEGAI_HOME/omp-agents"
 ROUTER_AGENT_NAMES="smart-router luna-scout terra-scout"
-PORTFOLIO_AGENT_NAMES="minimax-worker minimax-fast-worker minimax-quality-worker minimax-test-worker minimax-ops-worker minimax-migration-worker minimax-stable-worker minimax-legacy-worker sol-gate gpt-debugger gpt-long-context gpt-fast-reviewer gpt-trusted-fast"
+PORTFOLIO_AGENT_NAMES="minimax-worker minimax-fast-worker minimax-quality-worker minimax-test-worker minimax-ops-worker minimax-migration-worker minimax-stable-worker minimax-legacy-worker minimax-commit-writer sol-gate gpt-debugger gpt-long-context gpt-fast-reviewer gpt-trusted-fast"
 RULES_BEGIN="<!-- megai:paseo-placement:begin -->"
 RULES_END="<!-- megai:paseo-placement:end -->"
 validate_placement_rules() {

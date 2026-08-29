@@ -3,15 +3,16 @@
 
 ## Smart code discovery
 
-- Route non-trivial file location, cross-file search, caller/reference tracing, and read-heavy exploration through the `smart-router` task agent. The parent keeps implementation and final verification.
-- `smart-router` uses MiniMax Code M3 for routine lookup, Luna when MiniMax evidence is empty/conflicting or needs a trusted path, and Terra for cross-module architecture/data-flow/impact reasoning.
-- Direct parent reads are for an already-known exact edit or verification range. Do not duplicate ranges returned by the router.
+- MUST delegate non-trivial file location, cross-file search, caller/reference tracing, and read-heavy exploration to `smart-router`. The GPT parent may read only an already-known exact edit or verification range and must not repeat router evidence.
+- `smart-router` uses MiniMax Code M2.1 Lightning for routine lookup, Luna when MiniMax evidence is empty/conflicting or needs a trusted path, and Terra for cross-module architecture/data-flow/impact reasoning.
+- New model settings and managed agents apply to new sessions/task resolutions. If the resolved-model badge shows the wrong model, stop and relaunch instead of continuing token-heavy work on GPT.
 
 ## Worker model routing
 
-- OMP is the single model gateway. MiniMax Code M3 owns routine exploration, implementation, CRUD/API, tests, Docker, ordinary migrations, and routine refactors.
-- GPT-5.6 owns planning, architecture, hard debugging, critical review, payment/auth/security, production configuration, complex refactors, and final integration. HIGH/CRITICAL GPT gates are mandatory regardless of the target ratio.
-- Target roughly 60% MiniMax and 40% GPT by inference tokens. Do not use free OpenCode models and do not duplicate MiniMax in Pi. A disclosed `sk-cp` key must be rotated, then configured as `minimax-code` through OMP auth or `MINIMAX_CODE_API_KEY` outside source.
+- OMP is the single model gateway. MiniMax agents own routine exploration, implementation, CRUD/API, focused tests, Docker, ordinary migrations, routine refactors, and commit/changelog message generation.
+- GPT agents own planning, architecture, hard debugging, critical review, payment/auth/security, production configuration, complex refactors, and final integration. HIGH/CRITICAL GPT gates are mandatory regardless of the advisory ratio.
+- Before `git commit`, delegate the staged diff summary and repository convention to `minimax-commit-writer`; the parent applies the returned message. Merge and push are deterministic MEGAI operations and should not consume additional model turns.
+- Target roughly 60% MiniMax and 40% GPT as an observed-token guideline. Do not use free OpenCode models and do not duplicate MiniMax in Pi. A disclosed `sk-cp` key must be rotated, then configured as `minimax-code` through OMP auth or `MINIMAX_CODE_API_KEY` outside source.
 
 ## Paseo agent placement
 

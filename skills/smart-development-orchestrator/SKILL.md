@@ -18,7 +18,7 @@ One parent owns decomposition, routing, contracts, integration, and final accept
 
 ## Discovery routing
 
-- Exact file, symbol, reference, caller, test, config, and routine repository exploration: OMP MiniMax Code M3 at low effort.
+- Exact file, symbol, reference, caller, test, config, and routine repository exploration: `smart-router` on MiniMax Code M2.1 Lightning at low effort.
 - If the first focused MiniMax lookup is empty, conflicting, or requires a trusted reading path, use one GPT-5.6 Luna scout.
 - Cross-module architecture, data flow, impact, or hard-debugging exploration: GPT-5.6 Terra or Sol.
 - Use LSP/symbol/index search before broad reads. Batch independent lookups, return compact `path:line` evidence, and never repeat resolved ranges.
@@ -31,6 +31,14 @@ Use `minimax-code/MiniMax-M3` for routine exploration, implementation, CRUD/API 
 
 Use GPT-5.6 through OMP for planning, architecture, hard debugging, critical review, payment/auth/security, destructive or production configuration, complex refactors, and final integrated acceptance. A trusted parent classifies the task before dispatch. Before sending private code to MiniMax, require operator approval covering MiniMax terms, logging/retention, key storage, data residency, model quality, and fallback behavior.
 
+## Routing enforcement
+
+- The GPT parent MUST delegate non-trivial search/read work to `smart-router`; direct parent reads are limited to exact edit and verification ranges.
+- `task.agentModelOverrides` pins generic task, scout, sonic, cavecrew, reviewer, security, librarian, designer, and every managed portfolio agent to the intended MiniMax/GPT model and effort.
+- Keep `task.showResolvedModelBadge: true`; if a token-heavy worker resolves to the wrong model, stop and relaunch a new session rather than continuing.
+- Before committing, use `minimax-commit-writer` on the staged diff summary; the parent runs the deterministic Git command with the returned message.
+- Merge, push, PR creation, and workspace archival use MEGAI/Paseo tools and require no extra planning turns.
+
 ## Model portfolio
 
 Choose the narrowest capable model. Paseo workers use the explicit `omp/<selector>` model, while MEGAI-managed OMP agents provide stable operational bindings for every portfolio tier.
@@ -39,7 +47,7 @@ Choose the narrowest capable model. Paseo workers use the explicit `omp/<selecto
 | --- | --- | --- |
 | `minimax-code/MiniMax-M3:medium` | default/task | General routine work and 1M-context implementation |
 | `minimax-code/MiniMax-M3:low` | smol | Lightweight routine work |
-| `minimax-code/MiniMax-M3:minimal` | tiny / commit | Metadata and commit generation |
+| `minimax-code/MiniMax-M3:minimal` | tiny / commit / minimax-commit-writer | Metadata, changelog, and commit generation |
 | `minimax-code/MiniMax-M2.1-lightning:low` | repo | Long-context repository exploration |
 | `minimax-code/MiniMax-M2.7-highspeed:medium` | worker-fast | Fast CRUD/API and bounded implementation |
 | `minimax-code/MiniMax-M2.7:high` | worker-quality | Higher-quality routine refactors |
@@ -74,7 +82,7 @@ Treat 60% MiniMax / 40% GPT as a non-binding observed-token target, not a routin
 - **Spec + risk:** MiniMax handles LOW/MEDIUM; Sol handles HIGH/CRITICAL and protected boundaries.
 - **Discovery:** MiniMax returns compact evidence in at most two focused tool waves; Luna is the trusted fallback.
 - **Plan:** MiniMax produces routine contracts; Terra/Sol produces architecture and critical contracts.
-- **Generate:** up to four `minimax-worker` agents implement independent bounded slices in parallel worktrees; each runs focused tests and commits.
+- **Generate:** select the matching MiniMax portfolio worker for each independent bounded slice; each worktree runs focused tests and commits.
 - **Verify + review:** workers verify locally; Terra reviews sampled MEDIUM and every HIGH diff; the Sol-backed `sol-gate` owns CRITICAL and final integrated acceptance.
 - **Ship:** integrate verified commits into `dev`, run the integrated suite once, push `dev`, open/reuse the `dev` → `main` PR/MR, then archive only successfully merged worker workspaces.
 
