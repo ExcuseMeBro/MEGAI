@@ -440,11 +440,11 @@ cmd_omp() {
   if [ -n "$balanced_config" ] && [ -f "$balanced_config" ] && command -v jq >/dev/null 2>&1; then
     if [ -n "$profile" ]; then
       OMP_PROFILE="$profile" omp models minimax-code --json 2>/dev/null |
-        jq -e '(if type == "array" then . else .models end) | any(.id == "MiniMax-M3")' >/dev/null ||
+        jq -e '(if type == "array" then . else .models end) | any(.id == "MiniMax-M2.1-lightning")' >/dev/null ||
         balanced_config=""
     else
       omp models minimax-code --json 2>/dev/null |
-        jq -e '(if type == "array" then . else .models end) | any(.id == "MiniMax-M3")' >/dev/null ||
+        jq -e '(if type == "array" then . else .models end) | any(.id == "MiniMax-M2.1-lightning")' >/dev/null ||
         balanced_config=""
     fi
     if [ -n "$balanced_config" ]; then

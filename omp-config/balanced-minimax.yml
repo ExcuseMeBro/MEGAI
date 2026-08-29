@@ -1,20 +1,20 @@
 modelRoles:
-  # Core MiniMax workload
-  default: minimax-code/MiniMax-M3:medium
-  task: minimax-code/MiniMax-M3:medium
-  smol: minimax-code/MiniMax-M3:low
-  tiny: minimax-code/MiniMax-M3:minimal
-  commit: minimax-code/MiniMax-M3:minimal
+  # GPT owns every write path; MiniMax is read-only discovery only.
+  default: openai-codex/gpt-5.6-terra:medium
+  task: openai-codex/gpt-5.6-terra:medium
+  smol: openai-codex/gpt-5.4-mini:medium
+  tiny: openai-codex/gpt-5.3-codex-spark:low
+  commit: openai-codex/gpt-5.3-codex-spark:low
   repo: minimax-code/MiniMax-M2.1-lightning:low
-  worker-fast: minimax-code/MiniMax-M2.7-highspeed:medium
-  worker-quality: minimax-code/MiniMax-M2.7:high
-  tests: minimax-code/MiniMax-M2.5-highspeed:low
-  docker: minimax-code/MiniMax-M2.5-lightning:low
-  migration: minimax-code/MiniMax-M2.5:medium
-  worker-stable: minimax-code/MiniMax-M2.1:medium
-  worker-legacy: minimax-code/MiniMax-M2:low
+  worker-fast: openai-codex/gpt-5.4-mini:medium
+  worker-quality: openai-codex/gpt-5.6-terra:high
+  tests: openai-codex/gpt-5.4-mini:medium
+  docker: openai-codex/gpt-5.3-codex-spark:low
+  migration: openai-codex/gpt-5.5:high
+  worker-stable: openai-codex/gpt-5.4:high
+  worker-legacy: openai-codex/gpt-5.3-codex-spark:low
 
-  # GPT intelligence and trusted fallbacks
+  # Explicit GPT specialties
   plan: openai-codex/gpt-5.6-sol:high
   slow: openai-codex/gpt-5.6-sol:high
   advisor: openai-codex/gpt-5.6-sol:high
@@ -24,7 +24,7 @@ modelRoles:
   terra: openai-codex/gpt-5.6-terra:medium
   review: openai-codex/gpt-5.6-terra:high
   luna: openai-codex/gpt-5.6-luna:low
-  scout: openai-codex/gpt-5.6-luna:low
+  scout: minimax-code/MiniMax-M2.1-lightning:low
   debug: openai-codex/gpt-5.5:high
   long-context: openai-codex/gpt-5.4:high
   review-fast: openai-codex/gpt-5.4-mini:medium
@@ -39,21 +39,24 @@ advisor:
 task:
   agentAdvisor: {}
   agentModelOverrides:
-    task: minimax-code/MiniMax-M3:medium
-    sonic: minimax-code/MiniMax-M3:minimal
+    task: openai-codex/gpt-5.6-terra:medium
+    sonic: openai-codex/gpt-5.3-codex-spark:low
     scout: minimax-code/MiniMax-M2.1-lightning:low
     cavecrew-investigator: minimax-code/MiniMax-M2.1-lightning:low
-    cavecrew-builder: minimax-code/MiniMax-M2.7-highspeed:medium
+    cavecrew-builder: openai-codex/gpt-5.4-mini:medium
     smart-router: minimax-code/MiniMax-M2.1-lightning:low
-    minimax-worker: minimax-code/MiniMax-M3:medium
-    minimax-fast-worker: minimax-code/MiniMax-M2.7-highspeed:medium
-    minimax-quality-worker: minimax-code/MiniMax-M2.7:high
-    minimax-test-worker: minimax-code/MiniMax-M2.5-highspeed:low
-    minimax-ops-worker: minimax-code/MiniMax-M2.5-lightning:low
-    minimax-migration-worker: minimax-code/MiniMax-M2.5:medium
-    minimax-stable-worker: minimax-code/MiniMax-M2.1:medium
-    minimax-legacy-worker: minimax-code/MiniMax-M2:low
-    minimax-commit-writer: minimax-code/MiniMax-M3:minimal
+    gpt-core-worker: openai-codex/gpt-5.6-terra:medium
+    gpt-fast-worker: openai-codex/gpt-5.4-mini:medium
+    # Retired MiniMax writer names are forced to GPT if referenced by stale sessions.
+    minimax-worker: openai-codex/gpt-5.6-terra:medium
+    minimax-fast-worker: openai-codex/gpt-5.4-mini:medium
+    minimax-quality-worker: openai-codex/gpt-5.6-terra:high
+    minimax-test-worker: openai-codex/gpt-5.4-mini:medium
+    minimax-ops-worker: openai-codex/gpt-5.3-codex-spark:low
+    minimax-migration-worker: openai-codex/gpt-5.5:high
+    minimax-stable-worker: openai-codex/gpt-5.4:high
+    minimax-legacy-worker: openai-codex/gpt-5.3-codex-spark:low
+    minimax-commit-writer: openai-codex/gpt-5.3-codex-spark:low
     luna-scout: openai-codex/gpt-5.6-luna:low
     terra-scout: openai-codex/gpt-5.6-terra:medium
     reviewer: openai-codex/gpt-5.6-terra:high
@@ -69,21 +72,13 @@ task:
 
 retry:
   fallbackChains:
-    "minimax-code/MiniMax-M3":
-      - openai-codex/gpt-5.6-terra:medium
-    "minimax-code/MiniMax-M2.7-highspeed":
-      - openai-codex/gpt-5.4-mini:medium
-    "minimax-code/MiniMax-M2.7":
-      - openai-codex/gpt-5.6-terra:high
-    "minimax-code/MiniMax-M2.5-highspeed":
-      - openai-codex/gpt-5.3-codex-spark:low
-    "minimax-code/MiniMax-M2.5-lightning":
-      - openai-codex/gpt-5.3-codex-spark:low
-    "minimax-code/MiniMax-M2.5":
-      - openai-codex/gpt-5.5:high
     "minimax-code/MiniMax-M2.1-lightning":
       - openai-codex/gpt-5.6-luna:low
-    "minimax-code/MiniMax-M2.1":
-      - openai-codex/gpt-5.6-luna:low
-    "minimax-code/MiniMax-M2":
-      - openai-codex/gpt-5.3-codex-spark:low
+    "minimax-code/MiniMax-M3": []
+    "minimax-code/MiniMax-M2.7-highspeed": []
+    "minimax-code/MiniMax-M2.7": []
+    "minimax-code/MiniMax-M2.5-highspeed": []
+    "minimax-code/MiniMax-M2.5-lightning": []
+    "minimax-code/MiniMax-M2.5": []
+    "minimax-code/MiniMax-M2.1": []
+    "minimax-code/MiniMax-M2": []
