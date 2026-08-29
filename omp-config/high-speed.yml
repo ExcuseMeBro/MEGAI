@@ -11,6 +11,7 @@ async:
 task:
   batch: true
   maxConcurrency: 6
+  showResolvedModelBadge: true
   isolation:
     mode: auto
     merge: branch

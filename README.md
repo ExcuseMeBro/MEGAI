@@ -223,9 +223,11 @@ The portfolio uses every authenticated model where it is strongest:
 | GPT-5.4 Mini | Cheap trusted MEDIUM review |
 | GPT-5.3 Codex Spark | Very fast small trusted tasks |
 
-MiniMax fallbacks progress toward another MiniMax tier and then trusted GPT. A model-specific MiniMax failure tries its configured MiniMax siblings first; a provider-wide quota/cooldown skips unavailable same-provider candidates and advances to Terra/Sol. `retry.maxDelayMs: 300000` prevents waiting hours for a quota reset, while `cooldown-expiry` returns to the primary model after recovery.
+Every MiniMax fallback crosses directly to trusted GPT, so a provider-wide quota exits MiniMax after one failed selector rather than burning retries across sibling models. GPT chains progress toward Terra/Sol only; Sol has no reverse fallback. `retry.maxDelayMs: 300000` prevents waiting hours for quota reset, and `cooldown-expiry` returns to the primary after recovery.
 
-Routine work continues on MiniMax when the OpenAI quota is unavailable. GPT never automatically falls back to MiniMax for planning, architecture, review, debugging, or sensitive roles, and Sol has no reverse fallback: HIGH/CRITICAL work stops rather than weakening its final gate.
+Token-heavy operations are enforced through agent overrides: `smart-router` and generic scouts use MiniMax M2.1 Lightning; routine/task workers use MiniMax M3/M2.7; focused tests and operations use M2.5 tiers; commit/changelog text uses `minimax-commit-writer` at M3 `minimal`. GPT remains pinned to planning, debugging, sensitive review, and final acceptance. Merge/push/PR/archive are deterministic MEGAI/Paseo operations and require no extra planning turns.
+
+Model settings apply to new sessions and new task resolutions. Existing OMP/Paseo tabs keep their launch model. `task.showResolvedModelBadge: true` exposes the actual worker model; if a token-heavy task shows GPT unexpectedly, relaunch the session instead of continuing.
 
 ---
 

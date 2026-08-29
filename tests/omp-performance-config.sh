@@ -13,6 +13,7 @@ grep -q 'commit: minimax-code/MiniMax-M3:minimal' "$balanced"
 grep -q 'codeMode: auto' "$performance"
 grep -q 'maxConcurrency: 6' "$performance"
 grep -q 'minimax-code: 4' "$performance"
+grep -q 'showResolvedModelBadge: true' "$performance"
 for model in \
   minimax-code/MiniMax-M2 \
   minimax-code/MiniMax-M2.1 \
@@ -96,6 +97,14 @@ PI_CONFIG_FILES="$performance:$balanced" MINIMAX_CODE_API_KEY=test-only omp conf
     and .["providers.maxInFlightRequests"].value["minimax-code"] == 4
     and .["task.maxConcurrency"].value == 6
     and .["task.batch"].value == true
+    and .["task.showResolvedModelBadge"].value == true
+    and .["task.agentModelOverrides"].value.task == "minimax-code/MiniMax-M3:medium"
+    and .["task.agentModelOverrides"].value.scout == "minimax-code/MiniMax-M2.1-lightning:low"
+    and .["task.agentModelOverrides"].value["cavecrew-investigator"] == "minimax-code/MiniMax-M2.1-lightning:low"
+    and .["task.agentModelOverrides"].value["cavecrew-builder"] == "minimax-code/MiniMax-M2.7-highspeed:medium"
+    and .["task.agentModelOverrides"].value["minimax-commit-writer"] == "minimax-code/MiniMax-M3:minimal"
+    and .["task.agentModelOverrides"].value.reviewer == "openai-codex/gpt-5.6-terra:high"
+    and .["task.agentModelOverrides"].value["security-reviewer"] == "openai-codex/gpt-5.6-sol:high"
     and .["task.agentAdvisor"].value == {}
     and .["task.isolation.mode"].value == "auto"
     and .["task.isolation.merge"].value == "branch"
