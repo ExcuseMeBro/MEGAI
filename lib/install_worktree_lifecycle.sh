@@ -20,8 +20,10 @@ policy_body() {
 <!-- megai:worktree-lifecycle:begin -->
 # Agent branch and worktree lifecycle
 - Default primary development and integration to `dev`; run `megai dev` from a clean `main`/`master` checkout.
-- When work has two or more independent implementation slices, fan them out concurrently in one batch. Give each slice one writer, one registered Paseo/OMP/Git worktree, and one task branch from the same `dev` baseline. Serialize shared-file or dependency-ordered slices through one integration owner.
-- Use the `smart-development-orchestrator` skill for cross-provider routing. Keep read-only workers as same-workspace subagent tabs; give every concurrent writer a separate registered worktree workspace from `dev`.
+- When work has two or more independent implementation slices, the parent defines non-overlapping ownership and remains the sole integration owner.
+- Use the `smart-development-orchestrator` skill for writer workspace creation, model routing, integration, and cleanup.
+- Inside Paseo, read-only workers use same-workspace agent tabs. Every writer MUST be launched by `create_workspace` with worktree isolation and a `task/<slug>` branch from `dev`, followed by `create_agent` with the returned `workspaceId`; never run concurrent writers in the parent workspace.
+- Outside Paseo, registered OMP/Git worktrees may provide equivalent isolation. Native OMP task isolation is not a substitute for a visible Paseo writer workspace when Paseo is available.
 - After focused verification and review, merge each successful task branch into `dev`; never apply concurrent agent writes directly to the primary checkout.
 - At ship, run `megai finish --verified --target dev`: push verified `dev` and create or reuse a `dev` → `main` PR/MR.
 - Never auto-merge `main`; human review or protected CI merges the PR/MR. After the dev push, PR/MR, and worktree cleanup succeed, orchestrators call `archive_workspace` only for successfully merged worker workspaces. Never archive the primary `dev` workspace or dirty/unmerged/failed work.

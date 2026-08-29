@@ -11,10 +11,11 @@ One parent owns decomposition, routing, contracts, integration, and final accept
 ## Placement
 
 - Keep the orchestrator as the top-level agent tab in the primary clean `dev` workspace.
-- Keep read-only discovery, planning, and review workers as subagent tabs in that same workspace.
-- Give every concurrent writing slice its own Paseo-managed worktree workspace and task branch from the same `dev` baseline.
-- Assign one writer per non-overlapping file set. Serialize shared files, schemas, migrations, and dependency-ordered boundaries.
-- Cross-workspace workers remain attached to the orchestrator's Subagents track. Never detach them automatically.
+- In an agent-scoped Paseo session, read-only discovery, planning, and review workers use `create_agent` without `workspaceId` and remain tabs in the orchestrator workspace.
+- In a top-level context, require exactly one workspace whose `cwd` equals the current `cwd`, then pass its ID to `create_agent` for read-only workers; ask once on zero or multiple matches.
+- For every writing slice, first call `create_workspace` with `isolation: "worktree"`, `mode: "branch-off"`, `baseBranch: "dev"`, and a unique `task/<slug>` branch. Then call `create_agent` with the returned `workspaceId`.
+- Never use bare `create_agent` or the parent workspace for a writer. Assign one writer per non-overlapping file set and serialize shared files, schemas, migrations, and dependency-ordered boundaries.
+- Cross-workspace workers remain attached to the orchestrator's Subagents track. Never detach automatically. Inside Paseo, visible writer workspaces take precedence over OMP native task isolation.
 
 ## Discovery routing
 
@@ -93,7 +94,7 @@ Do not run a separate model/tool round trip for every ADLC label. Do not run the
 1. Resolve the target Git repository and observable acceptance conditions.
 2. Confirm clean `dev`, `main`, and `origin`; use `megai dev` only from a clean primary `main`/`master` checkout.
 3. Define shared interfaces and non-overlapping file ownership before spawning.
-4. Launch all genuinely independent slices concurrently, capped at six agents. Reuse suitable live agents instead of duplicating them.
+4. For each independent writing slice, create its Paseo worktree workspace first, then launch its agent with that `workspaceId`; start the resulting workers concurrently, capped at six. Reuse suitable read-only agents instead of duplicating them.
 5. Give each child: goal, repository/cwd, scope, authority boundary, evidence, acceptance, validation, compact output, and stop rules.
 6. Require each writer to commit a clean, focused task branch after verification.
 7. Integrate successful branches into `dev`, then verify the integrated tree once.
