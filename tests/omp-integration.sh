@@ -123,9 +123,9 @@ jq -e '
 grep -q '^# Smart Development Orchestrator$' "$HOME/.omp/agent/skills/smart-development-orchestrator/SKILL.md"
 grep -q 'archive_workspace' "$HOME/.omp/agent/skills/smart-development-orchestrator/SKILL.md"
 grep -q '^# MEGAI for Oh My Pi$' "$HOME/.omp/agent/skills/megai/SKILL.md"
-grep -q 'minimax-commit-writer' "$HOME/.omp/agent/RULES.md"
-grep -q 'resolved-model badge' "$HOME/.omp/agent/RULES.md"
-grep -q 'In an agent-scoped Paseo session, read-only discovery' "$HOME/.omp/agent/skills/megai/SKILL.md"
+grep -q 'Generate commit messages directly in the parent' "$HOME/.omp/agent/RULES.md"
+grep -q 'If a writer resolves to the wrong model' "$HOME/.omp/agent/RULES.md"
+grep -q 'Read-only discovery, planning, and review agents are opt-in' "$HOME/.omp/agent/skills/megai/SKILL.md"
 grep -q 'Every writing worker MUST receive a visible Paseo-managed worktree workspace' "$HOME/.omp/agent/skills/megai/SKILL.md"
 grep -q 'OMP native `task` isolation is reserved for execution outside Paseo' "$HOME/.omp/agent/skills/megai/SKILL.md"
 grep -q 'parent is the sole integration owner' "$HOME/.omp/agent/skills/megai/SKILL.md"
@@ -139,7 +139,7 @@ while IFS='|' read -r name model effort; do
 done <"$TMP/expected-agents"
 grep -q '^spawns: luna-scout, terra-scout$' "$HOME/.omp/agent/agents/smart-router.md"
 grep -q '^blocking: true$' "$HOME/.omp/agent/agents/smart-router.md"
-grep -q 'MUST delegate non-trivial file location' "$HOME/.omp/agent/RULES.md"
+grep -q 'Use direct LSP, index, search, and exact reads first' "$HOME/.omp/agent/RULES.md"
 jq -e '.agents.omp.wired == true and .agents.omp.config == $config' \
   --arg config "$HOME/.omp/agent" "$MEGAI_HOME/state.json" >/dev/null
 grep -q 'user-owned OMP rule' "$HOME/.omp/agent/RULES.md"
@@ -195,7 +195,7 @@ cmp "$TMP/expected.args" "$TMP/omp.args"
 [ -f "$HOME/.omp/profiles/work/agent/mcp.json" ]
 [ -f "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md" ]
 [ -f "$HOME/.omp/profiles/work/agent/skills/agent-worktree-lifecycle/SKILL.md" ]
-grep -q 'In an agent-scoped Paseo session, read-only discovery' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
+grep -q 'Read-only discovery, planning, and review agents are opt-in' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
 grep -q 'Every writing worker MUST receive a visible Paseo-managed worktree workspace' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
 while IFS='|' read -r name model effort; do
   [ -f "$HOME/.omp/profiles/work/agent/agents/$name.md" ]
