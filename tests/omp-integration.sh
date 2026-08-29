@@ -128,7 +128,7 @@ grep -q 'If a writer resolves to the wrong model' "$HOME/.omp/agent/RULES.md"
 grep -q 'Read-only discovery, planning, and review agents are opt-in' "$HOME/.omp/agent/skills/megai/SKILL.md"
 grep -q 'Every writing worker MUST receive a visible Paseo-managed worktree workspace' "$HOME/.omp/agent/skills/megai/SKILL.md"
 grep -q 'OMP native `task` isolation is reserved for execution outside Paseo' "$HOME/.omp/agent/skills/megai/SKILL.md"
-grep -q 'parent is the sole integration owner' "$HOME/.omp/agent/skills/megai/SKILL.md"
+grep -q 'megai promote --approved' "$HOME/.omp/agent/skills/megai/SKILL.md"
 grep -q 'task.isolation.merge: branch' "$HOME/.omp/agent/skills/agent-worktree-lifecycle/SKILL.md"
 while IFS='|' read -r name model effort; do
   file="$HOME/.omp/agent/agents/$name.md"
@@ -154,7 +154,7 @@ grep -q 'unique `task/<slug>` branch' "$HOME/.omp/agent/RULES.md"
 grep -q 'then use `create_agent` with the returned `workspaceId`' "$HOME/.omp/agent/RULES.md"
 grep -q 'Never create concurrent writers in the parent workspace' "$HOME/.omp/agent/RULES.md"
 grep -q 'visible writer workspaces take precedence' "$HOME/.omp/agent/RULES.md"
-grep -q 'After verified merge, dev push, PR/MR creation, and worktree cleanup' "$HOME/.omp/agent/RULES.md"
+grep -q 'After verified dev merge/push, one open promotion request, and worktree cleanup' "$HOME/.omp/agent/RULES.md"
 [ "$(grep -Fxc '<!-- megai:paseo-placement:begin -->' "$HOME/.omp/agent/RULES.md")" = "1" ]
 
 mkdir -p "$HOME/.omp/profiles/work/agent"

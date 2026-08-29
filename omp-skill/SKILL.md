@@ -13,7 +13,7 @@ MEGAI wires agent-memory and codedb as native OMP MCP servers. Use their discove
 - Search code, locate symbols, inspect outlines, or analyze dependencies with codedb.
 - Use `megai-task-flow` when non-trivial work must stay synchronized with Asana and `.todos/`.
 - Run specialist CLIs only when the task needs their domain.
-- Use `agent-worktree-lifecycle` to fan independent implementation slices out concurrently in registered isolated worktrees from `dev`, integrate verified task branches into `dev`, publish `dev`, open/reuse the `dev` → `main` PR/MR, and clean merged worktrees safely.
+- Use `agent-worktree-lifecycle` to integrate verified task worktrees into `dev`, push `dev`, reuse one open `dev` → `main` request, clean merged worktrees, and promote main only after explicit user approval.
 
 ## Core tools
 
@@ -57,4 +57,4 @@ When OMP runs inside Paseo, placement depends on write authority:
 - Never launch concurrent writers in the parent workspace. Cross-workspace workers remain attached to the orchestrator's Subagents track and are not detached automatically.
 - OMP native `task` isolation is reserved for execution outside Paseo. When Paseo is available, every writer uses a visible Paseo-managed worktree workspace.
 
-At start, use `megai dev` for a clean primary checkout. The parent is the sole integration owner and assigns non-overlapping files. At ship, require clean committed task branches, preview if needed, then run `megai finish --verified --target dev`; complete Asana and `.todos` only after `dev` is pushed, the `dev` → `main` PR/MR exists, and registered-worktree cleanup succeeds. Then call Paseo `archive_workspace` for each successfully merged worker workspace. Never archive the primary `dev` workspace or dirty/unmerged/failed work. Human review or protected CI merges the PR/MR; never auto-merge `main`.
+At start, use `megai dev` for a clean primary checkout. At ship, run `megai finish --verified --target dev`; complete Asana and `.todos` after `dev` is pushed, one promotion request exists, and registered-worktree cleanup succeeds. Archive only successfully merged worker workspaces. Then ask whether to promote main; run `megai promote --approved` only after an explicit affirmative reply. Never infer approval, enable deferred auto-merge, or archive primary/dirty/unmerged/failed work.

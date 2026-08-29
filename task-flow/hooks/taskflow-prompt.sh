@@ -4,5 +4,5 @@
 # Pure questions, trivial edits, and steering for the already-active task avoid
 # board discovery and repeated reads.
 cat <<'EOF'
-[task-flow] Execute only the user's current task through one bounded inspect -> implement -> code self-review -> focused-test sequence. Do not launch separate planner, reviewer, final-gate, visual-QA, browser, full-suite, or autonomous-loop work unless the user explicitly requests it or the focused test fails. UI checks are code-only by default; report visual/manual review as user-owned. For tracked work, satisfy the required Asana start boundary once, keep one linked local task, ship through dev when required, mark Done, then stop.
+[task-flow] Execute only the user's current task through one bounded inspect -> implement -> code self-review -> focused-test sequence. No automatic planner, reviewer, visual-QA, full-suite, or loop work. For tracked delivery, run `megai finish --verified --target dev`, reuse one open dev-to-main request, clean the task worktree, mark Done, then ask whether to promote main. Run `megai promote --approved` only after an explicit affirmative reply.
 EOF

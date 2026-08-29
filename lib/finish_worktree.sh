@@ -15,9 +15,9 @@ usage() {
 Usage: megai finish --verified [--target dev] [--pr-base main] [--forge auto|github|gitlab] [--verify-command "command"] [--dry-run]
 
 Merges a task branch into dev (or publishes work already on dev), pushes dev,
-and creates or reuses a dev-to-main pull/merge request. It then removes only
-the merged task branch and registered linked worktree. The primary repository
-and remote branches are never deleted; the PR/MR is never auto-merged.
+and creates one dev-to-main pull/merge request only when none is open. It then
+removes only the merged task branch and registered linked worktree. Main is
+promoted only by `megai promote --approved` after explicit user approval.
 EOF
 }
 
@@ -134,7 +134,7 @@ if [ "$DRY_RUN" = 1 ]; then
     fi
   fi
   [ "$TARGET_EXISTS" = 1 ] || printf 'Would create local %s tracking origin/%s.\n' "$TARGET" "$TARGET"
-  printf 'Would push %s to origin and create or reuse a %s-to-%s %s request via %s.\n' "$TARGET" "$TARGET" "$PR_BASE" "$([ "$FORGE" = github ] && printf pull || printf merge)" "$FORGE"
+  printf 'Would push %s to origin and create one %s-to-%s request only if none is already open via %s.\n' "$TARGET" "$TARGET" "$PR_BASE" "$FORGE"
   exit 0
 fi
 
@@ -246,12 +246,13 @@ if [ "$(git rev-parse "$SOURCE_BRANCH")" != "$SOURCE_HEAD" ] ||
   [ -n "$(git -C "$SOURCE_ROOT" status --porcelain --untracked-files=all)" ] ||
   [ "$(git -C "$TARGET_WORKTREE" rev-parse HEAD)" != "$MERGED_HEAD" ] ||
   [ -n "$(git -C "$TARGET_WORKTREE" status --porcelain --untracked-files=all)" ]; then
-  die "repository changed during push/PR creation; PR remains open and source cleanup was skipped"
+  die "repository changed during push/request update; the promotion request remains open and source cleanup was skipped"
 fi
 
 if [ "$DIRECT_TARGET" = 1 ]; then
-  printf "Published verified '%s' and opened/reused the %s request to '%s': %s\n" \
-    "$TARGET" "$([ "$FORGE" = github ] && printf pull || printf merge)" "$PR_BASE" "$PR_URL"
+  printf "Published verified '%s'; the one open promotion request to '%s' is %s\n" \
+    "$TARGET" "$PR_BASE" "$PR_URL"
+  printf 'Ask the user before main promotion; run `megai promote --approved` only after explicit approval.\n'
   exit 0
 fi
 
@@ -280,6 +281,5 @@ else
     "$SOURCE_BRANCH" "$TARGET" "$SOURCE_ROOT"
 fi
 
-printf "Opened/reused the %s request from '%s' to '%s': %s\n" \
-  "$([ "$FORGE" = github ] && printf pull || printf merge)" "$TARGET" "$PR_BASE" "$PR_URL"
-printf 'The request remains open for human review; main was not merged automatically.\n'
+printf "The one open promotion request from '%s' to '%s' is %s\n" "$TARGET" "$PR_BASE" "$PR_URL"
+printf 'Ask the user before main promotion; run `megai promote --approved` only after explicit approval.\n'
