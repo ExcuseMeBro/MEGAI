@@ -128,8 +128,8 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🕸️ | [graphify](https://graphify.net) | Tree-sitter knowledge graph and code relationships | CLI + global skill |
 | 📋 | task-flow | `.todos` board, priority queue, ADLC, monitoring, Asana mirror | Claude hooks + global skills |
 | 🌿 | agent-worktree-lifecycle | Task worktrees → `dev`; one open promotion PR; user-approved `main` merge | Global policy + `megai dev`/`finish`/`promote` |
-| 🧭 | smart-development-orchestrator | Token-aware MiniMax/GPT complexity routing, Paseo fanout, and hybrid tab/worktree placement | Global skill + OMP agents |
-| ⚙️ | MiniMax Code M3 OMP worker | Routine exploration/implementation tier targeting roughly 60% of inference tokens | Native OMP provider + managed agent |
+| 🧭 | smart-development-orchestrator | GPT writer routing, MiniMax read-only discovery, Paseo worktree delivery | Global skill + OMP agents |
+| ⚙️ | GPT-core + MiniMax-discovery routing | GPT owns every write; MiniMax only searches, reads, and finds code | OMP roles + managed agents |
 | 🎨 | [ui-craft](https://skills.smoothui.dev) | Anti-slop UI rules, design memory, review gates, presets | Global skills and commands |
 | 🖌️ | [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | 17 UI/UX skills, WCAG references, tokens, components, adapters | Global skills |
 | 🌐 | [Dembrandt](https://github.com/dembrandt/dembrandt) | Extract design tokens, typography, palette, brand, and WCAG data from websites | On-demand CLI |
@@ -188,7 +188,7 @@ MEGAI configures:
 
 - native MCP entries for `agentmemory` and `codedb` in the active OMP profile
 - native MEGAI, Asana-aware task-flow, safe worktree-lifecycle, and smart-development-orchestrator skills under the active profile's `skills/` directory
-- MiniMax-first `smart-router`, trusted Luna lookup scout, Terra architecture worker, and routine `minimax-worker` under the active profile's `agents/` directory
+- MiniMax read-only `smart-router`, trusted Luna/Terra scouts, and GPT `gpt-core-worker`/`gpt-fast-worker` implementations under the active profile's `agents/` directory
 - OMP's native MiniMax catalog and provider-specific transport compatibility; MEGAI never rewrites user `models.yml`
 - preservation of unrelated OMP servers, model providers, allowlists, denylists, credentials, agents, and user settings
 - hybrid Paseo placement: each writer receives a managed worktree from `dev`, then is archived after verified dev merge/push, one open promotion request, and worktree cleanup
@@ -196,38 +196,31 @@ MEGAI configures:
 
 OMP provider authentication remains in OMP's own credential store; MEGAI never writes provider credentials.
 
-MiniMax Code M3 runs through OMP's native `minimax-code` provider, never Pi. A key pasted into chat or logs is compromised and must be revoked before use. Configure the rotated Token Plan key through OMP auth or `MINIMAX_CODE_API_KEY` outside source; MEGAI never stores credentials.
+MiniMax Code runs only through OMP's native provider and is restricted to read-only M2.1 Lightning discovery. Configure its key through OMP auth or `MINIMAX_CODE_API_KEY` outside source; MEGAI never stores credentials.
 
-`megai omp` always loads `~/.megai/omp-config/high-speed.yml` for Codex Code Mode `auto`, provider concurrency (`openai-codex: 2`, `minimax-code: 4`), four-agent maximum fanout, async batch execution, and branch-merge isolation. It adds `balanced-minimax.yml` only when the selected OMP profile reports authenticated `MiniMax-M3` availability; without MiniMax auth, the trusted existing default remains unchanged.
+`megai omp` always loads `high-speed.yml` with provider concurrency `openai-codex: 2`, `minimax-code: 2`. It adds `balanced-minimax.yml` only when MiniMax M2.1 Lightning and the required GPT portfolio are available.
 
-The authenticated overlay maps routine implementation, code self-review, and focused tests to MiniMax. GPT roles remain available only for an explicit specialty request or one focused failure. No provider-ratio target, automatic planning/review/final gate, or free OpenCode routing participates in default execution.
+The overlay maps every write-capable role to GPT. Terra medium owns default/core implementation; GPT-5.4 Mini owns small edits and focused tests; GPT-5.5 owns migrations/debugging; GPT-5.4 owns compatibility; Spark owns tiny mechanical changes. MiniMax owns only read-only search/read/find/symbol/reference discovery.
 
-The portfolio uses every authenticated model where it is strongest:
+The active portfolio:
 
-| Model | Role |
+| Model | Authority |
 | --- | --- |
-| MiniMax M3 | Default/task, 1M-context general implementation |
-| MiniMax M2.1 Lightning | Long-context repository exploration |
-| MiniMax M2.7 Highspeed | Fast CRUD/API worker |
-| MiniMax M2.7 | Quality routine refactor worker |
-| MiniMax M2.5 Highspeed | Focused test generation |
-| MiniMax M2.5 Lightning | Docker/scripts/mechanical operations |
-| MiniMax M2.5 | Ordinary non-sensitive migrations |
-| MiniMax M2.1 | Stable compatibility worker |
-| MiniMax M2 | Last low-risk MiniMax fallback |
-| GPT-5.6 Sol | Explicit critical reasoning or final review |
-| GPT-5.6 Terra | Explicit architecture or independent review |
-| GPT-5.6 Luna | One-step discovery fallback |
-| GPT-5.5 | Focused hard-debugging fallback |
-| GPT-5.4 | Explicit trusted 1M-context analysis |
-| GPT-5.4 Mini | One-step fast fallback/review |
-| GPT-5.3 Codex Spark | One-step very fast fallback |
+| MiniMax M2.1 Lightning | Read-only repository search, read, find, symbols, references, callers, patterns |
+| GPT-5.6 Terra medium | Default/core implementation and self-review |
+| GPT-5.6 Terra high | High-risk implementation, architecture, explicit deep review |
+| GPT-5.4 Mini | Fast bounded edits and focused tests |
+| GPT-5.5 | Migrations and hard debugging |
+| GPT-5.4 | Compatibility and long-context implementation |
+| GPT-5.3 Codex Spark | Tiny mechanical trusted changes |
+| GPT-5.6 Sol | Explicit critical reasoning |
+| GPT-5.6 Luna | One-step trusted discovery fallback |
 
-Each MiniMax model has one direct trusted GPT fallback. GPT fallback chains are not used for automatic escalation. `retry.maxDelayMs: 30000` bounds provider backoff and `cooldown-expiry` returns to the primary after recovery.
+Only MiniMax discovery may fall back once to Luna. GPT write roles never fall back to MiniMax. There is no fixed 50/50 token quota: the enforceable split is MiniMax read-only, GPT write-only.
 
 Default execution is one bounded sequence: inspect, implement, self-review, focused tests, deliver to `dev`, then stop. `finish` reuses one promotion request; `promote --approved` merges it only after explicit user approval. Git and workspace operations remain deterministic.
 
-Model settings apply to new sessions and new task resolutions. Existing OMP/Paseo tabs keep their launch model. `task.showResolvedModelBadge: true` exposes the actual worker model; if a writer resolves incorrectly, relaunch it once.
+Model settings apply to new sessions and task resolutions. If any writer badge shows MiniMax, stop it immediately and relaunch once on `gpt-core-worker` or `gpt-fast-worker`.
 
 Runaway protection is enabled: subagents have a 16-request soft budget, a five-minute hard runtime, four concurrent background jobs, and a two-call identical-tool loop threshold. Goal auto-continuation, queue draining, autonomous `/loop`, sampled review, browser/visual QA, and automatic full-suite runs are disabled.
 

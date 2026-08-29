@@ -29,7 +29,8 @@ OMP_RULES="$OMP_AGENT/RULES.md"
 OMP_RULES_SOURCE="$MEGAI_HOME/omp-skill/RULES.md"
 OMP_AGENTS_SOURCE="$MEGAI_HOME/omp-agents"
 ROUTER_AGENT_NAMES="smart-router luna-scout terra-scout"
-PORTFOLIO_AGENT_NAMES="minimax-worker minimax-fast-worker minimax-quality-worker minimax-test-worker minimax-ops-worker minimax-migration-worker minimax-stable-worker minimax-legacy-worker minimax-commit-writer sol-gate gpt-debugger gpt-long-context gpt-fast-reviewer gpt-trusted-fast"
+PORTFOLIO_AGENT_NAMES="gpt-core-worker gpt-fast-worker sol-gate gpt-debugger gpt-long-context gpt-fast-reviewer gpt-trusted-fast"
+RETIRED_AGENT_NAMES="minimax-worker minimax-fast-worker minimax-quality-worker minimax-test-worker minimax-ops-worker minimax-migration-worker minimax-stable-worker minimax-legacy-worker minimax-commit-writer"
 RULES_BEGIN="<!-- megai:paseo-placement:begin -->"
 RULES_END="<!-- megai:paseo-placement:end -->"
 validate_placement_rules() {
@@ -145,6 +146,13 @@ remove_managed_agents() {
   done
 }
 
+remove_retired_agents() {
+  local name
+  for name in $RETIRED_AGENT_NAMES; do
+    remove_managed_copy "$OMP_AGENTS_SOURCE/retired/$name.md" "$OMP_AGENT/agents/$name.md"
+  done
+}
+
 install_router_group() {
   local name source dest safe=1
   for name in $ROUTER_AGENT_NAMES; do
@@ -189,6 +197,7 @@ if [ "$MODE" = "--remove" ]; then
   remove_managed_copy "$WORKTREE_SKILL" "$OMP_AGENT/skills/agent-worktree-lifecycle/SKILL.md"
   remove_managed_copy "$ORCHESTRATOR_SKILL" "$OMP_AGENT/skills/smart-development-orchestrator/SKILL.md"
   remove_managed_agents
+  remove_retired_agents
   if [ ! -f "$OMP_MCP_CONFIG" ]; then
     ok "OMP: no native MEGAI wiring to remove"
     exit 0
@@ -288,6 +297,7 @@ else
   warn "OMP: smart development orchestrator skill missing — skipped"
 fi
 install_router_group
+remove_retired_agents
 install_portfolio_agents
 
 ok "OMP: native MCP servers, skills, routing and model-portfolio agents, and placement rules wired -> $OMP_AGENT"

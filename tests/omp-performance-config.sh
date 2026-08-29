@@ -6,13 +6,13 @@ performance="$ROOT/omp-config/high-speed.yml"
 balanced="$ROOT/omp-config/balanced-minimax.yml"
 [ -f "$performance" ]
 [ -f "$balanced" ]
-grep -q 'default: minimax-code/MiniMax-M3:medium' "$balanced"
-grep -q 'tiny: minimax-code/MiniMax-M3:minimal' "$balanced"
-grep -q 'commit: minimax-code/MiniMax-M3:minimal' "$balanced"
+grep -q 'default: openai-codex/gpt-5.6-terra:medium' "$balanced"
+grep -q 'task: openai-codex/gpt-5.6-terra:medium' "$balanced"
+grep -q 'repo: minimax-code/MiniMax-M2.1-lightning:low' "$balanced"
 ! grep -q 'subagents:' "$balanced"
 grep -q 'codeMode: auto' "$performance"
 grep -q 'maxConcurrency: 4' "$performance"
-grep -q 'minimax-code: 4' "$performance"
+grep -q 'minimax-code: 2' "$performance"
 grep -q 'showResolvedModelBadge: true' "$performance"
 grep -q 'maxJobs: 4' "$performance"
 grep -q 'maxEffort: high' "$performance"
@@ -20,37 +20,9 @@ grep -q 'softRequestBudget: 16' "$performance"
 grep -q 'maxRuntimeMs: 300000' "$performance"
 grep -q 'enabled: false' "$performance"
 grep -q 'threshold: 2' "$performance"
-for model in \
-  minimax-code/MiniMax-M2 \
-  minimax-code/MiniMax-M2.1 \
-  minimax-code/MiniMax-M2.1-lightning \
-  minimax-code/MiniMax-M2.5 \
-  minimax-code/MiniMax-M2.5-highspeed \
-  minimax-code/MiniMax-M2.5-lightning \
-  minimax-code/MiniMax-M2.7 \
-  minimax-code/MiniMax-M2.7-highspeed \
-  minimax-code/MiniMax-M3 \
-  openai-codex/gpt-5.3-codex-spark \
-  openai-codex/gpt-5.4-mini \
-  openai-codex/gpt-5.4 \
-  openai-codex/gpt-5.5 \
-  openai-codex/gpt-5.6-luna \
-  openai-codex/gpt-5.6-terra \
-  openai-codex/gpt-5.6-sol; do
-  grep -Fq "$model:" "$balanced"
-done
-for model in \
-  minimax-code/MiniMax-M2 \
-  minimax-code/MiniMax-M2.1 \
-  minimax-code/MiniMax-M2.1-lightning \
-  minimax-code/MiniMax-M2.5 \
-  minimax-code/MiniMax-M2.5-highspeed \
-  minimax-code/MiniMax-M2.5-lightning \
-  minimax-code/MiniMax-M2.7 \
-  minimax-code/MiniMax-M2.7-highspeed \
-  minimax-code/MiniMax-M3; do
-  grep -Fq "    \"$model\":" "$balanced"
-done
+! grep -Eq 'MiniMax-(M3|M2\.7|M2\.5|M2\.1:|M2:)' "$balanced"
+grep -q 'gpt-core-worker: openai-codex/gpt-5.6-terra:medium' "$balanced"
+grep -q 'gpt-fast-worker: openai-codex/gpt-5.4-mini:medium' "$balanced"
 
 command -v omp >/dev/null 2>&1 || {
   echo "OMP high-speed config: omp is required" >&2
@@ -63,29 +35,23 @@ PI_CONFIG_FILES="$performance:$balanced" MINIMAX_CODE_API_KEY=test-only omp conf
       if ($seen | index($node)) != null then true
       else any(($graph[$node] // [])[]; has_cycle($graph; .; ($seen + [$node])))
       end;
-    .modelRoles.value.default == "minimax-code/MiniMax-M3:medium"
-    and .modelRoles.value.task == "minimax-code/MiniMax-M3:medium"
-    and .modelRoles.value.smol == "minimax-code/MiniMax-M3:low"
-    and .modelRoles.value.tiny == "minimax-code/MiniMax-M3:minimal"
-    and .modelRoles.value.commit == "minimax-code/MiniMax-M3:minimal"
-    and .modelRoles.value.plan == "openai-codex/gpt-5.6-sol:high"
-    and .modelRoles.value.slow == "openai-codex/gpt-5.6-sol:high"
-    and .modelRoles.value.advisor == "openai-codex/gpt-5.6-sol:high"
-    and .modelRoles.value.vision == "openai-codex/gpt-5.6-sol:medium"
-    and .modelRoles.value.final == "openai-codex/gpt-5.6-sol:high"
-    and .modelRoles.value.architecture == "openai-codex/gpt-5.6-terra:high"
-    and .modelRoles.value.terra == "openai-codex/gpt-5.6-terra:medium"
-    and .modelRoles.value.review == "openai-codex/gpt-5.6-terra:high"
-    and .modelRoles.value.luna == "openai-codex/gpt-5.6-luna:low"
-    and .modelRoles.value.scout == "openai-codex/gpt-5.6-luna:low"
+    .modelRoles.value.default == "openai-codex/gpt-5.6-terra:medium"
+    and .modelRoles.value.task == "openai-codex/gpt-5.6-terra:medium"
+    and .modelRoles.value.smol == "openai-codex/gpt-5.4-mini:medium"
+    and .modelRoles.value.tiny == "openai-codex/gpt-5.3-codex-spark:low"
+    and .modelRoles.value.commit == "openai-codex/gpt-5.3-codex-spark:low"
     and .modelRoles.value.repo == "minimax-code/MiniMax-M2.1-lightning:low"
-    and .modelRoles.value["worker-fast"] == "minimax-code/MiniMax-M2.7-highspeed:medium"
-    and .modelRoles.value["worker-quality"] == "minimax-code/MiniMax-M2.7:high"
-    and .modelRoles.value.tests == "minimax-code/MiniMax-M2.5-highspeed:low"
-    and .modelRoles.value.docker == "minimax-code/MiniMax-M2.5-lightning:low"
-    and .modelRoles.value.migration == "minimax-code/MiniMax-M2.5:medium"
-    and .modelRoles.value["worker-stable"] == "minimax-code/MiniMax-M2.1:medium"
-    and .modelRoles.value["worker-legacy"] == "minimax-code/MiniMax-M2:low"
+    and .modelRoles.value.scout == "minimax-code/MiniMax-M2.1-lightning:low"
+    and .modelRoles.value["worker-fast"] == "openai-codex/gpt-5.4-mini:medium"
+    and .modelRoles.value["worker-quality"] == "openai-codex/gpt-5.6-terra:high"
+    and .modelRoles.value.tests == "openai-codex/gpt-5.4-mini:medium"
+    and .modelRoles.value.docker == "openai-codex/gpt-5.3-codex-spark:low"
+    and .modelRoles.value.migration == "openai-codex/gpt-5.5:high"
+    and .modelRoles.value["worker-stable"] == "openai-codex/gpt-5.4:high"
+    and .modelRoles.value["worker-legacy"] == "openai-codex/gpt-5.3-codex-spark:low"
+    and .modelRoles.value.plan == "openai-codex/gpt-5.6-sol:high"
+    and .modelRoles.value.architecture == "openai-codex/gpt-5.6-terra:high"
+    and .modelRoles.value.review == "openai-codex/gpt-5.6-terra:high"
     and .modelRoles.value.debug == "openai-codex/gpt-5.5:high"
     and .modelRoles.value["long-context"] == "openai-codex/gpt-5.4:high"
     and .modelRoles.value["review-fast"] == "openai-codex/gpt-5.4-mini:medium"
@@ -94,7 +60,7 @@ PI_CONFIG_FILES="$performance:$balanced" MINIMAX_CODE_API_KEY=test-only omp conf
     and .["advisor.enabled"].value == false
     and .["providers.openai-codex.codeMode"].value == "auto"
     and .["providers.maxInFlightRequests"].value["openai-codex"] == 2
-    and .["providers.maxInFlightRequests"].value["minimax-code"] == 4
+    and .["providers.maxInFlightRequests"].value["minimax-code"] == 2
     and .["task.maxConcurrency"].value == 4
     and .["task.batch"].value == true
     and .["task.showResolvedModelBadge"].value == true
@@ -104,11 +70,14 @@ PI_CONFIG_FILES="$performance:$balanced" MINIMAX_CODE_API_KEY=test-only omp conf
     and .["task.maxRuntimeMs"].value == 300000
     and .["goal.enabled"].value == false
     and .["model.toolCallLoopGuard.threshold"].value == 2
-    and .["task.agentModelOverrides"].value.task == "minimax-code/MiniMax-M3:medium"
+    and .["task.agentModelOverrides"].value.task == "openai-codex/gpt-5.6-terra:medium"
     and .["task.agentModelOverrides"].value.scout == "minimax-code/MiniMax-M2.1-lightning:low"
     and .["task.agentModelOverrides"].value["cavecrew-investigator"] == "minimax-code/MiniMax-M2.1-lightning:low"
-    and .["task.agentModelOverrides"].value["cavecrew-builder"] == "minimax-code/MiniMax-M2.7-highspeed:medium"
-    and .["task.agentModelOverrides"].value["minimax-commit-writer"] == "minimax-code/MiniMax-M3:minimal"
+    and .["task.agentModelOverrides"].value["cavecrew-builder"] == "openai-codex/gpt-5.4-mini:medium"
+    and .["task.agentModelOverrides"].value["gpt-core-worker"] == "openai-codex/gpt-5.6-terra:medium"
+    and .["task.agentModelOverrides"].value["gpt-fast-worker"] == "openai-codex/gpt-5.4-mini:medium"
+    and .["task.agentModelOverrides"].value["minimax-worker"] == "openai-codex/gpt-5.6-terra:medium"
+    and .["task.agentModelOverrides"].value["minimax-test-worker"] == "openai-codex/gpt-5.4-mini:medium"
     and .["task.agentModelOverrides"].value.reviewer == "openai-codex/gpt-5.6-terra:high"
     and .["task.agentModelOverrides"].value["security-reviewer"] == "openai-codex/gpt-5.6-sol:high"
     and .["task.agentAdvisor"].value == {}
@@ -131,15 +100,16 @@ PI_CONFIG_FILES="$performance:$balanced" MINIMAX_CODE_API_KEY=test-only omp conf
       | .value[]
       | select(startswith("minimax-code/"))
     ] | length == 0)
-    and ([.["retry.fallbackChains"].value | to_entries[] | select(.key | startswith("minimax-code/")) | (.value | length)] | all(. == 1))
+    and ([.["retry.fallbackChains"].value | to_entries[] | select((.key | startswith("minimax-code/")) and (.value | length > 0))] | length == 1)
     and (
       (.["retry.fallbackChains"].value | with_entries(.value |= map(strip_effort))) as $graph
       | all($graph | keys[]; (has_cycle($graph; .; []) | not))
     )
     and .["retry.fallbackChains"].value["openai-codex/gpt-5.6-sol"] == []
     and .["retry.fallbackChains"].value["openai-codex/gpt-5.6-terra"] == []
+    and .["retry.fallbackChains"].value["openai-codex/gpt-5.6-luna"] == []
     and .["retry.fallbackChains"].value["openai-codex/gpt-5.3-codex-spark"] == []
-    and .["retry.fallbackChains"].value["minimax-code/MiniMax-M3"][0] == "openai-codex/gpt-5.6-terra:medium"
+    and .["retry.fallbackChains"].value["minimax-code/MiniMax-M2.1-lightning"][0] == "openai-codex/gpt-5.6-luna:low"
   ' >/dev/null
 
 echo "OMP high-speed config: ok"

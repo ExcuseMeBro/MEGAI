@@ -58,7 +58,7 @@ if [ "\${1:-}" = models ]; then
   case "\${2:-}" in
     minimax-code)
       if [ "\${MOCK_MINIMAX_AUTH:-0}" = 1 ]; then
-        printf '%s\n' '{"models":[{"id":"MiniMax-M3"}]}'
+        printf '%s\n' '{"models":[{"id":"MiniMax-M2.1-lightning"}]}'
       else
         printf '%s\n' '{"models":[]}'
       fi
@@ -82,25 +82,24 @@ cat >"$TMP/expected-agents" <<'AGENTS'
 smart-router|minimax-code/MiniMax-M2.1-lightning|low
 luna-scout|openai-codex/gpt-5.6-luna|low
 terra-scout|openai-codex/gpt-5.6-terra|medium
-minimax-worker|minimax-code/MiniMax-M3|medium
-minimax-fast-worker|minimax-code/MiniMax-M2.7-highspeed|medium
-minimax-quality-worker|minimax-code/MiniMax-M2.7|high
-minimax-test-worker|minimax-code/MiniMax-M2.5-highspeed|low
-minimax-ops-worker|minimax-code/MiniMax-M2.5-lightning|low
-minimax-migration-worker|minimax-code/MiniMax-M2.5|medium
-minimax-stable-worker|minimax-code/MiniMax-M2.1|medium
-minimax-legacy-worker|minimax-code/MiniMax-M2|low
-minimax-commit-writer|minimax-code/MiniMax-M3|minimal
+gpt-core-worker|openai-codex/gpt-5.6-terra|medium
+gpt-fast-worker|openai-codex/gpt-5.4-mini|medium
 sol-gate|openai-codex/gpt-5.6-sol|high
 gpt-debugger|openai-codex/gpt-5.5|high
 gpt-long-context|openai-codex/gpt-5.4|high
 gpt-fast-reviewer|openai-codex/gpt-5.4-mini|medium
 gpt-trusted-fast|openai-codex/gpt-5.3-codex-spark|low
 AGENTS
+mkdir -p "$HOME/.omp/agent/agents"
+cp "$MEGAI_HOME/omp-agents/retired/minimax-worker.md" "$HOME/.omp/agent/agents/minimax-worker.md"
+printf '%s\n' 'user-owned retired worker' >"$HOME/.omp/agent/agents/minimax-fast-worker.md"
+
 
 # Public wiring command must be idempotent and preserve unrelated OMP config.
 bash "$MEGAI_HOME/bin/megai" wire omp >/dev/null
 bash "$MEGAI_HOME/bin/megai" wire omp >/dev/null
+[ ! -e "$HOME/.omp/agent/agents/minimax-worker.md" ]
+grep -q '^user-owned retired worker$' "$HOME/.omp/agent/agents/minimax-fast-worker.md"
 
 jq -e '
   .["$schema"] == "https://example.test/existing-schema.json"
@@ -124,7 +123,7 @@ grep -q '^# Smart Development Orchestrator$' "$HOME/.omp/agent/skills/smart-deve
 grep -q 'archive_workspace' "$HOME/.omp/agent/skills/smart-development-orchestrator/SKILL.md"
 grep -q '^# MEGAI for Oh My Pi$' "$HOME/.omp/agent/skills/megai/SKILL.md"
 grep -q 'Generate commit messages directly in the parent' "$HOME/.omp/agent/RULES.md"
-grep -q 'If a writer resolves to the wrong model' "$HOME/.omp/agent/RULES.md"
+grep -q 'If a writer resolves to any MiniMax model' "$HOME/.omp/agent/RULES.md"
 grep -q 'Read-only discovery, planning, and review agents are opt-in' "$HOME/.omp/agent/skills/megai/SKILL.md"
 grep -q 'Every writing worker MUST receive a visible Paseo-managed worktree workspace' "$HOME/.omp/agent/skills/megai/SKILL.md"
 grep -q 'OMP native `task` isolation is reserved for execution outside Paseo' "$HOME/.omp/agent/skills/megai/SKILL.md"
@@ -146,13 +145,13 @@ grep -q 'user-owned OMP rule' "$HOME/.omp/agent/RULES.md"
 grep -q 'orchestrator stays in the primary `dev` workspace' "$HOME/.omp/agent/RULES.md"
 grep -q 'In an agent-scoped Paseo session, read-only discovery' "$HOME/.omp/agent/RULES.md"
 grep -q 'In a top-level context, require exactly one workspace whose `cwd` equals the current `cwd`' "$HOME/.omp/agent/RULES.md"
-grep -q 'Every worker with write authority MUST first use `create_workspace`' "$HOME/.omp/agent/RULES.md"
-grep -q 'isolation: "worktree"' "$HOME/.omp/agent/RULES.md"
-grep -q 'mode: "branch-off"' "$HOME/.omp/agent/RULES.md"
-grep -q 'baseBranch: "dev"' "$HOME/.omp/agent/RULES.md"
-grep -q 'unique `task/<slug>` branch' "$HOME/.omp/agent/RULES.md"
-grep -q 'then use `create_agent` with the returned `workspaceId`' "$HOME/.omp/agent/RULES.md"
-grep -q 'Never create concurrent writers in the parent workspace' "$HOME/.omp/agent/RULES.md"
+grep -q 'GPT owns every code write' "$HOME/.omp/agent/RULES.md"
+grep -q 'MiniMax Code M2.1 Lightning is read-only discovery infrastructure' "$HOME/.omp/agent/RULES.md"
+grep -q 'Every write-capable worker MUST be `gpt-core-worker`, `gpt-fast-worker`' "$HOME/.omp/agent/RULES.md"
+grep -q 'Never create a MiniMax writer' "$HOME/.omp/agent/RULES.md"
+grep -q 'GPT owns every write' "$HOME/.omp/agent/skills/megai/SKILL.md"
+! grep -q '^tools:.*edit' "$HOME/.omp/agent/agents/smart-router.md"
+grep -q '^tools:.*edit' "$HOME/.omp/agent/agents/gpt-core-worker.md"
 grep -q 'visible writer workspaces take precedence' "$HOME/.omp/agent/RULES.md"
 grep -q 'After verified dev merge/push, one open promotion request, and worktree cleanup' "$HOME/.omp/agent/RULES.md"
 [ "$(grep -Fxc '<!-- megai:paseo-placement:begin -->' "$HOME/.omp/agent/RULES.md")" = "1" ]
@@ -204,8 +203,8 @@ grep -q '^spawns: luna-scout, terra-scout$' "$HOME/.omp/profiles/work/agent/agen
 grep -q 'task.isolation.merge: branch' "$HOME/.omp/profiles/work/agent/skills/agent-worktree-lifecycle/SKILL.md"
 grep -q 'named-profile user rule' "$HOME/.omp/profiles/work/agent/RULES.md"
 grep -q 'create_agent` without `workspaceId`' "$HOME/.omp/profiles/work/agent/RULES.md"
-grep -q 'Every worker with write authority MUST first use `create_workspace`' "$HOME/.omp/profiles/work/agent/RULES.md"
-grep -q 'then use `create_agent` with the returned `workspaceId`' "$HOME/.omp/profiles/work/agent/RULES.md"
+grep -q 'Every write-capable worker MUST be `gpt-core-worker`, `gpt-fast-worker`' "$HOME/.omp/profiles/work/agent/RULES.md"
+grep -q 'Never create a MiniMax writer' "$HOME/.omp/profiles/work/agent/RULES.md"
 jq -e '.agents.omp.wired == true and .agents.omp.config == $config' \
   --arg config "$HOME/.omp/profiles/work/agent" "$MEGAI_HOME/state.json" >/dev/null
 

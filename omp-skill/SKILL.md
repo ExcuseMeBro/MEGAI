@@ -27,15 +27,15 @@ Use the connected codedb MCP tools for project trees, full-text search, symbol l
 
 ### smart-router
 
-Use direct LSP, index, search, and exact reads first. Use `smart-router` only when the target is genuinely unknown or repository-wide evidence is required; one empty/conflicting result may escalate once to Luna or Terra.
+Use direct LSP, index, search, and exact reads first. Use MiniMax `smart-router` only for read-only search, read, find, symbols, references, callers, and repository-wide evidence; one unresolved lookup may escalate once to Luna or Terra.
 
-### minimax-worker
+### GPT workers
 
-Use `minimax-worker` or `minimax-fast-worker` for implementation, code self-review, and focused tests. OMP already ships the native `minimax-code` catalog and provider transport; MEGAI does not duplicate it. Use GPT specialties only after one focused failure or when the user explicitly asks for architecture, security, deep debugging, or independent review. Ignore provider-share targets while executing.
+Use `gpt-core-worker` for product/system logic and `gpt-fast-worker` for small edits and focused tests. GPT owns every write, self-review, test change, migration, and refactor. MiniMax never receives write authority or a task worktree.
 
 ## Fast execution contract
 
-Inspect the exact seam, implement, self-review the changed code, run focused tests, ship when required, then stop. UI checks are code-only by default; the user owns visual/manual review. Never start automatic planning, review, final-gate, browser, full-suite, queue-drain, or `/loop` work.
+Inspect with direct tools or MiniMax read-only discovery, then GPT implements, self-reviews, and runs focused tests. Ship when required, then stop. UI checks remain code-only by default; the user owns visual/manual review. Never start automatic gate, full-suite, queue-drain, or `/loop` work.
 
 ## Specialist CLIs
 
