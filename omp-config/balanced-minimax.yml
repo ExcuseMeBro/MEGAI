@@ -1,16 +1,34 @@
 modelRoles:
+  # Core MiniMax workload
   default: minimax-code/MiniMax-M3:medium
   task: minimax-code/MiniMax-M3:medium
   smol: minimax-code/MiniMax-M3:low
   tiny: minimax-code/MiniMax-M3:minimal
   commit: minimax-code/MiniMax-M3:minimal
+  repo: minimax-code/MiniMax-M2.1-lightning:low
+  worker-fast: minimax-code/MiniMax-M2.7-highspeed:medium
+  worker-quality: minimax-code/MiniMax-M2.7:high
+  tests: minimax-code/MiniMax-M2.5-highspeed:low
+  docker: minimax-code/MiniMax-M2.5-lightning:low
+  migration: minimax-code/MiniMax-M2.5:medium
+  worker-stable: minimax-code/MiniMax-M2.1:medium
+  worker-legacy: minimax-code/MiniMax-M2:low
+
+  # GPT intelligence and trusted fallbacks
   plan: openai-codex/gpt-5.6-sol:high
   slow: openai-codex/gpt-5.6-sol:high
   advisor: openai-codex/gpt-5.6-sol:high
+  final: openai-codex/gpt-5.6-sol:high
   vision: openai-codex/gpt-5.6-sol:medium
-  luna: openai-codex/gpt-5.6-luna:low
+  architecture: openai-codex/gpt-5.6-terra:high
   terra: openai-codex/gpt-5.6-terra:medium
   review: openai-codex/gpt-5.6-terra:high
+  luna: openai-codex/gpt-5.6-luna:low
+  scout: openai-codex/gpt-5.6-luna:low
+  debug: openai-codex/gpt-5.5:high
+  long-context: openai-codex/gpt-5.4:high
+  review-fast: openai-codex/gpt-5.4-mini:medium
+  trusted-fast: openai-codex/gpt-5.3-codex-spark:low
 
 defaultThinkingLevel: medium
 
@@ -25,4 +43,55 @@ retry:
   fallbackChains:
     "minimax-code/MiniMax-M3":
       - openai-codex/gpt-5.6-terra:medium
+      - openai-codex/gpt-5.6-sol:high
+    "minimax-code/MiniMax-M2.7-highspeed":
+      - openai-codex/gpt-5.4-mini:medium
+      - openai-codex/gpt-5.6-terra:medium
+      - openai-codex/gpt-5.6-sol:high
+    "minimax-code/MiniMax-M2.7":
+      - openai-codex/gpt-5.6-terra:high
+      - openai-codex/gpt-5.6-sol:high
+    "minimax-code/MiniMax-M2.5-highspeed":
+      - openai-codex/gpt-5.3-codex-spark:low
+      - openai-codex/gpt-5.4-mini:medium
+      - openai-codex/gpt-5.6-terra:medium
+    "minimax-code/MiniMax-M2.5-lightning":
+      - openai-codex/gpt-5.3-codex-spark:low
+      - openai-codex/gpt-5.6-luna:low
+      - openai-codex/gpt-5.6-terra:medium
+    "minimax-code/MiniMax-M2.5":
+      - openai-codex/gpt-5.5:high
+      - openai-codex/gpt-5.6-terra:high
+      - openai-codex/gpt-5.6-sol:high
+    "minimax-code/MiniMax-M2.1-lightning":
+      - openai-codex/gpt-5.6-luna:low
+      - openai-codex/gpt-5.6-terra:medium
+      - openai-codex/gpt-5.6-sol:high
+    "minimax-code/MiniMax-M2.1":
+      - openai-codex/gpt-5.6-luna:low
+      - openai-codex/gpt-5.6-terra:medium
+      - openai-codex/gpt-5.6-sol:high
+    "minimax-code/MiniMax-M2":
+      - openai-codex/gpt-5.3-codex-spark:low
+      - openai-codex/gpt-5.6-luna:low
+      - openai-codex/gpt-5.6-terra:medium
+    "openai-codex/gpt-5.3-codex-spark":
+      - openai-codex/gpt-5.4-mini:medium
+      - openai-codex/gpt-5.6-luna:low
+      - openai-codex/gpt-5.6-terra:medium
+      - openai-codex/gpt-5.6-sol:high
+    "openai-codex/gpt-5.4-mini":
+      - openai-codex/gpt-5.6-luna:low
+      - openai-codex/gpt-5.6-terra:medium
+      - openai-codex/gpt-5.6-sol:high
+    "openai-codex/gpt-5.4":
+      - openai-codex/gpt-5.6-terra:high
+      - openai-codex/gpt-5.6-sol:high
+    "openai-codex/gpt-5.5":
+      - openai-codex/gpt-5.6-terra:high
+      - openai-codex/gpt-5.6-sol:high
+    "openai-codex/gpt-5.6-luna":
+      - openai-codex/gpt-5.6-terra:medium
+      - openai-codex/gpt-5.6-sol:high
+    "openai-codex/gpt-5.6-terra":
       - openai-codex/gpt-5.6-sol:high

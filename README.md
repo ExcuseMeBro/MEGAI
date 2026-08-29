@@ -202,6 +202,31 @@ MiniMax Code M3 runs through OMP's native `minimax-code` provider, never Pi. A k
 
 The authenticated balanced overlay maps routine roles (`default`, `task`) to MiniMax Code M3 `medium`, `smol` to `low`, and `tiny`/`commit` to the supported `minimal` effort. GPT-5.6 Sol owns `plan`, `slow`, `advisor`, and `vision`; Luna/Terra remain trusted discovery/review roles. For Paseo-launched OMP sessions, add both overlay paths to `PI_CONFIG_FILES` only after MiniMax Code auth. The 60/40 split is an advisory observed-token target, never a reason to weaken HIGH/CRITICAL GPT gates. No free OpenCode models participate.
 
+The portfolio uses every authenticated model where it is strongest:
+
+| Model | Role |
+| --- | --- |
+| MiniMax M3 | Default/task, 1M-context general implementation |
+| MiniMax M2.1 Lightning | Long-context repository exploration |
+| MiniMax M2.7 Highspeed | Fast CRUD/API worker |
+| MiniMax M2.7 | Quality routine refactor worker |
+| MiniMax M2.5 Highspeed | Focused test generation |
+| MiniMax M2.5 Lightning | Docker/scripts/mechanical operations |
+| MiniMax M2.5 | Ordinary non-sensitive migrations |
+| MiniMax M2.1 | Stable compatibility worker |
+| MiniMax M2 | Last low-risk MiniMax fallback |
+| GPT-5.6 Sol | Critical planning, hard decisions, final gate |
+| GPT-5.6 Terra | Architecture, impact, mandatory review |
+| GPT-5.6 Luna | Fast trusted scout |
+| GPT-5.5 | Hard debugging and complex-refactor fallback |
+| GPT-5.4 | Trusted 1M-context analysis |
+| GPT-5.4 Mini | Cheap trusted MEDIUM review |
+| GPT-5.3 Codex Spark | Very fast small trusted tasks |
+
+MiniMax fallbacks progress toward another MiniMax tier and then trusted GPT. A model-specific MiniMax failure tries its configured MiniMax siblings first; a provider-wide quota/cooldown skips unavailable same-provider candidates and advances to Terra/Sol. `retry.maxDelayMs: 300000` prevents waiting hours for a quota reset, while `cooldown-expiry` returns to the primary model after recovery.
+
+Routine work continues on MiniMax when the OpenAI quota is unavailable. GPT never automatically falls back to MiniMax for planning, architecture, review, debugging, or sensitive roles, and Sol has no reverse fallback: HIGH/CRITICAL work stops rather than weakening its final gate.
+
 ---
 
 ## ⌨️ CLI reference
