@@ -198,9 +198,9 @@ OMP provider authentication remains in OMP's own credential store; MEGAI never w
 
 MiniMax Code M3 runs through OMP's native `minimax-code` provider, never Pi. A key pasted into chat or logs is compromised and must be revoked before use. Configure the rotated Token Plan key through OMP auth or `MINIMAX_CODE_API_KEY` outside source; MEGAI never stores credentials.
 
-`megai omp` always loads `~/.megai/omp-config/high-speed.yml` for Codex Code Mode `auto`, provider concurrency (`openai-codex: 2`, `minimax-code: 4`), six-agent fanout, async batch execution, and branch-merge isolation. It adds `balanced-minimax.yml` only when the selected OMP profile reports authenticated `MiniMax-M3` availability; without MiniMax auth, the trusted existing default remains unchanged.
+`megai omp` always loads `~/.megai/omp-config/high-speed.yml` for Codex Code Mode `auto`, provider concurrency (`openai-codex: 2`, `minimax-code: 4`), four-agent maximum fanout, async batch execution, and branch-merge isolation. It adds `balanced-minimax.yml` only when the selected OMP profile reports authenticated `MiniMax-M3` availability; without MiniMax auth, the trusted existing default remains unchanged.
 
-The authenticated balanced overlay maps routine roles (`default`, `task`) to MiniMax Code M3 `medium`, `smol` to `low`, and `tiny`/`commit` to the supported `minimal` effort. GPT-5.6 Sol owns `plan`, `slow`, `advisor`, and `vision`; Luna/Terra remain trusted discovery/review roles. For Paseo-launched OMP sessions, add both overlay paths to `PI_CONFIG_FILES` only after MiniMax Code auth. The 60/40 split is an advisory observed-token target, never a reason to weaken HIGH/CRITICAL GPT gates. No free OpenCode models participate.
+The authenticated overlay maps routine implementation, code self-review, and focused tests to MiniMax. GPT roles remain available only for an explicit specialty request or one focused failure. No provider-ratio target, automatic planning/review/final gate, or free OpenCode routing participates in default execution.
 
 The portfolio uses every authenticated model where it is strongest:
 
@@ -215,21 +215,23 @@ The portfolio uses every authenticated model where it is strongest:
 | MiniMax M2.5 | Ordinary non-sensitive migrations |
 | MiniMax M2.1 | Stable compatibility worker |
 | MiniMax M2 | Last low-risk MiniMax fallback |
-| GPT-5.6 Sol | Critical planning, hard decisions, final gate |
-| GPT-5.6 Terra | Architecture, impact, mandatory review |
-| GPT-5.6 Luna | Fast trusted scout |
-| GPT-5.5 | Hard debugging and complex-refactor fallback |
-| GPT-5.4 | Trusted 1M-context analysis |
-| GPT-5.4 Mini | Cheap trusted MEDIUM review |
-| GPT-5.3 Codex Spark | Very fast small trusted tasks |
+| GPT-5.6 Sol | Explicit critical reasoning or final review |
+| GPT-5.6 Terra | Explicit architecture or independent review |
+| GPT-5.6 Luna | One-step discovery fallback |
+| GPT-5.5 | Focused hard-debugging fallback |
+| GPT-5.4 | Explicit trusted 1M-context analysis |
+| GPT-5.4 Mini | One-step fast fallback/review |
+| GPT-5.3 Codex Spark | One-step very fast fallback |
 
-Every MiniMax fallback crosses directly to trusted GPT, so a provider-wide quota exits MiniMax after one failed selector rather than burning retries across sibling models. GPT chains progress toward Terra/Sol only; Sol has no reverse fallback. `retry.maxDelayMs: 300000` prevents waiting hours for quota reset, and `cooldown-expiry` returns to the primary after recovery.
+Each MiniMax model has one direct trusted GPT fallback. GPT fallback chains are not used for automatic escalation. `retry.maxDelayMs: 30000` bounds provider backoff and `cooldown-expiry` returns to the primary after recovery.
 
-Token-heavy operations are enforced through agent overrides: `smart-router` and generic scouts use MiniMax M2.1 Lightning; routine/task workers use MiniMax M3/M2.7; focused tests and operations use M2.5 tiers; commit/changelog text uses `minimax-commit-writer` at M3 `minimal`. GPT remains pinned to planning, debugging, sensitive review, and final acceptance. Merge/push/PR/archive are deterministic MEGAI/Paseo operations and require no extra planning turns.
+Default execution is one bounded sequence: inspect the exact seam, implement, self-review the changed code, run focused tests, ship when required, then stop. Commit messages are generated directly by the parent; merge/push/PR/archive remain deterministic MEGAI/Paseo operations.
 
-Model settings apply to new sessions and new task resolutions. Existing OMP/Paseo tabs keep their launch model. `task.showResolvedModelBadge: true` exposes the actual worker model; if a token-heavy task shows GPT unexpectedly, relaunch the session instead of continuing.
+Model settings apply to new sessions and new task resolutions. Existing OMP/Paseo tabs keep their launch model. `task.showResolvedModelBadge: true` exposes the actual worker model; if a writer resolves incorrectly, relaunch it once.
 
-Runaway protection is enabled: subagents have a 30-request soft budget, a 10-minute hard runtime, `high` as the maximum effort, 12 concurrent background jobs, and a three-call identical-tool loop threshold. Goal auto-continuation is disabled. LOW/MEDIUM policy further limits workers to one discovery, edit, and focused-verification wave; the full suite runs once on integrated `dev`.
+Runaway protection is enabled: subagents have a 16-request soft budget, a five-minute hard runtime, four concurrent background jobs, and a two-call identical-tool loop threshold. Goal auto-continuation, queue draining, autonomous `/loop`, sampled review, browser/visual QA, and automatic full-suite runs are disabled.
+
+UI verification is code-only by default: structure, states, accessibility semantics, token/style consistency, diagnostics, and focused component tests. The user owns visual/manual review unless a task explicitly requests browser, simulator, screenshot, design, or accessibility auditing.
 
 Paseo-visible workspaces require Paseo orchestration tools: native OMP `task` isolation creates internal worktrees but not Paseo workspace rows. Inside Paseo, each writer is launched with `create_workspace(isolation: "worktree", mode: "branch-off", baseBranch: "dev", branchName: "task/<slug>")`, then `create_agent(workspaceId: ...)`. Read-only workers stay as tabs in the orchestrator workspace. Native OMP isolation is used only outside Paseo.
 
@@ -304,13 +306,13 @@ A task line carries priority and ADLC stage:
 | 🟡 or `!!` | Medium |
 | 🟢 or `!` | Low |
 
-### 🔁 ADLC stages
+### 🔁 Execution
 
-`📝 spec → 📐 plan → 🔨 generate → 🧪 verify → 🔍 review → 🚀 ship`
+The fast path is `implement → code self-review → focused test → ship when required`. The six `.todos` ADLC emojis remain bookkeeping labels only; they do not trigger separate agents or model/tool passes.
 
 ### 🔗 Boundary-only Asana mapping
 
-Asana synchronizes only at task boundaries; `.todos` owns the six local ADLC stages. Linked tasks store the Asana GID in an HTML comment to prevent duplicate searches.
+Asana synchronizes only at task boundaries. Linked tasks store the Asana GID in an HTML comment to prevent duplicate searches; the queue never auto-drains.
 
 | Boundary | `.todos` | Asana section | Completed |
 | --- | --- | --- | --- |

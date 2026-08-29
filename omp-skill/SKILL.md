@@ -27,11 +27,15 @@ Use the connected codedb MCP tools for project trees, full-text search, symbol l
 
 ### smart-router
 
-Use the single `smart-router` task agent for non-trivial file location, cross-file search, caller/reference tracing, and read-heavy repository exploration. It handles routine discovery on MiniMax Code M3, escalates an empty/conflicting lookup to its trusted Luna scout, and delegates architecture/data-flow/impact reasoning to Terra. The parent must not duplicate returned reads; it keeps integration and final verification.
+Use direct LSP, index, search, and exact reads first. Use `smart-router` only when the target is genuinely unknown or repository-wide evidence is required; one empty/conflicting result may escalate once to Luna or Terra.
 
 ### minimax-worker
 
-Use the managed `minimax-worker` for bounded routine implementation after the trusted parent classifies the task. OMP already ships the native `minimax-code` catalog and provider-specific transport/streaming compatibility; MEGAI does not duplicate it. The provider remains unavailable until a rotated `MINIMAX_CODE_API_KEY` is configured outside source. Target roughly 60% MiniMax for exploration/implementation/tests and 40% GPT for planning, architecture, hard debugging, critical review, sensitive domains, and final acceptance. Never weaken HIGH/CRITICAL GPT gates to meet the ratio.
+Use `minimax-worker` or `minimax-fast-worker` for implementation, code self-review, and focused tests. OMP already ships the native `minimax-code` catalog and provider transport; MEGAI does not duplicate it. Use GPT specialties only after one focused failure or when the user explicitly asks for architecture, security, deep debugging, or independent review. Ignore provider-share targets while executing.
+
+## Fast execution contract
+
+Inspect the exact seam, implement, self-review the changed code, run focused tests, ship when required, then stop. UI checks are code-only by default; the user owns visual/manual review. Never start automatic planning, review, final-gate, browser, full-suite, queue-drain, or `/loop` work.
 
 ## Specialist CLIs
 
@@ -47,7 +51,7 @@ Check each CLI's help or status command before use. Do not keep specialist MCP s
 
 When OMP runs inside Paseo, placement depends on write authority:
 
-- In an agent-scoped Paseo session, read-only discovery, planning, and review workers are tabs in the caller's workspace; call `create_agent` without `workspaceId`.
+- Read-only discovery, planning, and review agents are opt-in or failure-driven. In an agent-scoped Paseo session, launch a required read-only worker as a tab in the caller's workspace by calling `create_agent` without `workspaceId`.
 - In a top-level context, require exactly one workspace whose `cwd` equals the current `cwd`, then pass that workspace ID to `create_agent` for read-only workers. Ask once on zero or multiple matches.
 - Every writing worker MUST receive a visible Paseo-managed worktree workspace. Call `create_workspace` with `isolation: "worktree"`, `mode: "branch-off"`, `baseBranch: "dev"`, and a unique `task/<slug>` branch; then call `create_agent` with that returned `workspaceId`.
 - Never launch concurrent writers in the parent workspace. Cross-workspace workers remain attached to the orchestrator's Subagents track and are not detached automatically.

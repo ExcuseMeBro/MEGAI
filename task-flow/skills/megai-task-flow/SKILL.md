@@ -60,14 +60,15 @@ At each boundary, mutate Asana first and then move the `.todos` line. Stop and r
 
 ## Work cycle
 
-1. **Classify first:** bounded localized copy/style/layout or presentation-only constant changes across at most three directly related files use the fast path only after an explicit blast-radius check confirms no public API/schema/auth/security/dependency/data-migration, production/CI/deployment, infrastructure, permissions, retention, destructive-behavior, or operational-config impact.
+1. **Use the bounded execution contract:** inspect the exact seam, implement, self-review the changed code, run focused tests, then ship only when required. Separate planning, reviewer, visual-QA, full-suite, and final-gate agents are opt-in or failure-driven.
 2. **Start boundary:** for tracked/high-risk work, use a linked GID directly. For an unlinked task, use at most one exact lookup, then reuse or create it. Put it in `In Progress` with `completed=false` in one mutation; stop and reconcile if that mutation fails.
 3. Add the GID marker and move the local line to `inprogress.md` at 📝 spec.
-4. Cover `spec → plan → generate → verify → review → ship` at risk-appropriate depth. Phase coverage does not require a separate model/tool round trip per label.
+4. Cover bookkeeping stages in the same bounded implementation pass. UI verification is code-only unless the user explicitly requests browser, simulator, screenshot, or design review.
 5. Routine stage changes and milestone comments are forbidden. Never discover or sync Plane, Jira, or another tracker unless the user explicitly asks.
 6. **Ship boundary when required:** run `megai finish --verified --target dev` only when the tracked delivery requires commit/PR publication. It merges task work into `dev` when needed, pushes `dev`, opens/reuses a `dev` → `main` PR/MR, then removes only merged task branches/registered worktrees. Stop on dirty state, conflict, missing branches/remote, failed verification, forge/auth/push/PR failure, or ambiguous ownership. Never auto-merge `main`.
 7. **Completion boundary:** after verification and any required delivery succeed, move the Asana task to `Done` and set `completed=true` in one mutation. Do not add a routine completion comment.
 8. Move the local line to `done.md` and let the task-flow monitor regenerate `monitoring.md`.
+9. Stop after the current requested task; never auto-drain the queue or launch `/loop`.
 
 ## Reconciliation
 

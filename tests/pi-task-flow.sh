@@ -52,8 +52,8 @@ printf '%s\n' '{}' >"$HOME/.claude/settings.json"
 bash "$MEGAI_HOME/lib/install_taskflow.sh" >/dev/null 2>&1
 bash "$MEGAI_HOME/lib/install_taskflow.sh" >/dev/null 2>&1
 grep -q 'Risk-scaled Asana sync' "$HOME/.claude/CLAUDE.md"
-grep -q 'Bounded fast path' "$HOME/.claude/CLAUDE.md"
-grep -q 'Target at most eight assistant requests' "$HOME/.claude/CLAUDE.md"
+grep -q 'Default fast path' "$HOME/.claude/CLAUDE.md"
+grep -q 'implement → self-review → focused test → ship' "$HOME/.claude/CLAUDE.md"
 grep -q 'Never discover or sync Plane, Jira' "$HOME/.claude/CLAUDE.md"
 grep -q 'Parallel implementation invariant' "$HOME/.claude/CLAUDE.md"
 grep -q 'visible managed worktree workspace' "$HOME/.claude/CLAUDE.md"
@@ -62,9 +62,9 @@ grep -q 'launched with that `workspaceId`' "$HOME/.claude/CLAUDE.md"
 ! grep -q 'old synchronous policy' "$HOME/.claude/CLAUDE.md"
 [ "$(grep -c 'megai:task-flow:begin' "$HOME/.claude/CLAUDE.md")" = "1" ]
 grep -q 'Do not re-read unchanged board files between ADLC stages' "$HOME/.claude/skills/task-flow/SKILL.md"
-grep -q 'ADLC is phase coverage, not one tool/model round trip per phase' "$HOME/.claude/skills/task-flow/SKILL.md"
-grep -q 'Use the bounded fast path' "$HOME/.claude/hooks/taskflow-prompt.sh"
-grep -q 'Never discover or sync another tracker' "$HOME/.claude/hooks/taskflow-prompt.sh"
+grep -q 'ADLC labels are bookkeeping' "$HOME/.claude/skills/task-flow/SKILL.md"
+grep -q "Execute only the user's current task" "$HOME/.claude/hooks/taskflow-prompt.sh"
+grep -q 'Do not launch separate planner' "$HOME/.claude/hooks/taskflow-prompt.sh"
 
 bash "$MEGAI_HOME/lib/wire_pi.sh" --remove >/dev/null 2>&1
 [ ! -e "$PI_CODING_AGENT_DIR/skills/megai-task-flow" ]

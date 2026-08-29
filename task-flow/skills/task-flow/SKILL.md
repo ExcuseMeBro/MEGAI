@@ -66,7 +66,7 @@ Prefer these over hand-editing — they move the line atomically and refresh `mo
 
 **Choose the path first.**
 
-- **Bounded fast path:** pure questions and localized copy/style/layout or presentation-only constant changes across at most three directly related files may skip Asana, `.todos`, worktrees, subagents, TDD, and commit/PR only after an explicit blast-radius check. Require an obvious acceptance condition, a focused behavioral/visual/diagnostic check, and no public API/schema/auth/security/dependency/data-migration, production/CI/deployment, infrastructure, permissions, retention, destructive-behavior, or operational-config impact. Batch independent reads, edit the narrowest seam, self-review the changed range, and stop. Target at most eight assistant requests; exceed that only for a concrete acceptance blocker.
+- **Default fast path:** for every task, run one bounded inspect → implement → code self-review → focused-test sequence. Do not add separate planner, reviewer, UI/design, browser, final-gate, or full-suite agents unless the user explicitly asks or the focused test fails. UI checks are code-only by default: structure, states, accessibility semantics, token/style usage, diagnostics, and component tests; the user owns visual/manual review.
 - **Tracked/high-risk path:** multi-module or public-contract work, auth/security, schema/data/dependency migrations, production/CI/deployment or infrastructure configuration, permissions/retention/destructive behavior, explicitly tracked tasks, or explicit ship/PR requests. Order is analyze → satisfy the required external start boundary → write the local task → act.
 - **Parallel implementation invariant:** when tracked/high-risk work has two or more independent implementation slices, the parent owns integration. Inside Paseo, create one visible managed worktree workspace per writer from `dev`, then launch the writer with that workspace ID; read-only workers remain tabs in the parent workspace. Outside Paseo, native isolated task worktrees are allowed. Define non-overlapping ownership up front and serialize shared-file or dependency boundaries.
 
@@ -74,25 +74,25 @@ For tracked/high-risk work:
 
 1. **Locate or create the board once per task/resume.** Ensure `<project>/.todos/` contains `todo.md`, `inprogress.md`, and `done.md`.
 2. **Read only what decides current work.** Read `todo.md` and `inprogress.md` once at task start, resume, or a new user turn where external edits are possible. Read `done.md` only to resolve prior identity or complete a task. Do not re-read unchanged board files between ADLC stages.
-3. **The board, not memory, is the truth.** Re-read after a user edit, session resume, failed board mutation, or `/loop` boundary.
+3. **The board, not memory, is the truth.** Re-read after a user edit, session resume, or failed board mutation.
 4. **Break work into small lines.** Split into independently completable units while keeping one active line.
-5. **Execute by priority.** Move the selected line to `inprogress.md`, cover the required ADLC phases at risk-appropriate depth, then move it to `done.md`.
-6. **Drain until empty.** After completion, read `todo.md` and `inprogress.md` once to select the next task.
+5. **Execute the selected task only.** Move it to `inprogress.md`, implement, self-review the changed code, run focused tests, then move it to `done.md`.
+6. **Stop after the requested task.** Never auto-drain queued tasks or start an autonomous loop.
 
-## Inner Loop — risk-scaled ADLC
+## Bounded execution
 
-ADLC is phase coverage, not one tool/model round trip per phase. Collapse spec+plan and verify+review into the same pass when one evidence set covers both. Advance the stage with `/tg next` only when a tracked task actually crosses a boundary.
+ADLC labels are bookkeeping, not separate model/tool passes. The execution contract is implement → self-review → focused test → ship when required. Advance the stage with `/tg next` only when a tracked task actually crosses a boundary.
 
 | # | Stage | Required outcome |
 |---|-------|------------------|
 | 1 | **spec** | Observable acceptance condition and risk classification. |
 | 2 | **plan** | Narrowest responsible seam, affected callers, and verification choice. |
-| 3 | **generate** | Smallest complete change; TDD only for a new observable contract or regression seam. |
-| 4 | **verify** | Run the changed behavior or the narrowest test that proves acceptance. |
-| 5 | **review** | Self-review focused changes; independent review only for material risk. |
+| 3 | **generate** | Smallest complete implementation; no automatic TDD loop. |
+| 4 | **verify** | Run the narrowest test or diagnostic that proves the changed code. |
+| 5 | **review** | Self-review the focused diff for correctness, quality, and unnecessary complexity. |
 | 6 | **ship** | Commit/PR/worktree lifecycle only when explicitly requested or required by the tracked delivery. |
 
-Depth follows risk. Standard tracked work may cover several stages in one model turn and one evidence pass. High-risk work uses full TDD, independent review, and delivery gates. Never add a tracker, integration, full suite, or ship step after acceptance unless the task requires it.
+Depth follows the user's task. Independent review, full TDD, full suites, security/design audits, visual QA, and final-gate agents run only when explicitly requested or when a focused failure requires escalation.
 
 ## Priority Markers
 
@@ -122,16 +122,16 @@ High/medium/low tasks do **not** preempt — they wait their turn. Only urgent i
 
 ## Gotchas
 
-- **Never skip a required outcome on the tracked/high-risk path.** Do not manufacture separate tool calls for each ADLC label; one direct evidence pass may cover multiple adjacent phases.
+- **Keep execution bounded.** One direct evidence pass may cover multiple adjacent ADLC labels; never create a tool or model round trip for a label.
 - Default primary work to `dev`; create task worktrees from `dev`. At ship, `megai finish --verified --target dev` merges when needed, pushes `dev`, and opens/reuses a `dev` → `main` PR/MR. Never auto-merge `main`; delete only merged task branches and registered linked worktrees.
-- **Use TDD where it buys regression proof.** Write a failing test first for a new observable contract or a reproduced bug with a correct seam. Do not create plumbing tests for bounded copy/style/layout changes.
+- **Test after implementation.** Use the narrowest existing test, typecheck, lint, or build check that covers the change. Add a regression test only when the user asks or the new observable contract otherwise has no focused proof.
 - **Advance the stage emoji as you go.** Update 📝→📐→🔨→🧪→🔍→🚀 in `inprogress.md` at each transition so the statusline + `monitoring.md` reflect reality. A task stuck on 📝 while you write code means the marker is lying.
-- **Do not poll the board between stages.** Re-read only at a new user turn, session resume, failed mutation, explicit `/loop` boundary, or known external edit.
+- **Do not poll the board between stages.** Re-read only at a new user turn, session resume, failed mutation, or known external edit.
 - **Keep one line in `inprogress.md`.** Moving several tasks to in-progress at once destroys the "what am I doing now" signal and breaks the timer/stage display. Finish or move the current one back to `todo.md` before starting the next.
 - **Move lines, don't duplicate them.** When advancing status, cut the line from the old file before appending to the new one. A task appearing in both `todo.md` and `done.md` is a sync bug.
-- **Claude is turn-based — "never stops" is bounded.** True background continuation while the user types is impossible. What this protocol guarantees: the queue persists, in-progress work is never silently dropped, urgent preempts, and the queue is drained within each turn. For hands-off draining, the user must start `/loop`.
+- **No autonomous loops.** Do not invoke `/loop`, auto-drain `.todos`, or continue into unrelated queued work. Finish the current user-requested task and stop.
 - **Single `!` is usually punctuation.** Do not downgrade a normal sentence ending in `!` to low priority. Only a standalone `!` token counts.
-- **Terse wording does not define risk.** Classify by blast radius and acceptance. Bounded localized changes use the fast path; risky changes still require an explicit plan.
+- **Terse wording does not define risk.** Classify by blast radius and acceptance, but keep the same bounded implementation/self-review/test path unless the user requests a specialty.
 - **`.todos/` is the ONLY task store.** There is no session/Task-tools mirror. Every status change is a file edit (move the line between `todo.md` / `inprogress.md` / `done.md`). If the files and reality disagree, the files win — fix them.
 - **Put a priority marker on every line.** A line with no marker defaults to medium; the statusline still shows and orders it, but be explicit for anything non-default.
 - **Resume after urgent — don't forget the paused task.** After an urgent preemption completes, the previously-running task is back in `todo.md`; pick it up rather than leaving it stranded.

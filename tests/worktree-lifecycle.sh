@@ -280,7 +280,7 @@ for skill in \
   grep -q '^managed-by: megai$' "$skill"
 done
 grep -q 'do not route work to free OpenCode models' "$HOME/.claude/skills/smart-development-orchestrator/SKILL.md"
-grep -q 'Treat 60% MiniMax / 40% GPT as a non-binding observed-token target' "$HOME/.claude/skills/smart-development-orchestrator/SKILL.md"
+grep -q 'For every task, complexity selects the writer model but does not add workflow stages' "$HOME/.claude/skills/smart-development-orchestrator/SKILL.md"
 for policy in "$HOME/.codex/AGENTS.md" "$HOME/.pi/agent/AGENTS.md" "$HOME/.claude/CLAUDE.md" "$HOME/.omp/agent/RULES.md"; do
   grep -q 'user policy' "$policy"
   [ "$(grep -c 'megai:worktree-lifecycle:begin' "$policy")" = 1 ]
