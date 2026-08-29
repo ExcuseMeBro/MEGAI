@@ -7,14 +7,26 @@ providers:
 
 async:
   enabled: true
+  maxJobs: 12
 
 task:
   batch: true
   maxConcurrency: 6
+  showResolvedModelBadge: true
+  maxEffort: high
+  softRequestBudget: 30
+  maxRuntimeMs: 600000
   isolation:
     mode: auto
     merge: branch
     apply: true
+
+goal:
+  enabled: false
+
+model:
+  toolCallLoopGuard:
+    threshold: 3
 
 retry:
   modelFallback: true

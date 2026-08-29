@@ -90,6 +90,7 @@ minimax-ops-worker|minimax-code/MiniMax-M2.5-lightning|low
 minimax-migration-worker|minimax-code/MiniMax-M2.5|medium
 minimax-stable-worker|minimax-code/MiniMax-M2.1|medium
 minimax-legacy-worker|minimax-code/MiniMax-M2|low
+minimax-commit-writer|minimax-code/MiniMax-M3|minimal
 sol-gate|openai-codex/gpt-5.6-sol|high
 gpt-debugger|openai-codex/gpt-5.5|high
 gpt-long-context|openai-codex/gpt-5.4|high
@@ -122,9 +123,11 @@ jq -e '
 grep -q '^# Smart Development Orchestrator$' "$HOME/.omp/agent/skills/smart-development-orchestrator/SKILL.md"
 grep -q 'archive_workspace' "$HOME/.omp/agent/skills/smart-development-orchestrator/SKILL.md"
 grep -q '^# MEGAI for Oh My Pi$' "$HOME/.omp/agent/skills/megai/SKILL.md"
-grep -q 'subagent, reviewer, parallel worker, or new tab' "$HOME/.omp/agent/skills/megai/SKILL.md"
-grep -q 'do not create a workspace first' "$HOME/.omp/agent/skills/megai/SKILL.md"
-grep -q 'one task batch with `isolated: true`' "$HOME/.omp/agent/skills/megai/SKILL.md"
+grep -q 'minimax-commit-writer' "$HOME/.omp/agent/RULES.md"
+grep -q 'resolved-model badge' "$HOME/.omp/agent/RULES.md"
+grep -q 'In an agent-scoped Paseo session, read-only discovery' "$HOME/.omp/agent/skills/megai/SKILL.md"
+grep -q 'Every writing worker MUST receive a visible Paseo-managed worktree workspace' "$HOME/.omp/agent/skills/megai/SKILL.md"
+grep -q 'OMP native `task` isolation is reserved for execution outside Paseo' "$HOME/.omp/agent/skills/megai/SKILL.md"
 grep -q 'parent is the sole integration owner' "$HOME/.omp/agent/skills/megai/SKILL.md"
 grep -q 'task.isolation.merge: branch' "$HOME/.omp/agent/skills/agent-worktree-lifecycle/SKILL.md"
 while IFS='|' read -r name model effort; do
@@ -136,16 +139,22 @@ while IFS='|' read -r name model effort; do
 done <"$TMP/expected-agents"
 grep -q '^spawns: luna-scout, terra-scout$' "$HOME/.omp/agent/agents/smart-router.md"
 grep -q '^blocking: true$' "$HOME/.omp/agent/agents/smart-router.md"
-grep -q 'Route non-trivial file location' "$HOME/.omp/agent/RULES.md"
+grep -q 'MUST delegate non-trivial file location' "$HOME/.omp/agent/RULES.md"
 jq -e '.agents.omp.wired == true and .agents.omp.config == $config' \
   --arg config "$HOME/.omp/agent" "$MEGAI_HOME/state.json" >/dev/null
 grep -q 'user-owned OMP rule' "$HOME/.omp/agent/RULES.md"
-grep -q 'New agent or tab means the current Paseo workspace' "$HOME/.omp/agent/RULES.md"
-grep -q 'call `create_agent` without `workspaceId`' "$HOME/.omp/agent/RULES.md"
-grep -q 'exactly one workspace whose `cwd` equals the current `cwd`' "$HOME/.omp/agent/RULES.md"
-grep -q 'pass that `workspaceId` explicitly to `create_agent`' "$HOME/.omp/agent/RULES.md"
-grep -q 'Never call `create_workspace` unless the user explicitly requests' "$HOME/.omp/agent/RULES.md"
-grep -q 'For zero or multiple matches, ask once' "$HOME/.omp/agent/RULES.md"
+grep -q 'orchestrator stays in the primary `dev` workspace' "$HOME/.omp/agent/RULES.md"
+grep -q 'In an agent-scoped Paseo session, read-only discovery' "$HOME/.omp/agent/RULES.md"
+grep -q 'In a top-level context, require exactly one workspace whose `cwd` equals the current `cwd`' "$HOME/.omp/agent/RULES.md"
+grep -q 'Every worker with write authority MUST first use `create_workspace`' "$HOME/.omp/agent/RULES.md"
+grep -q 'isolation: "worktree"' "$HOME/.omp/agent/RULES.md"
+grep -q 'mode: "branch-off"' "$HOME/.omp/agent/RULES.md"
+grep -q 'baseBranch: "dev"' "$HOME/.omp/agent/RULES.md"
+grep -q 'unique `task/<slug>` branch' "$HOME/.omp/agent/RULES.md"
+grep -q 'then use `create_agent` with the returned `workspaceId`' "$HOME/.omp/agent/RULES.md"
+grep -q 'Never create concurrent writers in the parent workspace' "$HOME/.omp/agent/RULES.md"
+grep -q 'visible writer workspaces take precedence' "$HOME/.omp/agent/RULES.md"
+grep -q 'After verified merge, dev push, PR/MR creation, and worktree cleanup' "$HOME/.omp/agent/RULES.md"
 [ "$(grep -Fxc '<!-- megai:paseo-placement:begin -->' "$HOME/.omp/agent/RULES.md")" = "1" ]
 
 mkdir -p "$HOME/.omp/profiles/work/agent"
@@ -186,18 +195,17 @@ cmp "$TMP/expected.args" "$TMP/omp.args"
 [ -f "$HOME/.omp/profiles/work/agent/mcp.json" ]
 [ -f "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md" ]
 [ -f "$HOME/.omp/profiles/work/agent/skills/agent-worktree-lifecycle/SKILL.md" ]
-grep -q 'subagent, reviewer, parallel worker, or new tab' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
-grep -q 'do not create a workspace first' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
+grep -q 'In an agent-scoped Paseo session, read-only discovery' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
+grep -q 'Every writing worker MUST receive a visible Paseo-managed worktree workspace' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
 while IFS='|' read -r name model effort; do
   [ -f "$HOME/.omp/profiles/work/agent/agents/$name.md" ]
 done <"$TMP/expected-agents"
 grep -q '^spawns: luna-scout, terra-scout$' "$HOME/.omp/profiles/work/agent/agents/smart-router.md"
-grep -q 'one task batch with `isolated: true`' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
 grep -q 'task.isolation.merge: branch' "$HOME/.omp/profiles/work/agent/skills/agent-worktree-lifecycle/SKILL.md"
 grep -q 'named-profile user rule' "$HOME/.omp/profiles/work/agent/RULES.md"
-grep -q 'call `create_agent` without `workspaceId`' "$HOME/.omp/profiles/work/agent/RULES.md"
-grep -q 'pass that `workspaceId` explicitly to `create_agent`' "$HOME/.omp/profiles/work/agent/RULES.md"
-grep -q 'Never call `create_workspace` unless the user explicitly requests' "$HOME/.omp/profiles/work/agent/RULES.md"
+grep -q 'create_agent` without `workspaceId`' "$HOME/.omp/profiles/work/agent/RULES.md"
+grep -q 'Every worker with write authority MUST first use `create_workspace`' "$HOME/.omp/profiles/work/agent/RULES.md"
+grep -q 'then use `create_agent` with the returned `workspaceId`' "$HOME/.omp/profiles/work/agent/RULES.md"
 jq -e '.agents.omp.wired == true and .agents.omp.config == $config' \
   --arg config "$HOME/.omp/profiles/work/agent" "$MEGAI_HOME/state.json" >/dev/null
 

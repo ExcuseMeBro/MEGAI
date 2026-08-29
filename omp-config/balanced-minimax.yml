@@ -38,6 +38,34 @@ advisor:
 
 task:
   agentAdvisor: {}
+  agentModelOverrides:
+    task: minimax-code/MiniMax-M3:medium
+    sonic: minimax-code/MiniMax-M3:minimal
+    scout: minimax-code/MiniMax-M2.1-lightning:low
+    cavecrew-investigator: minimax-code/MiniMax-M2.1-lightning:low
+    cavecrew-builder: minimax-code/MiniMax-M2.7-highspeed:medium
+    smart-router: minimax-code/MiniMax-M2.1-lightning:low
+    minimax-worker: minimax-code/MiniMax-M3:medium
+    minimax-fast-worker: minimax-code/MiniMax-M2.7-highspeed:medium
+    minimax-quality-worker: minimax-code/MiniMax-M2.7:high
+    minimax-test-worker: minimax-code/MiniMax-M2.5-highspeed:low
+    minimax-ops-worker: minimax-code/MiniMax-M2.5-lightning:low
+    minimax-migration-worker: minimax-code/MiniMax-M2.5:medium
+    minimax-stable-worker: minimax-code/MiniMax-M2.1:medium
+    minimax-legacy-worker: minimax-code/MiniMax-M2:low
+    minimax-commit-writer: minimax-code/MiniMax-M3:minimal
+    luna-scout: openai-codex/gpt-5.6-luna:low
+    terra-scout: openai-codex/gpt-5.6-terra:medium
+    reviewer: openai-codex/gpt-5.6-terra:high
+    cavecrew-reviewer: openai-codex/gpt-5.4-mini:medium
+    security-reviewer: openai-codex/gpt-5.6-sol:high
+    librarian: openai-codex/gpt-5.4:high
+    designer: openai-codex/gpt-5.6-sol:medium
+    sol-gate: openai-codex/gpt-5.6-sol:high
+    gpt-debugger: openai-codex/gpt-5.5:high
+    gpt-long-context: openai-codex/gpt-5.4:high
+    gpt-fast-reviewer: openai-codex/gpt-5.4-mini:medium
+    gpt-trusted-fast: openai-codex/gpt-5.3-codex-spark:low
 
 retry:
   fallbackChains:
