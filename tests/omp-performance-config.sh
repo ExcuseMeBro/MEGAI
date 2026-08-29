@@ -11,15 +11,15 @@ grep -q 'tiny: minimax-code/MiniMax-M3:minimal' "$balanced"
 grep -q 'commit: minimax-code/MiniMax-M3:minimal' "$balanced"
 ! grep -q 'subagents:' "$balanced"
 grep -q 'codeMode: auto' "$performance"
-grep -q 'maxConcurrency: 6' "$performance"
+grep -q 'maxConcurrency: 4' "$performance"
 grep -q 'minimax-code: 4' "$performance"
 grep -q 'showResolvedModelBadge: true' "$performance"
-grep -q 'maxJobs: 12' "$performance"
+grep -q 'maxJobs: 4' "$performance"
 grep -q 'maxEffort: high' "$performance"
-grep -q 'softRequestBudget: 30' "$performance"
-grep -q 'maxRuntimeMs: 600000' "$performance"
+grep -q 'softRequestBudget: 16' "$performance"
+grep -q 'maxRuntimeMs: 300000' "$performance"
 grep -q 'enabled: false' "$performance"
-grep -q 'threshold: 3' "$performance"
+grep -q 'threshold: 2' "$performance"
 for model in \
   minimax-code/MiniMax-M2 \
   minimax-code/MiniMax-M2.1 \
@@ -48,13 +48,7 @@ for model in \
   minimax-code/MiniMax-M2.5-lightning \
   minimax-code/MiniMax-M2.7 \
   minimax-code/MiniMax-M2.7-highspeed \
-  minimax-code/MiniMax-M3 \
-  openai-codex/gpt-5.3-codex-spark \
-  openai-codex/gpt-5.4-mini \
-  openai-codex/gpt-5.4 \
-  openai-codex/gpt-5.5 \
-  openai-codex/gpt-5.6-luna \
-  openai-codex/gpt-5.6-terra; do
+  minimax-code/MiniMax-M3; do
   grep -Fq "    \"$model\":" "$balanced"
 done
 
@@ -101,15 +95,15 @@ PI_CONFIG_FILES="$performance:$balanced" MINIMAX_CODE_API_KEY=test-only omp conf
     and .["providers.openai-codex.codeMode"].value == "auto"
     and .["providers.maxInFlightRequests"].value["openai-codex"] == 2
     and .["providers.maxInFlightRequests"].value["minimax-code"] == 4
-    and .["task.maxConcurrency"].value == 6
+    and .["task.maxConcurrency"].value == 4
     and .["task.batch"].value == true
     and .["task.showResolvedModelBadge"].value == true
-    and .["async.maxJobs"].value == 12
+    and .["async.maxJobs"].value == 4
     and .["task.maxEffort"].value == "high"
-    and .["task.softRequestBudget"].value == 30
-    and .["task.maxRuntimeMs"].value == 600000
+    and .["task.softRequestBudget"].value == 16
+    and .["task.maxRuntimeMs"].value == 300000
     and .["goal.enabled"].value == false
-    and .["model.toolCallLoopGuard.threshold"].value == 3
+    and .["model.toolCallLoopGuard.threshold"].value == 2
     and .["task.agentModelOverrides"].value.task == "minimax-code/MiniMax-M3:medium"
     and .["task.agentModelOverrides"].value.scout == "minimax-code/MiniMax-M2.1-lightning:low"
     and .["task.agentModelOverrides"].value["cavecrew-investigator"] == "minimax-code/MiniMax-M2.1-lightning:low"
@@ -122,7 +116,7 @@ PI_CONFIG_FILES="$performance:$balanced" MINIMAX_CODE_API_KEY=test-only omp conf
     and .["task.isolation.merge"].value == "branch"
     and .["task.isolation.apply"].value == true
     and .["async.enabled"].value == true
-    and .["retry.maxDelayMs"].value == 300000
+    and .["retry.maxDelayMs"].value == 30000
     and ([
       .["retry.fallbackChains"].value
       | to_entries[]
@@ -137,11 +131,14 @@ PI_CONFIG_FILES="$performance:$balanced" MINIMAX_CODE_API_KEY=test-only omp conf
       | .value[]
       | select(startswith("minimax-code/"))
     ] | length == 0)
+    and ([.["retry.fallbackChains"].value | to_entries[] | select(.key | startswith("minimax-code/")) | (.value | length)] | all(. == 1))
     and (
       (.["retry.fallbackChains"].value | with_entries(.value |= map(strip_effort))) as $graph
       | all($graph | keys[]; (has_cycle($graph; .; []) | not))
     )
-    and .["retry.fallbackChains"].value["openai-codex/gpt-5.6-sol"] == null
+    and .["retry.fallbackChains"].value["openai-codex/gpt-5.6-sol"] == []
+    and .["retry.fallbackChains"].value["openai-codex/gpt-5.6-terra"] == []
+    and .["retry.fallbackChains"].value["openai-codex/gpt-5.3-codex-spark"] == []
     and .["retry.fallbackChains"].value["minimax-code/MiniMax-M3"][0] == "openai-codex/gpt-5.6-terra:medium"
   ' >/dev/null
 

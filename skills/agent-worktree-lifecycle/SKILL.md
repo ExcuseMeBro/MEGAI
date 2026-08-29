@@ -17,7 +17,7 @@ When a request has two or more independent implementation slices:
 3. Keep read-only discovery/review agents as tabs in the parent workspace. Never launch a writer there.
 4. Outside Paseo, native OMP batch items with `isolated: true` and `task.isolation.merge: branch` may provide equivalent ephemeral isolation.
 5. Assign one writer per file set. If slices touch the same file, schema, migration, or ordered dependency, serialize that boundary instead of racing.
-6. Each worker commits only its slice and reports focused verification evidence. The integration owner merges successful branches into `dev`, resolves no ambiguous overlap, and verifies the integrated tree once.
+6. Each worker commits only its slice and reports focused verification evidence. The integration owner merges successful branches into `dev` and resolves no ambiguous overlap. Do not run an automatic integrated full suite.
 
 A single indivisible task runs in one worktree; parallelism is required only when genuine independent slices exist.
 
@@ -26,8 +26,8 @@ A single indivisible task runs in one worktree; parallelism is required only whe
 Before finishing:
 
 1. Confirm the task branch is committed and the worktree is clean.
-2. Run the task-relevant tests, typecheck, lint, or build.
-3. Complete independent review when risk warrants it.
+2. Self-review the changed code for correctness, quality, and unnecessary complexity.
+3. Run the narrowest task-relevant test, typecheck, lint, or build. Independent review and full-suite gates are opt-in.
 4. Keep the external task incomplete until the dev push, dev-to-main PR/MR, and required cleanup succeed.
 5. Confirm `origin`, `dev`, and `main` are correct. Use `MEGAI_FORGE=github` or `MEGAI_FORGE=gitlab` for self-hosted forge URLs that cannot be detected.
 

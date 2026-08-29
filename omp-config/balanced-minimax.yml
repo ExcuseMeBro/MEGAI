@@ -71,55 +71,19 @@ retry:
   fallbackChains:
     "minimax-code/MiniMax-M3":
       - openai-codex/gpt-5.6-terra:medium
-      - openai-codex/gpt-5.6-sol:high
     "minimax-code/MiniMax-M2.7-highspeed":
       - openai-codex/gpt-5.4-mini:medium
-      - openai-codex/gpt-5.6-terra:medium
-      - openai-codex/gpt-5.6-sol:high
     "minimax-code/MiniMax-M2.7":
       - openai-codex/gpt-5.6-terra:high
-      - openai-codex/gpt-5.6-sol:high
     "minimax-code/MiniMax-M2.5-highspeed":
       - openai-codex/gpt-5.3-codex-spark:low
-      - openai-codex/gpt-5.4-mini:medium
-      - openai-codex/gpt-5.6-terra:medium
     "minimax-code/MiniMax-M2.5-lightning":
       - openai-codex/gpt-5.3-codex-spark:low
-      - openai-codex/gpt-5.6-luna:low
-      - openai-codex/gpt-5.6-terra:medium
     "minimax-code/MiniMax-M2.5":
       - openai-codex/gpt-5.5:high
-      - openai-codex/gpt-5.6-terra:high
-      - openai-codex/gpt-5.6-sol:high
     "minimax-code/MiniMax-M2.1-lightning":
       - openai-codex/gpt-5.6-luna:low
-      - openai-codex/gpt-5.6-terra:medium
-      - openai-codex/gpt-5.6-sol:high
     "minimax-code/MiniMax-M2.1":
       - openai-codex/gpt-5.6-luna:low
-      - openai-codex/gpt-5.6-terra:medium
-      - openai-codex/gpt-5.6-sol:high
     "minimax-code/MiniMax-M2":
       - openai-codex/gpt-5.3-codex-spark:low
-      - openai-codex/gpt-5.6-luna:low
-      - openai-codex/gpt-5.6-terra:medium
-    "openai-codex/gpt-5.3-codex-spark":
-      - openai-codex/gpt-5.4-mini:medium
-      - openai-codex/gpt-5.6-luna:low
-      - openai-codex/gpt-5.6-terra:medium
-      - openai-codex/gpt-5.6-sol:high
-    "openai-codex/gpt-5.4-mini":
-      - openai-codex/gpt-5.6-luna:low
-      - openai-codex/gpt-5.6-terra:medium
-      - openai-codex/gpt-5.6-sol:high
-    "openai-codex/gpt-5.4":
-      - openai-codex/gpt-5.6-terra:high
-      - openai-codex/gpt-5.6-sol:high
-    "openai-codex/gpt-5.5":
-      - openai-codex/gpt-5.6-terra:high
-      - openai-codex/gpt-5.6-sol:high
-    "openai-codex/gpt-5.6-luna":
-      - openai-codex/gpt-5.6-terra:medium
-      - openai-codex/gpt-5.6-sol:high
-    "openai-codex/gpt-5.6-terra":
-      - openai-codex/gpt-5.6-sol:high
