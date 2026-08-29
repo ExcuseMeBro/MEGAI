@@ -16,9 +16,10 @@
 
 ## Bounded execution
 
-- Run inspect → implement → code self-review → focused tests → ship when required, then stop.
+- Run inspect → implement → code self-review → focused tests → `megai finish --verified --target dev` when delivery is required, then stop implementation work.
 - UI checks are code-only by default: component structure, state handling, accessibility semantics, token/style consistency, diagnostics, and focused component tests. Browser, simulator, screenshot, visual, design, and accessibility-audit loops require an explicit user request.
 - Do not run automatic planner/reviewer/final-gate agents, TDD loops, integrated full suites, queue draining, or `/loop`. One focused failure may escalate once to one specialist.
+- After dev delivery and task completion, ask whether to promote main. Run `megai promote --approved` only after an explicit affirmative reply; otherwise leave main unchanged.
 
 ## Paseo agent placement
 
@@ -27,6 +28,6 @@
 - In a top-level context, require exactly one workspace whose `cwd` equals the current `cwd`, then pass its ID to `create_agent` for read-only workers; ask once on zero or multiple matches.
 - Every worker with write authority MUST first use `create_workspace` with `isolation: "worktree"`, `mode: "branch-off"`, `baseBranch: "dev"`, and a unique `task/<slug>` branch, then use `create_agent` with the returned `workspaceId`.
 - Never create concurrent writers in the parent workspace and never use bare `create_agent` for a writer. Shared-file/schema/migration boundaries are serialized through one writer.
-- Cross-workspace workers remain attached to the parent Subagents track. After verified merge, dev push, PR/MR creation, and worktree cleanup, call `archive_workspace` for that worker workspace. Never archive primary `dev`, dirty, failed, conflicted, or unmerged work.
+- Cross-workspace workers remain attached to the parent Subagents track. After verified dev merge/push, one open promotion request, and worktree cleanup, call `archive_workspace` for that worker workspace. Never archive primary `dev`, dirty, failed, conflicted, or unmerged work.
 - Outside Paseo, OMP native task isolation may provide ephemeral worktree/branch isolation; inside Paseo, visible writer workspaces take precedence.
 <!-- megai:paseo-placement:end -->

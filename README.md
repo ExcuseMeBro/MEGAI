@@ -127,7 +127,7 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | ⚡ | [rtk](https://github.com/rtk-ai/rtk) | Rust Token Killer for compact command output | CLI + Claude hook |
 | 🕸️ | [graphify](https://graphify.net) | Tree-sitter knowledge graph and code relationships | CLI + global skill |
 | 📋 | task-flow | `.todos` board, priority queue, ADLC, monitoring, Asana mirror | Claude hooks + global skills |
-| 🌿 | agent-worktree-lifecycle | Default work to `dev`; push and open/reuse `dev` → `main` PR/MR; clean merged worktrees | Global policy + `megai dev`/`finish` |
+| 🌿 | agent-worktree-lifecycle | Task worktrees → `dev`; one open promotion PR; user-approved `main` merge | Global policy + `megai dev`/`finish`/`promote` |
 | 🧭 | smart-development-orchestrator | Token-aware MiniMax/GPT complexity routing, Paseo fanout, and hybrid tab/worktree placement | Global skill + OMP agents |
 | ⚙️ | MiniMax Code M3 OMP worker | Routine exploration/implementation tier targeting roughly 60% of inference tokens | Native OMP provider + managed agent |
 | 🎨 | [ui-craft](https://skills.smoothui.dev) | Anti-slop UI rules, design memory, review gates, presets | Global skills and commands |
@@ -191,7 +191,7 @@ MEGAI configures:
 - MiniMax-first `smart-router`, trusted Luna lookup scout, Terra architecture worker, and routine `minimax-worker` under the active profile's `agents/` directory
 - OMP's native MiniMax catalog and provider-specific transport compatibility; MEGAI never rewrites user `models.yml`
 - preservation of unrelated OMP servers, model providers, allowlists, denylists, credentials, agents, and user settings
-- hybrid Paseo placement: read-only subagents stay as tabs in the current workspace; every concurrent writer receives a separate managed worktree workspace, which is archived only after its verified merge, dev push, PR/MR creation, and worktree cleanup succeed
+- hybrid Paseo placement: each writer receives a managed worktree from `dev`, then is archived after verified dev merge/push, one open promotion request, and worktree cleanup
 - Dembrandt, Argent, RepoWise, Numasec, and global skills through OMP's existing CLI and skill discovery surfaces
 
 OMP provider authentication remains in OMP's own credential store; MEGAI never writes provider credentials.
@@ -225,7 +225,7 @@ The portfolio uses every authenticated model where it is strongest:
 
 Each MiniMax model has one direct trusted GPT fallback. GPT fallback chains are not used for automatic escalation. `retry.maxDelayMs: 30000` bounds provider backoff and `cooldown-expiry` returns to the primary after recovery.
 
-Default execution is one bounded sequence: inspect the exact seam, implement, self-review the changed code, run focused tests, ship when required, then stop. Commit messages are generated directly by the parent; merge/push/PR/archive remain deterministic MEGAI/Paseo operations.
+Default execution is one bounded sequence: inspect, implement, self-review, focused tests, deliver to `dev`, then stop. `finish` reuses one promotion request; `promote --approved` merges it only after explicit user approval. Git and workspace operations remain deterministic.
 
 Model settings apply to new sessions and new task resolutions. Existing OMP/Paseo tabs keep their launch model. `task.showResolvedModelBadge: true` exposes the actual worker model; if a writer resolves incorrectly, relaunch it once.
 
@@ -251,7 +251,9 @@ megai graph [path]            Build a graphify knowledge graph
 megai dev                     Switch a clean primary main/master checkout to dev
 megai finish --dry-run --target dev
 megai finish --verified --target dev
-                              Push verified dev, open/reuse dev-to-main PR/MR, clean merged worktree
+                              Merge/push dev, reuse one open request, clean task worktree
+megai promote --dry-run       Preview the reviewed dev-to-main promotion
+megai promote --approved      Merge only after explicit user approval
 
 megai install                 Re-run the installed MEGAI pipeline
 megai update                  Update managed tools and re-wire agents
@@ -321,9 +323,9 @@ Asana synchronizes only at task boundaries. Linked tasks store the Asana GID in 
 
 Routine stage changes, `In Review` moves, milestone comments, and repeated board reads are skipped. An Asana comment is reserved for a real external blocker.
 
-### 🌿 Agent branch ship gate
+### 🌿 Agent branch delivery and promotion
 
-Primary development defaults to `dev` (`megai dev` switches a clean `main`/`master` checkout). Isolated agent branches start from `dev`. At 🚀 ship, `megai finish --verified --target dev` merges task work when needed, pushes `dev`, and creates or reuses an open `dev` → `main` GitHub PR or GitLab merge request before the Asana finish boundary. It never auto-merges `main`, deletes remote refs, or deletes primary/dirty/unmerged repositories. Missing branches/origin, failed verification, conflicts, forge authentication, push, or PR/MR creation stop completion.
+Primary development defaults to `dev`; isolated task branches start from `dev`. `megai finish --verified --target dev` merges task work, pushes `dev`, reuses the one open `dev` → `main` request, and cleans only the merged task worktree/branch. The task can then complete. The agent asks whether to promote main and runs `megai promote --approved` only after an explicit affirmative reply. Promotion verifies the reviewed head and clean forge state, merges the request, synchronizes `main`, and preserves `dev`.
 
 ### 🧩 Claude task-flow pieces
 
@@ -536,7 +538,7 @@ The installer:
 ├── omp-skill/                   OMP-native MEGAI skill
 ├── task-flow/                   skills, hooks, commands, and monitor
 ├── skills/numasec-security/     authorized security handoff guidance
-├── skills/agent-worktree-lifecycle/  dev-default, dev-to-main PR, safe cleanup
+├── skills/agent-worktree-lifecycle/  dev delivery, one promotion request, approved main merge
 ├── skills/smart-development-orchestrator/  Luna/Terra and multi-provider routing policy
 ├── omp-agents/                   MiniMax router/worker plus Luna and Terra trusted scouts
 ├── omp-config/                   reusable high-speed OMP overlay

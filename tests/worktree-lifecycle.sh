@@ -10,19 +10,61 @@ export GH_LOG="$TMP/gh.log"
 export GLAB_LOG="$TMP/glab.log"
 cat >"$TMP/bin/gh" <<'SH'
 #!/usr/bin/env bash
+set -euo pipefail
 printf '%s\n' "$*" >>"$GH_LOG"
 case "${1:-} ${2:-}" in
-  'pr list') [ -z "${GH_EXISTING_URL:-}" ] || printf '%s\n' "$GH_EXISTING_URL" ;;
-  'pr create') [ -z "${GH_FAIL_CREATE:-}" ] || exit 1; printf '%s\n' 'https://github.example/pull/1' ;;
+  'pr list')
+    if printf '%s' "$*" | grep -q 'headRefOid'; then
+      [ -z "${GH_EXISTING_URL:-}" ] || printf '%s\t%s\t%s\t%s\n' \
+        "$GH_EXISTING_URL" "${GH_HEAD:-}" "${GH_MERGEABLE:-MERGEABLE}" "${GH_MERGE_STATE:-CLEAN}"
+    else
+      [ -z "${GH_EXISTING_URL:-}" ] || printf '%s\n' "$GH_EXISTING_URL"
+    fi
+    ;;
+  'pr create')
+    [ -z "${GH_FAIL_CREATE:-}" ] || exit 1
+    printf '%s\n' 'https://github.example/pull/1'
+    ;;
+  'pr merge')
+    [ -z "${GH_FAIL_MERGE:-}" ] || exit 1
+    [ -n "${GH_TEST_REMOTE:-}" ] || exit 1
+    merge_repo="$(mktemp -d)"
+    git clone -q "$GH_TEST_REMOTE" "$merge_repo"
+    git -C "$merge_repo" config user.name "MEGAI Test"
+    git -C "$merge_repo" config user.email "megai@example.test"
+    git -C "$merge_repo" switch -q main
+    git -C "$merge_repo" merge -q --no-ff --no-edit origin/dev
+    git -C "$merge_repo" push -q origin main
+    rm -rf "$merge_repo"
+    ;;
   *) exit 1 ;;
 esac
 SH
 cat >"$TMP/bin/glab" <<'SH'
 #!/usr/bin/env bash
+set -euo pipefail
 printf '%s\n' "$*" >>"$GLAB_LOG"
 case "${1:-} ${2:-}" in
-  'mr list') [ -z "${GLAB_EXISTING_URL:-}" ] || printf '%s\n' "$GLAB_EXISTING_URL" ;;
+  'mr list')
+    if printf '%s' "$*" | grep -q -- '--jq'; then
+      [ -z "${GLAB_EXISTING_URL:-}" ] || printf '%s\n' "$GLAB_EXISTING_URL"
+    else
+      printf '[{\"web_url\":\"%s\"}]\n' "${GLAB_EXISTING_URL:-}"
+    fi
+    ;;
   'mr create') printf '%s\n' 'https://gitlab.example/merge_requests/1' ;;
+  'mr merge')
+    [ -z "${GLAB_FAIL_MERGE:-}" ] || exit 1
+    [ -n "${GLAB_TEST_REMOTE:-}" ] || exit 1
+    merge_repo="$(mktemp -d)"
+    git clone -q "$GLAB_TEST_REMOTE" "$merge_repo"
+    git -C "$merge_repo" config user.name "MEGAI Test"
+    git -C "$merge_repo" config user.email "megai@example.test"
+    git -C "$merge_repo" switch -q main
+    git -C "$merge_repo" merge -q --no-ff --no-edit origin/dev
+    git -C "$merge_repo" push -q origin main
+    rm -rf "$merge_repo"
+    ;;
   *) exit 1 ;;
 esac
 SH
@@ -201,6 +243,23 @@ git -C "$direct" commit -qm "direct dev work"
 grep -q '^pr list .*--base main .*--head dev' "$GH_LOG"
 ! grep -q '^pr create ' "$GH_LOG"
 
+# Main remains unchanged until explicit approval. Promotion merges the reviewed
+# request head, synchronizes main, and preserves the persistent dev branch.
+direct_dev_head="$(git -C "$direct" rev-parse dev)"
+direct_main_before="$(git -C "$direct" rev-parse main)"
+if (cd "$direct" && GH_EXISTING_URL='https://github.example/pull/existing' GH_HEAD="$direct_dev_head" GH_TEST_REMOTE="$direct.origin.git" MEGAI_FORGE=github MEGAI_HOME="$ROOT" bash "$ROOT/bin/megai" promote) >/dev/null 2>&1; then
+  echo "promote accepted work without explicit approval" >&2
+  exit 1
+fi
+(cd "$direct" && GH_EXISTING_URL='https://github.example/pull/existing' GH_HEAD="$direct_dev_head" GH_TEST_REMOTE="$direct.origin.git" MEGAI_FORGE=github MEGAI_HOME="$ROOT" bash "$ROOT/bin/megai" promote --dry-run) >/dev/null
+[ "$(git --git-dir="$direct.origin.git" rev-parse refs/heads/main)" = "$direct_main_before" ]
+(cd "$direct" && GH_EXISTING_URL='https://github.example/pull/existing' GH_HEAD="$direct_dev_head" GH_TEST_REMOTE="$direct.origin.git" MEGAI_FORGE=github MEGAI_HOME="$ROOT" bash "$ROOT/bin/megai" promote --approved) >/dev/null
+git -C "$direct" merge-base --is-ancestor "$direct_dev_head" main
+[ "$(git -C "$direct" rev-parse main)" = "$(git --git-dir="$direct.origin.git" rev-parse refs/heads/main)" ]
+[ "$(git -C "$direct" rev-parse dev)" = "$(git --git-dir="$direct.origin.git" rev-parse refs/heads/dev)" ]
+grep -q '^pr merge .*--merge .*--match-head-commit' "$GH_LOG"
+! grep -q '^pr merge .*--auto' "$GH_LOG"
+
 # GitLab uses a merge request with dev as source and main as target.
 gitlab_repo="$TMP/gitlab-repo"
 gitlab_feature="$TMP/gitlab-feature"
@@ -214,6 +273,11 @@ git -C "$gitlab_feature" commit -qm "gitlab work"
 [ ! -e "$gitlab_feature" ]
 grep -q '^mr list .*--source-branch dev .*--target-branch main' "$GLAB_LOG"
 grep -q '^mr create .*--source-branch dev .*--target-branch main' "$GLAB_LOG"
+gitlab_dev_head="$(git -C "$gitlab_repo" rev-parse dev)"
+(cd "$gitlab_repo" && GLAB_EXISTING_URL='https://gitlab.example/merge_requests/1' GLAB_TEST_REMOTE="$gitlab_repo.origin.git" MEGAI_FORGE=gitlab MEGAI_HOME="$ROOT" bash "$ROOT/bin/megai" promote --approved) >/dev/null
+git -C "$gitlab_repo" merge-base --is-ancestor "$gitlab_dev_head" main
+[ "$(git -C "$gitlab_repo" rev-parse main)" = "$(git --git-dir="$gitlab_repo.origin.git" rev-parse refs/heads/main)" ]
+grep -q '^mr merge dev .*--sha .*--auto-merge=false .*--yes' "$GLAB_LOG"
 
 # Primary checkouts default from main to dev, but dirty work is never switched.
 dev_repo="$TMP/dev-repo"
@@ -286,7 +350,7 @@ for policy in "$HOME/.codex/AGENTS.md" "$HOME/.pi/agent/AGENTS.md" "$HOME/.claud
   [ "$(grep -c 'megai:worktree-lifecycle:begin' "$policy")" = 1 ]
   grep -q 'megai dev' "$policy"
   grep -q 'megai finish --verified --target dev' "$policy"
-  grep -q 'dev.*main.*PR/MR' "$policy"
+  grep -q 'reuse the one open `dev`.*`main` PR/MR' "$policy"
   grep -q 'Every writer MUST be launched by `create_workspace`' "$policy"
   grep -q 'worktree isolation' "$policy"
   grep -q 'task/<slug>' "$policy"
@@ -294,11 +358,11 @@ for policy in "$HOME/.codex/AGENTS.md" "$HOME/.pi/agent/AGENTS.md" "$HOME/.claud
   grep -q 'followed by `create_agent` with the returned `workspaceId`' "$policy"
   grep -q 'never run concurrent writers in the parent workspace' "$policy"
   grep -q 'Native OMP task isolation is not a substitute' "$policy"
-  grep -q 'Never auto-merge `main`' "$policy"
+  grep -q 'megai promote --approved' "$policy"
   grep -q 'smart-development-orchestrator' "$policy"
   grep -q 'archive_workspace' "$policy"
   grep -q 'Never archive the primary `dev` workspace' "$policy"
-  grep -q 'After the dev push, PR/MR, and worktree cleanup succeed' "$policy"
+  grep -q 'After dev delivery, orchestrators call `archive_workspace`' "$policy"
 done
 bash "$MEGAI_HOME/lib/install_worktree_lifecycle.sh" --remove >/dev/null
 grep -q '^user-owned lifecycle skill$' "$collision_skill"

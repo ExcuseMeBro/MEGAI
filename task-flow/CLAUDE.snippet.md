@@ -9,7 +9,7 @@
 - At a new tracked task or resumed session, read `todo.md` and `inprogress.md` once. Read `done.md` only to resolve prior identity or complete work. Do not re-read unchanged board files at every stage.
 - **Write emoji task lines:** priority 🔴 urgent · 🟠 high · 🟡 medium · 🟢 low, then stage 📝📐🔨🧪🔍🚀. Never hand-edit `monitoring.md`.
 - ADLC labels are bookkeeping only. Collapse them into implement → self-review → focused test → ship; never create a model/tool round trip per label. TDD, independent review, full suites, security/design audits, and final-gate agents are opt-in or failure-driven, not automatic.
-- **Dev + PR ship gate:** for tracked work that must ship, default primary work to `dev` and create task worktrees from `dev`. After self-review and focused tests, run `megai finish --verified --target dev` to merge when needed, push `dev`, and open/reuse a `dev` → `main` PR/MR before Asana completion. Never auto-merge `main`; delete only merged task branches/registered worktrees.
+- **Dev delivery + approved main promotion:** tracked work ships through a task worktree from `dev`. After self-review and focused tests, run `megai finish --verified --target dev` to merge/push `dev`, reuse one open `dev` → `main` PR/MR, and clean the task worktree before Asana completion. Then ask the user whether to promote main; run `megai promote --approved` only after an explicit affirmative reply.
 - Asana unavailable/unauthenticated blocks only work that requires the tracked/high-risk path. A failed required boundary write must be reconciled before proceeding.
 - Priority markers: `!` low · `!!` medium · `!!!` high · `!!!!` urgent; no marker = medium. Only urgent preempts active work.
 <!-- megai:task-flow:end -->

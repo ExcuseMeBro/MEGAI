@@ -14,7 +14,7 @@ Keep Asana and `.todos/` synchronized for tracked or high-risk project tasks. Bo
 - Stop before implementation when required Asana access is unavailable or unauthenticated.
 - Do not guess when workspace or project matching is ambiguous.
 - Start tracked work only after one Asana mutation leaves the task in `In Progress`.
-- Complete tracked work only after verification and its required delivery succeed. A dev-to-main PR and worktree cleanup are required only when the task must ship through that lifecycle.
+- Complete tracked work after verification, dev push, one open dev-to-main request, and task-worktree cleanup. Main promotion is a separate explicit user decision.
 
 ## Project setup
 
@@ -65,9 +65,9 @@ At each boundary, mutate Asana first and then move the `.todos` line. Stop and r
 3. Add the GID marker and move the local line to `inprogress.md` at 📝 spec.
 4. Cover bookkeeping stages in the same bounded implementation pass. UI verification is code-only unless the user explicitly requests browser, simulator, screenshot, or design review.
 5. Routine stage changes and milestone comments are forbidden. Never discover or sync Plane, Jira, or another tracker unless the user explicitly asks.
-6. **Ship boundary when required:** run `megai finish --verified --target dev` only when the tracked delivery requires commit/PR publication. It merges task work into `dev` when needed, pushes `dev`, opens/reuses a `dev` → `main` PR/MR, then removes only merged task branches/registered worktrees. Stop on dirty state, conflict, missing branches/remote, failed verification, forge/auth/push/PR failure, or ambiguous ownership. Never auto-merge `main`.
-7. **Completion boundary:** after verification and any required delivery succeed, move the Asana task to `Done` and set `completed=true` in one mutation. Do not add a routine completion comment.
-8. Move the local line to `done.md` and let the task-flow monitor regenerate `monitoring.md`.
+6. **Dev delivery boundary when required:** run `megai finish --verified --target dev`. It merges task work into `dev`, pushes `dev`, reuses one open `dev` → `main` request, and removes only merged task branches/registered worktrees.
+7. **Completion boundary:** after verification and dev delivery succeed, move the Asana task to `Done` and set `completed=true`; move the local line to `done.md`.
+8. Ask whether to promote `dev` to `main`. Run `megai promote --approved` only after an explicit affirmative answer; never infer approval or enable auto-merge.
 9. Stop after the current requested task; never auto-drain the queue or launch `/loop`.
 
 ## Reconciliation

@@ -58,13 +58,13 @@ grep -q 'Never discover or sync Plane, Jira' "$HOME/.claude/CLAUDE.md"
 grep -q 'Parallel implementation invariant' "$HOME/.claude/CLAUDE.md"
 grep -q 'visible managed worktree workspace' "$HOME/.claude/CLAUDE.md"
 grep -q 'launched with that `workspaceId`' "$HOME/.claude/CLAUDE.md"
+grep -q 'megai promote --approved' "$HOME/.claude/CLAUDE.md"
 ! grep -q 'Every task runs full ADLC' "$HOME/.claude/CLAUDE.md"
 ! grep -q 'old synchronous policy' "$HOME/.claude/CLAUDE.md"
 [ "$(grep -c 'megai:task-flow:begin' "$HOME/.claude/CLAUDE.md")" = "1" ]
 grep -q 'Do not re-read unchanged board files between ADLC stages' "$HOME/.claude/skills/task-flow/SKILL.md"
 grep -q 'ADLC labels are bookkeeping' "$HOME/.claude/skills/task-flow/SKILL.md"
-grep -q "Execute only the user's current task" "$HOME/.claude/hooks/taskflow-prompt.sh"
-grep -q 'Do not launch separate planner' "$HOME/.claude/hooks/taskflow-prompt.sh"
+grep -q 'No automatic planner' "$HOME/.claude/hooks/taskflow-prompt.sh"
 
 bash "$MEGAI_HOME/lib/wire_pi.sh" --remove >/dev/null 2>&1
 [ ! -e "$PI_CODING_AGENT_DIR/skills/megai-task-flow" ]
