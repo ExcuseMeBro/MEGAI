@@ -1,12 +1,12 @@
 ---
 name: agent-worktree-lifecycle
-description: Keep primary development on dev, merge verified agent branches into dev, push dev, open or reuse a dev-to-main PR/MR, then safely remove only merged task worktrees. Use at task start/ship or for agent branch cleanup.
+description: Merge verified task worktrees into dev, push dev, reuse one open dev-to-main request, then promote main only after explicit user approval.
 managed-by: megai
 ---
 
 # Agent worktree lifecycle
 
-Use `dev` as the default development and integration branch; `main` changes only through reviewed pull/merge requests. Run `megai dev` when starting from a clean primary `main`/`master` checkout. Every implementation writer works on a task branch from `dev` inside a registered Paseo/OMP/Git worktree; never write concurrently in the primary checkout or use unmanaged sibling clones.
+Use `dev` as the default development and integration branch. Every implementation writer uses a task branch from `dev` in a registered Paseo/OMP/Git worktree. `main` changes only through the single reviewed `dev` → `main` pull/merge request and explicit user approval; never write concurrently in the primary checkout or use unmanaged sibling clones.
 
 ## Parallel implementation
 
@@ -28,7 +28,7 @@ Before finishing:
 1. Confirm the task branch is committed and the worktree is clean.
 2. Self-review the changed code for correctness, quality, and unnecessary complexity.
 3. Run the narrowest task-relevant test, typecheck, lint, or build. Independent review and full-suite gates are opt-in.
-4. Keep the external task incomplete until the dev push, dev-to-main PR/MR, and required cleanup succeed.
+4. Keep the external task incomplete until `dev` is pushed, one `dev` → `main` request exists, and merged task worktree cleanup succeeds. Main promotion is a separate user-approved boundary.
 5. Confirm `origin`, `dev`, and `main` are correct. Use `MEGAI_FORGE=github` or `MEGAI_FORGE=gitlab` for self-hosted forge URLs that cannot be detected.
 
 ## Finish
@@ -51,14 +51,26 @@ To verify the merged tree again before cleanup:
 megai finish --verified --target dev --verify-command "<focused verification command>"
 ```
 
-The command merges a verified task branch locally with `--no-ff`—or publishes commits already on `dev`—then pushes `dev` and creates or reuses an open `dev` → `main` GitHub PR or GitLab merge request. Human review or protected CI merges that PR/MR into `main`; the agent never auto-merges `main`.
+The command merges a verified task branch locally with `--no-ff`—or publishes commits already on `dev`—then pushes `dev`. It reuses the one open `dev` → `main` request and creates one only when none exists.
 
-After the PR/MR exists, it:
+After the request exists, it:
 
 - removes only the current registered linked worktree and its merged task branch; or
 - when work happened in the primary checkout, keeps the repository on `dev` and deletes only the merged task branch.
 
 It never deletes remote refs or the primary repository.
+
+## Main promotion
+
+After the task is finished on `dev`, ask the user whether to promote the reviewed `dev` head to `main`. Do not infer approval from the original implementation request.
+
+Only after an explicit affirmative answer:
+
+```bash
+megai promote --approved
+```
+
+The command verifies that local `dev` equals `origin/dev`, the one open request points at that exact commit, and forge checks/protections are clean. It merges that request, synchronizes local and remote `main`, and preserves `dev`. It never creates another request or enables deferred auto-merge. Without `--approved`, it fails before promotion.
 
 ## Paseo workspace archival
 
@@ -73,9 +85,9 @@ Stop without task completion when:
 - `dev`, `main`, or `origin` is absent, or `dev` is checked out in an incompatible location;
 - verification fails;
 - a merge conflict occurs;
-- forge detection, authentication, push, or PR/MR creation fails;
+- forge detection, authentication, push, request creation, approved promotion, or main synchronization fails;
 - the directory is an arbitrary clone rather than a registered Git worktree.
 
-Do not force-delete dirty or unmerged work. Do not scan and delete sibling repositories by name. For Paseo, archive only successfully merged worker workspaces after the dev push, PR/MR, and worktree cleanup are confirmed; for OMP, allow its worktree registry to observe the Git worktree removal.
+Do not force-delete dirty or unmerged work. Do not scan and delete sibling repositories by name. For Paseo, archive only successfully merged worker workspaces after the dev push, one open request, and worktree cleanup are confirmed; main approval is not required for workspace cleanup.
 
-After success, reconcile Asana and `.todos`, then report the PR/MR URL, merge target, and removed local worktree/branch. Human review merges the PR/MR into `main`.
+After task delivery, reconcile Asana and `.todos`, report the one request URL and removed task worktree/branch, then ask whether to promote `dev` to `main`. Run `megai promote --approved` only after an explicit affirmative reply.

@@ -123,7 +123,7 @@ High/medium/low tasks do **not** preempt — they wait their turn. Only urgent i
 ## Gotchas
 
 - **Keep execution bounded.** One direct evidence pass may cover multiple adjacent ADLC labels; never create a tool or model round trip for a label.
-- Default primary work to `dev`; create task worktrees from `dev`. At ship, `megai finish --verified --target dev` merges when needed, pushes `dev`, and opens/reuses a `dev` → `main` PR/MR. Never auto-merge `main`; delete only merged task branches and registered linked worktrees.
+- Default primary work to `dev`; create task worktrees from `dev`. `megai finish --verified --target dev` merges/pushes dev, reuses one open dev-to-main request, and cleans the task worktree. Complete the task, then ask whether to promote main; `megai promote --approved` requires an explicit affirmative reply.
 - **Test after implementation.** Use the narrowest existing test, typecheck, lint, or build check that covers the change. Add a regression test only when the user asks or the new observable contract otherwise has no focused proof.
 - **Advance the stage emoji as you go.** Update 📝→📐→🔨→🧪→🔍→🚀 in `inprogress.md` at each transition so the statusline + `monitoring.md` reflect reality. A task stuck on 📝 while you write code means the marker is lying.
 - **Do not poll the board between stages.** Re-read only at a new user turn, session resume, failed mutation, or known external edit.

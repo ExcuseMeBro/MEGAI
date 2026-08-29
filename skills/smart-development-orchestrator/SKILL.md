@@ -104,8 +104,8 @@ Use a specialized GPT model only when steps 1–4 fail once or the user explicit
 4. Give each child the exact goal, repository/cwd, scope, authority boundary, acceptance, focused validation, compact output, and stop rule.
 5. Each writer implements, self-reviews its code, runs focused tests, commits a clean branch, and stops. Children never launch agents.
 6. Integrate successful branches into `dev` without an automatic review agent or full-suite run.
-7. Run `megai finish --verified --target dev` to push `dev`, open or reuse the `dev` → `main` PR/MR, and clean only successfully merged registered worktrees/branches.
-8. After successful delivery and cleanup, call Paseo `archive_workspace` for each merged worker workspace. Never archive the orchestrator/primary `dev` workspace or dirty, unmerged, failed, or ambiguous work.
-9. Never auto-merge `main`; the user owns remaining manual review and merge.
+7. Run `megai finish --verified --target dev` to push `dev`, reuse the one open `dev` → `main` request, and clean only successfully merged registered worktrees/branches.
+8. After successful dev delivery and cleanup, call Paseo `archive_workspace` for each merged worker workspace. Never archive the orchestrator/primary `dev` workspace or dirty, unmerged, failed, or ambiguous work.
+9. Complete the tracked task, then ask the user whether to promote `dev` to `main`. Run `megai promote --approved` only after an explicit affirmative reply; never infer approval or enable deferred auto-merge.
 
-Stop on dirty or ambiguous ownership, missing branches/origin, failed verification, conflicts, provider/auth failures, or failed push/PR creation. Keep external work incomplete until the PR/MR and required cleanup succeed.
+Stop on dirty or ambiguous ownership, missing branches/origin, failed verification, conflicts, provider/auth failures, or failed push/request/promotion. Main stays unchanged while approval is absent.

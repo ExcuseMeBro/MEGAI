@@ -25,9 +25,9 @@ policy_body() {
 - Inside Paseo, read-only workers use same-workspace agent tabs. Every writer MUST be launched by `create_workspace` with worktree isolation and a `task/<slug>` branch from `dev`, followed by `create_agent` with the returned `workspaceId`; never run concurrent writers in the parent workspace.
 - Outside Paseo, registered OMP/Git worktrees may provide equivalent isolation. Native OMP task isolation is not a substitute for a visible Paseo writer workspace when Paseo is available.
 - After focused verification and review, merge each successful task branch into `dev`; never apply concurrent agent writes directly to the primary checkout.
-- At ship, run `megai finish --verified --target dev`: push verified `dev` and create or reuse a `dev` → `main` PR/MR.
-- Never auto-merge `main`; human review or protected CI merges the PR/MR. After the dev push, PR/MR, and worktree cleanup succeed, orchestrators call `archive_workspace` only for successfully merged worker workspaces. Never archive the primary `dev` workspace or dirty/unmerged/failed work.
-- Stop on missing `dev`/`main`/`origin`, dirty state, failed verification, conflicts, forge/auth/push/PR failures, or ambiguous ownership. Keep the external task incomplete until the PR/MR and cleanup succeed.
+- At ship, run `megai finish --verified --target dev`: push verified `dev`, reuse the one open `dev` → `main` PR/MR, and clean only the merged task worktree/branch.
+- Complete the task after dev delivery and cleanup, then ask the user whether to promote `dev` to `main`. Only after an explicit affirmative answer run `megai promote --approved`; it merges the reviewed request, synchronizes main, and preserves dev. Never infer approval or enable deferred auto-merge.
+- After dev delivery, orchestrators call `archive_workspace` only for successfully merged worker workspaces. Never archive the primary `dev` workspace or dirty/unmerged/failed work. Stop on missing `dev`/`main`/`origin`, dirty state, failed verification, conflicts, forge/auth/push/request/promotion failures, or ambiguous ownership.
 <!-- megai:worktree-lifecycle:end -->
 EOF
 }

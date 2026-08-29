@@ -33,7 +33,8 @@ Commands:
   security [args]       Launch Numasec for authorized security work
   graph [path]          Build knowledge graph for current folder (graphify .)
   dev                   Switch a clean primary checkout from main/master to dev
-  finish [options]      Merge/publish verified dev work and open dev-to-main PR
+  finish [options]      Merge verified task work into dev, push, and reuse one promotion PR
+  promote [options]     Merge the reviewed dev-to-main PR after explicit approval
   install               Re-run installer (idempotent)
   status                Show tools/ports/versions
   doctor                Diagnose problems
@@ -247,6 +248,10 @@ cmd_dev() {
 
 cmd_finish() {
   bash "$LIB/finish_worktree.sh" "$@"
+}
+
+cmd_promote() {
+  bash "$LIB/promote_main.sh" "$@"
 }
 
 # ---------- agent launchers ----------
@@ -649,8 +654,10 @@ ${C_GRN}Agents${C_OFF}  (launches CLI with the lean stack initialised)
 
 ${C_GRN}Development + ship${C_OFF}
   megai dev                              # default primary checkout: dev
-  megai finish --dry-run --target dev    # preview dev -> main PR flow
-  megai finish --verified --target dev   # merge/push dev and open/reuse PR
+  megai finish --dry-run --target dev    # preview task -> dev integration
+  megai finish --verified --target dev   # merge/push dev; reuse one open PR
+  megai promote --dry-run                # preview reviewed dev -> main promotion
+  megai promote --approved               # merge only after explicit user approval
 
 ${C_GRN}Manage${C_OFF}
   megai status     megai doctor     megai stop     megai update
@@ -684,6 +691,7 @@ case "${1:-__project__}" in
   graph)     shift; cmd_graph     "$@" ;;
   dev)       shift; cmd_dev       "$@" ;;
   finish)    shift; cmd_finish    "$@" ;;
+  promote)   shift; cmd_promote   "$@" ;;
   install)   shift; cmd_install   "$@" ;;
   status)    shift; cmd_status    "$@" ;;
   doctor)    shift; cmd_doctor    "$@" ;;
