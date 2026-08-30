@@ -135,7 +135,7 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🌐 | [Dembrandt](https://github.com/dembrandt/dembrandt) | Extract design tokens, typography, palette, brand, and WCAG data from websites | On-demand CLI |
 | 🗺️ | [Ix](https://github.com/ix-infrastructure/Ix) | Persistent system map, architecture explanation, traces, impact analysis | CLI + plugins + MCP |
 | 📚 | [RepoWise](https://github.com/repowise-dev/repowise) | Dependency graph, generated wiki, code health, risk, and history | On-demand CLI + background index |
-| 🧪 | [Argent](https://github.com/software-mansion/argent) | Agent-driven mobile, TV, Electron, and Chromium testing | On-demand CLI |
+| 🧪 | [Argent](https://github.com/software-mansion/argent) | Explicit `/argent` mobile, TV, Electron, and Chromium review | Slash command + on-demand CLI |
 | 🛡️ | [Numasec](https://github.com/FrancescoStabile/numasec) | Authorized AppSec/pentest operations, evidence, replay, and reports | CLI + global handoff skill |
 | 🛠️ | [Matt Pocock's skills](https://github.com/mattpocock/skills) | Specs, TDD, diagnosis, review, domain modeling, architecture, and delivery flows | Global skills |
 
@@ -430,12 +430,13 @@ The first MEGAI activation in a Git repository starts a background, keyless Repo
 
 ## 🧪 App testing
 
-Argent exposes device and browser automation through CLI and MCP:
+Argent is disabled during normal implementation, review, verification, UI checks, and delivery. Invoke it explicitly:
 
-```bash
-argent tools
-argent server status
+```text
+/argent [target or scenario]
 ```
+
+That single turn may inspect `argent tools` and `argent server status`, then run the narrowest requested app/device review. It makes no code edits and stops after reporting observed findings.
 
 Supported targets include:
 
