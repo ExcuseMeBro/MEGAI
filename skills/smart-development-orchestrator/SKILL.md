@@ -79,6 +79,7 @@ GPT owns steps 2–4 for every task. MiniMax may supply compact discovery eviden
 - Check only code-level concerns by default: component structure, state handling, accessibility semantics, token/style consistency, type diagnostics, and focused component tests.
 - Do not launch browsers, simulators, screenshots, visual regression, design critique, or accessibility audit agents unless the user explicitly requests them.
 - State that visual/manual review remains with the user.
+- Argent is stricter than other optional tools: launch it only when the current user message explicitly invokes `/argent`. Never infer Argent permission from review, test, UI, device, or verification wording.
 
 ## Execution budgets
 

@@ -59,12 +59,16 @@ grep -q 'Parallel implementation invariant' "$HOME/.claude/CLAUDE.md"
 grep -q 'visible managed worktree workspace' "$HOME/.claude/CLAUDE.md"
 grep -q 'launched with that `workspaceId`' "$HOME/.claude/CLAUDE.md"
 grep -q 'megai promote --approved' "$HOME/.claude/CLAUDE.md"
+grep -q 'Argent is explicit-only' "$HOME/.claude/CLAUDE.md"
 ! grep -q 'Every task runs full ADLC' "$HOME/.claude/CLAUDE.md"
 ! grep -q 'old synchronous policy' "$HOME/.claude/CLAUDE.md"
 [ "$(grep -c 'megai:task-flow:begin' "$HOME/.claude/CLAUDE.md")" = "1" ]
 grep -q 'Do not re-read unchanged board files between ADLC stages' "$HOME/.claude/skills/task-flow/SKILL.md"
 grep -q 'ADLC labels are bookkeeping' "$HOME/.claude/skills/task-flow/SKILL.md"
-grep -q 'No automatic planner' "$HOME/.claude/hooks/taskflow-prompt.sh"
+grep -q 'Never invoke Argent unless the current user message explicitly contains `/argent`' "$HOME/.claude/hooks/taskflow-prompt.sh"
+[ -f "$HOME/.claude/commands/argent.md" ]
+grep -q '^managed-by: megai$' "$HOME/.claude/commands/argent.md"
+grep -q 'explicitly invoked `/argent`' "$HOME/.claude/commands/argent.md"
 
 bash "$MEGAI_HOME/lib/wire_pi.sh" --remove >/dev/null 2>&1
 [ ! -e "$PI_CODING_AGENT_DIR/skills/megai-task-flow" ]
