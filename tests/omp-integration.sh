@@ -119,6 +119,8 @@ jq -e '
 [ -f "$HOME/.omp/agent/skills/megai-task-flow/SKILL.md" ]
 [ -f "$HOME/.omp/agent/skills/agent-worktree-lifecycle/SKILL.md" ]
 [ -f "$HOME/.omp/agent/skills/smart-development-orchestrator/SKILL.md" ]
+[ -f "$HOME/.omp/agent/skills/argent/SKILL.md" ]
+grep -q 'only when the user invokes /argent' "$HOME/.omp/agent/skills/argent/SKILL.md"
 grep -q '^# Smart Development Orchestrator$' "$HOME/.omp/agent/skills/smart-development-orchestrator/SKILL.md"
 grep -q 'archive_workspace' "$HOME/.omp/agent/skills/smart-development-orchestrator/SKILL.md"
 grep -q '^# MEGAI for Oh My Pi$' "$HOME/.omp/agent/skills/megai/SKILL.md"
@@ -194,6 +196,7 @@ cmp "$TMP/expected.args" "$TMP/omp.args"
 [ -f "$HOME/.omp/profiles/work/agent/mcp.json" ]
 [ -f "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md" ]
 [ -f "$HOME/.omp/profiles/work/agent/skills/agent-worktree-lifecycle/SKILL.md" ]
+[ -f "$HOME/.omp/profiles/work/agent/skills/argent/SKILL.md" ]
 grep -q 'Read-only discovery, planning, and review agents are opt-in' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
 grep -q 'Every writing worker MUST receive a visible Paseo-managed worktree workspace' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
 while IFS='|' read -r name model effort; do
@@ -224,6 +227,7 @@ jq -e '
 [ ! -e "$HOME/.omp/agent/skills/megai" ]
 [ ! -e "$HOME/.omp/agent/skills/megai-task-flow" ]
 [ ! -e "$HOME/.omp/agent/skills/agent-worktree-lifecycle" ]
+[ ! -e "$HOME/.omp/agent/skills/argent" ]
 while IFS='|' read -r name model effort; do
   [ ! -e "$HOME/.omp/agent/agents/$name.md" ]
 done <"$TMP/expected-agents"
@@ -236,6 +240,7 @@ jq -e '(.mcpServers.agentmemory | not) and (.mcpServers.codedb | not)' \
 [ ! -e "$HOME/.omp/profiles/work/agent/skills/megai" ]
 [ ! -e "$HOME/.omp/profiles/work/agent/skills/megai-task-flow" ]
 [ ! -e "$HOME/.omp/profiles/work/agent/skills/agent-worktree-lifecycle" ]
+[ ! -e "$HOME/.omp/profiles/work/agent/skills/argent" ]
 while IFS='|' read -r name model effort; do
   [ ! -e "$HOME/.omp/profiles/work/agent/agents/$name.md" ]
 done <"$TMP/expected-agents"

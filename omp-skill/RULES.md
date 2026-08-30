@@ -19,6 +19,7 @@
 - Run MiniMax-assisted discovery only when needed, then GPT implement → GPT code self-review → GPT focused tests → `megai finish --verified --target dev` when delivery is required.
 - UI checks are code-only by default: component structure, state handling, accessibility semantics, token/style consistency, diagnostics, and focused component tests. Browser, simulator, screenshot, visual, design, and accessibility-audit loops require an explicit user request.
 - Do not run automatic planner/reviewer/final-gate agents, TDD loops, integrated full suites, queue draining, or `/loop`. One focused failure may escalate once to one specialist.
+- Argent is never part of normal review or verification. Invoke it only when the current user message explicitly contains `/argent`; no other wording authorizes it.
 - After dev delivery and task completion, ask whether to promote main. Run `megai promote --approved` only after an explicit affirmative reply; otherwise leave main unchanged.
 
 ## Paseo agent placement

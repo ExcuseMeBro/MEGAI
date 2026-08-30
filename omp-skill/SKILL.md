@@ -41,11 +41,11 @@ Inspect with direct tools or MiniMax read-only discovery, then GPT implements, s
 
 - `dembrandt` — website design extraction.
 - `ix` — system maps, traces, and impact analysis.
-- `argent` — app and device testing.
+- `argent` — explicit `/argent` app/device review only; never automatic.
 - `repowise` — code health, risk, and generated wiki.
 - `numasec` — authorized security work only.
 
-Check each CLI's help or status command before use. Do not keep specialist MCP servers active in every session when their CLI is sufficient.
+Check specialist CLIs only after their activation condition is satisfied. Argent requires `/argent` in the current user message; normal review/test/verify wording is insufficient.
 
 ## Paseo agent tabs
 

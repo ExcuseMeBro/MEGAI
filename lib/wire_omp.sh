@@ -25,6 +25,7 @@ OMP_SKILL="$MEGAI_HOME/omp-skill/SKILL.md"
 TASK_FLOW_SKILL="$MEGAI_HOME/task-flow/skills/megai-task-flow/SKILL.md"
 WORKTREE_SKILL="$MEGAI_HOME/skills/agent-worktree-lifecycle/SKILL.md"
 ORCHESTRATOR_SKILL="$MEGAI_HOME/skills/smart-development-orchestrator/SKILL.md"
+ARGENT_SKILL="$MEGAI_HOME/skills/argent/SKILL.md"
 OMP_RULES="$OMP_AGENT/RULES.md"
 OMP_RULES_SOURCE="$MEGAI_HOME/omp-skill/RULES.md"
 OMP_AGENTS_SOURCE="$MEGAI_HOME/omp-agents"
@@ -196,6 +197,7 @@ if [ "$MODE" = "--remove" ]; then
   rm -rf "$OMP_AGENT/skills/megai" "$OMP_AGENT/skills/megai-task-flow"
   remove_managed_copy "$WORKTREE_SKILL" "$OMP_AGENT/skills/agent-worktree-lifecycle/SKILL.md"
   remove_managed_copy "$ORCHESTRATOR_SKILL" "$OMP_AGENT/skills/smart-development-orchestrator/SKILL.md"
+  remove_managed_copy "$ARGENT_SKILL" "$OMP_AGENT/skills/argent/SKILL.md"
   remove_managed_agents
   remove_retired_agents
   if [ ! -f "$OMP_MCP_CONFIG" ]; then
@@ -295,6 +297,11 @@ if [ -f "$ORCHESTRATOR_SKILL" ]; then
   install_managed_copy "$ORCHESTRATOR_SKILL" "$OMP_AGENT/skills/smart-development-orchestrator/SKILL.md"
 else
   warn "OMP: smart development orchestrator skill missing — skipped"
+fi
+if [ -f "$ARGENT_SKILL" ]; then
+  install_managed_copy "$ARGENT_SKILL" "$OMP_AGENT/skills/argent/SKILL.md"
+else
+  warn "OMP: explicit Argent skill missing — skipped"
 fi
 install_router_group
 remove_retired_agents

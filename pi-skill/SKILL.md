@@ -1,11 +1,11 @@
 ---
 name: megai
-description: "MEGAI bridge for Pi — access persistent memory, code intelligence, system maps, code health, generated wikis, website design extraction, and agent-driven app testing."
+description: "MEGAI bridge for Pi — memory, code intelligence, system maps, code health, and explicit /argent-only app testing."
 ---
 
 # MEGAI for Pi
 
-This skill exposes agent-memory and codedb through shell extensions. Specialist tools—Dembrandt, Argent, RepoWise, and Ix—run through their CLIs only when a task needs them.
+This skill exposes agent-memory and codedb through shell extensions. Argent is stricter than other specialists: run it only when the current user message explicitly invokes `/argent`.
 
 ## When to use
 
@@ -57,7 +57,7 @@ dembrandt example.com --design-md
 
 ### Argent — agent-driven app testing
 
-Run Argent only for device or app testing. Inspect available tools and server state with:
+Run Argent only after explicit `/argent`. Normal review, test, UI, device, or verification requests do not authorize it. Then inspect available tools and server state with:
 
 ```bash
 argent tools
