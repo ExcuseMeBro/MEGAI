@@ -80,7 +80,7 @@ cd ~/path/to/project
 megai
 ```
 
-MEGAI starts or verifies agent-memory, indexes the repository, prepares the knowledge graph and RepoWise index, checks token-saving tools, and prints a project-specific guide.
+MEGAI starts or verifies agent-memory, builds codedb structural and zvec-grep hybrid indexes, prepares the knowledge graph and RepoWise index, checks token-saving tools, and prints a project-specific guide.
 
 ### 4. Launch an agent
 
@@ -122,7 +122,7 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | --- | --- | --- | --- |
 | 🧠 | [agent-memory](https://www.agent-memory.dev/) | Persistent cross-session memory | MCP + daemon, default port `3111` |
 | 🔎 | [codedb](https://github.com/justrach/codedb) | Code search, symbols, outlines, and file intelligence | MCP + CLI |
-| 🗂️ | [cocoindex](https://cocoindex.io) | Incremental indexing pipeline | CLI |
+| 🗂️ | [zvec-grep](https://github.com/zvec-ai/zvec-grep) | Local hybrid workspace search: BM25, vectors, and managed ripgrep | CLI + global Pi MCP |
 | 🪨 | [caveman](https://github.com/JuliusBrussee/caveman) | Compressed agent communication and workflow skills | Global skills/plugins |
 | ⚡ | [rtk](https://github.com/rtk-ai/rtk) | Rust Token Killer for compact command output | CLI + Claude hook |
 | 🕸️ | [graphify](https://graphify.net) | Tree-sitter knowledge graph and code relationships | CLI + global skill |
@@ -176,6 +176,7 @@ MEGAI configures:
 - global MEGAI skill at `~/.pi/agent/skills/megai.md`
 - Asana-aware task-flow and safe worktree-lifecycle skills under `~/.pi/agent/skills/`
 - memory and codedb shell extensions
+- a global `zvec_grep` MCP entry in `~/.pi/agent/mcp.json` for semantic and hybrid workspace retrieval
 - Dembrandt, Argent, and RepoWise CLIs available on demand instead of permanent MCP entries
 - global UX/UI, caveman, graphify, and Matt Pocock skills
 - the first authenticated model as the global default when no valid default exists
@@ -389,14 +390,20 @@ megai-memory recall "datetime decisions"
 megai-memory sessions
 ```
 
-### 🔎 Code intelligence
+### 🔎 Hybrid search and code intelligence
+
+Use zvec-grep when wording or location is unknown, then codedb for structural navigation:
 
 ```bash
-megai-codedb search "authentication"
+zg query "where authentication is validated"
+zg query --fts "AuthService"
+zg query --rg -n "TODO" src/
 megai-codedb symbol handleLogin
 megai-codedb outline src/auth.ts
 megai-codedb tree src/
 ```
+
+The first MEGAI activation builds `.zvec-grep/` with the local `potion-code-16m-v2` embedding model. Override it with `MEGAI_ZVEC_EMBEDDING`; MEGAI never authorizes remote Embedding automatically.
 
 ### 🕸️ Knowledge graph
 
@@ -509,7 +516,7 @@ The installer:
 1. 🔍 Detects OS, architecture, and runtimes.
 2. 📦 Installs or reuses each tool.
 3. 🧾 Records paths, ports, and versions in `~/.megai/state.json`.
-4. 🔌 Wires the core MCP pair into Claude Code, Codex, and OMP, while Pi uses lightweight shell extensions.
+4. 🔌 Wires the core MCP pair into Claude Code, Codex, and OMP; Pi uses lightweight memory/codedb extensions plus a global zvec-grep MCP entry.
 5. 🧩 Installs global skills, hooks, plugins, and extensions.
 6. 🛡️ Preserves unrelated user configuration and creates backups.
 7. ✅ Repeats safely on future installs and updates.
@@ -523,7 +530,7 @@ The installer:
 ├── bin/
 │   ├── megai
 │   ├── codedb
-│   ├── cocoindex
+│   ├── zg
 │   ├── graphify
 │   ├── ix
 │   └── repowise
@@ -586,8 +593,9 @@ A healthy installation reports the core CLIs, agent configuration files, agent-m
 
 ```bash
 megai start agent-memory       # restart persistent memory
-megai reindex                  # rebuild codedb state for this project
-megai wire pi                  # repair Pi skills/extensions and clean legacy MCP entries
+megai reindex                  # rebuild codedb and zvec-grep indexes for this project
+zg status --check-ready        # verify the current workspace hybrid index
+megai wire pi                  # repair Pi skills/extensions and global zvec-grep MCP entry
 megai wire codex               # repair Codex MCP block
 megai wire cc                  # repair Claude MCP entries
 megai logs repowise            # inspect background RepoWise indexing
@@ -597,7 +605,7 @@ megai logs repowise            # inspect background RepoWise indexing
 
 - 🍎 macOS or 🐧 Linux; Windows users should use WSL
 - `curl`
-- Node.js `20.12+`
+- Node.js `22+`
 - Python 3 and `pipx`
 - `jq`
 - Docker and Docker Compose for the full Ix backend
@@ -614,7 +622,7 @@ The installer resolves supported missing dependencies where possible and reports
 - 🧩 Skills and plugins run with agent permissions; review third-party skill sources before use.
 - 💾 Configuration files are backed up before MEGAI changes them.
 - 🧱 Only MEGAI-owned MCP entries and marked blocks are replaced or removed.
-- 🏠 agent-memory, Ix, and RepoWise services run locally by default.
+- 🏠 agent-memory, zvec-grep, Ix, and RepoWise services and indexes run locally by default; zvec-grep remote Embedding requires separate explicit authorization.
 - 🛡️ Numasec execution is opt-in and must stay within an explicitly authorized target scope.
 
 ---
@@ -627,14 +635,15 @@ megai uninstall
 
 MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI and Numasec skill links, shell PATH entries, and ui-craft components. The Numasec CLI is retained to avoid deleting an independently usable security tool.
 
-To prevent data loss, Ix, RepoWise, and their local project indexes are retained. Remove them separately only when their data is no longer needed:
+To prevent data loss, zvec-grep, Ix, RepoWise, and their local project indexes are retained. Remove them separately only when their data is no longer needed:
 
 ```bash
+npm uninstall -g @zvec/zvec-grep
 curl -fsSL https://ix-infra.com/uninstall.sh | sh
 uv tool uninstall repowise
 ```
 
-Delete a project's `.repowise/` directory manually if you also want to remove its generated index.
+Delete a project's `.zvec-grep/` or `.repowise/` directory manually if you also want to remove its generated index.
 
 ---
 

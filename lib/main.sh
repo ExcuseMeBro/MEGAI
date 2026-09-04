@@ -38,8 +38,8 @@ bash "$LIB/install_agent_memory.sh"
 step 3 $TOTAL "Installing codedb"
 bash "$LIB/install_codedb.sh"
 
-step 4 $TOTAL "Installing cocoindex"
-bash "$LIB/install_cocoindex.sh"
+step 4 $TOTAL "Installing zvec-grep hybrid workspace search"
+bash "$LIB/install_zvec_grep.sh"
 
 step 5 $TOTAL "Installing caveman (token-compression skill)"
 bash "$LIB/install_caveman.sh"

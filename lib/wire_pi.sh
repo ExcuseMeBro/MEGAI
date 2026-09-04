@@ -12,6 +12,10 @@ PI_MCP_CONFIG="$PI_AGENT/mcp.json"
 TASK_FLOW_SKILL="$MEGAI_HOME/task-flow/skills/megai-task-flow/SKILL.md"
 WORKTREE_SKILL="$MEGAI_HOME/skills/agent-worktree-lifecycle/SKILL.md"
 MODE="${1:-install}"
+ZG_BIN="$(state_get '.tools["zvec-grep"].bin' 2>/dev/null || true)"
+if [ -z "$ZG_BIN" ] || [ ! -x "$ZG_BIN" ]; then
+  ZG_BIN="$(command -v zg 2>/dev/null || true)"
+fi
 
 wire_megai_mcp() {
   command -v jq >/dev/null 2>&1 || {
@@ -30,13 +34,27 @@ wire_megai_mcp() {
   cp "$PI_MCP_CONFIG" "$backup"
   local tmp
   tmp="$(mktemp)"
-  # Pi gets memory and code search through lightweight shell extensions.
-  # Remove legacy specialist MCP entries and keep Asana lazy: its cached direct
-  # tools remain registered while the remote connection waits for first use.
-  jq '
-    del(.mcpServers["megai-dembrandt"], .mcpServers["megai-argent"], .mcpServers["megai-repowise"])
-    | if .mcpServers.asana? then .mcpServers.asana.lifecycle = "lazy" else . end
-  ' "$PI_MCP_CONFIG" >"$tmp" && mv "$tmp" "$PI_MCP_CONFIG"
+  # Pi gets memory and structural code intelligence through lightweight shell
+  # extensions. zvec-grep is global MCP because semantic/hybrid retrieval is its
+  # agent-native interface. Keep Asana lazy and remove legacy specialist MCPs.
+  if [ "$MODE" = "--remove" ]; then
+    jq '
+      del(.mcpServers["megai-dembrandt"], .mcpServers["megai-argent"], .mcpServers["megai-repowise"], .mcpServers.zvec_grep)
+      | if .mcpServers.asana? then .mcpServers.asana.lifecycle = "lazy" else . end
+    ' "$PI_MCP_CONFIG" >"$tmp" && mv "$tmp" "$PI_MCP_CONFIG"
+  elif [ -n "$ZG_BIN" ]; then
+    jq --arg zg "$ZG_BIN" '
+      del(.mcpServers["megai-dembrandt"], .mcpServers["megai-argent"], .mcpServers["megai-repowise"])
+      | .mcpServers.zvec_grep = {command: $zg, args: ["server", "--stdio"]}
+      | if .mcpServers.asana? then .mcpServers.asana.lifecycle = "lazy" else . end
+    ' "$PI_MCP_CONFIG" >"$tmp" && mv "$tmp" "$PI_MCP_CONFIG"
+  else
+    jq '
+      del(.mcpServers["megai-dembrandt"], .mcpServers["megai-argent"], .mcpServers["megai-repowise"], .mcpServers.zvec_grep)
+      | if .mcpServers.asana? then .mcpServers.asana.lifecycle = "lazy" else . end
+    ' "$PI_MCP_CONFIG" >"$tmp" && mv "$tmp" "$PI_MCP_CONFIG"
+    warn "pi: zvec-grep missing — global MCP entry skipped"
+  fi
 }
 
 configure_default_model() {

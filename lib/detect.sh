@@ -29,10 +29,10 @@ detect_runtimes() {
 
 require_or_install_node() {
   if [ "$MEGAI_HAS_NODE" = "1" ] && [ "$MEGAI_HAS_NPM" = "1" ] &&
-    node -e 'const [a,b]=process.versions.node.split(".").map(Number); process.exit(a > 20 || (a === 20 && b >= 12) ? 0 : 1)' 2>/dev/null; then
+    node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)' 2>/dev/null; then
     return 0
   fi
-  warn "Node.js 20.12+ kerak — fnm orqali LTS o'rnataman"
+  warn "Node.js 22+ kerak — fnm orqali LTS o'rnataman"
   if [ "$MEGAI_HAS_BREW" = "1" ]; then
     brew install fnm
   else
@@ -45,8 +45,8 @@ require_or_install_node() {
   fnm default lts-latest || true
   hash -r
   detect_runtimes
-  node -e 'const [a,b]=process.versions.node.split(".").map(Number); process.exit(a > 20 || (a === 20 && b >= 12) ? 0 : 1)' 2>/dev/null ||
-    die "Node.js 20.12+ required"
+  node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)' 2>/dev/null ||
+    die "Node.js 22+ required"
 }
 
 require_or_install_python() {
