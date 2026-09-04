@@ -21,7 +21,7 @@ megai — zero-config AI agent stack manager
 Usage:
   megai                 Activate stack for current project (default)
                           • starts agent-memory daemon
-                          • indexes the folder with codedb
+                          • indexes the folder with codedb and zvec-grep
                           • verifies MCP/skill bindings
                           • prints quick guide
 
@@ -38,7 +38,7 @@ Commands:
   install               Re-run installer (idempotent)
   status                Show tools/ports/versions
   doctor                Diagnose problems
-  reindex               Force re-index this project with codedb
+  reindex               Rebuild codedb and zvec-grep indexes for this project
   start [tool]          Start daemon (agent-memory)
   stop  [tool]          Stop daemon (agent-memory)
   update                Update all tools
@@ -48,7 +48,7 @@ Commands:
   version               Print version
   help                  This message
 
-Tools: agent-memory, codedb, cocoindex, caveman, rtk, graphify, ui-craft, ux-ui-agent-skills, dembrandt, ix, repowise, argent, numasec, mattpocock-skills
+Tools: agent-memory, codedb, zvec-grep, caveman, rtk, graphify, ui-craft, ux-ui-agent-skills, dembrandt, ix, repowise, argent, numasec, mattpocock-skills
 EOF
 }
 
@@ -59,7 +59,7 @@ cmd_install() {
 cmd_status() {
   detect_os; detect_runtimes; state_init
   printf "%-14s %-10s %-8s %s\n" TOOL VERSION PORT STATUS
-  for t in agent-memory codedb cocoindex caveman rtk graphify ui-craft dembrandt ix repowise argent numasec; do
+  for t in agent-memory codedb zvec-grep caveman rtk graphify ui-craft dembrandt ix repowise argent numasec; do
     local ver port stat bin
     ver=$(state_get ".tools[\"$t\"].version") || ver=""
     port=$(state_get ".tools[\"$t\"].port")   || port=""
@@ -95,7 +95,19 @@ cmd_doctor() {
     err "agent-memory missing"
   fi
   if command -v codedb      >/dev/null 2>&1; then ok "codedb CLI present";       else err "codedb missing"; fi
-  if command -v cocoindex   >/dev/null 2>&1; then ok "cocoindex CLI present";    else skip "cocoindex missing"; fi
+  if command -v zg          >/dev/null 2>&1; then
+    ok "zvec-grep CLI present"
+    if [ -f "$HOME/.pi/agent/mcp.json" ] && jq -e '
+      .mcpServers.zvec_grep.command
+      and .mcpServers.zvec_grep.args == ["server", "--stdio"]
+    ' "$HOME/.pi/agent/mcp.json" >/dev/null 2>&1; then
+      ok "Pi global zvec-grep MCP ready"
+    else
+      warn "Pi global zvec-grep MCP missing (run: megai wire pi)"
+    fi
+  else
+    err "zvec-grep missing"
+  fi
   if command -v caveman     >/dev/null 2>&1; then ok "caveman CLI present";      else skip "caveman missing"; fi
   if command -v rtk         >/dev/null 2>&1; then ok "rtk CLI present";          else skip "rtk missing"; fi
   if command -v graphify    >/dev/null 2>&1; then ok "graphify CLI present";     else skip "graphify missing"; fi
@@ -138,7 +150,7 @@ cmd_doctor() {
 cmd_update() {
   bash "$LIB/install_agent_memory.sh" || true
   bash "$LIB/install_codedb.sh"       || true
-  bash "$LIB/install_cocoindex.sh"    || true
+  MEGAI_UPDATE=1 bash "$LIB/install_zvec_grep.sh" || true
   bash "$LIB/install_caveman.sh"      || true
   bash "$LIB/install_rtk.sh"          || true
   bash "$LIB/install_graphify.sh"           || true
@@ -361,15 +373,17 @@ prepare_stack() {
     printf "%s↑%s initialising project (first run)\n\n" "$C_BLUE" "$C_OFF"
   fi
 
-  step 1 5 "agent-memory daemon"
+  step 1 6 "agent-memory daemon"
   ensure_agent_memory
-  step 2 5 "codedb index"
+  step 2 6 "codedb structural index"
   ensure_codedb_index "$(pwd)"
-  step 3 5 "graphify knowledge graph"
+  step 3 6 "zvec-grep hybrid index"
+  ensure_zvec_index "$(pwd)"
+  step 4 6 "graphify knowledge graph"
   ensure_graphify_bg
-  step 4 5 "RepoWise intelligence index"
+  step 5 6 "RepoWise intelligence index"
   ensure_repowise_bg
-  step 5 5 "token savers + skill checks"
+  step 6 6 "token savers + skill checks"
   check_caveman
   check_rtk
 
@@ -569,6 +583,42 @@ ensure_codedb_index() {
   fi
 }
 
+ensure_zvec_index() {
+  local proj="$1" root manifest embedding exclude key log
+  if ! command -v zg >/dev/null 2>&1; then
+    warn "zvec-grep missing — run: megai install"
+    return 0
+  fi
+  root="$(git -C "$proj" rev-parse --show-toplevel 2>/dev/null || printf '%s' "$proj")"
+  manifest="$root/.zvec-grep/manifest.json"
+  if [ -f "$manifest" ]; then
+    ok "zvec-grep hybrid index ready"
+    return 0
+  fi
+
+  # Keep the local search index out of git without editing the project's tracked
+  # .gitignore. This also works for linked worktrees through --git-path.
+  exclude="$(git -C "$root" rev-parse --git-path info/exclude 2>/dev/null || true)"
+  if [ -n "$exclude" ]; then
+    case "$exclude" in /*) ;; *) exclude="$root/$exclude" ;; esac
+    mkdir -p "$(dirname "$exclude")"
+    touch "$exclude"
+    grep -Fxq '/.zvec-grep/' "$exclude" 2>/dev/null || printf '\n/.zvec-grep/\n' >>"$exclude"
+  fi
+
+  embedding="${MEGAI_ZVEC_EMBEDDING:-local/potion-code-16m-v2}"
+  key="$(printf '%s' "$root" | cksum | awk '{print $1}')"
+  log="$MEGAI_HOME/logs/zvec-grep-$key.log"
+  mkdir -p "$MEGAI_HOME/logs"
+  printf "  %s↻%s zvec-grep indexing %s with %s ...\n" "$C_BLUE" "$C_OFF" "$root" "$embedding"
+  if zg index "$root" --embedding "$embedding" >"$log" 2>&1; then
+    state_set ".projects[\"$(printf '%s' "$root" | sed 's/[\"]/_/g')\"].zvec_indexed_at" "\"$(date -u +%FT%TZ)\""
+    ok "zvec-grep indexed -> $root"
+  else
+    warn "zvec-grep index failed — see $log"
+  fi
+}
+
 check_caveman() {
   if command -v caveman >/dev/null 2>&1; then ok "caveman skill active"
   else skip "caveman not installed"; fi
@@ -612,8 +662,12 @@ ${C_GRN}Memory${C_OFF}  (persistent across sessions)
   megai-memory recall "<query>"
   megai-memory sessions
 
-${C_GRN}Code search${C_OFF}
-  megai-codedb search "<pattern>"
+${C_GRN}Hybrid workspace search${C_OFF}  (zvec-grep)
+  zg query "where authentication is validated"
+  zg query --fts "AuthService"
+  zg query --rg -n "TODO" src/
+
+${C_GRN}Structural code intelligence${C_OFF}  (codedb)
   megai-codedb symbol <name>
   megai-codedb outline <file>
   megai-codedb tree
@@ -704,6 +758,10 @@ case "${1:-__project__}" in
   uninstall) shift; cmd_uninstall "$@" ;;
   reindex)   shift; bash "$LIB/state.sh" 2>/dev/null
              jq 'del(.projects["'"$(pwd)"'"])' "$MEGAI_HOME/state.json" > "$MEGAI_HOME/state.json.tmp" && mv "$MEGAI_HOME/state.json.tmp" "$MEGAI_HOME/state.json"
+             if command -v zg >/dev/null 2>&1; then
+               zvec_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+               [ ! -f "$zvec_root/.zvec-grep/manifest.json" ] || zg index "$zvec_root" --rebuild
+             fi
              cmd_project ;;
   version|-v|--version) cmd_version ;;
   help|-h|--help) usage ;;
