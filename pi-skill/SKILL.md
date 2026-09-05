@@ -1,6 +1,6 @@
 ---
 name: megai
-description: "MEGAI bridge for Pi — memory, hybrid workspace search, code intelligence, system maps, code health, and explicit /argent-only app testing."
+description: "MEGAI bridge for Pi — memory, hybrid workspace search, code intelligence, code health, and explicit /argent-only app testing."
 ---
 
 # MEGAI for Pi
@@ -13,7 +13,7 @@ This skill exposes agent-memory and codedb through shell extensions and zvec-gre
 - User asks to search code or documents by meaning, find symbols, list files, or view dependencies
 - User mentions "memory", "context", "codebase map", "find function X"
 - User asks to extract a website's design tokens, palette, typography, spacing, brand identity, or WCAG findings
-- User asks to map architecture, explain a component, trace a flow, or analyze change impact
+- User asks to explain architecture, trace a flow, or analyze change impact: combine structural lookups with targeted file reads; verify inferred connections in code.
 - User asks about code health, refactoring targets, commit risk, generated docs, or architectural decisions
 - User asks to test, inspect, automate, record, profile, or reproduce behavior in an iOS, Android, TV, Electron, or Chromium app
 
@@ -50,14 +50,9 @@ Run Dembrandt only for website-design extraction:
 dembrandt example.com --design-md
 ```
 
-### Ix — persistent system map
+### Local code workflow
 
-| Command | Usage |
-| --------- | ------- |
-| `ix map .` | Build or refresh the project map |
-| `ix explain <target>` | Explain a component or subsystem |
-| `ix trace <flow>` | Trace an execution flow |
-| `ix impact <target>` | Analyze change blast radius |
+Use codedb for structure, zvec-grep for semantic/hybrid discovery, and `rg` for exact text or as a fallback. Read only the relevant ranges with native file tools, edit with exact replacements, then verify the diff and affected behavior. Keep native read/edit tools available; no paid toolchain or replacement daemon is required.
 
 ### Argent — agent-driven app testing
 
@@ -87,7 +82,7 @@ zg query "where authentication is validated"
 megai-codedb search "TODO"
 megai-codedb symbol handleLogin
 megai-codedb tree src/
-ix impact auth-service
+rg -n 'auth-service' src/
 ```
 
 ## Gotchas
@@ -96,7 +91,6 @@ ix impact auth-service
 - **zvec-grep needs a workspace index.** Run `megai` in the repository root or `zg index --embedding local/potion-code-16m-v2`. Remote Embedding is never authorized automatically.
 - **codedb is stdio-first.** This bridge uses its CLI mode, not MCP. Some advanced features (bundle, snapshot) are MCP-only and not exposed here yet.
 - **Dembrandt needs a browser.** Run `dembrandt install-browser` if extraction reports that Chromium is unavailable.
-- **Ix needs its local backend.** Run `ix status`; re-run `megai install` if ports 8090/8529 are unavailable.
 - **Argent needs platform SDKs.** Apple targets require Xcode; Android targets require `adb`; Fire TV/Vega requires the Vega SDK. Electron and Chromium use CDP.
 - **RepoWise needs a completed local index.** Check `.repowise/state.json` or `megai logs repowise` after first activation.
 - **Automatic indexing happens through MEGAI.** Launch with `megai pi` so codedb and zvec-grep indexes are prepared before Pi starts.

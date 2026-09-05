@@ -135,7 +135,6 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🎨 | [ui-craft](https://skills.smoothui.dev) | Anti-slop UI rules, design memory, review gates, presets | Global skills and commands |
 | 🖌️ | [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | 17 UI/UX skills, WCAG references, tokens, components, adapters | Global skills |
 | 🌐 | [Dembrandt](https://github.com/dembrandt/dembrandt) | Extract design tokens, typography, palette, brand, and WCAG data from websites | On-demand CLI |
-| 🗺️ | [Ix](https://github.com/ix-infrastructure/Ix) | Persistent system map, architecture explanation, traces, impact analysis | CLI + plugins + MCP |
 | 📚 | [RepoWise](https://github.com/repowise-dev/repowise) | Dependency graph, generated wiki, code health, risk, and history | On-demand CLI + background index |
 | 🧪 | [Argent](https://github.com/software-mansion/argent) | Explicit `/argent` mobile, TV, Electron, and Chromium review | Slash command + on-demand CLI |
 | 🛡️ | [Numasec](https://github.com/FrancescoStabile/numasec) | Authorized AppSec/pentest operations, evidence, replay, and reports | CLI + global handoff skill |
@@ -152,7 +151,6 @@ MEGAI configures:
 
 - lean default MCP surface in `~/.claude.json`: `agentmemory` and `codedb`
 - Dembrandt, Argent, and RepoWise CLIs available on demand
-- Ix's `ix-memory` plugin
 - `rtk` `PreToolUse` hook
 - caveman and graphify skills
 - task-flow skill, hooks, commands, monitoring, optional statusline, and safe `dev` merge/worktree cleanup policy
@@ -167,7 +165,6 @@ MEGAI configures:
 
 - a lean, marked MCP block in `~/.codex/config.toml` with `agentmemory` and `codedb`
 - Dembrandt, Argent, and RepoWise CLIs available on demand
-- Ix plugin, hooks, and MCP integration
 - caveman, graphify, ui-craft, Matt Pocock, UX/UI, and safe worktree-lifecycle skills
 
 Only MEGAI-owned MCP tables are replaced or removed; unrelated Codex configuration remains intact.
@@ -410,7 +407,7 @@ megai-memory sessions
 
 ### 🔎 Hybrid search and code intelligence
 
-Use zvec-grep when wording or location is unknown, then codedb for structural navigation:
+The free local code workflow is **codedb + zvec-grep + native read/edit**, with **rg** for exact text and fallback. Use zvec-grep when wording or location is unknown, then codedb for structural navigation. Read the relevant ranges, make exact edits, and verify the diff and affected behavior. Architecture/impact explanations must be grounded in those lookups and code reads; no additional map daemon or paid toolchain is required.
 
 ```bash
 zg query "where authentication is validated"
@@ -429,21 +426,6 @@ The first MEGAI activation builds `.zvec-grep/` with the local `potion-code-16m-
 megai graph .
 megai graph ./docs
 ```
-
-### 🗺️ Ix system map
-
-```bash
-ix map .
-ix explain auth-service
-ix trace user_login_flow
-ix impact database.schema
-```
-
-Ix's local backend uses ports `8090` and `8529`. Set `IX_SKIP_BACKEND=1` before installation to install the CLI without starting the backend.
-
-MEGAI reapplies two narrowly matched Ix safety fixes after installation: Codex hooks prefer the nearest Git root over a global home `.codex/hooks.json`, and bare `ix map` calls (used by automatic Stop hooks) refuse non-Git, home and filesystem-root scopes before starting Node. Valid repository calls and explicitly scoped file/path commands remain available. This prevents accidental broad background scans from starving Pi/Paseo of CPU and memory; it is not a universal limit on explicitly requested map commands.
-
-Original files are backed up under `~/.megai/backups/ix-safety/`. Unrecognized upstream source or user-edited functions are preserved with a compatibility warning rather than patched heuristically. Verify with `python3 tests/ix-safety.py` and `bash tests/ix-integration.sh` from the source checkout.
 
 ### 📚 RepoWise
 
@@ -574,7 +556,6 @@ The installer:
 │   ├── codedb
 │   ├── zg
 │   ├── graphify
-│   ├── ix
 │   └── repowise
 ├── lib/                         installer and wiring scripts
 ├── pi-skill/                    Pi MEGAI skill and extensions
@@ -630,7 +611,7 @@ megai status
 megai doctor
 ```
 
-A healthy installation reports the core CLIs, agent configuration files, agent-memory daemon, Ix backend/plugins, global UX/UI and Numasec skills, RepoWise, Argent, and Numasec.
+A healthy installation reports the core CLIs, agent configuration files, agent-memory daemon, global UX/UI and Numasec skills, RepoWise, Argent, and Numasec.
 
 ### Useful checks
 
@@ -665,7 +646,6 @@ The real-CLI test uses temporary project/config directories with telemetry disab
 - Node.js `22+`
 - Python 3 and `pipx`
 - `jq`
-- Docker and Docker Compose for the full Ix backend
 - `uv` for RepoWise installation
 - `ripgrep`
 
@@ -679,11 +659,32 @@ The installer resolves supported missing dependencies where possible and reports
 - 🧩 Skills and plugins run with agent permissions; review third-party skill sources before use.
 - 💾 Configuration files are backed up before MEGAI changes them.
 - 🧱 Only MEGAI-owned MCP entries and marked blocks are replaced or removed.
-- 🏠 agent-memory, zvec-grep, Ix, and RepoWise services and indexes run locally by default; zvec-grep remote Embedding requires separate explicit authorization.
+- 🏠 agent-memory, zvec-grep, and RepoWise services and indexes run locally by default; zvec-grep remote Embedding requires separate explicit authorization.
 - 🛡️ Numasec execution is opt-in and must stay within an explicitly authorized target scope.
 - 📝 OpenSpec installation is pinned, disables npm lifecycle scripts and upstream telemetry, and initializes no repositories automatically. Specs and evidence stay in the chosen repository; archive is not a test or release authorization.
 
 ---
+
+## Retiring a legacy Ix installation
+
+Ix is no longer installed, updated, checked or recommended by MEGAI. Upgrading does not silently delete its independently installed runtime or graph data. On a previously installed host:
+
+1. Close old agent sessions so cached plugins/hooks cannot continue running. Back up any customized plugin assets before uninstalling them.
+2. Remove only the Ix plugins using the installed clients (skip absent clients/plugins):
+   ```bash
+   claude plugin uninstall ix-memory@ix-claude-plugin --scope user --keep-data
+   codex plugin remove ix-memory@ix-codex-plugin
+   ```
+3. Preview and apply the bundled legacy-registration cleanup (Python 3.11+):
+   ```bash
+   python3 "$HOME/.megai/lib/retire_ix.py"
+   python3 "$HOME/.megai/lib/retire_ix.py" --apply
+   ```
+   It backs up changed files under `~/.megai/backups/ix-retirement/` with a restore manifest, removes exact known global Ix Codex hook commands/MCP/local marketplace entries and Claude plugin registrations, and retires recognized MEGAI installer/shim/state leftovers. Unrelated hooks, MCP servers and configuration are preserved. Custom entries and symlinked configs require manual review; malformed configs stop the operation before writes. Keep these private backups outside MEGAI before running `megai uninstall` if you need them later.
+4. Inspect `~/.ix/backend/docker-compose.yml` and the containers' Compose labels first. If they identify only your Ix backend, stop/remove that stack with `docker compose -f "$HOME/.ix/backend/docker-compose.yml" down` **without `-v`**. Never remove a shared Compose project by name alone. Archive `~/.ix`, its verified launcher, and remaining Ix-only plugin/hooks/MCP assets after detaching them; do not delete shared `.codex/hooks` or `.codex/mcp` directories. The helper intentionally does not stop Docker, delete runtime files, or scan other projects. Check for additional launchers with `type -a ix`; if Homebrew's installed `ix` formula identifies `https://github.com/ix-infrastructure/Ix`, remove that formula with `HOMEBREW_NO_AUTOREMOVE=1 HOMEBREW_NO_AUTO_UPDATE=1 brew uninstall ix`. Do not remove an unrelated tool merely because it has the same name; retain shared Node dependencies.
+5. Reopen agents with the updated MEGAI skill (`megai wire pi` / `megai wire omp`), inspect customized/project-local Ix hooks separately, and check `command -v ix`, `codedb --version`, `zg --version`, `rg --version` and `megai doctor`. The first command should no longer find an active Ix launcher after runtime retirement. Graph volumes remain available for recovery.
+
+`python3 tests/ix-retirement.py`, `bash tests/mcp-wiring.sh` and `bash tests/zvec-grep-integration.sh` verify retirement and preserved search wiring in sandboxes. To undo a helper run, restore only the listed original files/symlinks from its manifest after reconciling any later edits; restore the archived runtime separately if needed.
 
 ## 🗑️ Uninstall
 
@@ -693,11 +694,10 @@ megai uninstall
 
 MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI, Numasec and registered OpenSpec skill links, shell PATH entries, and ui-craft components. The Numasec and OpenSpec CLIs are retained to avoid deleting independently usable tools; OpenSpec project artifacts and privacy settings are also retained.
 
-To prevent data loss, zvec-grep, Ix, RepoWise, and their local project indexes are retained. Remove them separately only when their data is no longer needed:
+To prevent data loss, zvec-grep, RepoWise, and their local project indexes are retained. Remove them separately only when their data is no longer needed:
 
 ```bash
 npm uninstall -g @zvec/zvec-grep
-curl -fsSL https://ix-infra.com/uninstall.sh | sh
 uv tool uninstall repowise
 ```
 
