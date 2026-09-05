@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install MEGAI skill/extensions and MCP tools through Pi MCP Adapter.
+# Install MEGAI skills, shell CLI bridges and tools through Pi MCP Adapter.
 set -euo pipefail
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 # shellcheck source=ui.sh
@@ -35,7 +35,7 @@ wire_megai_mcp() {
   local tmp
   tmp="$(mktemp)"
   # Pi gets memory and structural code intelligence through lightweight shell
-  # extensions. zvec-grep is global MCP because semantic/hybrid retrieval is its
+  # CLI bridges. zvec-grep is global MCP because semantic/hybrid retrieval is its
   # agent-native interface. Keep Asana lazy and remove legacy specialist MCPs.
   if [ "$MODE" = "--remove" ]; then
     jq '
@@ -101,12 +101,68 @@ configure_default_model() {
   ok "pi: global default model -> $provider/$model"
 }
 
+# Pi loads JS/TS extensions, not shell scripts. Keep these bridges on PATH.
+remove_owned_bridge() {
+  local link="$1" target="$2"
+  if [ -L "$link" ] && [ "$(readlink "$link")" = "$target" ]; then
+    rm "$link"
+  fi
+}
+wire_cli_bridges() {
+  local name target link
+  mkdir -p "$MEGAI_HOME/bin"
+  for name in memory codedb; do
+    target="$MEGAI_HOME/pi-skill/extensions/$name.sh"
+    link="$MEGAI_HOME/bin/megai-$name"
+    remove_owned_bridge "$PI_AGENT/extensions/megai-$name.sh" "$target"
+    if [ "$MODE" = "--remove" ]; then
+      remove_owned_bridge "$link" "$target"
+    elif { [ -e "$link" ] || [ -L "$link" ]; } && [ "$(readlink "$link" 2>/dev/null || true)" != "$target" ]; then
+      warn "pi: preserving user-owned bridge: $link"
+    else
+      chmod +x "$target"
+      ln -sf "$target" "$link"
+    fi
+  done
+}
+
+configure_skill_profile() {
+  local settings="$PI_AGENT/settings.json" tmp backup
+  [ -f "$settings" ] || printf '{}\n' > "$settings"
+  jq -e 'type == "object" and ((.skills // []) | type == "array" or type == "object")' "$settings" >/dev/null || {
+    warn "pi: invalid settings — preserved without changes"
+    return 1
+  }
+  mkdir -p "$MEGAI_HOME/backups"
+  backup="$(mktemp "$MEGAI_HOME/backups/pi.skills.json.XXXXXX")"
+  cp "$settings" "$backup"
+  tmp="$(mktemp "$PI_AGENT/settings.json.XXXXXX")"
+  # Match Pi SettingsManager's legacy skills-object migration. Preserve an
+  # explicit top-level enableSkillCommands value over the legacy nested value.
+  jq '
+    (if (.skills | type) == "object" then
+      .skills as $legacy
+      | (if ($legacy | has("enableSkillCommands")) and (has("enableSkillCommands") | not)
+         then .enableSkillCommands = $legacy.enableSkillCommands else . end)
+      | .skills = (if ($legacy.customDirectories | type) == "array"
+                   then $legacy.customDirectories else [] end)
+     else . end)
+    | ["!caveman*", "!cavecrew", "!smart-development-orchestrator"] as $filters
+    | .skills = (reduce $filters[] as $filter ((.skills // []);
+        if index($filter) == null then . + [$filter] else . end))
+  ' "$settings" > "$tmp"
+  chmod 600 "$tmp"
+  mv "$tmp" "$settings"
+}
+
 if [ "$MODE" = "--remove" ]; then
   wire_megai_mcp
+  wire_cli_bridges
+  # Preserve user-scope skill selection on unwiring; use pi config or its backup
+  # to re-enable resources, rather than deleting potentially user-owned filters.
   rm -f "$PI_AGENT/skills/megai.md"
   rm -rf "$PI_AGENT/skills/megai-task-flow" "$PI_AGENT/skills/agent-worktree-lifecycle"
-  rm -f "$PI_AGENT/extensions/megai-memory.sh" "$PI_AGENT/extensions/megai-codedb.sh"
-  ok "pi: megai skills + extensions + MCP tools removed"
+  ok "pi: megai skills + owned CLI bridges + MCP tools removed"
   exit 0
 fi
 
@@ -128,11 +184,9 @@ else
   warn "pi: worktree lifecycle skill missing — skipped"
 fi
 
-# Extensions: symlink (so updates propagate)
-ln -sf "$MEGAI_HOME/pi-skill/extensions/memory.sh" "$PI_AGENT/extensions/megai-memory.sh"
-ln -sf "$MEGAI_HOME/pi-skill/extensions/codedb.sh" "$PI_AGENT/extensions/megai-codedb.sh"
-chmod +x "$MEGAI_HOME/pi-skill/extensions/"*.sh 2>/dev/null || true
+wire_cli_bridges
+configure_skill_profile
 
-ok "pi: skills + extensions installed -> $PI_AGENT"
+ok "pi: skills + CLI bridges installed -> $PI_AGENT"
 configure_default_model
 state_set '.agents["pi"]' "{\"config\":\"$PI_AGENT\",\"wired\":true}"

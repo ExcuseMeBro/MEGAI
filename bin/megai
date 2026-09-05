@@ -365,10 +365,15 @@ prepare_stack() {
   ensure_codedb_index "$(pwd)"
   step 3 6 "zvec-grep hybrid index"
   ensure_zvec_index "$(pwd)"
-  step 4 6 "graphify knowledge graph"
-  ensure_graphify_bg
-  step 5 6 "RepoWise intelligence index"
-  ensure_repowise_bg
+  if [ "${MEGAI_SPECIALIST_INDEXES:-0}" = "1" ]; then
+    step 4 6 "graphify knowledge graph"
+    ensure_graphify_bg
+    step 5 6 "RepoWise intelligence index"
+    ensure_repowise_bg
+  else
+    step 4 6 "graphify: on demand (megai graph)"
+    step 5 6 "RepoWise: on demand (repowise init)"
+  fi
   step 6 6 "token savers + skill checks"
   check_caveman
   check_rtk
@@ -376,7 +381,11 @@ prepare_stack() {
   mark_project_active
   if [ "$resume" = "1" ]; then
     echo
-    ok "resumed — every tool was already running or cached"
+    if [ "${MEGAI_SPECIALIST_INDEXES:-0}" = "1" ]; then
+      ok "resumed — core readiness checked; specialist indexes requested"
+    else
+      ok "resumed — core readiness checked; specialist indexes on demand"
+    fi
   fi
 }
 
@@ -560,7 +569,8 @@ ensure_codedb_index() {
     return
   fi
   printf "  %s↻%s codedb indexing %s ...\n" "$C_BLUE" "$C_OFF" "$proj"
-  if codedb index "$proj" >/dev/null 2>&1; then
+  # codedb builds/refreshes its index on reads; there is no `index` subcommand.
+  if codedb "$proj" tree >/dev/null 2>&1; then
     state_set ".projects[\"$proj_key\"].path"       "\"$proj\""
     state_set ".projects[\"$proj_key\"].indexed_at" "\"$(date -u +%FT%TZ)\""
     ok "codedb indexed -> $proj"
@@ -606,7 +616,7 @@ ensure_zvec_index() {
 }
 
 check_caveman() {
-  if command -v caveman >/dev/null 2>&1; then ok "caveman skill active"
+  if command -v caveman >/dev/null 2>&1; then ok "caveman CLI installed (optional; activation depends on agent config)"
   else skip "caveman not installed"; fi
 }
 
@@ -697,7 +707,7 @@ ${C_GRN}Development + ship${C_OFF}
 ${C_GRN}Manage${C_OFF}
   megai status     megai doctor     megai stop     megai update
 
-${C_DIM}Token savers active: caveman (skill), rtk (proxy hook).${C_OFF}
+${C_DIM}Optional token helpers: caveman skills and rtk; installed does not mean active.${C_OFF}
 EOF
 }
 

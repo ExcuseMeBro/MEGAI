@@ -125,7 +125,7 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🧠 | [agent-memory](https://www.agent-memory.dev/) | Persistent cross-session memory | MCP + daemon, default port `3111` |
 | 🔎 | [codedb](https://github.com/justrach/codedb) | Code search, symbols, outlines, and file intelligence | MCP + CLI |
 | 🗂️ | [zvec-grep](https://github.com/zvec-ai/zvec-grep) | Local hybrid workspace search: BM25, vectors, and managed ripgrep | CLI + global Pi MCP |
-| 🪨 | [caveman](https://github.com/JuliusBrussee/caveman) | Compressed agent communication and workflow skills | Global skills/plugins |
+| 🪨 | [caveman](https://github.com/JuliusBrussee/caveman) | Optional compressed communication/workflow skills (`MEGAI_CAVEMAN=1`) | Global skills/plugins, not a core dependency |
 | ⚡ | [rtk](https://github.com/rtk-ai/rtk) | Rust Token Killer for compact command output | CLI + Claude hook |
 | 🕸️ | [graphify](https://graphify.net) | Tree-sitter knowledge graph and code relationships | CLI + global skill |
 | 📋 | task-flow | `.todos` board, priority queue, ADLC, monitoring, Asana mirror | Claude hooks + global skills |
@@ -152,7 +152,7 @@ MEGAI configures:
 - lean default MCP surface in `~/.claude.json`: `agentmemory` and `codedb`
 - Dembrandt, Argent, and RepoWise CLIs available on demand
 - `rtk` `PreToolUse` hook
-- caveman and graphify skills
+- graphify skills; Caveman only when explicitly installed
 - task-flow skill, hooks, commands, monitoring, optional statusline, and safe `dev` merge/worktree cleanup policy
 - ui-craft commands, review agents, and design memory
 - global Matt Pocock and UX/UI skills
@@ -165,7 +165,7 @@ MEGAI configures:
 
 - a lean, marked MCP block in `~/.codex/config.toml` with `agentmemory` and `codedb`
 - Dembrandt, Argent, and RepoWise CLIs available on demand
-- caveman, graphify, ui-craft, Matt Pocock, UX/UI, and safe worktree-lifecycle skills
+- graphify, ui-craft, Matt Pocock, UX/UI, and safe worktree-lifecycle skills; Caveman is optional
 
 Only MEGAI-owned MCP tables are replaced or removed; unrelated Codex configuration remains intact.
 
@@ -175,10 +175,10 @@ MEGAI configures:
 
 - global MEGAI skill at `~/.pi/agent/skills/megai.md`
 - Asana-aware task-flow and safe worktree-lifecycle skills under `~/.pi/agent/skills/`
-- memory and codedb shell extensions
+- `megai-memory` and `megai-codedb` CLI bridges in `~/.megai/bin` (not shell files masquerading as Pi extensions)
 - a global `zvec_grep` MCP entry in `~/.pi/agent/mcp.json` for semantic and hybrid workspace retrieval
 - Dembrandt, Argent, and RepoWise CLIs available on demand instead of permanent MCP entries
-- global UX/UI, caveman, graphify, and Matt Pocock skills
+- global UX/UI, graphify, and Matt Pocock skills; redundant Caveman/Cavecrew and legacy OMP-routing skills excluded from global Pi discovery
 - the first authenticated model as the global default when no valid default exists
 
 Pi keeps provider authentication in `~/.pi/agent/auth.json`; MEGAI never writes credentials.
@@ -513,6 +513,16 @@ MEGAI_PI_FULL=1 megai install
 
 The full profile also enables `@vigolium/piolium`, `pi-web-access`, `pi-subagents`, `bigpowers`, `@dietrichgebert/ponytail`, and `pi-lens`. Without `MEGAI_PI_FULL=1`, repeated installs remove only those MEGAI-owned optional entries from Pi's startup list; unrelated user packages are preserved.
 
+### Performance without weakening task quality
+
+- Core startup retains memory, codedb and local zvec-grep. Codedb warms its index with its supported `<root> tree` command, not a nonexistent `index` subcommand.
+- Graphify and RepoWise indexing is **on demand**: `megai graph` or `repowise init --yes --no-prose --no-claude-md`. To explicitly restore both startup jobs, use `MEGAI_SPECIALIST_INDEXES=1 megai pi`. Existing graphs/indexes are preserved.
+- Caveman installation is opt-in with `MEGAI_CAVEMAN=1 megai install`. Pi wiring excludes global `caveman*`, `cavecrew`, and `smart-development-orchestrator` skills; it does not delete shared skill files or add Ponytail. Use `pi config` to change skill selection. Project-local copies are separate resources and need separate review.
+- Shell bridges are installed on PATH; `symbol` maps to codedb `find`, and memory HTTP requests have a 3-second connection / 15-second total limit. Memory still needs its local daemon (`megai start agent-memory`).
+- Models, thinking, authentication, trust, tests and review requirements are not performance shortcuts. Native standalone Pi delegation remains available when its optional package is enabled; Paseo sessions use Paseo delegation.
+
+Run `bash tests/pi-runtime.sh`, `bash tests/pi-task-flow.sh`, and `bash tests/pi-performance.sh`. See [the scoped audit](docs/audits/pi-quality-performance.md) for evidence and limitations. Fewer prompt characters or background launches are not a measured end-to-end speedup. Existing sessions need `/reload` or a new session to load changed skills; compaction alone is not a configuration reload.
+
 ---
 
 ## 🏗️ How it works
@@ -524,7 +534,7 @@ The full profile also enables `@vigolium/piolium`, `pi-web-access`, `pi-subagent
                                │
                     ┌──────────▼──────────┐
                     │  ~/.megai/lib/main  │
-                    │  18-step pipeline   │
+                    │  17-step pipeline   │
                     └──────────┬──────────┘
                                │
           ┌────────────────────┼────────────────────┐

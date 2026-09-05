@@ -21,8 +21,8 @@ megai-memory <sub> [args]
 EOF
 }
 
-http_get()  { curl -fsS "$BASE/$1" || { echo "{\"error\":\"agent-memory daemon not reachable on :$PORT — run 'megai start agent-memory'\"}" >&2; exit 1; }; }
-http_post() { curl -fsS -X POST -H "Content-Type: application/json" -d "$2" "$BASE/$1" || { echo "error: POST $1 failed" >&2; exit 1; }; }
+http_get()  { curl -fsS --connect-timeout 3 --max-time 15 "$BASE/$1" || { echo "{\"error\":\"agent-memory daemon not reachable on :$PORT — run 'megai start agent-memory'\"}" >&2; exit 1; }; }
+http_post() { curl -fsS --connect-timeout 3 --max-time 15 -X POST -H "Content-Type: application/json" -d "$2" "$BASE/$1" || { echo "error: POST $1 failed" >&2; exit 1; }; }
 
 case "${1:-help}" in
   save)

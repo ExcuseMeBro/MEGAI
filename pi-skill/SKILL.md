@@ -5,7 +5,7 @@ description: "MEGAI bridge for Pi — memory, hybrid workspace search, code inte
 
 # MEGAI for Pi
 
-This skill exposes agent-memory and codedb through shell extensions and zvec-grep through a global Pi MCP entry. Argent is stricter than other specialists: run it only when the current user message explicitly invokes `/argent`.
+This skill exposes agent-memory and codedb through CLI bridges on PATH and zvec-grep through a global Pi MCP entry. Argent is stricter than other specialists: run it only when the current user message explicitly invokes `/argent`.
 
 ## When to use
 
@@ -87,10 +87,10 @@ rg -n 'auth-service' src/
 
 ## Gotchas
 
-- **agent-memory daemon must be running.** Extension talks to `http://127.0.0.1:<port>` (default 3111). Run `megai start agent-memory` if recall returns connection refused.
+- **agent-memory daemon must be running.** The CLI bridge talks to `http://127.0.0.1:<port>` (default 3111). Run `megai start agent-memory` if recall returns connection refused.
 - **zvec-grep needs a workspace index.** Run `megai` in the repository root or `zg index --embedding local/potion-code-16m-v2`. Remote Embedding is never authorized automatically.
 - **codedb is stdio-first.** This bridge uses its CLI mode, not MCP. Some advanced features (bundle, snapshot) are MCP-only and not exposed here yet.
 - **Dembrandt needs a browser.** Run `dembrandt install-browser` if extraction reports that Chromium is unavailable.
 - **Argent needs platform SDKs.** Apple targets require Xcode; Android targets require `adb`; Fire TV/Vega requires the Vega SDK. Electron and Chromium use CDP.
-- **RepoWise needs a completed local index.** Check `.repowise/state.json` or `megai logs repowise` after first activation.
+- **RepoWise is on demand.** In the chosen Git repository, run `repowise init --yes --no-prose --no-claude-md` before its first health/wiki query. MEGAI does not start specialist indexes by default.
 - **Automatic indexing happens through MEGAI.** Launch with `megai pi` so codedb and zvec-grep indexes are prepared before Pi starts.
