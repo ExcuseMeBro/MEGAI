@@ -41,7 +41,7 @@ bash "$LIB/install_codedb.sh"
 step 4 $TOTAL "Installing zvec-grep hybrid workspace search"
 bash "$LIB/install_zvec_grep.sh"
 
-step 5 $TOTAL "Installing caveman (token-compression skill)"
+step 5 $TOTAL "Optional caveman (MEGAI_CAVEMAN=1 to install)"
 bash "$LIB/install_caveman.sh"
 
 step 6 $TOTAL "Installing rtk (Rust Token Killer)"
