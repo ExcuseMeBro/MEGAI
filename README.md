@@ -441,6 +441,10 @@ ix impact database.schema
 
 Ix's local backend uses ports `8090` and `8529`. Set `IX_SKIP_BACKEND=1` before installation to install the CLI without starting the backend.
 
+MEGAI reapplies two narrowly matched Ix safety fixes after installation: Codex hooks prefer the nearest Git root over a global home `.codex/hooks.json`, and bare `ix map` calls (used by automatic Stop hooks) refuse non-Git, home and filesystem-root scopes before starting Node. Valid repository calls and explicitly scoped file/path commands remain available. This prevents accidental broad background scans from starving Pi/Paseo of CPU and memory; it is not a universal limit on explicitly requested map commands.
+
+Original files are backed up under `~/.megai/backups/ix-safety/`. Unrecognized upstream source or user-edited functions are preserved with a compatibility warning rather than patched heuristically. Verify with `python3 tests/ix-safety.py` and `bash tests/ix-integration.sh` from the source checkout.
+
 ### 📚 RepoWise
 
 ```bash
