@@ -7,7 +7,7 @@ trap 'rm -rf "$TMP"' EXIT
 export HOME="$TMP/home"
 export MEGAI_HOME="$TMP/megai"
 mkdir -p "$HOME" "$MEGAI_HOME/bin" "$MEGAI_HOME/lib" "$TMP/fake-bin"
-cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$MEGAI_HOME/lib/"
+cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$ROOT/lib/ix_safety.py" "$MEGAI_HOME/lib/"
 printf '{"tools":{},"ports":{},"agents":{},"projects":{}}\n' > "$MEGAI_HOME/state.json"
 
 cat > "$TMP/ix-install.sh" <<'SH'

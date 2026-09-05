@@ -152,5 +152,11 @@ if command -v codex >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
   fi
 fi
 
+# Upstream Stop hooks can otherwise map home or / and outlive their caller.
+# Reapply only recognized Ix source shapes; preserve unknown versions/user edits.
+if command -v python3 >/dev/null 2>&1 && [ -f "$MEGAI_HOME/lib/ix_safety.py" ]; then
+  python3 "$MEGAI_HOME/lib/ix_safety.py" || warn "Ix safety patch needs compatibility review; unknown source was preserved"
+fi
+
 ver="$(ix --version 2>/dev/null | head -n1 || echo "")"
 state_set '.tools["ix"]' "{\"bin\":\"$MEGAI_HOME/bin/ix\",\"version\":\"$ver\",\"claudePlugin\":$claude_plugin,\"codexPlugin\":$codex_plugin,\"codexHooks\":$codex_hooks,\"codexMcp\":$codex_mcp}"
