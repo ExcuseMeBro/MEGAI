@@ -25,6 +25,10 @@ Use the connected agent-memory MCP tools for saving observations, recalling prio
 
 Use the connected codedb MCP tools for project trees, full-text search, symbol lookup, outlines, dependency analysis, bundles, and snapshots. `megai omp` prepares the current project before launching OMP; run `megai reindex` when the index must be rebuilt.
 
+### Local search and edits
+
+Use `zg query "<question>"` for local semantic/hybrid discovery and `rg` for exact text or fallback search. Combine codedb structure with targeted native reads and exact edits; verify the diff and affected behavior. No paid toolchain is required.
+
 ### smart-router
 
 Use direct LSP, index, search, and exact reads first. Use MiniMax `smart-router` only for read-only search, read, find, symbols, references, callers, and repository-wide evidence; one unresolved lookup may escalate once to Luna or Terra.
@@ -40,7 +44,6 @@ Inspect with direct tools or MiniMax read-only discovery, then GPT implements, s
 ## Specialist CLIs
 
 - `dembrandt` — website design extraction.
-- `ix` — system maps, traces, and impact analysis.
 - `argent` — explicit `/argent` app/device review only; never automatic.
 - `repowise` — code health, risk, and generated wiki.
 - `numasec` — authorized security work only.

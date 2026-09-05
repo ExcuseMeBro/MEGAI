@@ -48,7 +48,7 @@ Commands:
   version               Print version
   help                  This message
 
-Tools: agent-memory, codedb, zvec-grep, caveman, rtk, graphify, ui-craft, ux-ui-agent-skills, dembrandt, ix, repowise, argent, numasec, mattpocock-skills
+Tools: agent-memory, codedb, zvec-grep, caveman, rtk, graphify, ui-craft, ux-ui-agent-skills, dembrandt, repowise, argent, numasec, mattpocock-skills
 EOF
 }
 
@@ -59,7 +59,7 @@ cmd_install() {
 cmd_status() {
   detect_os; detect_runtimes; state_init
   printf "%-14s %-10s %-8s %s\n" TOOL VERSION PORT STATUS
-  for t in agent-memory codedb zvec-grep caveman rtk graphify ui-craft dembrandt ix repowise argent numasec; do
+  for t in agent-memory codedb zvec-grep caveman rtk graphify ui-craft dembrandt repowise argent numasec; do
     local ver port stat bin
     ver=$(state_get ".tools[\"$t\"].version") || ver=""
     port=$(state_get ".tools[\"$t\"].port")   || port=""
@@ -119,20 +119,6 @@ cmd_doctor() {
     skip "ux-ui-agent-skills missing or incomplete"
   fi
   if command -v dembrandt   >/dev/null 2>&1; then ok "dembrandt CLI present";    else skip "dembrandt missing"; fi
-  if command -v ix          >/dev/null 2>&1; then
-    ok "Ix CLI present"
-    ix status >/dev/null 2>&1 && ok "Ix backend healthy" || warn "Ix backend unavailable"
-    if command -v claude >/dev/null 2>&1; then
-      claude plugin list 2>/dev/null | grep -q 'ix-memory' && ok "Ix Claude plugin ready" || warn "Ix Claude plugin missing"
-    fi
-    if command -v codex >/dev/null 2>&1; then
-      codex plugin list --json 2>/dev/null | jq -e '
-        .installed[]? | select(.pluginId == "ix-memory@ix-codex-plugin" and .installed == true and .enabled == true)
-      ' >/dev/null && ok "Ix Codex plugin ready" || warn "Ix Codex plugin missing"
-    fi
-  else
-    skip "Ix missing"
-  fi
   if command -v repowise    >/dev/null 2>&1; then ok "RepoWise CLI present";     else skip "RepoWise missing"; fi
   if command -v argent      >/dev/null 2>&1; then ok "Argent CLI present";       else skip "Argent missing"; fi
   if command -v numasec     >/dev/null 2>&1; then
@@ -159,7 +145,6 @@ cmd_update() {
   bash "$LIB/install_ui_craft.sh"           || true
   bash "$LIB/install_ux_ui_agent_skills.sh"  || true
   MEGAI_UPDATE=1 bash "$LIB/install_dembrandt.sh" || true
-  bash "$LIB/install_ix.sh"                 || true
   MEGAI_UPDATE=1 bash "$LIB/install_repowise.sh" || true
   MEGAI_UPDATE=1 bash "$LIB/install_argent.sh"  || true
   MEGAI_UPDATE=1 bash "$LIB/install_numasec.sh" || true
@@ -681,12 +666,6 @@ ${C_GRN}Knowledge graph${C_OFF}  (graphify)
 ${C_GRN}Design extraction${C_OFF}  (Dembrandt)
   dembrandt example.com --design-md
   # specialist CLI: starts only when requested
-
-${C_GRN}System map${C_OFF}  (Ix)
-  ix map .                 # map this codebase
-  ix explain auth-service # understand a component
-  ix trace user_login     # trace a flow
-  ix impact database      # analyze change impact
 
 ${C_GRN}Code health + wiki${C_OFF}  (RepoWise)
   repowise health         # health and refactoring targets
