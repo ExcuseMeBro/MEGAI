@@ -243,6 +243,7 @@ cmd_uninstall() {
   bash "$LIB/install_ux_ui_agent_skills.sh" --remove || true
   bash "$LIB/install_argent.sh" --remove || true
   bash "$LIB/install_numasec.sh" --remove || true
+  bash "$LIB/install_openspec.sh" --remove || true
   command -v ui-craft >/dev/null 2>&1 && ui-craft uninstall --yes >/dev/null 2>&1 || true
   rm -rf "$MEGAI_HOME"
   ok "uninstalled"

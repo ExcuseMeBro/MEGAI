@@ -15,17 +15,17 @@
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/install-one--line-brightgreen.svg" alt="One-line install">
   <img src="https://img.shields.io/badge/harnesses-Claude%20Code%20%7C%20Codex%20%7C%20Pi%20%7C%20OMP-8A2BE2.svg" alt="Harnesses">
-  <img src="https://img.shields.io/badge/tools-15-orange.svg" alt="Tools">
+  <img src="https://img.shields.io/badge/stack-core%20%2B%20optional-orange.svg" alt="Core and optional integrations">
 </p>
 
 <p align="center">
-  <b>🚀 One command · 🧰 Fifteen tools · 🤖 Four agent harnesses · ⚙️ Zero manual wiring</b><br>
-  Memory · code intelligence · indexing · token compression · system maps · task flow · UI/UX · app testing · security operations
+  <b>🚀 One command · 🧰 Core tools + optional specs · 🤖 Four agent harnesses · ⚙️ Managed wiring</b><br>
+  Memory · code intelligence · indexing · bounded orchestration · task flow · OpenSpec · UI/UX · app testing · security operations
 </p>
 
 # 🧠 MEGAI
 
-MEGAI is a one-line installer and manager for a complete AI coding-agent stack. It installs, configures, updates, and connects **15 tools** to **Claude Code**, **OpenAI Codex**, **Pi**, and **Oh My Pi (OMP)** while preserving existing user configuration.
+MEGAI is a one-line installer and manager for a complete AI coding-agent stack. It installs, configures, updates, and connects **coding tools and optional spec workflows** to **Claude Code**, **OpenAI Codex**, **Pi**, and **Oh My Pi (OMP)** while preserving existing user configuration.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | bash
@@ -50,6 +50,7 @@ megai doctor
 - [🗃️ Code intelligence and memory](#️-code-intelligence-and-memory)
 - [🧪 App testing](#-app-testing)
 - [🛡️ Security operations](#️-security-operations)
+- [🧭 Bounded Pi/Paseo orchestration](#-bounded-pipaseo-orchestration)
 - [📦 Pi package stack](#-pi-package-stack)
 - [🏗️ How it works](#️-how-it-works)
 - [📁 Installed files](#-installed-files)
@@ -105,7 +106,8 @@ Without MEGAI, every agent needs separate MCP entries, skills, hooks, plugins, p
 - 📚 **Generated codebase knowledge and health reports**
 - 🪨 **Lower agent output/token usage**
 - 📋 **A visible `.todos` execution board with ADLC stages**
-- 🔄 **Asana synchronization for Pi workflows**
+- 🔄 **Parent-owned Asana boundaries with user-owned completion**
+- 📝 **Optional OpenSpec requirements and acceptance scenarios for complex changes**
 - 🎨 **Design-system, accessibility, and UI quality skills**
 - 🌐 **Website-to-design-token extraction**
 - 🧪 **Mobile, TV, Electron, and browser testing**
@@ -138,6 +140,7 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🧪 | [Argent](https://github.com/software-mansion/argent) | Explicit `/argent` mobile, TV, Electron, and Chromium review | Slash command + on-demand CLI |
 | 🛡️ | [Numasec](https://github.com/FrancescoStabile/numasec) | Authorized AppSec/pentest operations, evidence, replay, and reports | CLI + global handoff skill |
 | 🛠️ | [Matt Pocock's skills](https://github.com/mattpocock/skills) | Specs, TDD, diagnosis, review, domain modeling, architecture, and delivery flows | Global skills |
+| 📝 | [OpenSpec](https://github.com/Fission-AI/OpenSpec) | Durable requirements, scenarios and one detailed checklist for complex changes | **Optional** pinned CLI + one global Pi skill |
 
 ---
 
@@ -182,6 +185,20 @@ MEGAI configures:
 - the first authenticated model as the global default when no valid default exists
 
 Pi keeps provider authentication in `~/.pi/agent/auth.json`; MEGAI never writes credentials.
+
+#### Optional OpenSpec for complex changes
+
+```bash
+bash "$HOME/.megai/lib/install_openspec.sh"  # tested OpenSpec 1.12.0 + one global Pi skill
+# In a new/reloaded Pi session:
+# /skill:megai-openspec <change request>
+```
+
+[OpenSpec](https://github.com/Fission-AI/OpenSpec) supplies durable requirements for multi-module features, public API/data migrations, consequential security changes, and explicit spec requests. Small known-seam fixes keep the normal fast path. Installation is opt-in (not part of `megai install`) and does not initialize other repositories. Node >=20.19.0 is required; mismatched existing CLI versions and user-owned skills are preserved with a clear failure instead of being replaced.
+
+The parent keeps Asana as status authority and one `.todos` summary linked to the change; OpenSpec `tasks.md` is the only detailed checklist. MEGAI uses the upstream `spec-driven` schema with a single global Pi bridge, not another generated OPSX prompt/skill bundle. Existing project configuration is preserved. Run real tests as well as strict spec validation: OpenSpec planning completeness and advisory verification are not implementation proof. Agent handoff remains `In Review`, `completed=false`; archive and main promotion require separate explicit user approval.
+
+The installer disables OpenSpec telemetry and npm lifecycle scripts. Managed Pi destinations are recorded in state, including custom `PI_CODING_AGENT_DIR` installs; removal verifies each symlink's ownership even if that environment variable is no longer set. The workflow stops if the installed CLI differs from the tested version. To unlink only the managed Pi bridge, run `bash "$HOME/.megai/lib/install_openspec.sh" --remove`; CLI, privacy settings and project specs remain. `megai uninstall` also removes the managed link. Source policy: [`skills/megai-openspec/SKILL.md`](skills/megai-openspec/SKILL.md).
 
 ### ⚪ Oh My Pi (OMP)
 
@@ -281,7 +298,7 @@ Every project can use a plain-Markdown execution board:
 <project>/.todos/
 ├── todo.md          📋 queued
 ├── inprogress.md    🚧 active or in review
-├── done.md          ✅ verified
+├── done.md          ✅ user-confirmed complete
 └── monitoring.md    📊 generated dashboard
 ```
 
@@ -308,18 +325,19 @@ The fast path is `implement → code self-review → focused test → ship when 
 
 ### 🔗 Boundary-only Asana mapping
 
-Asana synchronizes only at task boundaries. Linked tasks store the Asana GID in an HTML comment to prevent duplicate searches; the queue never auto-drains.
+The Asana-aware `megai-task-flow` skill used by Pi and OMP synchronizes only at boundaries. The parent starts a linked task before project edits; questions and read-only investigation need no task. Resolve the project by an exact Git-root folder-name match and ask if absent or ambiguous. Children inherit the task and never mutate Asana or `.todos`.
 
 | Boundary | `.todos` | Asana section | Completed |
 | --- | --- | --- | --- |
 | Start | `inprogress.md` | `In Progress` | `false` |
-| Finish | `done.md` | `Done` | `true` |
+| Verified agent handoff | `inprogress.md`, unchecked and labelled In Review | `In Review` | `false` |
+| User marks Done; reconcile | `done.md` | `Done` | `true` |
 
-Routine stage changes, `In Review` moves, milestone comments, and repeated board reads are skipped. An Asana comment is reserved for a real external blocker.
+Only the user may mark Done. Store the GID in an HTML comment and reuse it for follow-ups; an active task needs no per-edit skill reload or repeated start mutation. A follow-up after handoff returns the same task to In Progress. Skip routine stage sync, milestone comments and unchanged board rereads; the queue never auto-drains. Standalone Claude board hooks are a separate integration and remain subject to repository/user policy.
 
 ### 🌿 Agent branch delivery and promotion
 
-Primary development defaults to `dev`; isolated task branches start from `dev`. `megai finish --verified --target dev` merges task work, pushes `dev`, reuses the one open `dev` → `main` request, and cleans only the merged task worktree/branch. The task can then complete. The agent asks whether to promote main and runs `megai promote --approved` only after an explicit affirmative reply. Promotion verifies the reviewed head and clean forge state, merges the request, synchronizes `main`, and preserves `dev`.
+Primary development defaults to `dev`; isolated task branches start from `dev`. `megai finish --verified --target dev` merges task work, pushes `dev`, reuses the one open `dev` → `main` request, and cleans only the merged task worktree/branch. Agent work then moves to `In Review`, still incomplete in Asana. The agent asks whether to promote main and runs `megai promote --approved` only after an explicit affirmative reply. Promotion verifies the reviewed head and clean forge state, merges the request, synchronizes `main`, and preserves `dev`.
 
 ### 🧩 Claude task-flow pieces
 
@@ -472,6 +490,26 @@ Start with `/doctor`, `/opsec strict`, and a narrowly scoped runbook. Use Numase
 
 ---
 
+## 🧭 Bounded Pi/Paseo orchestration
+
+[`prompts/paseo-orchestrator.md`](prompts/paseo-orchestrator.md) is the shared execution-policy reference. It separates delegated leaf tasks from the parent role instead of telling every agent to orchestrate.
+
+| Task shape | Default execution |
+| --- | --- |
+| Small known-seam fix | Parent/direct tools; acceptance, diff review and focused test |
+| Unknown seam | One read-only scout when isolated discovery saves work |
+| Independent evidence | Start with at most two parallel readers; expand only for an unresolved question |
+| Scoped implementation | One writer per checkout; parallel writers need separate managed worktrees |
+| Security/data-integrity or consequential cross-module change | Independent fresh-context review plus actual verification |
+
+Use fresh child context, relevant paths/scenarios, explicit authority and compact evidence. Reuse a child for its refinement; prefer async completion notifications over polling. Inside Paseo, create visible Paseo children rather than hidden native Pi subprocesses. Concrete model routing remains user/project policy, not a hard-coded installer default.
+
+The reference prompt was reduced from 6,360 to 4,123 characters (35.2%) while retaining trust and verification rules. That measures prompt size, **not runtime speed or quality**. The installer does not overwrite `~/.paseo/config.json` or user `AGENTS.md`; adopting the reference is an explicit local configuration change. New sessions load changed instructions; already-running sessions can retain earlier context.
+
+The current local rollout also uses a temporary five-real-task journal at `~/.megai/measurements/pi-five-task-pilot.md`: boundary time, attributable parent/child tokens, observed waiting, correction cycles, acceptance evidence and regressions. Missing data stays unknown; unlike task types and policy-changing rollouts are not treated as comparable baselines. This journal is local, not installed by the default pipeline or committed with session data, and makes no automatic model/test changes.
+
+---
+
 ## 📦 Pi package stack
 
 MEGAI keeps Pi's default startup lean:
@@ -539,6 +577,7 @@ The installer:
 ├── omp-skill/                   OMP-native MEGAI skill
 ├── task-flow/                   skills, hooks, commands, and monitor
 ├── skills/numasec-security/     authorized security handoff guidance
+├── skills/megai-openspec/       optional parent-owned Pi spec workflow
 ├── skills/agent-worktree-lifecycle/  dev delivery, one promotion request, approved main merge
 ├── skills/smart-development-orchestrator/  Luna/Terra and multi-provider routing policy
 ├── omp-agents/                   MiniMax router/worker plus Luna and Terra trusted scouts
@@ -574,7 +613,7 @@ curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh |
 megai update
 ```
 
-This refreshes supported tools, global skills, integrations, and MCP wiring without replacing unrelated user configuration.
+This refreshes supported tools, global skills, integrations, and MCP wiring without replacing unrelated user configuration. OpenSpec remains separately opt-in and pinned: after fetching new MEGAI source, rerun its optional installer to refresh the bridge. Neither `megai update` nor the normal install pipeline automatically upgrades the OpenSpec CLI.
 
 ---
 
@@ -601,6 +640,20 @@ megai wire cc                  # repair Claude MCP entries
 megai logs repowise            # inspect background RepoWise indexing
 ```
 
+### Focused OpenSpec and orchestration checks
+
+From the MEGAI source checkout:
+
+```bash
+bash tests/openspec-integration.sh  # offline installer lifecycle and preservation
+bash tests/openspec-policy.sh       # static boundaries and negative mutations
+bash tests/openspec-contract.sh     # real installed OpenSpec 1.12.0 contract
+bash tests/pi-task-flow.sh          # Asana handoff and Pi wiring regressions
+bash tests/orchestration-policy.sh  # shared prompt guardrails
+```
+
+The real-CLI test uses temporary project/config directories with telemetry disabled. It verifies injected guidance, rejects malformed requirements, and demonstrates that planning completion does not mean implementation tasks passed. These checks validate integration contracts; they do not guarantee future model compliance or replace task-specific tests.
+
 ### Common requirements
 
 - 🍎 macOS or 🐧 Linux; Windows users should use WSL
@@ -624,6 +677,7 @@ The installer resolves supported missing dependencies where possible and reports
 - 🧱 Only MEGAI-owned MCP entries and marked blocks are replaced or removed.
 - 🏠 agent-memory, zvec-grep, Ix, and RepoWise services and indexes run locally by default; zvec-grep remote Embedding requires separate explicit authorization.
 - 🛡️ Numasec execution is opt-in and must stay within an explicitly authorized target scope.
+- 📝 OpenSpec installation is pinned, disables npm lifecycle scripts and upstream telemetry, and initializes no repositories automatically. Specs and evidence stay in the chosen repository; archive is not a test or release authorization.
 
 ---
 
@@ -633,7 +687,7 @@ The installer resolves supported missing dependencies where possible and reports
 megai uninstall
 ```
 
-MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI and Numasec skill links, shell PATH entries, and ui-craft components. The Numasec CLI is retained to avoid deleting an independently usable security tool.
+MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI, Numasec and registered OpenSpec skill links, shell PATH entries, and ui-craft components. The Numasec and OpenSpec CLIs are retained to avoid deleting independently usable tools; OpenSpec project artifacts and privacy settings are also retained.
 
 To prevent data loss, zvec-grep, Ix, RepoWise, and their local project indexes are retained. Remove them separately only when their data is no longer needed:
 

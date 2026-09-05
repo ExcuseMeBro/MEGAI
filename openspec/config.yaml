@@ -1,0 +1,26 @@
+schema: spec-driven
+
+context: |
+  MEGAI is a Bash-based local coding-agent integration stack. Reuse existing installers and focused shell tests; avoid new daemons, dependencies beyond the requested tool, and mandatory planning for small fixes.
+  Follow megai-openspec for selective spec work. The parent owns Asana and .todos boundaries; OpenSpec is not an orchestrator. Asana owns status, .todos one linked summary, tasks.md the detailed checklist. Preserve linked identity on resume.
+  Keep agent handoff at In Review with completed=false. Only the user may mark Done; archive and main promotion each require their own explicit user approval. These are separate actions.
+
+rules:
+  proposal:
+    - Include the linked Asana GID, bounded scope, non-goals and affected code paths.
+  specs:
+    - Define observable WHEN/THEN scenarios, preserved behavior and failure cases.
+  design:
+    - Reuse existing code and specify privacy, compatibility and rollback implications.
+  tasks:
+    - Reference requirements and their focused verification; keep this the only detailed checklist.
+
+operations:
+  apply:
+    guidance:
+      - Use one writer per checkout and scoped child evidence; no child task-tracker mutations.
+      - Run actual focused tests; spec validation and planning completeness are not implementation proof.
+  archive:
+    guidance:
+      - Require explicit user approval of this change plus passing verification and no unresolved critical findings.
+      - Keep Asana In Review and completed=false; archive never authorizes Done or main promotion.
