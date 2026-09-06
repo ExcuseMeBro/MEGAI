@@ -407,8 +407,11 @@ class Ledger:
         value = self.data.get(kind, {}).get(key)
         return value if isinstance(value, dict) else None
 
-    def mark_detail_pending(self, source_gid: str, *, stories: int, attachments: int) -> None:
-        self.data.setdefault("detail_pending", {})[source_gid] = {"stories": stories, "attachments": attachments, "status": "pending"}
+    def mark_detail_pending(self, source_gid: str, *, stories: int, attachments: int, gaps: list[dict[str, Any]] | None = None) -> None:
+        pending = {"stories": stories, "attachments": attachments, "status": "pending", "gaps": gaps or []}
+        self.data.setdefault("detail_pending", {})[source_gid] = pending
+        if gaps:
+            self.data.setdefault("fidelity_gaps", []).extend(gaps)
         self.save()
 
     def clear_detail_pending(self, source_gid: str) -> None:
@@ -770,13 +773,19 @@ def _verify_identity(record: Any, external_id: str, source: str = EXTERNAL_SOURC
 
 def _verify_owned_payload(kind: str, payload: dict[str, Any], current: dict[str, Any]) -> None:
     for field in FINGERPRINT_FIELDS.get(kind, ()):
-        if field not in payload or field not in current:
+        if field not in payload:
             continue
+        if field not in current:
+            raise MigrationError(f"Plane readback omitted submitted {kind} field {field}")
         expected = payload[field]
         actual = current[field]
-        if isinstance(expected, dict) and isinstance(actual, dict):
+        if isinstance(expected, dict):
             expected = expected.get("id") or expected
+        if isinstance(actual, dict):
             actual = actual.get("id") or actual
+        if isinstance(expected, list) and isinstance(actual, list):
+            expected = [item.get("id") if isinstance(item, dict) else item for item in expected]
+            actual = [item.get("id") if isinstance(item, dict) else item for item in actual]
         if expected != actual:
             raise MigrationError(f"Plane readback mismatch for {kind} field {field}")
 
@@ -1011,9 +1020,9 @@ class Importer:
     def _member_ids(self) -> dict[str, str]:
         if self.members is not None:
             return self.members
-        result = self.client.request("GET", f"/api/v1/workspaces/{self.client.slug}/members/")
+        result = self.client.list_pages(f"/api/v1/workspaces/{self.client.slug}/members/")
         self.members = {}
-        for member in records(result):
+        for member in result:
             email = member.get("email") or member.get("member", {}).get("email") if isinstance(member.get("member"), dict) else member.get("email")
             member_id = member.get("id") or member.get("member_id") or member.get("member", {}).get("id") if isinstance(member.get("member"), dict) else member.get("id")
             if email and member_id:
@@ -1086,7 +1095,7 @@ class Importer:
         stories = self.snapshot.task_stories(gid)
         attachments = self.snapshot.attachments(gid)
         if phase == "tasks":
-            self.ledger.mark_detail_pending(gid, stories=len(stories), attachments=len(attachments))
+            self.ledger.mark_detail_pending(gid, stories=len(stories), attachments=len(attachments), gaps=gaps)
             return
         # Native comments are best effort only for actual user comments.  The
         # bundle below remains authoritative for histories Plane cannot model.
@@ -1198,7 +1207,7 @@ class Importer:
             self.import_task(source_gid, destination_id, task, task_map, phase=phase)
         self.verify_cached_definitions(destination_id)
         if phase == "tasks":
-            return {"source_gid": source_gid, "destination_id": destination_id, "tasks": len(task_map), "phase": "tasks", "full_verification": False, "archived": False, "details_pending": len(self.ledger.data.get("detail_pending", {}))}
+            return {"source_gid": source_gid, "destination_id": destination_id, "tasks": len(task_map), "phase": "tasks", "full_verification": False, "archived": False, "details_pending": len(self.ledger.data.get("detail_pending", {})), "fidelity_gaps": self.ledger.data.get("fidelity_gaps", [])}
         if detail.get("archived"):
             # Archive only after child tasks, comments, uploads and bundles.
             self.client.request("POST", f"/api/v1/workspaces/{self.client.slug}/projects/{destination_id}/archive/")
@@ -1217,7 +1226,7 @@ class Importer:
         for task in self.snapshot.tasks_for(None):
             self.import_task(pseudo, str(project["id"]), task, task_map, phase=phase)
         self.verify_cached_definitions(str(project["id"]))
-        return {"source_gid": pseudo, "destination_id": project["id"], "tasks": len(task_map), "private": True, "phase": phase, "full_verification": phase == "all" and not self.snapshot.coverage_gaps and self.snapshot.full_account_export_complete, "details_pending": len(self.ledger.data.get("detail_pending", {}))}
+        return {"source_gid": pseudo, "destination_id": project["id"], "tasks": len(task_map), "private": True, "phase": phase, "full_verification": phase == "all" and not self.snapshot.coverage_gaps and self.snapshot.full_account_export_complete, "details_pending": len(self.ledger.data.get("detail_pending", {})), "fidelity_gaps": self.ledger.data.get("fidelity_gaps", [])}
 
     def verify(self, selected: str | None = None, *, phase: str = "all") -> dict[str, Any]:
         checked = 0
@@ -1291,7 +1300,7 @@ def main(argv: list[str] | None = None) -> int:
                     results.append(importer.import_project(project_gid, phase=args.phase))
                 if args.all and snapshot.tasks_for(None):
                     results.append(importer.import_my_tasks(phase=args.phase))
-                result = {"status": "applied", "results": results, "phase": args.phase, "pending": len(ledger.data.get("pending", {})), "details_pending": len(ledger.data.get("detail_pending", {})), "full_verification": args.phase == "all" and not snapshot.coverage_gaps and snapshot.full_account_export_complete, "source_scope": snapshot.scope, "coverage_gaps": snapshot.coverage_gaps, "full_account_export_complete": snapshot.full_account_export_complete}
+                result = {"status": "applied", "results": results, "phase": args.phase, "pending": len(ledger.data.get("pending", {})), "details_pending": len(ledger.data.get("detail_pending", {})), "fidelity_gaps": ledger.data.get("fidelity_gaps", []), "full_verification": args.phase == "all" and not snapshot.coverage_gaps and snapshot.full_account_export_complete, "source_scope": snapshot.scope, "coverage_gaps": snapshot.coverage_gaps, "full_account_export_complete": snapshot.full_account_export_complete}
             else:
                 result = importer.verify(selected, phase=args.phase)
     print(json.dumps(redact_secrets(result), sort_keys=True))

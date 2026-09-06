@@ -104,6 +104,13 @@ def test_redaction_covers_bearer_and_google_signed_urls():
     assert "[REDACTED_URL]" in value
 
 
+def test_core_readback_requires_submitted_fields():
+    with pytest.raises(importer.MigrationError, match="omitted submitted tasks field state"):
+        importer._verify_owned_payload("tasks", {"state": "s1"}, {"external_source": importer.EXTERNAL_SOURCE, "external_id": "t1"})
+    with pytest.raises(importer.MigrationError, match="omitted submitted tasks field parent"):
+        importer._verify_owned_payload("tasks", {"state": "s1", "parent": "p1"}, {"state": "s1"})
+
+
 def test_pending_payload_mismatch_is_blocked(tmp_path):
     tmp_path.chmod(0o700)
     with importer.Ledger(tmp_path) as ledger:
@@ -162,6 +169,10 @@ class _CoreHTTP:
         if path.endswith("/projects/dp1/") and method == "PATCH":
             self.project.update(payload)
             return _FakeResponse(self.project)
+        if path.endswith("/members/") and method == "GET":
+            if query.get("cursor") != "members-2":
+                return _FakeResponse({"results": [{"id": "m1", "email": "other@example.com"}], "next_cursor": "members-2", "next_page_results": True})
+            return _FakeResponse({"results": [{"id": "m2", "email": "owner@example.com"}], "next_cursor": "stale-members-cursor", "next_page_results": False})
         if path.endswith("/states/") and method == "GET":
             return _FakeResponse({"results": [self.states[k] for k in sorted(self.states)]})
         if path.endswith("/states/") and method == "POST":
@@ -213,7 +224,7 @@ def test_tasks_phase_core_flow_uses_pagination_privacy_and_no_detail_writes(tmp_
         (root / relative).mkdir(mode=0o700)
     (root / "source/manifest.json").write_text(json.dumps({"source_workspace_gid": "w1", "export_complete": True, "full_account_export_complete": False, "scope": {"project": "p1"}, "coverage_gaps": [{"kind": "account-wide-unavailable"}], "projects": [{"gid": "p1", "archived": True}], "tasks": ["t1"]}))
     (root / "source/projects/p1.json").write_text(json.dumps({"gid": "p1", "name": "Source Project", "archived": True, "sections": [{"gid": "s1", "name": "In Review"}]}))
-    (root / "source/tasks/t1.json").write_text(json.dumps({"gid": "t1", "name": "Core task", "memberships": [{"project": {"gid": "p1"}, "section": {"gid": "s1", "name": "In Review"}}], "custom_unknown": {"keep": True}}))
+    (root / "source/tasks/t1.json").write_text(json.dumps({"gid": "t1", "name": "Core task", "assignee": {"email": "missing@example.com"}, "memberships": [{"project": {"gid": "p1"}, "section": {"gid": "s1", "name": "In Review"}}], "custom_unknown": {"keep": True}}))
     (root / "source/stories/t1.json").write_text("[]")
     (root / "source/attachments/t1.json").write_text(json.dumps([{"gid": "a1", "name": "private.bin"}]))
     (root / "source/my-tasks.json").write_text("[]")
@@ -226,6 +237,8 @@ def test_tasks_phase_core_flow_uses_pagination_privacy_and_no_detail_writes(tmp_
         assert result["archived"] is False
         assert result["details_pending"] == 1
         assert ledger.data["detail_pending"]["t1"]["attachments"] == 1
+        assert ledger.data["detail_pending"]["t1"]["gaps"][0]["kind"] == "unmatched_assignee"
+        assert ledger.data["fidelity_gaps"][0]["email"] == "missing@example.com"
         assert ledger.data["states"]["dp1:started"]["origin"] == "reused_default"
         assert ledger.data["states"]["dp1:started"]["source_section_ids"] == ["s1"]
     assert http.project["name"] == "Source Project"
