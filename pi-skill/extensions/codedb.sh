@@ -21,12 +21,12 @@ EOF
 }
 
 case "${1:-help}" in
-  tree)     shift; codedb tree    "${1:-.}" ;;
+  tree)     shift; codedb "${1:-.}" tree ;;
   search)   shift; codedb search  "$@" ;;
-  symbol)   shift; codedb symbol  "$@" ;;
+  symbol)   shift; codedb find    "$@" ;;
   outline)  shift; codedb outline "$@" ;;
   find)     shift; codedb find    "$@" ;;
-  index)    shift; codedb index   "${1:-.}" ;;
+  index)    shift; codedb "${1:-.}" tree >/dev/null ;;
   help|-h|--help|"") usage ;;
   *) usage; exit 1 ;;
 esac
