@@ -39,6 +39,9 @@ Commands:
   status                Show tools/ports/versions
   doctor                Diagnose problems
   reindex               Rebuild codedb and zvec-grep indexes for this project
+  plane setup ...       Configure secure Plane MCP for Pi
+  plane status          Show Plane MCP configuration health
+  plane remove          Remove only MEGAI-owned Plane MCP configuration
   start [tool]          Start daemon (agent-memory)
   stop  [tool]          Stop daemon (agent-memory)
   update                Update all tools
@@ -67,6 +70,9 @@ cmd_status() {
     if [ -n "$bin" ] && [ -x "$bin" ]; then stat="installed"; else stat="missing"; fi
     printf "%-14s %-10s %-8s %s\n" "$t" "${ver:--}" "${port:--}" "$stat"
   done
+  if [ -f "$LIB/plane_mcp.sh" ]; then
+    bash "$LIB/plane_mcp.sh" status || true
+  fi
 }
 
 cmd_doctor() {
@@ -84,6 +90,14 @@ cmd_doctor() {
     if [ -e "$f" ]; then ok "$f"
     else skip "$f (not present)"; fi
   done
+  if [ -f "$LIB/plane_mcp.sh" ]; then
+    local plane_status
+    if plane_status="$(bash "$LIB/plane_mcp.sh" status 2>&1)"; then
+      ok "$plane_status"
+    else
+      warn "$plane_status"
+    fi
+  fi
   if command -v agentmemory >/dev/null 2>&1; then
     ok "agent-memory CLI present"
     local agentmemory_port
@@ -201,6 +215,10 @@ cmd_start() {
   esac
 }
 
+cmd_plane() {
+  bash "$LIB/plane_mcp.sh" "$@"
+}
+
 cmd_stop() {
   local t="${1:-agent-memory}"
   local pidf="$MEGAI_HOME/$t.pid"
@@ -232,6 +250,7 @@ cmd_uninstall() {
   [ "$ans" = "y" ] || { skip "cancelled"; return 0; }
   bash "$LIB/wire_cc.sh"        --remove || true
   bash "$LIB/wire_codex.sh"     --remove || true
+  bash "$LIB/plane_mcp.sh"      remove    || true
   bash "$LIB/wire_pi.sh"        --remove || true
   if [ -d "$HOME/.omp/profiles" ]; then
     for agent_dir in "$HOME/.omp/profiles/"*/agent; do
@@ -764,6 +783,7 @@ case "${1:-__project__}" in
   start)     shift; cmd_start     "$@" ;;
   stop)      shift; cmd_stop      "$@" ;;
   wire)      shift; cmd_wire      "$@" ;;
+  plane)     shift; cmd_plane     "$@" ;;
   logs)      shift; cmd_logs      "$@" ;;
   uninstall) shift; cmd_uninstall "$@" ;;
   reindex)   shift; bash "$LIB/state.sh" 2>/dev/null

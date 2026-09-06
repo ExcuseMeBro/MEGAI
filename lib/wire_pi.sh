@@ -37,6 +37,8 @@ wire_megai_mcp() {
   # Pi gets memory and structural code intelligence through lightweight shell
   # CLI bridges. zvec-grep is global MCP because semantic/hybrid retrieval is its
   # agent-native interface. Keep Asana lazy and remove legacy specialist MCPs.
+  # Plane is managed only by `megai plane setup/remove`; leave its credential
+  # reference untouched during normal wire/update and MEGAI unwiring.
   if [ "$MODE" = "--remove" ]; then
     jq '
       del(.mcpServers["megai-dembrandt"], .mcpServers["megai-argent"], .mcpServers["megai-repowise"], .mcpServers.zvec_grep)
