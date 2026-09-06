@@ -13,7 +13,7 @@ function fixture({ brokenStories = false, truncatedSubtasks = false } = {}) {
   const calls = [];
   return { calls, async call(name, args = {}) {
     calls.push({ name, args });
-    if (name === 'get_me') return { data: { workspaces: [{ gid: '123' }] } };
+    if (name === 'get_me') return { data: { gid: '100', workspaces: [{ gid: '123' }] } };
     if (name === 'get_projects') return { data: [{ gid: args.archived ? '2' : '1', archived: args.archived }], next_page: null };
     if (name === 'get_project') return { data: { gid: args.project_id, sections: [], task_counts: { num_tasks: 1 } } };
     if (name === 'get_tasks') return { data: [task], next_page: null };
@@ -58,6 +58,17 @@ test('read failure and truncated subtasks prevent a complete migration claim', a
       assert.equal(m.export_complete, false); assert.ok(m.gaps.length > 0);
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   }
+});
+test('non-paginated user-directory tool is an explicit coverage gap, not proof of a full account export', async () => {
+  const dir = root(); const client = fixture(); const originalCall = client.call;
+  client.catalog = [{ name: 'get_users' }];
+  client.call = (name, args) => name === 'get_users' ? Promise.resolve({ data: [{ gid: '100' }] }) : originalCall(name, args);
+  try {
+    const result = await exportSnapshot(client, dir, { sourceWorkspace: '123' });
+    assert.equal(result.export_complete, true); assert.equal(result.full_account_export_complete, false);
+    assert.ok(result.coverage_gaps.some(gap => gap.kind === 'user_directory_pagination_not_exposed'));
+    assert.equal(result.tasks.length, 3);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 test('equal-sized task shapes preserve the union of fields', () => {
   const tasks = new Map(); const gaps = [];
