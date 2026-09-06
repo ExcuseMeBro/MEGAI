@@ -8,10 +8,15 @@ ledger must be outside Git and mode `0700`. It never calls Asana.
 
 - The source workspace GID and destination workspace slug are mandatory. The
   source manifest must say `export_complete: true`; incomplete exports are
-  blocked.
+  blocked. `scope`, `coverage_gaps`, and `full_account_export_complete` are
+  carried into every report; `export_complete` alone never claims account-wide
+  parity.
 - `plan` is local-only. `apply` is the only command that writes Plane. `--project`
   is the bounded pilot; `--all` also creates a separate private My Tasks project
-  for unprojected records.
+  for unprojected records. `--phase tasks` imports core projects, states,
+  labels, assignees, parents, and work items only; it leaves durable pending
+  detail status and never archives or claims full verification. The default
+  `--phase all` resumes/imports comments, files, and metadata bundles.
 - Plane is fixed to `https://api.plane.so`. Credentials are read from a regular,
   current-user-owned `0600` token file, never from arguments or logs.
 - Projects are created with a nonsensitive placeholder and migration identity,
@@ -50,16 +55,24 @@ python3 lib/asana_plane_import.py apply \
   --source-workspace-gid SOURCE_WORKSPACE_GID \
   --workspace-slug DESTINATION_SLUG \
   --token-file /private/path/plane-token \
-  --project SOURCE_PROJECT_GID
+  --project SOURCE_PROJECT_GID \
+  --phase tasks
+
+python3 lib/asana_plane_import.py resume \
+  --source PRIVATE_ROOT \
+  --source-workspace-gid SOURCE_WORKSPACE_GID \
+  --workspace-slug DESTINATION_SLUG \
+  --token-file /private/path/plane-token \
+  --project SOURCE_PROJECT_GID \
+  --phase all
 ```
 
 For the reviewed bulk operation, replace `--project SOURCE_PROJECT_GID` with
-`--all`. `resume` has the same scope flags and reuses the ledger; `verify`
-read-checks mapped projects/items without creating records.
+`--all`. `resume` has the same scope and phase flags and reuses the ledger;
+`verify` read-checks mapped projects/items without creating records.
 
 ```bash
-python3 lib/asana_plane_import.py resume ... --project SOURCE_PROJECT_GID
-python3 lib/asana_plane_import.py verify ... --project SOURCE_PROJECT_GID
+python3 lib/asana_plane_import.py verify ... --project SOURCE_PROJECT_GID --phase all
 ```
 
 The command emits only redacted JSON counts/status. A non-zero exit means the

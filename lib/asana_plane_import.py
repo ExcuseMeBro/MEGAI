@@ -34,7 +34,9 @@ API_ORIGIN = "https://api.plane.so"
 EXTERNAL_SOURCE = "asana-migration-v1"
 RATE_INTERVAL = 1.1
 SIGNED_QUERY_KEYS = {"x-amz-algorithm", "x-amz-credential", "x-amz-date", "x-amz-expires", "x-amz-signature", "x-amz-security-token", "signature", "sig", "token", "expires"}
-SECRET_KEY_RE = re.compile(r"(?:authorization|bearer|access[_-]?token|refresh[_-]?token|api[_-]?key|secret|password|presign|signature|x-amz-[^\s]+)", re.I)
+SECRET_KEY_RE = re.compile(r"(?:authorization|bearer|access[_-]?token|refresh[_-]?token|api[_-]?key|token|secret|password|presign|signature|x-amz-[^\s]+)", re.I)
+SIGNED_URL_RE = re.compile(r"https?://[^\s'\"<>]*(?:x-amz-|x-goog-|signature=|sig=|token=|access_token=|expires=)[^\s'\"<>]*", re.I)
+BEARER_RE = re.compile(r"\bBearer\s+[^\s,;]+", re.I)
 
 
 class MigrationError(RuntimeError):
@@ -163,6 +165,9 @@ def redact_secrets(value: Any) -> Any:
         return {k: "[REDACTED]" if SECRET_KEY_RE.search(str(k)) else redact_secrets(v) for k, v in value.items()}
     if isinstance(value, list):
         return [redact_secrets(v) for v in value]
+    if isinstance(value, str):
+        value = BEARER_RE.sub("Bearer [REDACTED]", value)
+        return SIGNED_URL_RE.sub("[REDACTED_URL]", value)
     return value
 
 
@@ -317,6 +322,25 @@ def _hash_json(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
 
 
+FINGERPRINT_FIELDS = {
+    "projects": ("id", "external_source", "external_id", "name", "identifier", "description", "network", "archived"),
+    "tasks": ("id", "external_source", "external_id", "name", "description", "description_html", "description_stripped", "state", "parent", "assignees", "labels", "start_date", "target_date", "completed_at", "archived_at"),
+    "states": ("id", "external_source", "external_id", "name", "color", "group"),
+    "labels": ("id", "external_source", "external_id", "name", "color", "description", "parent"),
+    "comments": ("id", "external_source", "external_id", "comment_html", "comment_json", "access", "parent"),
+    "attachments": ("id", "external_source", "external_id", "name", "size", "is_uploaded", "sha256", "bytes"),
+}
+
+
+def owned_fingerprint(kind: str, value: Any) -> str:
+    """Hash only migration-owned content, not API activity/count timestamps."""
+    fields = FINGERPRINT_FIELDS.get(kind)
+    if fields is None or not isinstance(value, dict):
+        return _hash_json(value)
+    selected = {field: value.get(field) for field in fields if field in value}
+    return _hash_json(selected)
+
+
 def atomic_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     os.chmod(path.parent, 0o700)
@@ -364,7 +388,13 @@ class Ledger:
     def save(self) -> None:
         atomic_json(self.path, redact_secrets(self.data))
 
+    def check_pending(self, kind: str, key: str, payload: Any) -> None:
+        existing = self.data.setdefault("pending", {}).get(f"{kind}:{key}")
+        if existing and existing.get("payload_hash") != _hash_json(payload):
+            raise MigrationError(f"pending {kind} receipt payload mismatch for {key}; refusing a different POST")
+
     def pending(self, kind: str, key: str, payload: Any) -> None:
+        self.check_pending(kind, key, payload)
         self.data.setdefault("pending", {})[f"{kind}:{key}"] = {"payload_hash": _hash_json(payload), "kind": kind, "source_id": key, "created_at": dt.datetime.now(dt.timezone.utc).isoformat()}
         self.save()
 
@@ -376,6 +406,14 @@ class Ledger:
     def mapping(self, kind: str, key: str) -> dict[str, Any] | None:
         value = self.data.get(kind, {}).get(key)
         return value if isinstance(value, dict) else None
+
+    def mark_detail_pending(self, source_gid: str, *, stories: int, attachments: int) -> None:
+        self.data.setdefault("detail_pending", {})[source_gid] = {"stories": stories, "attachments": attachments, "status": "pending"}
+        self.save()
+
+    def clear_detail_pending(self, source_gid: str) -> None:
+        self.data.setdefault("detail_pending", {}).pop(source_gid, None)
+        self.save()
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -425,7 +463,7 @@ class PlaneClient:
                     except json.JSONDecodeError as exc:
                         raise MigrationError(f"Plane returned invalid JSON for {method} {path}") from exc
             except urllib.error.HTTPError as exc:
-                response_body = exc.read().decode("utf-8", "replace")[:500]
+                exc.read()
                 if method == "GET" and exc.code in {429, 502, 503, 504} and attempt + 1 < attempts:
                     retry = exc.headers.get("Retry-After") if exc.headers else None
                     try:
@@ -436,7 +474,7 @@ class PlaneClient:
                     continue
                 if method != "GET" and exc.code >= 500:
                     raise AmbiguousWrite(f"Plane {method} may have succeeded ({exc.code}); reconcile external identity before retry") from exc
-                raise MigrationError(f"Plane {method} {path} failed ({exc.code}): {redact_secrets(response_body)}")
+                raise MigrationError(f"Plane {method} {path} failed ({exc.code})")
             except (urllib.error.URLError, TimeoutError, OSError) as exc:
                 if method == "GET" and attempt + 1 < attempts:
                     self.sleep_fn(2 ** attempt)
@@ -456,11 +494,43 @@ class PlaneClient:
         return self.request("GET", f"/api/v1/workspaces/{self.slug}/projects/{project_id}/work-items/{item_id}/comments/{comment_id}/")
 
     def find_comment(self, project_id: str, item_id: str, external_id: str) -> Any | None:
-        result = self.request("GET", f"/api/v1/workspaces/{self.slug}/projects/{project_id}/work-items/{item_id}/comments/", query={"external_source": EXTERNAL_SOURCE, "external_id": external_id})
-        for candidate in records(result):
+        candidates = self.list_pages(f"/api/v1/workspaces/{self.slug}/projects/{project_id}/work-items/{item_id}/comments/", {"external_source": EXTERNAL_SOURCE, "external_id": external_id})
+        for candidate in candidates:
             if candidate.get("external_source") == EXTERNAL_SOURCE and str(candidate.get("external_id")) == external_id:
                 return candidate
         return None
+
+    def list_pages(self, path: str, query: dict[str, str] | None = None) -> list[dict[str, Any]]:
+        records_out: list[dict[str, Any]] = []
+        current_path = path
+        current_query = dict(query or {})
+        seen: set[str] = set()
+        for _ in range(1000):
+            result = self.request("GET", current_path, query=current_query)
+            records_out.extend(records(result))
+            if not isinstance(result, dict):
+                return records_out
+            marker = result.get("next_cursor") or result.get("next_page") or result.get("next")
+            if not marker:
+                return records_out
+            if isinstance(marker, dict):
+                marker = marker.get("cursor") or marker.get("next_cursor") or marker.get("offset") or marker.get("url")
+            if not isinstance(marker, str) or not marker:
+                raise MigrationError("malformed Plane pagination cursor")
+            if marker in seen:
+                raise MigrationError("repeated Plane pagination cursor")
+            seen.add(marker)
+            if marker.startswith(API_ORIGIN + "/"):
+                parsed = urllib.parse.urlsplit(marker)
+                current_path = parsed.path
+                current_query = dict(urllib.parse.parse_qsl(parsed.query))
+            elif marker.startswith("/"):
+                parsed = urllib.parse.urlsplit(API_ORIGIN + marker)
+                current_path = parsed.path
+                current_query = dict(urllib.parse.parse_qsl(parsed.query))
+            else:
+                current_query = {**current_query, "cursor": marker}
+        raise MigrationError("Plane pagination exceeded safety limit")
 
     def find_external(self, resource: str, project_id: str | None, external_id: str) -> Any | None:
         if resource == "projects":
@@ -475,13 +545,10 @@ class PlaneClient:
             path = f"/api/v1/workspaces/{self.slug}/projects/{project_id}/labels/"
         else:
             raise MigrationError(f"unsupported reconciliation resource {resource}")
-        result = self.request("GET", path, query={"external_source": EXTERNAL_SOURCE, "external_id": external_id})
-        candidates = records(result)
+        candidates = self.list_pages(path, {"external_source": EXTERNAL_SOURCE, "external_id": external_id})
         for candidate in candidates:
             if candidate.get("external_source") == EXTERNAL_SOURCE and str(candidate.get("external_id")) == str(external_id):
                 return candidate
-        if isinstance(result, dict) and result.get("external_source") == EXTERNAL_SOURCE and str(result.get("external_id")) == str(external_id):
-            return result
         return None
 
     def download_checksum(self, target: str) -> str:
@@ -559,6 +626,13 @@ class Snapshot:
             raise MigrationError("approved source workspace does not match snapshot")
         if not self.manifest.get("export_complete"):
             raise MigrationError("source export is incomplete; apply is blocked")
+        self.scope = self.manifest.get("scope", {"kind": "unspecified"})
+        self.coverage_gaps = self.manifest.get("coverage_gaps", self.manifest.get("gaps", []))
+        if not isinstance(self.coverage_gaps, list):
+            raise MigrationError("source coverage_gaps must be a list")
+        # Account-wide parity is an explicit exporter claim; export_complete
+        # only proves the declared snapshot scope was read completely.
+        self.full_account_export_complete = bool(self.manifest.get("full_account_export_complete", False))
         self.projects = {source_id(str(p["gid"])): p for p in self.manifest.get("projects", []) if isinstance(p, dict) and p.get("gid") is not None}
         self.tasks: dict[str, dict[str, Any]] = {}
         task_ids = self.manifest.get("tasks", [])
@@ -566,7 +640,6 @@ class Snapshot:
             sid = source_id(str(gid))
             self.tasks[sid] = load_json(self.root, f"source/tasks/{sid}.json")
         self.my_tasks = [source_id(str(t.get("gid"))) for t in records(load_json(self.root, "source/my-tasks.json", [])) if t.get("gid") is not None]
-        validate_memberships(self.tasks.values())
 
     def project_detail(self, gid: str) -> dict[str, Any]:
         return load_json(self.root, f"source/projects/{source_id(gid)}.json")
@@ -580,6 +653,8 @@ class Snapshot:
     def task_project(self, task: dict[str, Any], selected: str | None = None) -> str | None:
         ids = membership_project_ids(task)
         if len(ids) > 1:
+            if selected and selected not in ids:
+                return "__ambiguous_unrelated__"
             raise MigrationError(f"ambiguous multi-project task {task.get('gid')}: {','.join(ids)}")
         if ids:
             return ids[0]
@@ -591,9 +666,9 @@ class Snapshot:
     def tasks_for(self, selected: str | None) -> list[dict[str, Any]]:
         if selected and selected not in self.projects:
             raise MigrationError(f"unknown source project {selected}")
-        selected_tasks = [t for t in self.tasks.values() if self.task_project(t) == selected]
+        selected_tasks = [t for t in self.tasks.values() if self.task_project(t, selected) == selected]
         if selected is None:
-            selected_tasks = [t for t in self.tasks.values() if self.task_project(t) is None]
+            selected_tasks = [t for t in self.tasks.values() if self.task_project(t, selected) is None]
         return order_tasks(selected_tasks)
 
 
@@ -602,6 +677,11 @@ def project_payload(detail: dict[str, Any], external_id: str, *, placeholder: bo
         return {"name": f"Migration placeholder {external_id}", "identifier": "AS" + hashlib.sha256(external_id.encode()).hexdigest()[:8].upper(), "external_source": EXTERNAL_SOURCE, "external_id": external_id}
     clean_html, plain = semantic_description(detail)
     return {"name": str(detail.get("name") or f"Asana {external_id}"), "description": clean_html or plain, "external_source": EXTERNAL_SOURCE, "external_id": external_id}
+
+
+def placeholder_matches(current: dict[str, Any], placeholder: dict[str, Any]) -> bool:
+    """Adopt only an exact migration placeholder, never a name collision."""
+    return all(current.get(field) == expected for field, expected in placeholder.items())
 
 
 def task_payload(task: dict[str, Any], state_id: str, parent_id: str | None, *, assignees: list[str] | None = None, labels: list[str] | None = None) -> dict[str, Any]:
@@ -654,7 +734,7 @@ def _metadata_bundle(snapshot: Snapshot, task: dict[str, Any], project_id: str, 
                     item.setdefault(key, receipt[key])
             item.pop("path", None)
             safe_attachments.append(item)
-    return {"schema_version": 1, "source_system": "asana", "source_project_gid": project_id, "source_task": strip_ephemeral_urls(copy.deepcopy(task)), "source_stories": strip_ephemeral_urls(snapshot.task_stories(str(task["gid"]))), "source_attachments": safe_attachments, "fidelity_gaps": gaps}
+    return {"schema_version": 1, "source_system": "asana", "source_project_gid": project_id, "source_scope": strip_ephemeral_urls(snapshot.scope), "source_coverage_gaps": strip_ephemeral_urls(snapshot.coverage_gaps), "source_task": strip_ephemeral_urls(copy.deepcopy(task)), "source_stories": strip_ephemeral_urls(snapshot.task_stories(str(task["gid"]))), "source_attachments": safe_attachments, "fidelity_gaps": gaps}
 
 
 def _validate_receipt(snapshot: Snapshot, attachment: dict[str, Any]) -> tuple[Path, dict[str, Any]]:
@@ -673,6 +753,19 @@ def _verify_identity(record: Any, external_id: str, source: str = EXTERNAL_SOURC
     if not isinstance(record, dict) or record.get("external_source") != source or str(record.get("external_id")) != external_id:
         raise MigrationError("Plane readback did not prove migration ownership")
     return record
+
+
+def _verify_owned_payload(kind: str, payload: dict[str, Any], current: dict[str, Any]) -> None:
+    for field in FINGERPRINT_FIELDS.get(kind, ()):
+        if field not in payload or field not in current:
+            continue
+        expected = payload[field]
+        actual = current[field]
+        if isinstance(expected, dict) and isinstance(actual, dict):
+            expected = expected.get("id") or expected
+            actual = actual.get("id") or actual
+        if expected != actual:
+            raise MigrationError(f"Plane readback mismatch for {kind} field {field}")
 
 
 def find_destination_attachment(value: Any, external_id: str) -> dict[str, Any] | None:
@@ -708,21 +801,47 @@ class Importer:
         self.client = client
         self.ledger = ledger
         self.members: dict[str, str] | None = None
+        self.state_cache: dict[str, dict[str, Any]] = {}
+        self.label_cache: dict[str, dict[str, Any]] = {}
+
+    def begin_project(self) -> None:
+        self.state_cache.clear()
+        self.label_cache.clear()
+
+    def verify_cached_definitions(self, project_id: str) -> None:
+        for key, cached in self.state_cache.items():
+            current = self.client.request("GET", f"/api/v1/workspaces/{self.client.slug}/projects/{project_id}/states/{cached['id']}/")
+            _verify_identity(current, cached["external_id"])
+            if owned_fingerprint("states", current) != owned_fingerprint("states", cached):
+                raise ConflictError(f"destination state drift detected for {key}")
+        for key, cached in self.label_cache.items():
+            current = self.client.request("GET", f"/api/v1/workspaces/{self.client.slug}/projects/{project_id}/labels/{cached['id']}/")
+            _verify_identity(current, cached["external_id"])
+            if owned_fingerprint("labels", current) != owned_fingerprint("labels", cached):
+                raise ConflictError(f"destination label drift detected for {key}")
 
     def _ensure(self, kind: str, key: str, collection: str, project_id: str | None, payload: dict[str, Any], create_path: str, readback: Any) -> dict[str, Any]:
+        self.ledger.check_pending(kind, key, payload)
         old = self.ledger.mapping(kind, key)
         if old and old.get("id"):
             current = readback(str(old["id"]))
             _verify_identity(current, str(payload["external_id"]))
+            _verify_owned_payload(kind, payload, current)
             old_hash = old.get("readback_hash")
-            if old_hash and old_hash != _hash_json(current):
+            current_hash = owned_fingerprint(kind, current)
+            if old_hash and old.get("fingerprint_version") == 1 and old_hash != current_hash:
                 raise ConflictError(f"destination drift detected for {kind} {key}; refusing overwrite")
+            if old.get("fingerprint_version") != 1:
+                old["readback_hash"] = current_hash
+                old["fingerprint_version"] = 1
+                self.ledger.save()
             return current
         found = self.client.find_external(collection, project_id, str(payload["external_id"]))
         if found:
             current = readback(str(found["id"]))
             _verify_identity(current, str(payload["external_id"]))
-            self.ledger.complete(kind, key, {"id": current.get("id"), "project_id": project_id, "readback_hash": _hash_json(current), "external_id": payload["external_id"]})
+            _verify_owned_payload(kind, payload, current)
+            self.ledger.complete(kind, key, {"id": current.get("id"), "project_id": project_id, "readback_hash": owned_fingerprint(kind, current), "fingerprint_version": 1, "external_id": payload["external_id"]})
             return current
         self.ledger.pending(kind, key, payload)
         try:
@@ -734,26 +853,34 @@ class Importer:
             created = found
         current = readback(str(created.get("id"))) if isinstance(created, dict) and created.get("id") else created
         _verify_identity(current, str(payload["external_id"]))
-        self.ledger.complete(kind, key, {"id": current.get("id"), "project_id": project_id, "source_project_gid": project_id, "readback_hash": _hash_json(current), "external_id": payload["external_id"]})
+        _verify_owned_payload(kind, payload, current)
+        self.ledger.complete(kind, key, {"id": current.get("id"), "project_id": project_id, "source_project_gid": project_id, "readback_hash": owned_fingerprint(kind, current), "fingerprint_version": 1, "external_id": payload["external_id"]})
         return current
 
     def ensure_project(self, source_gid: str, detail: dict[str, Any]) -> dict[str, Any]:
+        placeholder = project_payload(detail, source_gid, placeholder=True)
+        self.ledger.check_pending("projects", source_gid, placeholder)
         old = self.ledger.mapping("projects", source_gid)
         if old and old.get("id"):
             current = self.client.project(str(old["id"]))
             _verify_identity(current, source_gid)
-            if old.get("readback_hash") != _hash_json(current):
+            current_hash = owned_fingerprint("projects", current)
+            if old.get("fingerprint_version") == 1 and old.get("readback_hash") != current_hash:
                 raise ConflictError(f"destination drift detected for project {source_gid}")
+            if old.get("fingerprint_version") != 1:
+                old["readback_hash"] = current_hash
+                old["fingerprint_version"] = 1
+                self.ledger.save()
             return current
-        placeholder = project_payload(detail, source_gid, placeholder=True)
+
         self.ledger.pending("projects", source_gid, placeholder)
         existing = self.client.find_external("projects", None, source_gid)
-        created_placeholder = False
         if existing:
             current = self.client.project(str(existing["id"]))
             _verify_identity(current, source_gid)
+            if not placeholder_matches(current, placeholder):
+                raise MigrationError(f"migration-owned project {source_gid} is not the exact nonsensitive placeholder; refusing adoption")
         else:
-            created_placeholder = True
             try:
                 current = self.client.request("POST", f"/api/v1/workspaces/{self.client.slug}/projects/", placeholder)
             except AmbiguousWrite:
@@ -763,27 +890,41 @@ class Importer:
             if not isinstance(current, dict) or not current.get("id"):
                 raise MigrationError("Plane project create response omitted id")
             current = self.client.project(str(current["id"]))
+            if not placeholder_matches(current, placeholder):
+                raise MigrationError(f"Plane project {source_gid} did not preserve the exact nonsensitive placeholder")
+
+        # The serializer does not accept network on create.  Set it with a
+        # source-free PATCH, then read it back before any source title/content.
+        self.client.request("PATCH", f"/api/v1/workspaces/{self.client.slug}/projects/{current['id']}/", {"network": 0})
+        current = self.client.project(str(current["id"]))
         if current.get("network") != 0:
             raise MigrationError(f"Plane private-project verification failed for {source_gid}: network={current.get('network')!r}; no source data will be sent")
-        # Only after the network readback gate do source title/description enter Plane.
-        if created_placeholder:
-            patch = project_payload(detail, source_gid, placeholder=False)
-            current = self.client.request("PATCH", f"/api/v1/workspaces/{self.client.slug}/projects/{current['id']}/", patch)
-            current = self.client.project(str(current["id"]))
+
+        patch = project_payload(detail, source_gid, placeholder=False)
+        current = self.client.request("PATCH", f"/api/v1/workspaces/{self.client.slug}/projects/{current['id']}/", patch)
+        current = self.client.project(str(current["id"]))
         _verify_identity(current, source_gid)
+        _verify_owned_payload("projects", patch, current)
         if current.get("network") != 0:
-            raise MigrationError(f"Plane changed project privacy during patch for {source_gid}")
-        self.ledger.complete("projects", source_gid, {"id": current["id"], "readback_hash": _hash_json(current), "external_id": source_gid})
+            raise MigrationError(f"Plane changed project privacy during source patch for {source_gid}")
+        self.ledger.complete("projects", source_gid, {"id": current["id"], "readback_hash": owned_fingerprint("projects", current), "fingerprint_version": 1, "external_id": source_gid})
         return current
 
     def ensure_state(self, project_id: str, section: dict[str, Any], completed: bool) -> dict[str, Any]:
         source_section_id = str(section.get("gid") or _hash_json(section)[:16])
         key = f"{project_id}:{source_section_id}:{'completed' if completed else 'open'}"
         payload = state_payload(section, completed, key)
+        self.ledger.check_pending("states", key, payload)
+        if key in self.state_cache:
+            return self.state_cache[key]
         old = self.ledger.mapping("states", key)
         if old:
             current = self.client.request("GET", f"/api/v1/workspaces/{self.client.slug}/projects/{project_id}/states/{old['id']}/")
             _verify_identity(current, key)
+            old["readback_hash"] = owned_fingerprint("states", current)
+            old["fingerprint_version"] = 1
+            self.ledger.save()
+            self.state_cache[key] = current
             return current
         found = self.client.find_external("states", project_id, key)
         if found:
@@ -800,7 +941,9 @@ class Importer:
                 raise MigrationError(f"state create response omitted id {key}")
             current = self.client.request("GET", f"/api/v1/workspaces/{self.client.slug}/projects/{project_id}/states/{current['id']}/")
         _verify_identity(current, key)
-        self.ledger.complete("states", key, {"id": current["id"], "readback_hash": _hash_json(current), "external_id": key})
+        _verify_owned_payload("states", payload, current)
+        self.ledger.complete("states", key, {"id": current["id"], "project_id": project_id, "readback_hash": owned_fingerprint("states", current), "fingerprint_version": 1, "external_id": key})
+        self.state_cache[key] = current
         return current
 
     def _member_ids(self) -> dict[str, str]:
@@ -830,10 +973,17 @@ class Importer:
         tag_id = str(tag.get("gid") or _hash_json(tag)[:16])
         key = f"{project_id}:{tag_id}"
         payload = {"name": str(tag.get("name") or tag_id), "color": "#64748b", "external_source": EXTERNAL_SOURCE, "external_id": key}
+        self.ledger.check_pending("labels", key, payload)
+        if key in self.label_cache:
+            return str(self.label_cache[key]["id"])
         old = self.ledger.mapping("labels", key)
         if old:
             current = self.client.request("GET", f"/api/v1/workspaces/{self.client.slug}/projects/{project_id}/labels/{old['id']}/")
             _verify_identity(current, key)
+            old["readback_hash"] = owned_fingerprint("labels", current)
+            old["fingerprint_version"] = 1
+            self.ledger.save()
+            self.label_cache[key] = current
             return str(current["id"])
         found = self.client.find_external("labels", project_id, key)
         if found:
@@ -850,10 +1000,12 @@ class Importer:
                 raise MigrationError(f"label create response omitted id {key}")
             current = self.client.request("GET", f"/api/v1/workspaces/{self.client.slug}/projects/{project_id}/labels/{current['id']}/")
         _verify_identity(current, key)
-        self.ledger.complete("labels", key, {"id": current["id"], "project_id": project_id, "readback_hash": _hash_json(current), "external_id": key})
+        _verify_owned_payload("labels", payload, current)
+        self.ledger.complete("labels", key, {"id": current["id"], "project_id": project_id, "readback_hash": owned_fingerprint("labels", current), "fingerprint_version": 1, "external_id": key})
+        self.label_cache[key] = current
         return str(current["id"])
 
-    def import_task(self, project_source_gid: str, destination_project_id: str, task: dict[str, Any], task_map: dict[str, str]) -> None:
+    def import_task(self, project_source_gid: str, destination_project_id: str, task: dict[str, Any], task_map: dict[str, str], *, phase: str = "all") -> None:
         gid = source_id(str(task["gid"]))
         gaps: list[dict[str, Any]] = []
         state = self.ensure_state(destination_project_id, _source_section(task, project_source_gid), bool(task.get("completed")))
@@ -869,9 +1021,14 @@ class Importer:
         if task_record is not None:
             task_record["source_project_gid"] = project_source_gid
             self.ledger.save()
+        stories = self.snapshot.task_stories(gid)
+        attachments = self.snapshot.attachments(gid)
+        if phase == "tasks":
+            self.ledger.mark_detail_pending(gid, stories=len(stories), attachments=len(attachments))
+            return
         # Native comments are best effort only for actual user comments.  The
         # bundle below remains authoritative for histories Plane cannot model.
-        for story in self.snapshot.task_stories(gid):
+        for story in stories:
             if story.get("resource_subtype") != "comment_added":
                 gaps.append({"kind": "unsupported_story", "story_gid": story.get("gid")})
                 continue
@@ -889,11 +1046,12 @@ class Importer:
                     raise MigrationError(f"comment readback missing id {story_id}")
                 readback = self.client.comment(destination_project_id, str(current["id"]), str(created["id"]))
                 _verify_identity(readback, story_id)
-                self.ledger.complete("comments", story_id, {"id": created["id"], "project_id": destination_project_id, "item_id": current["id"], "readback_hash": _hash_json(readback), "external_id": story_id})
-        for attachment in self.snapshot.attachments(gid):
+                self.ledger.complete("comments", story_id, {"id": created["id"], "project_id": destination_project_id, "item_id": current["id"], "readback_hash": owned_fingerprint("comments", readback), "fingerprint_version": 1, "external_id": story_id})
+        for attachment in attachments:
             self.import_attachment(destination_project_id, str(current["id"]), attachment)
         bundle = _metadata_bundle(self.snapshot, task, project_source_gid, gaps)
         self.import_bundle(destination_project_id, str(current["id"]), gid, bundle)
+        self.ledger.clear_detail_pending(gid)
         self.ledger.save()
 
     def import_attachment(self, project_id: str, task_id: str, attachment: dict[str, Any]) -> None:
@@ -927,7 +1085,7 @@ class Importer:
             raise MigrationError(f"destination attachment readback omitted a safe credential-free URL {source_gid}")
         if self.client.download_checksum(target) != receipt["sha256"]:
             raise MigrationError(f"destination attachment checksum mismatch {source_gid}")
-        self.ledger.complete("attachments", source_gid, {"id": resource_id, "readback_hash": _hash_json(item), "external_id": source_gid, "sha256": receipt["sha256"], "bytes": receipt["bytes"]})
+        self.ledger.complete("attachments", source_gid, {"id": resource_id, "readback_hash": owned_fingerprint("attachments", destination), "fingerprint_version": 1, "external_id": source_gid, "sha256": receipt["sha256"], "bytes": receipt["bytes"]})
 
     def import_bundle(self, project_id: str, task_id: str, source_gid: str, bundle: dict[str, Any]) -> None:
         # The JSON bundle is generated privately and uploaded through the same
@@ -966,34 +1124,40 @@ class Importer:
             raise MigrationError(f"destination migration-record readback omitted a safe credential-free URL {source_gid}")
         if self.client.download_checksum(target) != digest:
             raise MigrationError(f"destination migration-record checksum mismatch {source_gid}")
-        self.ledger.complete("attachments", source_gid, {"id": resource_id, "readback_hash": _hash_json(item), "external_id": source_gid, "sha256": digest, "bytes": file.stat().st_size})
+        self.ledger.complete("attachments", source_gid, {"id": resource_id, "readback_hash": owned_fingerprint("attachments", destination), "fingerprint_version": 1, "external_id": source_gid, "sha256": digest, "bytes": file.stat().st_size})
 
-    def import_project(self, source_gid: str) -> dict[str, Any]:
+    def import_project(self, source_gid: str, *, phase: str = "all") -> dict[str, Any]:
         detail = self.snapshot.project_detail(source_gid)
         project = self.ensure_project(source_gid, detail)
         destination_id = str(project["id"])
+        self.begin_project()
         task_map: dict[str, str] = {}
         for task in self.snapshot.tasks_for(source_gid):
-            self.import_task(source_gid, destination_id, task, task_map)
+            self.import_task(source_gid, destination_id, task, task_map, phase=phase)
+        self.verify_cached_definitions(destination_id)
+        if phase == "tasks":
+            return {"source_gid": source_gid, "destination_id": destination_id, "tasks": len(task_map), "phase": "tasks", "full_verification": False, "archived": False, "details_pending": len(self.ledger.data.get("detail_pending", {}))}
         if detail.get("archived"):
             # Archive only after child tasks, comments, uploads and bundles.
             self.client.request("POST", f"/api/v1/workspaces/{self.client.slug}/projects/{destination_id}/archive/")
             archived = self.client.project(destination_id)
-            if not archived.get("archived"):
+            if not archived.get("archived_at") and not archived.get("archived"):
                 raise MigrationError(f"project archive readback failed for {source_gid}")
-        return {"source_gid": source_gid, "destination_id": destination_id, "tasks": len(task_map), "archived": bool(detail.get("archived"))}
+        return {"source_gid": source_gid, "destination_id": destination_id, "tasks": len(task_map), "phase": "all", "full_verification": not self.snapshot.coverage_gaps and self.snapshot.full_account_export_complete, "archived": bool(detail.get("archived")), "details_pending": len(self.ledger.data.get("detail_pending", {}))}
 
-    def import_my_tasks(self) -> dict[str, Any]:
+    def import_my_tasks(self, *, phase: str = "all") -> dict[str, Any]:
         # My Tasks is private and deliberately separate from source projects.
         detail = {"name": "Asana My Tasks (private import)", "notes": "Unprojected Asana tasks preserved by migration."}
         pseudo = "my-tasks"
         project = self.ensure_project(pseudo, {**detail, "gid": pseudo})
+        self.begin_project()
         task_map: dict[str, str] = {}
         for task in self.snapshot.tasks_for(None):
-            self.import_task(pseudo, str(project["id"]), task, task_map)
-        return {"source_gid": pseudo, "destination_id": project["id"], "tasks": len(task_map), "private": True}
+            self.import_task(pseudo, str(project["id"]), task, task_map, phase=phase)
+        self.verify_cached_definitions(str(project["id"]))
+        return {"source_gid": pseudo, "destination_id": project["id"], "tasks": len(task_map), "private": True, "phase": phase, "full_verification": phase == "all" and not self.snapshot.coverage_gaps and self.snapshot.full_account_export_complete, "details_pending": len(self.ledger.data.get("detail_pending", {}))}
 
-    def verify(self, selected: str | None = None) -> dict[str, Any]:
+    def verify(self, selected: str | None = None, *, phase: str = "all") -> dict[str, Any]:
         checked = 0
         for source_gid, mapping in self.ledger.data.get("projects", {}).items():
             if source_gid == "my-tasks" or selected is None or source_gid == selected:
@@ -1009,16 +1173,16 @@ class Importer:
                 current = self.client.work_item(str(mapping["project_id"]), str(mapping["id"]))
                 _verify_identity(current, source_gid)
                 checked += 1
-        return {"checked": checked, "pending": len(self.ledger.data.get("pending", {})), "status": "verified"}
+        return {"checked": checked, "pending": len(self.ledger.data.get("pending", {})), "details_pending": len(self.ledger.data.get("detail_pending", {})), "status": "verified", "phase": phase, "full_verification": phase == "all" and not self.snapshot.coverage_gaps and self.snapshot.full_account_export_complete, "source_scope": self.snapshot.scope, "coverage_gaps": self.snapshot.coverage_gaps, "full_account_export_complete": self.snapshot.full_account_export_complete}
 
 
-def plan(snapshot: Snapshot, selected: str | None, all_projects: bool) -> dict[str, Any]:
+def plan(snapshot: Snapshot, selected: str | None, all_projects: bool, *, phase: str = "all") -> dict[str, Any]:
     if selected and all_projects:
         raise MigrationError("choose --project or --all, not both")
     if not selected and not all_projects:
         raise MigrationError("apply requires --project SOURCE_GID or --all")
     projects = [selected] if selected else sorted(snapshot.projects)
-    result = {"source_workspace_gid": snapshot.manifest["source_workspace_gid"], "projects": [], "my_tasks": False, "export_complete": True}
+    result = {"source_workspace_gid": snapshot.manifest["source_workspace_gid"], "projects": [], "my_tasks": False, "phase": phase, "export_complete": bool(snapshot.manifest.get("export_complete")), "source_scope": snapshot.scope, "coverage_gaps": snapshot.coverage_gaps, "full_account_export_complete": snapshot.full_account_export_complete, "full_account_parity": phase == "all" and not snapshot.coverage_gaps and snapshot.full_account_export_complete}
     for project in projects:
         tasks = snapshot.tasks_for(project)
         result["projects"].append({"source_gid": project, "tasks": len(tasks), "archived": bool(snapshot.projects[project].get("archived"))})
@@ -1036,6 +1200,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--source-workspace-gid", required=True)
     parser.add_argument("--workspace-slug", required=True)
     parser.add_argument("--token-file", help="owned mode-0600 token file; required for network commands")
+    parser.add_argument("--phase", choices=["tasks", "all"], default="all", help="tasks imports core records only; all also imports details")
     scope = parser.add_mutually_exclusive_group()
     scope.add_argument("--project", help="one source project gid")
     scope.add_argument("--all", action="store_true", help="all projects plus unprojected My Tasks")
@@ -1048,7 +1213,7 @@ def main(argv: list[str] | None = None) -> int:
     snapshot = Snapshot(args.source, args.source_workspace_gid)
     selected = args.project
     if args.command == "plan":
-        result = plan(snapshot, selected, args.all)
+        result = plan(snapshot, selected, args.all, phase=args.phase)
     else:
         if not args.token_file:
             raise MigrationError("--token-file is required for apply, resume and verify")
@@ -1061,12 +1226,12 @@ def main(argv: list[str] | None = None) -> int:
                     raise MigrationError("apply requires --project SOURCE_GID or --all")
                 results = []
                 for project_gid in ([selected] if selected else sorted(snapshot.projects)):
-                    results.append(importer.import_project(project_gid))
+                    results.append(importer.import_project(project_gid, phase=args.phase))
                 if args.all and snapshot.tasks_for(None):
-                    results.append(importer.import_my_tasks())
-                result = {"status": "applied", "results": results, "pending": len(ledger.data.get("pending", {}))}
+                    results.append(importer.import_my_tasks(phase=args.phase))
+                result = {"status": "applied", "results": results, "phase": args.phase, "pending": len(ledger.data.get("pending", {})), "details_pending": len(ledger.data.get("detail_pending", {})), "full_verification": args.phase == "all" and not snapshot.coverage_gaps and snapshot.full_account_export_complete, "source_scope": snapshot.scope, "coverage_gaps": snapshot.coverage_gaps, "full_account_export_complete": snapshot.full_account_export_complete}
             else:
-                result = importer.verify(selected)
+                result = importer.verify(selected, phase=args.phase)
     print(json.dumps(redact_secrets(result), sort_keys=True))
     return 0
 
