@@ -138,6 +138,7 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 📚 | [RepoWise](https://github.com/repowise-dev/repowise) | Dependency graph, generated wiki, code health, risk, and history | On-demand CLI + background index |
 | 🧪 | [Argent](https://github.com/software-mansion/argent) | Explicit `/argent` mobile, TV, Electron, and Chromium review | Slash command + on-demand CLI |
 | 🛡️ | [Numasec](https://github.com/FrancescoStabile/numasec) | Authorized AppSec/pentest operations, evidence, replay, and reports | CLI + global handoff skill |
+| 🐍 | [Ruff](https://docs.astral.sh/ruff/) | Extremely fast Python linter and formatter | Reused on PATH or installed via `uv tool` / `pipx` |
 | 🛠️ | [Matt Pocock's skills](https://github.com/mattpocock/skills) | Specs, TDD, diagnosis, review, domain modeling, architecture, and delivery flows | Global skills |
 | 📝 | [OpenSpec](https://github.com/Fission-AI/OpenSpec) | Durable requirements, scenarios and one detailed checklist for complex changes | **Optional** pinned CLI + one global Pi skill |
 
@@ -542,7 +543,7 @@ Opt in by pointing parent instructions to `$MEGAI_HOME/skills/model-composition/
                                │
                     ┌──────────▼──────────┐
                     │  ~/.megai/lib/main  │
-                    │  17-step pipeline   │
+                    │  18-step pipeline   │
                     └──────────┬──────────┘
                                │
           ┌────────────────────┼────────────────────┐
@@ -597,6 +598,8 @@ Agent-specific configuration remains in its normal user directory:
 - 🔵 Codex: `~/.codex/` and `~/.agents/skills/`
 - 🟣 Pi: `~/.pi/agent/`
 - ⚪ OMP: `~/.omp/agent/`
+
+Ruff is reused on PATH when present, otherwise installed via `uv tool install ruff` or `pipx install ruff`. The MEGAI Pi skill exposes non-mutating Python validation only — run on task-changed `.py`/`.pyi` files with `ruff check --no-fix --no-fix-only --force-exclude --no-cache -- <files>` and `ruff format --check --force-exclude --no-cache -- <files>` when the project's formatting fits Ruff conventions. No project-wide cleanup, no `--fix`, no config writes.
 
 ---
 
@@ -666,6 +669,8 @@ The real-CLI test uses temporary project/config directories with telemetry disab
 - `jq`
 - `uv` for RepoWise installation
 - `ripgrep`
+
+Ruff needs `uv` or `pipx` only when no working `ruff` is already on `PATH`; an existing Python-managed or system install is reused untouched.
 
 The installer resolves supported missing dependencies where possible and reports anything that still needs manual action.
 
