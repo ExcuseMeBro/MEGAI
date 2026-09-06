@@ -646,6 +646,24 @@ megai wire cc                  # repair Claude MCP entries
 megai logs repowise            # inspect background RepoWise indexing
 ```
 
+### Plane MCP (additive to Asana)
+
+Configure the official Plane hosted MCP for Pi without putting the API token in
+MCP JSON, shell arguments, or logs. The token file must be owner-readable only
+(and is checked again for every request):
+
+```bash
+megai plane setup --workspace SLUG \
+  --token-file ~/.config/megai/credentials/plane-api-token
+megai plane status
+megai plane remove
+```
+
+Setup is idempotent, backs up the Pi MCP config before a change, and manages
+only the MEGAI-owned `plane` entry. `megai wire pi` and `megai update` preserve
+an existing Plane setup without starting authentication; Asana remains the
+status authority during the compatibility rollout.
+
 ### Focused OpenSpec and orchestration checks
 
 From the MEGAI source checkout:
