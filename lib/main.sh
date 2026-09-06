@@ -15,7 +15,7 @@ LIB="$MEGAI_HOME/lib"
 . "$LIB/banner.sh"
 megai_banner
 
-TOTAL=17
+TOTAL=18
 
 step 1 $TOTAL "Detecting OS / runtimes"
 detect_os
@@ -84,6 +84,9 @@ bash "$LIB/wire_codex.sh" || warn "codex wiring skipped"
 bash "$LIB/wire_pi.sh"    || warn "pi wiring skipped"
 bash "$LIB/wire_omp.sh"   || warn "OMP wiring skipped"
 bash "$LIB/wire_path.sh"  || warn "PATH wiring skipped"
+
+step 18 $TOTAL "Installing Ruff (Python linter/formatter, uv or pipx)"
+bash "$LIB/install_ruff.sh" || warn "Ruff install skipped"
 
 ok "MEGAI ready"
 echo
