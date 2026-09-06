@@ -510,7 +510,12 @@ class PlaneClient:
             records_out.extend(records(result))
             if not isinstance(result, dict):
                 return records_out
+            has_next = result.get("next_page_results")
+            if has_next is False:
+                return records_out
             marker = result.get("next_cursor") or result.get("next_page") or result.get("next")
+            if has_next is True and not marker:
+                raise MigrationError("Plane pagination declared next page without a cursor")
             if not marker:
                 return records_out
             if isinstance(marker, dict):

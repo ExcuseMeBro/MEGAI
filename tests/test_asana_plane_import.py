@@ -181,6 +181,30 @@ class _CoreHTTP:
         raise AssertionError(f"unexpected fake request: {method} {path} {payload}")
 
 
+class _TerminalPaginationHTTP:
+    def __init__(self):
+        self.calls = 0
+
+    def open(self, request, timeout=120):
+        self.calls += 1
+        return _FakeResponse({
+            "next_cursor": "1000:1:0",
+            "next_page_results": False,
+            "total_count": 2,
+            "count": 2,
+            "total_pages": 1,
+            "results": [{"id": "p1"}, {"id": "p2"}],
+        })
+
+
+def test_plane_terminal_pagination_envelope_does_not_follow_stale_cursor():
+    http = _TerminalPaginationHTTP()
+    client = importer.PlaneClient("token", "dest", opener=http, sleep_fn=lambda _seconds: None)
+    result = client.list_pages("/api/v1/workspaces/dest/projects/")
+    assert [item["id"] for item in result] == ["p1", "p2"]
+    assert http.calls == 1
+
+
 def test_tasks_phase_core_flow_uses_pagination_privacy_and_no_detail_writes(tmp_path):
     tmp_path.chmod(0o700)
     root = tmp_path / "export"
