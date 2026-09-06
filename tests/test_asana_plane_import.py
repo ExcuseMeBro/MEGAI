@@ -134,7 +134,13 @@ class _CoreHTTP:
     def __init__(self):
         self.calls = []
         self.project = {"id": "dp1", "name": "Migration placeholder p1", "identifier": "AS" + importer.hashlib.sha256(b"p1").hexdigest()[:8].upper(), "external_source": importer.EXTERNAL_SOURCE, "external_id": "p1", "network": 2}
-        self.states = {}
+        self.states = {
+            "s-backlog": {"id": "s-backlog", "name": "Backlog", "group": "backlog", "project_id": "dp1", "external_source": None, "external_id": None},
+            "s-todo": {"id": "s-todo", "name": "Todo", "group": "unstarted", "project_id": "dp1", "external_source": None, "external_id": None},
+            "s-started": {"id": "s-started", "name": "In Progress", "group": "started", "project_id": "dp1", "external_source": None, "external_id": None},
+            "s-done": {"id": "s-done", "name": "Done", "group": "completed", "project_id": "dp1", "external_source": None, "external_id": None},
+            "s-cancelled": {"id": "s-cancelled", "name": "Cancelled", "group": "cancelled", "project_id": "dp1", "external_source": None, "external_id": None},
+        }
         self.items = {}
 
     def open(self, request, timeout=120):
@@ -159,11 +165,11 @@ class _CoreHTTP:
         if path.endswith("/states/") and method == "GET":
             return _FakeResponse({"results": [self.states[k] for k in sorted(self.states)]})
         if path.endswith("/states/") and method == "POST":
-            record = {"id": "ds1", **payload}
+            record = {"id": "ds1", "project_id": "dp1", **payload}
             self.states[record["id"]] = record
             return _FakeResponse(record)
-        if "/states/ds1/" in path and method == "GET":
-            return _FakeResponse(self.states["ds1"])
+        if "/states/" in path and method == "GET" and path.rstrip("/").split("/")[-1] in self.states:
+            return _FakeResponse(self.states[path.rstrip("/").split("/")[-1]])
         if path.endswith("/work-items/") and method == "GET":
             return _FakeResponse({"results": []})
         if path.endswith("/work-items/") and method == "POST":
@@ -196,10 +202,14 @@ def test_tasks_phase_core_flow_uses_pagination_privacy_and_no_detail_writes(tmp_
         assert result["archived"] is False
         assert result["details_pending"] == 1
         assert ledger.data["detail_pending"]["t1"]["attachments"] == 1
+        assert ledger.data["states"]["dp1:started"]["origin"] == "reused_default"
+        assert ledger.data["states"]["dp1:started"]["source_section_ids"] == ["s1"]
     assert http.project["name"] == "Source Project"
     assert http.project["network"] == 0
-    assert http.states["ds1"]["group"] == "started"
+    assert http.items["di1"]["state"] == "s-started"
+    assert http.states["s-started"]["external_source"] is None
     assert any(method == "PATCH" and payload == {"network": 0} for method, _path, payload in http.calls)
+    assert not any(method == "POST" and path.endswith("/states/") for method, path, _payload in http.calls)
     assert not any("comments" in path or "attachments" in path for _method, path, _payload in http.calls)
     network_patch = next(i for i, (_m, path, payload) in enumerate(http.calls) if path.endswith("/projects/dp1/") and payload == {"network": 0})
     source_patch = next(i for i, (_m, path, payload) in enumerate(http.calls) if path.endswith("/projects/dp1/") and payload.get("name") == "Source Project")

@@ -702,8 +702,16 @@ def task_payload(task: dict[str, Any], state_id: str, parent_id: str | None, *, 
     return payload
 
 
-def state_payload(section: Any, completed: bool, external_id: str) -> dict[str, Any]:
+CANONICAL_STATE_NAMES = {"backlog": "Backlog", "unstarted": "Todo", "started": "In Progress", "completed": "Done", "cancelled": "Cancelled", "triage": "Triage"}
+
+
+def canonical_state(section: Any, completed: bool) -> dict[str, str]:
     mapped = map_section_to_state(section, completed)
+    return {"name": CANONICAL_STATE_NAMES.get(mapped["group"], mapped["name"]), "group": mapped["group"]}
+
+
+def state_payload(section: Any, completed: bool, external_id: str) -> dict[str, Any]:
+    mapped = canonical_state(section, completed)
     return {"name": mapped["name"], "color": "#64748b", "group": mapped["group"], "external_source": EXTERNAL_SOURCE, "external_id": external_id}
 
 
@@ -802,16 +810,34 @@ class Importer:
         self.ledger = ledger
         self.members: dict[str, str] | None = None
         self.state_cache: dict[str, dict[str, Any]] = {}
+        self.state_meta: dict[str, tuple[str, str, str]] = {}
         self.label_cache: dict[str, dict[str, Any]] = {}
 
     def begin_project(self) -> None:
         self.state_cache.clear()
+        self.state_meta.clear()
         self.label_cache.clear()
+
+    def _migration_project(self, project_id: str) -> bool:
+        return any(str(record.get("id")) == str(project_id) and record.get("external_id") and record.get("id") for record in self.ledger.data.get("projects", {}).values() if isinstance(record, dict))
+
+    def _state_project_matches(self, record: dict[str, Any], project_id: str) -> bool:
+        nested = record.get("project")
+        candidate = nested.get("id") if isinstance(nested, dict) else nested
+        candidate = record.get("project_id", candidate)
+        return candidate is None or str(candidate) == str(project_id)
+
+    def _verify_state(self, record: dict[str, Any], project_id: str, name: str, group: str) -> None:
+        if record.get("name") != name or record.get("group") != group or not self._state_project_matches(record, project_id):
+            raise MigrationError("Plane state readback did not prove exact project/name/group ownership")
 
     def verify_cached_definitions(self, project_id: str) -> None:
         for key, cached in self.state_cache.items():
             current = self.client.request("GET", f"/api/v1/workspaces/{self.client.slug}/projects/{project_id}/states/{cached['id']}/")
-            _verify_identity(current, cached["external_id"])
+            name, group, origin = self.state_meta[key]
+            if origin == "created":
+                _verify_identity(current, cached["external_id"])
+            self._verify_state(current, project_id, name, group)
             if owned_fingerprint("states", current) != owned_fingerprint("states", cached):
                 raise ConflictError(f"destination state drift detected for {key}")
         for key, cached in self.label_cache.items():
@@ -911,39 +937,70 @@ class Importer:
         return current
 
     def ensure_state(self, project_id: str, section: dict[str, Any], completed: bool) -> dict[str, Any]:
+        mapped = canonical_state(section, completed)
         source_section_id = str(section.get("gid") or _hash_json(section)[:16])
-        key = f"{project_id}:{source_section_id}:{'completed' if completed else 'open'}"
+        key = f"{project_id}:{mapped['group']}"
         payload = state_payload(section, completed, key)
         self.ledger.check_pending("states", key, payload)
         if key in self.state_cache:
+            state_record = self.ledger.mapping("states", key)
+            if state_record and source_section_id not in state_record.setdefault("source_section_ids", []):
+                state_record["source_section_ids"].append(source_section_id)
+                self.ledger.save()
             return self.state_cache[key]
         old = self.ledger.mapping("states", key)
         if old:
             current = self.client.request("GET", f"/api/v1/workspaces/{self.client.slug}/projects/{project_id}/states/{old['id']}/")
-            _verify_identity(current, key)
+            if old.get("origin") == "created":
+                _verify_identity(current, key)
+            self._verify_state(current, project_id, mapped["name"], mapped["group"])
             old["readback_hash"] = owned_fingerprint("states", current)
             old["fingerprint_version"] = 1
+            old.setdefault("source_section_ids", []).append(source_section_id)
+            old["source_section_ids"] = sorted(set(old["source_section_ids"]))
             self.ledger.save()
             self.state_cache[key] = current
+            self.state_meta[key] = (mapped["name"], mapped["group"], old.get("origin", "created"))
             return current
+
         found = self.client.find_external("states", project_id, key)
+        origin = "created"
         if found:
             current = self.client.request("GET", f"/api/v1/workspaces/{self.client.slug}/projects/{project_id}/states/{found['id']}/")
+            _verify_identity(current, key)
         else:
-            self.ledger.pending("states", key, payload)
-            try:
-                current = self.client.request("POST", f"/api/v1/workspaces/{self.client.slug}/projects/{project_id}/states/", payload)
-            except AmbiguousWrite:
-                current = self.client.find_external("states", project_id, key)
-                if not current:
-                    raise
-            if not isinstance(current, dict) or not current.get("id"):
-                raise MigrationError(f"state create response omitted id {key}")
-            current = self.client.request("GET", f"/api/v1/workspaces/{self.client.slug}/projects/{project_id}/states/{current['id']}/")
-        _verify_identity(current, key)
-        _verify_owned_payload("states", payload, current)
-        self.ledger.complete("states", key, {"id": current["id"], "project_id": project_id, "readback_hash": owned_fingerprint("states", current), "fingerprint_version": 1, "external_id": key})
+            # Default Plane states have no external identity.  They may only be
+            # reused after this project has passed our migration ownership gate.
+            path = f"/api/v1/workspaces/{self.client.slug}/projects/{project_id}/states/"
+            if self._migration_project(project_id):
+                for candidate in self.client.list_pages(path):
+                    if candidate.get("name") != mapped["name"] or candidate.get("group") != mapped["group"] or not self._state_project_matches(candidate, project_id):
+                        continue
+                    current = self.client.request("GET", f"{path}{candidate['id']}/")
+                    self._verify_state(current, project_id, mapped["name"], mapped["group"])
+                    origin = "reused_default"
+                    break
+                else:
+                    current = None
+            else:
+                current = None
+            if current is None:
+                self.ledger.pending("states", key, payload)
+                try:
+                    current = self.client.request("POST", path, payload)
+                except AmbiguousWrite:
+                    current = self.client.find_external("states", project_id, key)
+                    if not current:
+                        raise
+                if not isinstance(current, dict) or not current.get("id"):
+                    raise MigrationError(f"state create response omitted id {key}")
+                current = self.client.request("GET", f"{path}{current['id']}/")
+        self._verify_state(current, project_id, mapped["name"], mapped["group"])
+        if origin == "created":
+            _verify_owned_payload("states", payload, current)
+        self.ledger.complete("states", key, {"id": current["id"], "project_id": project_id, "origin": origin, "source_section_ids": [source_section_id], "readback_hash": owned_fingerprint("states", current), "fingerprint_version": 1, "external_id": key})
         self.state_cache[key] = current
+        self.state_meta[key] = (mapped["name"], mapped["group"], origin)
         return current
 
     def _member_ids(self) -> dict[str, str]:
