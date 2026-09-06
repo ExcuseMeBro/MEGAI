@@ -523,6 +523,14 @@ The full profile also enables `@vigolium/piolium`, `pi-web-access`, `pi-subagent
 
 Run `bash tests/pi-runtime.sh`, `bash tests/pi-task-flow.sh`, and `bash tests/pi-performance.sh`. See [the scoped audit](docs/audits/pi-quality-performance.md) for evidence and limitations. Fewer prompt characters or background launches are not a measured end-to-end speedup. Existing sessions need `/reload` or a new session to load changed skills; compaction alone is not a configuration reload.
 
+### Optional parent/worker model composition
+
+The [parent-only routing reference](skills/model-composition/routing.md) keeps **Astra/high** as the user-facing decision owner, uses **MiniMax M3/high** for bounded routine implementation (**medium** for discovery), **Luna/high** for high-risk implementation/fallback, and **Sol/high** for complex debugging and risk-based independent review. Tiny work stays direct; this is not a mandatory four-model chain.
+
+Opt in by pointing parent instructions to `$MEGAI_HOME/skills/model-composition/routing.md` and selecting `openai-codex/gpt-6-astra` / `high` as the parent default. The reference ships with MEGAI's existing skill assets but is not auto-loaded as another skill or automatically enabled for other installations. No credentials or provider endpoints are installed. M3 requires the existing direct MiniMax provider and public or explicitly approved non-sensitive context; uncertain/private workloads keep the established GPT route. Repository restrictions always win. This composition uses **medium/high only**. For standalone native Pi delegation, the local profile keeps Luna as the safe default, permits explicit M3 selection for routine roles, retains strict scope enforcement and Sol-only review/debug/oracle roles, and sets default thinking to medium with a high ceiling. Higher-priority project/per-run settings can override defaults; callers must follow the same thinking policy.
+
+`python3 tests/model-composition.py` checks policy structure, not model intelligence. The optional `--live` check validates this local rollout's parent defaults, instruction pointer and source parity without contacting providers. Availability was checked in the local catalog; authenticated M3 execution, comparable task TPS and acceptance/correction performance still need real-work evidence. Do not label this a benchmark-proven "ideal" composition.
+
 ---
 
 ## 🏗️ How it works
