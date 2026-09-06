@@ -40,7 +40,7 @@ cp "$PI_CODING_AGENT_DIR/mcp.json" "$before_setup"
 setup_output="$(run_plane setup --workspace brodev --token-file "$TOKEN_FILE")"
 ! grep -Fq "$TOKEN" <<<"$setup_output"
 ! grep -Fq "$TOKEN" "$PI_CODING_AGENT_DIR/mcp.json"
-jq -e --arg token "$TOKEN_FILE" '
+jq -e --arg token "$TOKEN_FILE" --arg helper "$MEGAI_HOME/lib/plane_mcp_headers.py" '
   .settings.hostConfigDiscovery == "off"
   and .mcpServers.asana.auth == "oauth"
   and .mcpServers.asana.oauth.scope == "default"
@@ -48,7 +48,8 @@ jq -e --arg token "$TOKEN_FILE" '
   and .mcpServers.plane.url == "https://mcp.plane.so/http/api-key/mcp"
   and .mcpServers.plane.auth == false
   and .mcpServers.plane.lifecycle == "lazy"
-  and .mcpServers.plane.requestHeadersCommand.args == ["--token-file", $token, "--workspace", "brodev"]
+  and .mcpServers.plane.requestHeadersCommand.command == "python3"
+  and .mcpServers.plane.requestHeadersCommand.args == [$helper, "--token-file", $token, "--workspace", "brodev"]
 ' "$PI_CODING_AGENT_DIR/mcp.json" >/dev/null
 [ "$(find "$MEGAI_HOME/backups" -type f -name 'pi-plane-mcp.json.bak.*' | wc -l | tr -d ' ')" = 1 ]
 backup_file="$(find "$MEGAI_HOME/backups" -type f -name 'pi-plane-mcp.json.bak.*' -print -quit)"
@@ -58,16 +59,54 @@ backup_mode="$(stat -c '%a' "$backup_file" 2>/dev/null || stat -f '%Lp' "$backup
 [ "$config_mode" = 600 ]
 [ "$backup_mode" = 600 ]
 
+# Invoke exactly the generated requestHeadersCommand with the adapter's v1
+# envelope; do not bypass the configured interpreter/argument contract.
+plane_command="$(jq -r '.mcpServers.plane.requestHeadersCommand.command' "$PI_CODING_AGENT_DIR/mcp.json")"
+plane_args=()
+while IFS= read -r plane_arg; do plane_args+=("$plane_arg"); done < <(jq -r '.mcpServers.plane.requestHeadersCommand.args[]' "$PI_CODING_AGENT_DIR/mcp.json")
+valid_envelope='{"version":1,"method":"POST","url":"https://mcp.plane.so/http/api-key/mcp","bodyBase64":""}'
+headers="$(printf '%s' "$valid_envelope" | "$plane_command" "${plane_args[@]}")"
+printf '%s' "$headers" | jq -e --arg token "Bearer $TOKEN" '.Authorization == $token and .["x-workspace-slug"] == "brodev"' >/dev/null
+
+# Endpoint and envelope binding fail before any credential output.
+invalid_output="$TMP/invalid-header-output"
+for invalid_url in \
+  "http://mcp.plane.so/http/api-key/mcp" \
+  "https://mcp.plane.so:443/http/api-key/mcp" \
+  "https://user@mcp.plane.so/http/api-key/mcp" \
+  "https://mcp.plane.so/other" \
+  "https://mcp.plane.so/http/api-key/mcp?discover=1"; do
+  invalid_envelope="{\"version\":1,\"method\":\"POST\",\"url\":\"$invalid_url\",\"bodyBase64\":\"\"}"
+  if printf '%s' "$invalid_envelope" | "$plane_command" "${plane_args[@]}" >"$invalid_output" 2>/dev/null; then exit 1; fi
+  [ ! -s "$invalid_output" ]
+done
+if printf '%s' '{"version":2,"method":"POST","url":"https://mcp.plane.so/http/api-key/mcp","bodyBase64":""}' | "$plane_command" "${plane_args[@]}" >"$invalid_output" 2>/dev/null; then exit 1; fi
+[ ! -s "$invalid_output" ]
+if printf '%s' '{"version":1,"method":"POST","url":"https://mcp.plane.so/http/api-key/mcp"}' | "$plane_command" "${plane_args[@]}" >"$invalid_output" 2>/dev/null; then exit 1; fi
+[ ! -s "$invalid_output" ]
+if printf '%s' '{"version":1,"method":"POST","url":"https://mcp.plane.so/http/api-key/mcp","bodyBase64":"%%%"}' | "$plane_command" "${plane_args[@]}" >"$invalid_output" 2>/dev/null; then exit 1; fi
+[ ! -s "$invalid_output" ]
+check_output="$("$plane_command" "${plane_args[@]}" --check </dev/null)"
+[ -z "$check_output" ]
+
 # Repeat setup is a no-op: no duplicate entry and no second backup.
 cp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/repeat-before"
 run_plane setup --workspace brodev --token-file "$TOKEN_FILE" >/dev/null
 cmp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/repeat-before"
 [ "$(find "$MEGAI_HOME/backups" -type f -name 'pi-plane-mcp.json.bak.*' | wc -l | tr -d ' ')" = 1 ]
 
-# The adapter-facing command emits headers only to its caller, never config or
-# setup/status diagnostics.
-headers="$(python3 "$MEGAI_HOME/lib/plane_mcp_headers.py" --token-file "$TOKEN_FILE" --workspace brodev)"
-printf '%s' "$headers" | jq -e --arg token "Bearer $TOKEN" '.Authorization == $token and .["x-workspace-slug"] == "brodev"' >/dev/null
+# Owned-entry customizations, including disabled state, survive setup refresh.
+jq '.mcpServers.plane.disabled = true | .mcpServers.plane.directTools = false | .mcpServers.plane.lifecycle = "keep-alive"' \
+  "$PI_CODING_AGENT_DIR/mcp.json" >"$TMP/custom.json"
+mv "$TMP/custom.json" "$PI_CODING_AGENT_DIR/mcp.json"
+run_plane setup --workspace brodev --token-file "$TOKEN_FILE" >/dev/null
+jq -e '.mcpServers.plane.disabled == true and .mcpServers.plane.directTools == false and .mcpServers.plane.lifecycle == "keep-alive"' \
+  "$PI_CODING_AGENT_DIR/mcp.json" >/dev/null
+cp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/custom-repeat-before"
+run_plane setup --workspace brodev --token-file "$TOKEN_FILE" >/dev/null
+cmp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/custom-repeat-before"
+
+# Status and setup diagnostics never include the synthetic credential.
 status_output="$(run_plane status 2>&1)"
 ! grep -Fq "$TOKEN" <<<"$status_output"
 grep -Fq 'credential=available' <<<"$status_output"
@@ -75,7 +114,7 @@ grep -Fq 'credential=available' <<<"$status_output"
 # Normal Pi wiring preserves the enabled Plane entry and does not auth/connect.
 cp -R "$ROOT/pi-skill" "$ROOT/task-flow" "$ROOT/skills" "$MEGAI_HOME/"
 bash "$MEGAI_HOME/lib/wire_pi.sh" >/dev/null 2>&1
-jq -e '.mcpServers.plane.requestHeadersCommand.args[3] == "brodev" and .mcpServers.asana.auth == "oauth"' "$PI_CODING_AGENT_DIR/mcp.json" >/dev/null
+jq -e '.mcpServers.plane.requestHeadersCommand.args[4] == "brodev" and .mcpServers.asana.auth == "oauth"' "$PI_CODING_AGENT_DIR/mcp.json" >/dev/null
 bash "$MEGAI_HOME/lib/wire_pi.sh" --remove >/dev/null 2>&1
 jq -e '.mcpServers.plane and .mcpServers.asana.auth == "oauth"' "$PI_CODING_AGENT_DIR/mcp.json" >/dev/null
 bash "$MEGAI_HOME/lib/wire_pi.sh" >/dev/null 2>&1
