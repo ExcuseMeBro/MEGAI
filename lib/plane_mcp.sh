@@ -7,6 +7,7 @@ MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 . "$MEGAI_HOME/lib/ui.sh"
 
 PLANE_MCP_URL="https://mcp.plane.so/http/api-key/mcp"
+PLANE_PYTHON_COMMAND="python3"
 PLANE_TOKEN_DEFAULT="$HOME/.config/megai/credentials/plane-api-token"
 PLANE_AGENT="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
 PLANE_CONFIG="$PLANE_AGENT/mcp.json"
@@ -69,21 +70,30 @@ plane_validate_config() {
 plane_entry_kind() {
   local helper="$1"
   [ -f "$PLANE_CONFIG" ] || { printf '%s\n' missing; return 0; }
-  jq -r --arg helper "$helper" --arg url "$PLANE_MCP_URL" '
+  jq -r --arg helper "$helper" --arg url "$PLANE_MCP_URL" --arg python "$PLANE_PYTHON_COMMAND" '
     (.mcpServers // {}) as $servers
     | if ($servers | has("plane") | not) then "missing"
       elif ($servers.plane | type) != "object" then "unmanaged"
-      elif $servers.plane.url == $url
-        and $servers.plane.auth == false
+      elif $servers.plane.url == $url and $servers.plane.auth == false
+        and $servers.plane.requestHeadersCommand.command == $python
+        and ($servers.plane.requestHeadersCommand.args | type) == "array"
+        and ($servers.plane.requestHeadersCommand.args | length) == 5
+        and $servers.plane.requestHeadersCommand.args[0] == $helper
+        and $servers.plane.requestHeadersCommand.args[1] == "--token-file"
+        and ($servers.plane.requestHeadersCommand.args[2] | type) == "string"
+        and $servers.plane.requestHeadersCommand.args[3] == "--workspace"
+        and ($servers.plane.requestHeadersCommand.args[4] | type) == "string"
+        and ($servers.plane.requestHeadersCommand.args[4] | test("^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"))
+      then "owned"
+      elif $servers.plane.url == $url and $servers.plane.auth == false
         and $servers.plane.requestHeadersCommand.command == $helper
         and ($servers.plane.requestHeadersCommand.args | type) == "array"
         and ($servers.plane.requestHeadersCommand.args | length) == 4
-        and ($servers.plane.requestHeadersCommand.args[1] | type) == "string"
-        and ($servers.plane.requestHeadersCommand.args[3] | type) == "string"
-        and ($servers.plane.requestHeadersCommand.args[3] | test("^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"))
         and $servers.plane.requestHeadersCommand.args[0] == "--token-file"
+        and ($servers.plane.requestHeadersCommand.args[1] | type) == "string"
         and $servers.plane.requestHeadersCommand.args[2] == "--workspace"
-      then "owned"
+        and ($servers.plane.requestHeadersCommand.args[3] | type) == "string"
+      then "legacy-owned"
       else "unmanaged"
       end
   ' "$PLANE_CONFIG"
@@ -121,6 +131,35 @@ plane_config_matches() {
   cmp -s "$PLANE_CONFIG" "$candidate"
 }
 
+plane_render_config() {
+  local token_file="$1" workspace="$2"
+  local filter='
+    (.mcpServers // {}) as $servers
+    | (($servers.plane // {}) as $old
+      | .mcpServers = ($servers + {
+        plane: ({
+          url: $url,
+          auth: false,
+          lifecycle: (if ($old | has("lifecycle")) then $old.lifecycle else "lazy" end),
+          requestHeadersCommand: {
+            command: $python,
+            args: [$helper, "--token-file", $token_file, "--workspace", $workspace]
+          }
+        } + ($old | del(.url, .auth, .headers, .bearerToken, .bearerTokenEnv,
+                        .bearerTokenStore, .oauth, .requestHeadersCommand, .lifecycle)))
+      }))
+  '
+  if [ -f "$PLANE_CONFIG" ]; then
+    jq --arg url "$PLANE_MCP_URL" --arg python "$PLANE_PYTHON_COMMAND" \
+      --arg helper "$PLANE_HEADER_HELPER" --arg token_file "$token_file" \
+      --arg workspace "$workspace" "$filter" "$PLANE_CONFIG"
+  else
+    jq -n --arg url "$PLANE_MCP_URL" --arg python "$PLANE_PYTHON_COMMAND" \
+      --arg helper "$PLANE_HEADER_HELPER" --arg token_file "$token_file" \
+      --arg workspace "$workspace" "$filter"
+  fi
+}
+
 plane_setup() {
   local workspace="" token_file="$PLANE_TOKEN_DEFAULT" arg kind
   while [ "$#" -gt 0 ]; do
@@ -150,38 +189,11 @@ plane_setup() {
   fi
 
   local candidate
-  candidate="$(mktemp)"
-  # Generate into a temporary copy of the config so repeat setup can avoid an
-  # unnecessary backup/write. The real write remains atomic in its directory.
-  if [ -f "$PLANE_CONFIG" ]; then
-    jq --arg url "$PLANE_MCP_URL" --arg helper "$PLANE_HEADER_HELPER" \
-      --arg token_file "$token_file" --arg workspace "$workspace" '
-      .mcpServers = ((.mcpServers // {}) + {
-        plane: {
-          url: $url,
-          auth: false,
-          lifecycle: "lazy",
-          requestHeadersCommand: {
-            command: $helper,
-            args: ["--token-file", $token_file, "--workspace", $workspace]
-          }
-        }
-      })
-    ' "$PLANE_CONFIG" >"$candidate"
-  else
-    jq -n --arg url "$PLANE_MCP_URL" --arg helper "$PLANE_HEADER_HELPER" \
-      --arg token_file "$token_file" --arg workspace "$workspace" '
-      {mcpServers: {plane: {
-        url: $url,
-        auth: false,
-        lifecycle: "lazy",
-        requestHeadersCommand: {
-          command: $helper,
-          args: ["--token-file", $token_file, "--workspace", $workspace]
-        }
-      }}}
-    ' >"$candidate"
-  fi
+  # Generate into the target directory so the final rename stays atomic. On
+  # repeat setup, preserved user fields make the candidate byte-for-byte equal.
+  mkdir -p "$PLANE_AGENT"
+  candidate="$(mktemp "$PLANE_AGENT/mcp.json.XXXXXX")"
+  plane_render_config "$token_file" "$workspace" >"$candidate"
 
   if plane_config_matches "$candidate"; then
     rm -f "$candidate"
@@ -196,7 +208,6 @@ plane_setup() {
     plane_backup_config >/dev/null
   fi
   # Candidate was built with jq and is private; move it into place atomically.
-  mkdir -p "$PLANE_AGENT"
   chmod 600 "$candidate"
   mv "$candidate" "$PLANE_CONFIG"
   ok "Plane MCP configured for workspace $workspace"
@@ -216,9 +227,13 @@ plane_status() {
       printf 'Plane MCP: unmanaged plane entry preserved\n' >&2
       return 1
       ;;
+    legacy-owned)
+      printf 'Plane MCP: legacy credential reference; rerun setup\n' >&2
+      return 1
+      ;;
     owned)
-      token_file="$(jq -r '.mcpServers.plane.requestHeadersCommand.args[1]' "$PLANE_CONFIG")"
-      workspace="$(jq -r '.mcpServers.plane.requestHeadersCommand.args[3]' "$PLANE_CONFIG")"
+      token_file="$(jq -r '.mcpServers.plane.requestHeadersCommand.args[2]' "$PLANE_CONFIG")"
+      workspace="$(jq -r '.mcpServers.plane.requestHeadersCommand.args[4]' "$PLANE_CONFIG")"
       if python3 "$PLANE_HEADER_HELPER" --check --token-file "$token_file" --workspace "$workspace" \
         >/dev/null 2>&1; then
         printf 'Plane MCP: configured (workspace=%s, credential=available)\n' "$workspace"
