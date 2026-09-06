@@ -1,6 +1,6 @@
 ---
 name: megai
-description: "MEGAI bridge for Pi — memory, hybrid workspace search, code intelligence, code health, and explicit /argent-only app testing."
+description: "MEGAI bridge for Pi — memory, hybrid workspace search, code intelligence, code health, read-only Python validation with Ruff, and explicit /argent-only app testing."
 ---
 
 # MEGAI for Pi
@@ -54,6 +54,28 @@ dembrandt example.com --design-md
 
 Use codedb for structure, zvec-grep for semantic/hybrid discovery, and `rg` for exact text or as a fallback. Read only the relevant ranges with native file tools, edit with exact replacements, then verify the diff and affected behavior. Keep native read/edit tools available; no paid toolchain or replacement daemon is required.
 
+### Ruff — Python lint and format validation (non-mutating)
+
+Run Ruff only for non-mutating Python validation. Prefer the project's pinned tool/config when one exists; never run project-wide cleanup and never write `pyproject.toml`, `ruff.toml`, or `.ruff.toml`. Target only `.py`/`.pyi` files the current task changed, and skip excluded/generated files (anything `ruff` would skip via its own config plus vendored, generated, and cache directories).
+
+A project may set `[tool.ruff] fix = true` or `fix-only = true`; the canonical non-mutating check therefore pins both flags off and forces excludes:
+
+```bash
+ruff check --no-fix --no-fix-only --force-exclude --no-cache -- <changed .py/.pyi files>
+```
+
+`--no-fix-only` is mandatory: with project `fix-only = true`, `ruff check --no-fix --force-exclude --no-cache -- <files>` still rewrites the file. `--no-cache` keeps results reproducible across runs.
+
+Run the format check only when the project's formatting style fits Ruff conventions (the user's project docs/config ask for it, or the repo already uses Ruff for formatting). Use the same non-mutating shape, with `--check`:
+
+```bash
+ruff format --check --force-exclude --no-cache -- <changed .py/.pyi files>
+```
+
+Never pass `--fix` or run `ruff format` without `--check` from this skill: surface findings as guidance instead. Preserve the task's own tests; do not add Ruff tests or hooks.
+
+If `ruff` is not installed locally, skip the check rather than installing or modifying the environment.
+
 ### Argent — agent-driven app testing
 
 Run Argent only after explicit `/argent`. Normal review, test, UI, device, or verification requests do not authorize it. Then inspect available tools and server state with:
@@ -94,3 +116,4 @@ rg -n 'auth-service' src/
 - **Argent needs platform SDKs.** Apple targets require Xcode; Android targets require `adb`; Fire TV/Vega requires the Vega SDK. Electron and Chromium use CDP.
 - **RepoWise is on demand.** In the chosen Git repository, run `repowise init --yes --no-prose --no-claude-md` before its first health/wiki query. MEGAI does not start specialist indexes by default.
 - **Automatic indexing happens through MEGAI.** Launch with `megai pi` so codedb and zvec-grep indexes are prepared before Pi starts.
+- **Ruff validation is non-mutating and scoped.** Run only on task-changed `.py`/`.pyi` files with `--no-fix --no-fix-only --force-exclude --no-cache`. Project config may set `fix = true` or `fix-only = true`; both flags are required to suppress auto-fix. Never write `pyproject.toml` or run `--fix` from this skill.
