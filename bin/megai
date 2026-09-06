@@ -132,9 +132,20 @@ cmd_doctor() {
     skip "Numasec missing"
   fi
   if command -v ruff        >/dev/null 2>&1; then
-    local ruff_ver; ruff_ver="$(ruff --version 2>/dev/null | head -n1 || true)"
-    if [ -n "$ruff_ver" ]; then ok "Ruff CLI present ($ruff_ver)"
-    else warn "Ruff binary present but --version failed"; fi
+    local ruff_out ruff_rc
+    # Run --version inside an `if` so `set -e` does not short-circuit on a
+    # nonzero exit; the actual exit code is captured in `ruff_rc`.
+    if ruff_out="$(ruff --version 2>/dev/null)"; then
+      ruff_rc=0
+    else
+      ruff_rc=$?
+      ruff_out=""
+    fi
+    if [ "$ruff_rc" -eq 0 ] && [[ "$ruff_out" == ruff\ * ]]; then
+      ok "Ruff CLI present (${ruff_out%%$'\n'*})"
+    else
+      warn "Ruff binary present but --version failed or returned invalid output"
+    fi
   else
     skip "Ruff missing"
   fi

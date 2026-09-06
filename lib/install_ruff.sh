@@ -1,18 +1,16 @@
 #!/usr/bin/env bash
 # ruff — extremely fast Python linter and formatter (uv tool / pipx).
-# Reuse any working ruff on PATH; otherwise install via uv tool first, then pipx.
-# No remote shell installer / new package manager. Removal clears only MEGAI state;
-# the ruff CLI is retained so it stays independently usable.
+# Reuse any working ruff on the caller's PATH unchanged; never auto-upgrade.
+# If absent, install via whichever of uv/pipx is available (uv preferred).
+# No chained fallback on install failure, no remote shell installer / new
+# package manager, no inferred ownership metadata. Removal clears only MEGAI
+# state; the ruff CLI is retained so it stays independently usable.
 set -euo pipefail
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 # shellcheck source=ui.sh
 . "$MEGAI_HOME/lib/ui.sh"
 # shellcheck source=state.sh
 . "$MEGAI_HOME/lib/state.sh"
-
-# uv puts uv-managed binaries under ~/.local/bin; ensure that is on PATH for
-# detection without clobbering an existing ruff found anywhere else.
-export PATH="$HOME/.local/bin:$PATH"
 
 clear_state() {
   if [ -f "$STATE_FILE" ]; then
@@ -31,58 +29,66 @@ if [ "${1:-}" = "--remove" ]; then
   exit 0
 fi
 
-# 1. Detect existing working ruff anywhere on PATH first.
+# 1. Detect a working ruff on the caller's original PATH first. ~/.local/bin
+#    is only consulted as a fallback when the caller PATH has nothing — this
+#    preserves any caller-selected executable (e.g., a custom PATH shim) and
+#    never shadows it with a stale local install.
 bin=""
-if command -v ruff >/dev/null 2>&1; then
-  bin="$(command -v ruff)"
+if found="$(command -v ruff 2>/dev/null)"; then
+  bin="$found"
+elif [ -x "$HOME/.local/bin/ruff" ]; then
+  bin="$HOME/.local/bin/ruff"
 fi
 
-# 2. Update path: refresh a MEGAI-detected uv/pipx install in place; leave
-#    out-of-band installs (Homebrew, system, user-owned binary, etc.) alone.
-if [ "${MEGAI_UPDATE:-0}" = "1" ] && [ -n "$bin" ]; then
-  if command -v uv >/dev/null 2>&1 && uv tool list 2>/dev/null | grep -q '^ruff '; then
-    uv tool upgrade ruff >/dev/null 2>&1 \
-      || warn "ruff update via uv failed — keeping current version"
-    hash -r
-  elif command -v pipx >/dev/null 2>&1 && pipx list --short 2>/dev/null | grep -q '^ruff '; then
-    pipx upgrade ruff >/dev/null 2>&1 \
-      || warn "ruff update via pipx failed — keeping current version"
-    hash -r
-  else
-    skip "ruff is managed outside MEGAI — update skipped"
-  fi
-  bin="$(command -v ruff || true)"
-elif [ -z "$bin" ]; then
-  # 3. Fresh install: prefer uv tool, fall back to pipx. Refuse other managers.
+# 2. Fresh install when nothing is on PATH (uv preferred, pipx as last resort).
+#    Auto-upgrades and inferred ownership are intentionally NOT performed: any
+#    existing working ruff must stay unchanged, including on `megai update`.
+if [ -z "$bin" ]; then
   if command -v uv >/dev/null 2>&1; then
-    uv tool install ruff >/dev/null 2>&1 \
-      || { warn "ruff install via uv failed — skipping"; exit 0; }
+    if ! uv tool install ruff >/dev/null 2>&1; then
+      warn "ruff install via uv failed; not recorded"
+      exit 1
+    fi
     hash -r
   elif command -v pipx >/dev/null 2>&1; then
-    pipx install ruff >/dev/null 2>&1 \
-      || { warn "ruff install via pipx failed — skipping"; exit 0; }
+    if ! pipx install ruff >/dev/null 2>&1; then
+      warn "ruff install via pipx failed; not recorded"
+      exit 1
+    fi
     hash -r
   else
     die "ruff requires uv or pipx; neither is installed"
   fi
-  bin="$(command -v ruff || true)"
+  if found="$(command -v ruff 2>/dev/null)"; then
+    bin="$found"
+  elif [ -x "$HOME/.local/bin/ruff" ]; then
+    bin="$HOME/.local/bin/ruff"
+  fi
 fi
 
-# 4. Verify the resolved binary actually reports a version. Never record a
-#    failed/unusable install as ready.
-[ -n "$bin" ] && [ -x "$bin" ] || { warn "ruff binary unavailable after install"; exit 0; }
-version="$(ruff --version 2>/dev/null | head -n1 || true)"
-[ -n "$version" ] || { warn "ruff present but --version failed; not recorded"; exit 0; }
-
-# 5. Record provenance so update/removal can find the right manager.
-manager="path"
-if command -v uv >/dev/null 2>&1 && uv tool list 2>/dev/null | grep -q '^ruff '; then
-  manager="uv"
-elif command -v pipx >/dev/null 2>&1 && pipx list --short 2>/dev/null | grep -q '^ruff '; then
-  manager="pipx"
+# 3. Verify the resolved binary actually reports a working version. Require a
+#    successful exit AND a sensible non-empty `ruff <version>` output. The
+#    failure status of `--version` is preserved (no `|| true` swallowing it,
+#    no `set -e` short-circuiting the capture).
+[ -n "$bin" ] && [ -x "$bin" ] || { warn "ruff binary unavailable after install; not recorded"; exit 1; }
+_version_tmp="$(mktemp "$MEGAI_HOME/.ruff-version.XXXXXX")"
+# Run `--version` inside an `if` so `set -e` does not short-circuit on the
+# nonzero exit; the actual exit code is captured in `version_rc`.
+if "$bin" --version >"$_version_tmp" 2>/dev/null; then
+  version_rc=0
+else
+  version_rc=$?
 fi
+version_out="$(cat "$_version_tmp")"
+rm -f "$_version_tmp"
+if [ "$version_rc" -ne 0 ] || ! [[ "$version_out" =~ ^ruff[[:space:]]+[^[:space:]]+ ]]; then
+  warn "ruff present but --version failed or returned invalid output; not recorded"
+  exit 1
+fi
+version="$(printf '%s\n' "$version_out" | head -n1)"
 
-metadata="$(jq -cn --arg bin "$bin" --arg version "$version" --arg manager "$manager" \
-  '{bin:$bin,version:$version,manager:$manager}')"
+# 4. Record only bin + version. No inferred manager / ownership metadata.
+metadata="$(jq -cn --arg bin "$bin" --arg version "$version" \
+  '{bin:$bin,version:$version}')"
 state_set '.tools.ruff' "$metadata"
-ok "Ruff ready -> $bin ($version, manager=$manager)"
+ok "Ruff ready -> $bin ($version)"
