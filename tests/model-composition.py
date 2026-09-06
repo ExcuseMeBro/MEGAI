@@ -10,21 +10,26 @@ policy = (root / relative).read_text()
 assert len(policy) < 5000, 'Routing reference exceeded its bounded size'
 rows = [line for line in policy.splitlines() if line.startswith('| ') and '`' in line]
 expected = [
-    ('openai-codex/gpt-6-astra', 'high'),
-    ('minimax/MiniMax-M3', 'medium'),
-    ('minimax/MiniMax-M3', 'high'),
-    ('openai-codex/gpt-5.6-luna', 'high'),
-    ('openai-codex/gpt-5.6-sol', 'high'),
-    ('openai-codex/gpt-5.6-luna', 'medium for read-only; high for writing'),
+    ('User-facing parent: scope, acceptance, decisions, integration', 'openai-codex/gpt-6-astra', 'high'),
+    ('Bounded read-only discovery/research', 'minimax/MiniMax-M3', 'medium'),
+    ('Routine implementation with a known seam and observable tests', 'minimax/MiniMax-M3', 'high'),
+    ('High-risk implementation: auth, permissions, payments, concurrency, data/schema migrations, compatibility', 'openai-codex/gpt-5.6-luna', 'high'),
+    ('Complex debugging, independent review, architecture/security advice', 'openai-codex/gpt-5.6-sol', 'high'),
+    ('M3 unavailable, failed validation, or context not cleared for MiniMax', 'openai-codex/gpt-5.6-luna', 'medium for read-only; high for writing'),
 ]
 assert len(rows) == len(expected)
-for row, (model, thinking) in zip(rows, expected):
+for row, assignment in zip(rows, expected):
     cells = [cell.strip().strip('`') for cell in row.strip('|').split('|')]
-    assert cells[1:] == [model, thinking], row
+    assert cells == list(assignment), row
 for contract in [
     'System/developer instructions and repository restrictions win',
     'public or explicitly owner-approved non-sensitive repository context',
     'Unknown classification goes to Luna',
+    'blanket approval across their public/private projects',
+    'M3 is the default for routine delegated tasks',
+    'Check the returned model identity',
+    'not credentials, personal/production data or private session transcripts',
+    'Repository-specific restrictions still win',
     'https://api.minimax.io/anthropic',
     'not proof of authentication, throughput or task quality',
     'Use only medium or high thinking',
@@ -53,6 +58,10 @@ if args.live:
     assert str(installed) in instructions
     assert 'Route read-only `scout` and `researcher` to Pi `openai-codex/gpt-5.6-luna`' not in instructions
     assert 'PASEO_AGENT_ID' in instructions and 'completed=false' in instructions
+    assert 'minimax/MiniMax-M3' in instructions and 'all projects' in instructions
+    assert 'non-sensitive source in all projects, public and private' in instructions
+    assert 'secrets, personal/production data and private transcripts remain excluded' in instructions
+    assert 'stricter repository rules win' in instructions
     settings = json.loads((agent / 'settings.json').read_text())
     expected_defaults = {'defaultProvider': 'openai-codex', 'defaultModel': 'gpt-6-astra', 'defaultThinkingLevel': 'high'}
     for key, value in expected_defaults.items():
@@ -62,27 +71,24 @@ if args.live:
     m3 = 'minimax/MiniMax-M3'
     regular = ('scout', 'researcher', 'delegate', 'worker')
     for role in regular:
+        assert sub['agentOverrides'][role]['model'] == m3, f'{role} still defaults to another model'
         assert sub['agentOverrides'][role]['thinking'] == ('high' if role == 'worker' else 'medium')
         assert m3 in sub['modelScope']['agents'][role]['allow']
     for role in ('reviewer', 'debugger', 'oracle'):
+        assert sub['agentOverrides'][role]['model'] == 'openai-codex/gpt-5.6-sol'
         assert sub['agentOverrides'][role]['thinking'] == 'high'
         assert sub['modelScope']['agents'][role]['allow'] == ['openai-codex/gpt-5.6-sol']
     assert sub['modelScope']['enforce'] is True and sub['modelScope']['strict'] is True
     assert m3 in sub['modelScope']['allow']
-    assert sub['defaultModel'] == 'openai-codex/gpt-5.6-luna', 'Keep safe GPT fallback unless M3 is explicitly selected'
+    assert sub['defaultModel'] == m3, 'M3 must be the routine native default, not merely allowed'
+    assert not sub.get('agentOverridesByProvider'), 'Provider overrides need separate routing verification'
     if args.settings_backup:
         before = json.loads(args.settings_backup.read_text())
         # Normalize only the explicitly requested native profile changes; exact
         # comparison then catches unrelated tools, models, scopes or config drift.
         prior = before['subagents']
-        prior['defaultThinking'], prior['maxThinking'] = 'medium', 'high'
-        for role in regular + ('reviewer', 'debugger', 'oracle'):
-            prior['agentOverrides'][role]['thinking'] = 'medium' if role in regular[:3] else 'high'
-        if m3 not in prior['modelScope']['allow']:
-            prior['modelScope']['allow'].append(m3)
+        prior['defaultModel'] = m3
         for role in regular:
-            allowed = prior['modelScope']['agents'][role]['allow']
-            if m3 not in allowed:
-                allowed.append(m3)
-        assert {k:v for k,v in settings.items() if k not in expected_defaults} == {k:v for k,v in before.items() if k not in expected_defaults}, 'Unrelated settings changed'
+            prior['agentOverrides'][role]['model'] = m3
+        assert settings == before, 'Unrelated settings changed'
     print('Live pointer/defaults/source parity PASS; no credentials read or provider requests made')
