@@ -312,74 +312,12 @@ if (cd "$dirty_dev_repo" && MEGAI_HOME="$ROOT" bash "$ROOT/bin/megai" dev) >/dev
 fi
 [ "$(git -C "$dirty_dev_repo" branch --show-current)" = main ]
 
-# Global installation reaches all four harnesses and preserves user policy.
-export HOME="$TMP/home"
-export MEGAI_HOME="$TMP/megai"
-mkdir -p "$MEGAI_HOME/skills/agent-worktree-lifecycle" "$MEGAI_HOME/skills/smart-development-orchestrator" "$MEGAI_HOME/lib"
-cp "$ROOT/skills/agent-worktree-lifecycle/SKILL.md" "$MEGAI_HOME/skills/agent-worktree-lifecycle/SKILL.md"
-cp "$ROOT/skills/smart-development-orchestrator/SKILL.md" "$MEGAI_HOME/skills/smart-development-orchestrator/SKILL.md"
-cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$ROOT/lib/install_worktree_lifecycle.sh" "$MEGAI_HOME/lib/"
-mkdir -p "$HOME/.codex" "$HOME/.pi/agent" "$HOME/.claude" "$HOME/.omp/agent"
-printf 'codex user policy\n' >"$HOME/.codex/AGENTS.md"
-printf 'pi user policy\n' >"$HOME/.pi/agent/AGENTS.md"
-printf 'claude user policy\n' >"$HOME/.claude/CLAUDE.md"
-printf 'omp user policy\n' >"$HOME/.omp/agent/RULES.md"
-printf '{"tools":{},"agents":{},"projects":{}}\n' >"$MEGAI_HOME/state.json"
-collision_skill="$HOME/.omp/profiles/collision/agent/skills/agent-worktree-lifecycle/SKILL.md"
-mkdir -p "$(dirname "$collision_skill")"
-printf '%s\n' 'user-owned lifecycle skill' >"$collision_skill"
-bash "$MEGAI_HOME/lib/install_worktree_lifecycle.sh" >/dev/null
-bash "$MEGAI_HOME/lib/install_worktree_lifecycle.sh" >/dev/null
-grep -q '^user-owned lifecycle skill$' "$collision_skill"
-for skill in \
-  "$HOME/.agents/skills/agent-worktree-lifecycle/SKILL.md" \
-  "$HOME/.claude/skills/agent-worktree-lifecycle/SKILL.md" \
-  "$HOME/.pi/agent/skills/agent-worktree-lifecycle/SKILL.md" \
-  "$HOME/.omp/agent/skills/agent-worktree-lifecycle/SKILL.md" \
-  "$HOME/.agents/skills/smart-development-orchestrator/SKILL.md" \
-  "$HOME/.claude/skills/smart-development-orchestrator/SKILL.md" \
-  "$HOME/.pi/agent/skills/smart-development-orchestrator/SKILL.md" \
-  "$HOME/.omp/agent/skills/smart-development-orchestrator/SKILL.md"; do
-  [ -f "$skill" ]
-  grep -q '^managed-by: megai$' "$skill"
-done
-grep -q 'do not route work to free OpenCode models' "$HOME/.claude/skills/smart-development-orchestrator/SKILL.md"
-grep -q 'For every task, complexity selects the writer model but does not add workflow stages' "$HOME/.claude/skills/smart-development-orchestrator/SKILL.md"
-for policy in "$HOME/.codex/AGENTS.md" "$HOME/.pi/agent/AGENTS.md" "$HOME/.claude/CLAUDE.md" "$HOME/.omp/agent/RULES.md"; do
-  grep -q 'user policy' "$policy"
-  [ "$(grep -c 'megai:worktree-lifecycle:begin' "$policy")" = 1 ]
-  grep -q 'megai dev' "$policy"
-  grep -q 'megai finish --verified --target dev' "$policy"
-  grep -q 'reuse the one open `dev`.*`main` PR/MR' "$policy"
-  grep -q 'Every writer MUST be launched by `create_workspace`' "$policy"
-  grep -q 'worktree isolation' "$policy"
-  grep -q 'task/<slug>' "$policy"
-  grep -q 'branch from `dev`' "$policy"
-  grep -q 'followed by `create_agent` with the returned `workspaceId`' "$policy"
-  grep -q 'never run concurrent writers in the parent workspace' "$policy"
-  grep -q 'Native OMP task isolation is not a substitute' "$policy"
-  grep -q 'megai promote --approved' "$policy"
-  grep -q 'smart-development-orchestrator' "$policy"
-  grep -q 'archive_workspace' "$policy"
-  grep -q 'Never archive the primary `dev` workspace' "$policy"
-  grep -q 'After dev delivery, orchestrators call `archive_workspace`' "$policy"
-done
-bash "$MEGAI_HOME/lib/install_worktree_lifecycle.sh" --remove >/dev/null
-grep -q '^user-owned lifecycle skill$' "$collision_skill"
-for skill in \
-  "$HOME/.agents/skills/agent-worktree-lifecycle" \
-  "$HOME/.claude/skills/agent-worktree-lifecycle" \
-  "$HOME/.pi/agent/skills/agent-worktree-lifecycle" \
-  "$HOME/.omp/agent/skills/agent-worktree-lifecycle" \
-  "$HOME/.agents/skills/smart-development-orchestrator" \
-  "$HOME/.claude/skills/smart-development-orchestrator" \
-  "$HOME/.pi/agent/skills/smart-development-orchestrator" \
-  "$HOME/.omp/agent/skills/smart-development-orchestrator"; do
-  [ ! -e "$skill" ]
-done
-for policy in "$HOME/.codex/AGENTS.md" "$HOME/.pi/agent/AGENTS.md" "$HOME/.claude/CLAUDE.md" "$HOME/.omp/agent/RULES.md"; do
-  grep -q 'user policy' "$policy"
-  ! grep -q 'megai:worktree-lifecycle:begin' "$policy"
-done
+# Slim global-policy contracts replace the retired OMP routing installer checks.
+# All Git delivery/promotion/dirty-tree cases above remain unchanged.
+python3 "$ROOT/tests/slim_distribution.py" \
+  Slim.test_fresh_idempotent_and_ownership_removal \
+  Slim.test_user_config_and_policy_text_survive \
+  Slim.test_owned_skill_update_and_custom_edit_refusal \
+  Slim.test_policy_guards_and_public_branch
 
 echo "Worktree lifecycle: ok"

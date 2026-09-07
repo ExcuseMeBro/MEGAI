@@ -15,6 +15,10 @@ Use direct parent tools for bounded work. Define acceptance, locate the responsi
 
 GPT-only: no MiniMax routing or fallback. Use only medium or high thinking. These are operational defaults, not a benchmark-proven ranking. Never change credentials, provider endpoints, permissions or test requirements for speed.
 
+## Five-minute slices
+
+Split tasks over 5 minutes. Checkpoint at 5 minutes; no open-ended loops. Keep required gates.
+
 ## Delegate only when necessary
 
 - Known seam: parent is the sole writer. Unknown seam: one scout only when isolated discovery saves work. A scoped worker replaces parent implementation, not duplicates it.
