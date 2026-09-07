@@ -84,7 +84,8 @@ cmd_doctor() {
   done
   if command -v gh >/dev/null 2>&1; then ok "GitHub PR CLI -> $(command -v gh)"; else warn "gh missing (required for GitHub dev-to-main PRs)"; fi
   if command -v glab >/dev/null 2>&1; then ok "GitLab MR CLI -> $(command -v glab)"; else warn "glab missing (required for GitLab dev-to-main MRs)"; fi
-  for f in "$HOME/.claude.json" "$HOME/.codex/config.toml" "$HOME/.pi/agent/skills/megai.md" "$HOME/.omp/agent/skills/megai/SKILL.md" \
+  local codex_config="${CODEX_HOME:-$HOME/.codex}/config.toml"
+  for f in "$HOME/.claude.json" "$codex_config" "$HOME/.pi/agent/skills/megai.md" "$HOME/.omp/agent/skills/megai/SKILL.md" \
     "$HOME/.agents/skills/agent-worktree-lifecycle/SKILL.md" "$HOME/.claude/skills/agent-worktree-lifecycle/SKILL.md" \
     "$HOME/.pi/agent/skills/agent-worktree-lifecycle/SKILL.md" "$HOME/.omp/agent/skills/agent-worktree-lifecycle/SKILL.md"; do
     if [ -e "$f" ]; then ok "$f"

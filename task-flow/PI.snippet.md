@@ -1,0 +1,2 @@
+## MEGAI task flow
+The parent loads `megai-task-flow` once at task start/resume and completes its Plane start boundary before project edits. Reuse the active linked work item through edits and follow-up refinements; delegated children inherit that identity and never mutate Plane or `.todos`. Resolve the project by exact Git-root folder name, paginating Plane project lists until the exact match is resolved; ask if absent or ambiguous. Finish at Plane `In Review` with the work item still incomplete; only the user may mark `Done`.

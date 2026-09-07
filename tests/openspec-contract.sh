@@ -31,11 +31,11 @@ assert status['isPlanningComplete'] is True
 assert all(x['status']=='done' for x in status['artifacts'])
 apply=load('apply')
 assert apply['tasks'] and all(not t['done'] for t in apply['tasks'])
-assert 'Asana' in apply['context']
+assert 'Plane' in apply['context']
 assert any('actual focused tests' in rule for rule in apply['operationGuidance'])
 archive=load('archive')
 assert any('explicit user approval' in rule for rule in archive['operationGuidance'])
-assert any('completed=false' in rule for rule in archive['operationGuidance'])
+assert any('started In Review' in rule for rule in archive['operationGuidance'])
 assert any('WHEN/THEN' in rule for rule in load('specs')['rules'])
 print('Real CLI: context/rules injected; planning complete with unchecked implementation tasks')
 PY

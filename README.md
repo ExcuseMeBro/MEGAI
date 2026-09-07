@@ -45,7 +45,7 @@ megai doctor
 - [🧰 Included stack](#-included-stack)
 - [🤖 Agent integrations](#-agent-integrations)
 - [⌨️ CLI reference](#️-cli-reference)
-- [📋 task-flow and Asana](#-task-flow-and-asana)
+- [📋 task-flow and Plane](#-task-flow-and-plane)
 - [🎨 Design and UI/UX stack](#-design-and-uiux-stack)
 - [🗃️ Code intelligence and memory](#️-code-intelligence-and-memory)
 - [🧪 App testing](#-app-testing)
@@ -106,7 +106,7 @@ Without MEGAI, every agent needs separate MCP entries, skills, hooks, plugins, p
 - 📚 **Generated codebase knowledge and health reports**
 - 🪨 **Lower agent output/token usage**
 - 📋 **A visible `.todos` execution board with ADLC stages**
-- 🔄 **Parent-owned Asana boundaries with user-owned completion**
+- 🔄 **Parent-owned Plane boundaries with user-owned completion**
 - 📝 **Optional OpenSpec requirements and acceptance scenarios for complex changes**
 - 🎨 **Design-system, accessibility, and UI quality skills**
 - 🌐 **Website-to-design-token extraction**
@@ -128,7 +128,7 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🪨 | [caveman](https://github.com/JuliusBrussee/caveman) | Optional compressed communication/workflow skills (`MEGAI_CAVEMAN=1`) | Global skills/plugins, not a core dependency |
 | ⚡ | [rtk](https://github.com/rtk-ai/rtk) | Rust Token Killer for compact command output | CLI + Claude hook |
 | 🕸️ | [graphify](https://graphify.net) | Tree-sitter knowledge graph and code relationships | CLI + global skill |
-| 📋 | task-flow | `.todos` board, priority queue, ADLC, monitoring, Asana mirror | Claude hooks + global skills |
+| 📋 | task-flow | `.todos` board, priority queue, ADLC, monitoring, Plane mirror | Claude hooks + global skills |
 | 🌿 | agent-worktree-lifecycle | Task worktrees → `dev`; one open promotion PR; user-approved `main` merge | Global policy + `megai dev`/`finish`/`promote` |
 | 🧭 | smart-development-orchestrator | GPT writer routing, MiniMax read-only discovery, Paseo worktree delivery | Global skill + OMP agents |
 | ⚙️ | GPT-core + MiniMax-discovery routing | GPT owns every write; MiniMax only searches, reads, and finds code | OMP roles + managed agents |
@@ -175,7 +175,7 @@ Only MEGAI-owned MCP tables are replaced or removed; unrelated Codex configurati
 MEGAI configures:
 
 - global MEGAI skill at `~/.pi/agent/skills/megai.md`
-- Asana-aware task-flow and safe worktree-lifecycle skills under `~/.pi/agent/skills/`
+- Plane-aware task-flow and safe worktree-lifecycle skills under `~/.pi/agent/skills/`
 - `megai-memory` and `megai-codedb` CLI bridges in `~/.megai/bin` (not shell files masquerading as Pi extensions)
 - a global `zvec_grep` MCP entry in `~/.pi/agent/mcp.json` for semantic and hybrid workspace retrieval
 - Dembrandt, Argent, and RepoWise CLIs available on demand instead of permanent MCP entries
@@ -194,7 +194,7 @@ bash "$HOME/.megai/lib/install_openspec.sh"  # tested OpenSpec 1.12.0 + one glob
 
 [OpenSpec](https://github.com/Fission-AI/OpenSpec) supplies durable requirements for multi-module features, public API/data migrations, consequential security changes, and explicit spec requests. Small known-seam fixes keep the normal fast path. Installation is opt-in (not part of `megai install`) and does not initialize other repositories. Node >=20.19.0 is required; mismatched existing CLI versions and user-owned skills are preserved with a clear failure instead of being replaced.
 
-The parent keeps Asana as status authority and one `.todos` summary linked to the change; OpenSpec `tasks.md` is the only detailed checklist. MEGAI uses the upstream `spec-driven` schema with a single global Pi bridge, not another generated OPSX prompt/skill bundle. Existing project configuration is preserved. Run real tests as well as strict spec validation: OpenSpec planning completeness and advisory verification are not implementation proof. Agent handoff remains `In Review`, `completed=false`; archive and main promotion require separate explicit user approval.
+The parent keeps Plane as status authority and one `.todos` summary linked to the change; OpenSpec `tasks.md` is the only detailed checklist. MEGAI uses the upstream `spec-driven` schema with a single global Pi bridge, not another generated OPSX prompt/skill bundle. Existing project configuration is preserved. Run real tests as well as strict spec validation: OpenSpec planning completeness and advisory verification are not implementation proof. Agent handoff remains in Plane's started `In Review` group without a completion boolean; archive and main promotion require separate explicit user approval.
 
 The installer disables OpenSpec telemetry and npm lifecycle scripts. Managed Pi destinations are recorded in state, including custom `PI_CODING_AGENT_DIR` installs; removal verifies each symlink's ownership even if that environment variable is no longer set. The workflow stops if the installed CLI differs from the tested version. To unlink only the managed Pi bridge, run `bash "$HOME/.megai/lib/install_openspec.sh" --remove`; CLI, privacy settings and project specs remain. `megai uninstall` also removes the managed link. Source policy: [`skills/megai-openspec/SKILL.md`](skills/megai-openspec/SKILL.md).
 
@@ -203,7 +203,7 @@ The installer disables OpenSpec telemetry and npm lifecycle scripts. Managed Pi 
 MEGAI configures:
 
 - native MCP entries for `agentmemory` and `codedb` in the active OMP profile
-- native MEGAI, Asana-aware task-flow, safe worktree-lifecycle, and smart-development-orchestrator skills under the active profile's `skills/` directory
+- native MEGAI, Plane-aware task-flow, safe worktree-lifecycle, and smart-development-orchestrator skills under the active profile's `skills/` directory
 - MiniMax read-only `smart-router`, trusted Luna/Terra scouts, and GPT `gpt-core-worker`/`gpt-fast-worker` implementations under the active profile's `agents/` directory
 - OMP's native MiniMax catalog and provider-specific transport compatibility; MEGAI never rewrites user `models.yml`
 - preservation of unrelated OMP servers, model providers, allowlists, denylists, credentials, agents, and user settings
@@ -288,7 +288,7 @@ megai help                    Show command help
 
 ---
 
-## 📋 task-flow and Asana
+## 📋 task-flow and Plane
 
 Every project can use a plain-Markdown execution board:
 
@@ -321,21 +321,21 @@ A task line carries priority and ADLC stage:
 
 The fast path is `implement → code self-review → focused test → ship when required`. The six `.todos` ADLC emojis remain bookkeeping labels only; they do not trigger separate agents or model/tool passes.
 
-### 🔗 Boundary-only Asana mapping
+### 🔗 Boundary-only Plane mapping
 
-The Asana-aware `megai-task-flow` skill used by Pi and OMP synchronizes only at boundaries. The parent starts a linked task before project edits; questions and read-only investigation need no task. Resolve the project by an exact Git-root folder-name match and ask if absent or ambiguous. Children inherit the task and never mutate Asana or `.todos`.
+The Plane-aware `megai-task-flow` skill used by Pi and OMP synchronizes only at boundaries. The parent starts a linked work item before project edits; questions and read-only investigation need no task. Resolve the exact Git-root project through the paginated Plane project list, then retain the `(project UUID, work item UUID)` pair. Imported work matches `external_id` plus `external_source=asana-migration-v1`; the legacy marker remains historical metadata.
 
-| Boundary | `.todos` | Asana section | Completed |
+| Boundary | `.todos` | Plane state group | Agent action |
 | --- | --- | --- | --- |
-| Start | `inprogress.md` | `In Progress` | `false` |
-| Verified agent handoff | `inprogress.md`, unchecked and labelled In Review | `In Review` | `false` |
-| User marks Done; reconcile | `done.md` | `Done` | `true` |
+| Start | `inprogress.md` | started `In Progress` | one start mutation |
+| Verified agent handoff | `inprogress.md`, unchecked and labelled In Review | started `In Review` | one handoff mutation |
+| User marks Done; reconcile | `done.md` | completed state | user only |
 
-Only the user may mark Done. Store the GID in an HTML comment and reuse it for follow-ups; an active task needs no per-edit skill reload or repeated start mutation. A follow-up after handoff returns the same task to In Progress. Skip routine stage sync, milestone comments and unchanged board rereads; the queue never auto-drains. Standalone Claude board hooks are a separate integration and remain subject to repository/user policy.
+Only the user may mark Done. Store the identity pair in an HTML comment and reuse it for follow-ups; an active task needs no per-edit skill reload or repeated start mutation. Skip routine stage sync, milestone comments and unchanged board rereads; the queue never auto-drains. Standalone Claude board hooks are a separate integration and remain subject to repository/user policy.
 
 ### 🌿 Agent branch delivery and promotion
 
-Primary development defaults to `dev`; isolated task branches start from `dev`. `megai finish --verified --target dev` merges task work, pushes `dev`, reuses the one open `dev` → `main` request, and cleans only the merged task worktree/branch. Agent work then moves to `In Review`, still incomplete in Asana. The agent asks whether to promote main and runs `megai promote --approved` only after an explicit affirmative reply. Promotion verifies the reviewed head and clean forge state, merges the request, synchronizes `main`, and preserves `dev`.
+Primary development defaults to `dev`; isolated task branches start from `dev`. `megai finish --verified --target dev` merges task work, pushes `dev`, reuses the one open `dev` → `main` request, and cleans only the merged task worktree/branch. Agent work then moves to started `In Review` in Plane. The agent asks whether to promote main and runs `megai promote --approved` only after an explicit affirmative reply. Promotion verifies the reviewed head and clean forge state, merges the request, synchronizes `main`, and preserves `dev`.
 
 ### 🧩 Claude task-flow pieces
 
@@ -646,23 +646,26 @@ megai wire cc                  # repair Claude MCP entries
 megai logs repowise            # inspect background RepoWise indexing
 ```
 
-### Plane MCP (additive to Asana)
+### Plane MCP and explicit tracker cutover
 
-Configure the official Plane hosted MCP for Pi without putting the API token in
+Configure the official Plane hosted MCP for Pi and Codex without putting the API token in
 MCP JSON, shell arguments, or logs. The token file must be owner-readable only
 (and is checked again for every request):
 
 ```bash
 megai plane setup --workspace SLUG \
-  --token-file ~/.config/megai/credentials/plane-api-token
-megai plane status
-megai plane remove
+  --token-file ~/.config/megai/credentials/plane-api-token \
+  --client all --replace-asana
+megai plane status --client all
+megai plane remove --client all
+megai plane restore --client all
 ```
 
 Setup is idempotent, backs up the Pi MCP config before a change, and manages
-only the MEGAI-owned `plane` entry. `megai wire pi` and `megai update` preserve
-an existing Plane setup without starting authentication; Asana remains the
-status authority during the compatibility rollout.
+only MEGAI-owned Plane entries. `megai wire pi` and `megai update` preserve
+an existing Plane setup without starting authentication. The explicit `--replace-asana`
+flag removes local Asana MCP entries after private backups are created; setup remains
+additive without that flag. `megai plane restore` restores the latest private backup.
 
 ### Focused OpenSpec and orchestration checks
 
@@ -672,7 +675,7 @@ From the MEGAI source checkout:
 bash tests/openspec-integration.sh  # offline installer lifecycle and preservation
 bash tests/openspec-policy.sh       # static boundaries and negative mutations
 bash tests/openspec-contract.sh     # real installed OpenSpec 1.12.0 contract
-bash tests/pi-task-flow.sh          # Asana handoff and Pi wiring regressions
+bash tests/pi-task-flow.sh          # Plane handoff and Pi wiring regressions
 bash tests/orchestration-policy.sh  # shared prompt guardrails
 ```
 

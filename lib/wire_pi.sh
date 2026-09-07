@@ -10,6 +10,8 @@ MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 PI_AGENT="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
 PI_MCP_CONFIG="$PI_AGENT/mcp.json"
 TASK_FLOW_SKILL="$MEGAI_HOME/task-flow/skills/megai-task-flow/SKILL.md"
+TASK_FLOW_PI_SNIPPET="$MEGAI_HOME/task-flow/PI.snippet.md"
+TASK_FLOW_POLICY_INSTALLER="$MEGAI_HOME/lib/install_taskflow_policy.py"
 WORKTREE_SKILL="$MEGAI_HOME/skills/agent-worktree-lifecycle/SKILL.md"
 MODE="${1:-install}"
 ZG_BIN="$(state_get '.tools["zvec-grep"].bin' 2>/dev/null || true)"
@@ -36,9 +38,8 @@ wire_megai_mcp() {
   tmp="$(mktemp)"
   # Pi gets memory and structural code intelligence through lightweight shell
   # CLI bridges. zvec-grep is global MCP because semantic/hybrid retrieval is its
-  # agent-native interface. Keep Asana lazy and remove legacy specialist MCPs.
-  # Plane is managed only by `megai plane setup/remove`; leave its credential
-  # reference untouched during normal wire/update and MEGAI unwiring.
+  # agent-native interface. Plane is managed only by `megai plane setup/remove`;
+  # normal wiring preserves its credential reference and unrelated MCP entries.
   if [ "$MODE" = "--remove" ]; then
     jq '
       del(.mcpServers["megai-dembrandt"], .mcpServers["megai-argent"], .mcpServers["megai-repowise"], .mcpServers.zvec_grep)
@@ -169,6 +170,10 @@ if [ "$MODE" = "--remove" ]; then
 fi
 
 mkdir -p "$PI_AGENT/skills" "$PI_AGENT/extensions"
+if [ -f "$TASK_FLOW_PI_SNIPPET" ] && [ -f "$TASK_FLOW_POLICY_INSTALLER" ]; then
+  python3 "$TASK_FLOW_POLICY_INSTALLER" pi "$PI_AGENT/AGENTS.md" \
+    "$TASK_FLOW_PI_SNIPPET" "$MEGAI_HOME/backups"
+fi
 wire_megai_mcp
 
 # Skills
