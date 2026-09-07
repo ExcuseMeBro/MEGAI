@@ -108,6 +108,12 @@ class Plan:
             "Use `agent-worktree-lifecycle` for isolated writes and the agreed delivery target. "
             "Verify task acceptance with actual tests and review; security/data-integrity risks require independent review. "
             "Hand off at In Review, never Done. Main promotion requires separate explicit approval.\n"
+            "Default workflow: load `megai` for coding tasks and `caveman` once for full terse chat in the user's language. "
+            "Use codedb for structural lookup, zvec-grep for intent search, and RTK for supported discovery output. "
+            "Apply Ruff to changed Python, agent-memory recall to relevant prior decisions, and matching Matt Pocock/UI-UX skills to the task. "
+            "These are task-appropriate defaults, not mandatory extra calls; index on demand, never at startup. "
+            "Keep acceptance tests, exit status and raw review/failure diagnostics authoritative. "
+            "Respect explicit resource opt-outs and normal-mode requests; report unavailable tools instead of silently claiming use.\n"
             + END + "\n"
         )
         if BEGIN in text:
@@ -204,9 +210,12 @@ class Plan:
             ("task-flow/skills/megai-task-flow/SKILL.md", "megai-task-flow"),
             ("skills/agent-worktree-lifecycle/SKILL.md", "agent-worktree-lifecycle"),
             ("pi-skill/SKILL.md", "megai"),
+            ("skills/caveman/SKILL.md", "caveman"),
         ):
             skill_root = HOME / ".agents/skills" if name in ("codex", "pi") else root / "skills"
             self.asset(skill_root / skill / "SKILL.md", (SOURCE / relative).read_bytes(), remove)
+            if skill == "caveman":
+                self.asset(skill_root / skill / "LICENSE.md", (SOURCE / "skills/caveman/LICENSE.md").read_bytes(), remove)
         if name == "pi":
             config_path = root / "mcp.json"
             config_before = read(config_path)

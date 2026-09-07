@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MEGAI slim: nine selected tools, explicit services, Plane-only policies.
+# MEGAI slim: nine selected tools plus Caveman core, explicit services and Plane-only policies.
 set -euo pipefail
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 LIB="$MEGAI_HOME/lib"
@@ -11,7 +11,7 @@ usage() {
 megai slim
   megai                         Check installed policy and worktree safety
   cc | codex | pi | omp [args]   Launch without daemon/index preparation
-  install | update              Install/reuse the nine slim entries
+  install | update              Install/reuse slim tools and default Caveman core
   status | doctor               Report core availability (no service startup)
   wire cc|codex|pi|omp|path      Repair managed wiring; conflicts fail safely
   start | stop [agent-memory]   Explicit memory daemon lifecycle
@@ -26,6 +26,8 @@ megai slim
 
 Stack: codedb, zvec-grep, rtk, Plane-only task-flow, Ruff, agent-memory,
        agent-worktree-lifecycle, ux-ui-agent-skills, Matt Pocock's skills.
+Defaults: Caveman core chat, codedb structure, zvec intent, RTK discovery output.
+Acceptance: original test commands, raw diagnostics, full native diff review.
 Infrastructure: native tools, rg/Git, lazy Pi MCP adapter.
 EOF
 }

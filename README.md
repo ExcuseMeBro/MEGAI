@@ -1,7 +1,7 @@
 # MEGAI slim
 
-A dedicated, persistent **`slim`** distribution. It keeps the nine selected tools,
-Plane-only task boundaries and task-quality gates. Installation and launch do not
+A dedicated, persistent **`slim`** distribution. It keeps nine selected tools plus
+bundled Caveman core, Plane-only task boundaries and task-quality gates. Installation and launch do not
 merge or push Git branches. This branch is not automatically integrated into `main`.
 
 ## Included stack
@@ -10,18 +10,19 @@ merge or push Git branches. This branch is not automatically integrated into `ma
 | --- | --- |
 | [codedb](https://github.com/justrach/codedb) | Default core structural lookup via CLI; on-demand indexing |
 | [zvec-grep](https://github.com/zvec-ai/zvec-grep) | Local hybrid code search; explicit indexing |
-| [rtk](https://github.com/rtk-ai/rtk) | Compact command output; raw diagnostics remain available |
+| [rtk](https://github.com/rtk-ai/rtk) | Default supported discovery output; raw acceptance diagnostics remain authoritative |
+| [Caveman core](https://github.com/JuliusBrussee/caveman) | Default full terse chat; bundled MIT core adaptation, no companion/runtime package |
 | task-flow | **Plane-only** identity, acceptance and start/handoff boundaries |
 | [Ruff](https://docs.astral.sh/ruff/) | Non-mutating Python lint/format checks |
-| [agent-memory](https://www.agent-memory.dev/) | Explicit persistent memory; daemon starts on request |
+| [agent-memory](https://www.agent-memory.dev/) | Default relevant recall; lazy local service, saving only on user request |
 | agent-worktree-lifecycle | Isolated writers and verified, user-agreed branch delivery |
 | [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | Task-appropriate UI/UX and accessibility guidance |
 | [Matt Pocock's skills](https://github.com/mattpocock/skills) | Engineering, diagnosis, specifications and verification workflows |
 
 Native read/edit/bash, Git, `rg`, Plane connector configuration and Pi's lazy MCP
 adapter are infrastructure, not additional product entries. Graphify,
-RepoWise, Caveman, ui-craft, Dembrandt, Argent, Numasec, OpenSpec, legacy model
-routing and full Pi extension bundles are outside the active slim pipeline.
+RepoWise, Caveman companions/engines, ui-craft, Dembrandt, Argent, Numasec,
+OpenSpec, legacy model routing and full Pi extension bundles are outside the active slim pipeline.
 Historical standalone source remains unwired; old full-profile flags do not
 restore it through slim install/update/launch.
 
@@ -79,6 +80,41 @@ There is no `.todos` creation, reading, writing, mirroring, ADLC board, monitori
 board hook, routine milestone sync or queue draining in the active slim workflow.
 Historical project boards stay untouched. Pure questions/read-only investigation
 need no tracked mutation; refinements reuse the active item.
+
+## Default behavior and acceptance
+
+All ten stack entries are installed/wired by default for Pi, Claude, Codex and OMP.
+The harness itself must be installed and authenticated separately. Their triggers are:
+
+- **Caveman:** load the bundled core once; full terse chat in the user's language.
+  `normal mode`/`stop caveman` opts out. Artifacts, uncertainty and warnings stay clear.
+- **codedb:** first choice for relevant structural lookup; existing indexes are reused.
+- **zvec-grep:** first choice for unknown wording/intent; CLI plus lazy Pi MCP.
+- **RTK:** default agent policy for supported discovery commands such as
+  `rtk git status`, `rtk git log -5`, and `rtk ls`. This is not a shell-wide or
+  tool-call rewrite hook; compound commands and scripts remain native.
+- **task-flow:** start/reuse the Plane task before project edits; hand off only
+  after verified acceptance in In Review, never Done.
+- **Ruff:** non-mutating checks for changed Python files.
+- **agent-memory:** when prior decisions matter, start the local service and
+  recall relevant context without a separate enablement request. Saving still
+  requires the user's persistence request; no secret or personal-data ingestion.
+- **agent-worktree-lifecycle:** isolated writes and verified agreed branch delivery.
+- **UX/UI kit:** select the matching UI/accessibility skill for UI work.
+- **Matt Pocock kit:** select the matching engineering/diagnosis/verification skill.
+
+Defaults are task-appropriate choices, not ten compulsory calls per task. Before
+edits define the observable outcome, acceptance checks and stop condition. Run
+repository tests/build/lint unchanged with raw output and original exit status;
+review full native diffs. RTK summaries alone never prove acceptance. Keep security,
+accessibility, compatibility and independent-review gates. User resource exclusions
+and model/provider/thinking choices remain untouched. If an exclusion disables a
+default, report that instead of claiming the tool is active.
+
+No daemon or model call is added to harness startup. Start memory only for a
+relevant recall; index only when a task needs it;
+missing/stale indexes must be reported rather than silently treated as results.
+Smaller context/output is not a measured speed or quality improvement.
 
 ## On-demand operation
 

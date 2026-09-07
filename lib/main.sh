@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Slim MEGAI installer pipeline: the nine requested product entries, including core codedb.
+# Slim installer: nine tool entries plus bundled Caveman core; no startup services.
 set -euo pipefail
 
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
@@ -44,7 +44,7 @@ bash "$LIB/install_ruff.sh" || die "Ruff install failed"
 bash "$LIB/install_ux_ui_agent_skills.sh" || die "ux-ui-agent-skills install failed"
 bash "$LIB/install_mattpocock_skills.sh" || die "Matt Pocock skills install failed"
 
-step 5 7 "Installing Plane-only task flow and worktree safety"
+step 5 7 "Installing Plane-only task flow, worktree safety, and Caveman core"
 bash "$LIB/install_taskflow.sh" || die "Plane-only task-flow install failed; inspect the reported migration conflict"
 bash "$LIB/install_worktree_lifecycle.sh" || die "worktree safety install failed; inspect the reported migration conflict"
 

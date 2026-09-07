@@ -89,6 +89,67 @@ class Slim(unittest.TestCase):
         self.assertNotIn("zvec_grep", json.loads((self.home / ".pi/agent/mcp.json").read_text())["mcpServers"])
         self.assertTrue((self.legacy / "sentinel").exists())
 
+    def test_four_defaults_are_wired_without_background_work(self):
+        self.wire()
+        for root, policy in ((".claude", "CLAUDE.md"), (".codex", "AGENTS.md"),
+                             (".pi/agent", "AGENTS.md"), (".omp/agent", "RULES.md")):
+            text = (self.home / root / policy).read_text()
+            for required in ("caveman", "full", "codedb", "zvec-grep", "RTK", "Ruff", "agent-memory", "Matt Pocock/UI-UX", "megai-task-flow", "agent-worktree-lifecycle", "acceptance", "raw"):
+                self.assertIn(required, text)
+        for root in (".agents/skills", ".claude/skills", ".omp/agent/skills"):
+            skill = self.home / root / "caveman/SKILL.md"
+            self.assertEqual(skill.read_bytes(), (ROOT / "skills/caveman/SKILL.md").read_bytes())
+            self.assertTrue((skill.parent / "LICENSE.md").is_file())
+            self.assertFalse((skill.parent.parent / "cavecrew").exists())
+        core = (ROOT / "pi-skill/SKILL.md").read_text()
+        for required in ("rtk git status", "rtk git log", "rtk ls", "raw", "exit status", "acceptance", "on demand"):
+            self.assertIn(required, core)
+        for required in ("observable acceptance", "original exit status", "full native", "only when the user requests persistence", "No separate enablement request", "independent review"):
+            self.assertIn(required, core)
+        style = (ROOT / "skills/caveman/SKILL.md").read_text()
+        for required in ("uncertainty", "normal mode", "Persisted", "acceptance", "No universal token-saving", "Drop: articles", "Fragments OK", "Short synonyms", "## Intensity", "## Auto-Clarity", "Example —", "Default: **full**"):
+            self.assertIn(required, style)
+        self.assertFalse((self.home / "calls").exists())
+        self.wire("--remove")
+        self.assertFalse((self.home / ".agents/skills/caveman/SKILL.md").exists())
+        self.assertFalse((self.home / ".agents/skills/caveman/LICENSE.md").exists())
+
+    def test_receipted_old_slim_policy_upgrades_without_overwriting_user_text(self):
+        self.wire()
+        path = self.home / ".pi/agent/AGENTS.md"
+        old = path.read_text().split("Default workflow:", 1)[0] + "<!-- megai:slim:end -->\n"
+        path.write_text(old)
+        receipt_path = self.megai / "slim-wiring.json"
+        receipt = json.loads(receipt_path.read_text())
+        receipt[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+        receipt_path.write_text(json.dumps(receipt))
+        self.wire()
+        self.assertIn("Default workflow:", path.read_text())
+        self.assertEqual(path.read_text().count("<!-- megai:slim:begin -->"), 1)
+        self.wire("--verify")
+        # Unrecorded edits outside the exact current block remain user-owned.
+        path.write_text("Keep this user rule.\n" + path.read_text())
+        self.wire()
+        self.assertTrue(path.read_text().startswith("Keep this user rule.\n"))
+
+    def test_caveman_conflicts_and_resource_opt_outs_are_preserved(self):
+        custom = self.write(self.home / ".agents/skills/caveman/SKILL.md", "custom user style")
+        before = self.snapshot()
+        self.wire(ok=False)
+        self.assertEqual(self.snapshot(), before)
+        custom.unlink()
+        settings = self.write(self.home / ".pi/agent/settings.json", json.dumps({
+            "defaultModel": "keep", "skills": ["!caveman"], "extensions": ["!rtk*"],
+        }))
+        original = settings.read_bytes()
+        self.wire()
+        self.assertEqual(settings.read_bytes(), original)
+        skill = self.home / ".agents/skills/caveman/SKILL.md"
+        skill.write_text(skill.read_text() + "custom change")
+        before = self.snapshot()
+        self.wire("--remove", ok=False)
+        self.assertEqual(self.snapshot(), before)
+
     def test_user_config_and_policy_text_survive(self):
         files = {
             ".pi/agent/settings.json": '{"defaultProvider":"keep","defaultModel":"keep","defaultThinkingLevel":"high","packages":["user-extension"],"skills":["user-skill"]}',
