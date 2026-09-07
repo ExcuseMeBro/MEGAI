@@ -132,7 +132,6 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🌿 | agent-worktree-lifecycle | Task worktrees → `dev`; one open promotion PR; user-approved `main` merge | Global policy + `megai dev`/`finish`/`promote` |
 | 🧭 | smart-development-orchestrator | GPT writer routing, MiniMax read-only discovery, Paseo worktree delivery | Global skill + OMP agents |
 | ⚙️ | GPT-core + MiniMax-discovery routing | GPT owns every write; MiniMax only searches, reads, and finds code | OMP roles + managed agents |
-| 🎨 | [ui-craft](https://skills.smoothui.dev) | Anti-slop UI rules, design memory, review gates, presets | Global skills and commands |
 | 🖌️ | [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | 17 UI/UX skills, WCAG references, tokens, components, adapters | Global skills |
 | 🌐 | [Dembrandt](https://github.com/dembrandt/dembrandt) | Extract design tokens, typography, palette, brand, and WCAG data from websites | On-demand CLI |
 | 📚 | [RepoWise](https://github.com/repowise-dev/repowise) | Dependency graph, generated wiki, code health, risk, and history | On-demand CLI + background index |
@@ -155,7 +154,6 @@ MEGAI configures:
 - `rtk` `PreToolUse` hook
 - graphify skills; Caveman only when explicitly installed
 - task-flow skill, hooks, commands, monitoring, optional statusline, and safe `dev` merge/worktree cleanup policy
-- ui-craft commands, review agents, and design memory
 - global Matt Pocock and UX/UI skills
 
 Existing MCP servers, hooks, and statusline settings are preserved.
@@ -166,7 +164,7 @@ MEGAI configures:
 
 - a lean, marked MCP block in `~/.codex/config.toml` with `agentmemory` and `codedb`
 - Dembrandt, Argent, and RepoWise CLIs available on demand
-- graphify, ui-craft, Matt Pocock, UX/UI, and safe worktree-lifecycle skills; Caveman is optional
+- graphify, Matt Pocock, UX/UI, and safe worktree-lifecycle skills; Caveman is optional
 
 Only MEGAI-owned MCP tables are replaced or removed; unrelated Codex configuration remains intact.
 
@@ -356,18 +354,7 @@ Everything is idempotent. Existing Claude statuslines are not overwritten.
 
 ## 🎨 Design and UI/UX stack
 
-### 🧱 ui-craft
-
-`ui-craft` provides anti-generic UI guidance, design memory, MCP quality gates, review agents, and visual presets.
-
-```bash
-ui-craft install --yes
-ui-craft doctor
-ui-craft backup
-ui-craft rollback
-```
-
-Project design memory lives in `<project>/.ui-craft/` and records briefs, tokens, patterns, and decisions.
+ui-craft is retired: MEGAI no longer installs, updates, wires, checks or uninstalls it. Existing project `.ui-craft/` design notes remain private and preserved; unrelated UX/UI skills are unchanged. For existing installations, review the [retirement evidence and rollback guidance](docs/audits/ui-craft-retirement.md). Do not trust ui-craft 1.0.3's `uninstall --dry-run`: that release ignores the flag and performs removal.
 
 ### 🖌️ ux-ui-agent-skills
 
@@ -542,7 +529,7 @@ The user-approved local profile removes native pi-subagents from startup, select
                                │
                     ┌──────────▼──────────┐
                     │  ~/.megai/lib/main  │
-                    │  18-step pipeline   │
+                    │  17-step pipeline   │
                     └──────────┬──────────┘
                                │
           ┌────────────────────┼────────────────────┐
@@ -748,7 +735,7 @@ Ix is no longer installed, updated, checked or recommended by MEGAI. Upgrading d
 megai uninstall
 ```
 
-MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI, Numasec and registered OpenSpec skill links, shell PATH entries, and ui-craft components. The Numasec and OpenSpec CLIs are retained to avoid deleting independently usable tools; OpenSpec project artifacts and privacy settings are also retained.
+MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI, Numasec and registered OpenSpec skill links, and shell PATH entries. The Numasec and OpenSpec CLIs are retained to avoid deleting independently usable tools; OpenSpec project artifacts and privacy settings are also retained.
 
 To prevent data loss, zvec-grep, RepoWise, and their local project indexes are retained. Remove them separately only when their data is no longer needed:
 

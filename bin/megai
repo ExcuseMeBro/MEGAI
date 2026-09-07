@@ -52,7 +52,7 @@ Commands:
   version               Print version
   help                  This message
 
-Tools: agent-memory, codedb, zvec-grep, caveman, rtk, graphify, ui-craft, ux-ui-agent-skills, dembrandt, repowise, argent, numasec, ruff, mattpocock-skills
+Tools: agent-memory, codedb, zvec-grep, caveman, rtk, graphify, ux-ui-agent-skills, dembrandt, repowise, argent, numasec, ruff, mattpocock-skills
 EOF
 }
 
@@ -63,7 +63,7 @@ cmd_install() {
 cmd_status() {
   detect_os; detect_runtimes; state_init
   printf "%-14s %-10s %-8s %s\n" TOOL VERSION PORT STATUS
-  for t in agent-memory codedb zvec-grep caveman rtk graphify ui-craft dembrandt repowise argent numasec ruff; do
+  for t in agent-memory codedb zvec-grep caveman rtk graphify dembrandt repowise argent numasec ruff; do
     local ver port stat bin
     ver=$(state_get ".tools[\"$t\"].version") || ver=""
     port=$(state_get ".tools[\"$t\"].port")   || port=""
@@ -128,7 +128,6 @@ cmd_doctor() {
   if command -v rtk         >/dev/null 2>&1; then ok "rtk CLI present";          else skip "rtk missing"; fi
   if command -v graphify    >/dev/null 2>&1; then ok "graphify CLI present";     else skip "graphify missing"; fi
   if command -v omp >/dev/null 2>&1; then ok "OMP CLI present"; else skip "OMP missing"; fi
-  if command -v ui-craft    >/dev/null 2>&1; then ok "ui-craft CLI present";     else skip "ui-craft missing"; fi
   if [ -f "$HOME/.agents/skills/design-code/SKILL.md" ] && [ -f "$HOME/.claude/skills/design-code/SKILL.md" ] && [ -f "$HOME/.pi/agent/skills/design-code/SKILL.md" ]; then
     ok "ux-ui-agent-skills ready for Codex, Claude Code, and Pi"
   else
@@ -176,7 +175,6 @@ cmd_update() {
   bash "$LIB/install_graphify.sh"           || true
   bash "$LIB/install_taskflow.sh"           || true
   bash "$LIB/install_worktree_lifecycle.sh" || true
-  bash "$LIB/install_ui_craft.sh"           || true
   bash "$LIB/install_ux_ui_agent_skills.sh"  || true
   MEGAI_UPDATE=1 bash "$LIB/install_dembrandt.sh" || true
   MEGAI_UPDATE=1 bash "$LIB/install_repowise.sh" || true
@@ -271,7 +269,6 @@ cmd_uninstall() {
   bash "$LIB/install_numasec.sh" --remove || true
   bash "$LIB/install_ruff.sh"    --remove || true
   bash "$LIB/install_openspec.sh" --remove || true
-  command -v ui-craft >/dev/null 2>&1 && ui-craft uninstall --yes >/dev/null 2>&1 || true
   rm -rf "$MEGAI_HOME"
   ok "uninstalled"
 }

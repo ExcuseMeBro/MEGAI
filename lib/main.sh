@@ -15,7 +15,7 @@ LIB="$MEGAI_HOME/lib"
 . "$LIB/banner.sh"
 megai_banner
 
-TOTAL=18
+TOTAL=17
 
 step 1 $TOTAL "Detecting OS / runtimes"
 detect_os
@@ -54,38 +54,35 @@ step 8 $TOTAL "Installing task-flow + safe agent worktree lifecycle"
 bash "$LIB/install_taskflow.sh" || warn "task-flow install skipped"
 bash "$LIB/install_worktree_lifecycle.sh" || warn "worktree lifecycle install skipped"
 
-step 9 $TOTAL "Installing ui-craft (design-system skill + MCP gates)"
-bash "$LIB/install_ui_craft.sh" || warn "ui-craft install skipped"
-
-step 10 $TOTAL "Installing ux-ui-agent-skills (global, 3 agents)"
+step 9 $TOTAL "Installing ux-ui-agent-skills (global, 3 agents)"
 bash "$LIB/install_ux_ui_agent_skills.sh" || warn "ux-ui-agent-skills install skipped"
 
-step 11 $TOTAL "Installing Dembrandt (design-system extraction CLI + MCP)"
+step 10 $TOTAL "Installing Dembrandt (design-system extraction CLI + MCP)"
 bash "$LIB/install_dembrandt.sh" || warn "Dembrandt install skipped"
 
-step 12 $TOTAL "Installing RepoWise (codebase intelligence + MCP)"
+step 11 $TOTAL "Installing RepoWise (codebase intelligence + MCP)"
 bash "$LIB/install_repowise.sh" || warn "RepoWise install skipped"
 
-step 13 $TOTAL "Installing Argent (agent-driven app testing CLI + MCP)"
+step 12 $TOTAL "Installing Argent (agent-driven app testing CLI + MCP)"
 bash "$LIB/install_argent.sh" || warn "Argent install skipped"
 
-step 14 $TOTAL "Installing Numasec (authorized security CLI + global skill)"
+step 13 $TOTAL "Installing Numasec (authorized security CLI + global skill)"
 bash "$LIB/install_numasec.sh" || warn "Numasec install skipped"
 
-step 15 $TOTAL "Installing Matt Pocock's engineering skills (global, 3 agents)"
+step 14 $TOTAL "Installing Matt Pocock's engineering skills (global, 3 agents)"
 bash "$LIB/install_mattpocock_skills.sh" || warn "Matt Pocock skills install skipped"
 
-step 16 $TOTAL "Installing recommended Pi packages (global)"
+step 15 $TOTAL "Installing recommended Pi packages (global)"
 bash "$LIB/install_pi_packages.sh" || warn "Pi package install skipped"
 
-step 17 $TOTAL "Wiring MCP into cc / codex / pi / OMP + shell PATH"
+step 16 $TOTAL "Wiring MCP into cc / codex / pi / OMP + shell PATH"
 bash "$LIB/wire_cc.sh"    || warn "cc wiring skipped"
 bash "$LIB/wire_codex.sh" || warn "codex wiring skipped"
 bash "$LIB/wire_pi.sh"    || warn "pi wiring skipped"
 bash "$LIB/wire_omp.sh"   || warn "OMP wiring skipped"
 bash "$LIB/wire_path.sh"  || warn "PATH wiring skipped"
 
-step 18 $TOTAL "Installing Ruff (Python linter/formatter, uv or pipx)"
+step 17 $TOTAL "Installing Ruff (Python linter/formatter, uv or pipx)"
 bash "$LIB/install_ruff.sh" || warn "Ruff install skipped"
 
 ok "MEGAI ready"
