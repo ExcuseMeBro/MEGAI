@@ -87,9 +87,10 @@ rg -n 'exact_symbol' src/
 megai stop agent-memory
 ```
 
-Ordinary activation and all harness launches perform only local wiring/worktree
-checks: no daemon startup, index building, provider requests, model selection or
-legacy routing overlay. `megai omp --profile work` retains native profile/argument
+MEGAI's preparation before activation/harness launch performs only local
+wiring/worktree checks: no daemon startup, index building, provider requests,
+model selection or legacy routing overlay. The harness itself retains its own
+network/resource behavior. `megai omp --profile work` retains native profile/argument
 forwarding. Existing index configuration is retained on rebuild; configure any
 remote embedding separately only after explicit authorization. Missing or stale
 wiring fails with a repair instruction rather than silently launching a broken
@@ -108,7 +109,7 @@ completion, lower token costs or equal model quality.
 **Migrating an existing full installation is deliberately fail-closed.** A
 read-only preflight runs before replacing distribution source or running package
 installers. Legacy board/routing instructions, conflicting skills/proxies,
-malformed configs and symlinked destinations require manual reconciliation;
+malformed configs (including shell PATH blocks) and symlinked destinations require manual reconciliation;
 slim does not guess ownership or delete custom registrations by name. Existing
 unrelated hooks, MCP tables, auth, models and package selections remain unchanged.
 It also does not stop already-running services or override user-owned extensions.
@@ -135,8 +136,10 @@ megai uninstall  # detaches owned slim wiring/Plane connector; tools and data re
 For rollback, reconcile later edits first, then restore only each manifest's
 listed target from its numbered backup. A `null` manifest value means the target
 was newly created. Restore previous skill-source trees separately if needed.
-Uninstall never recursively deletes MEGAI, skill kits, credentials, indexes or
-historical project data. Main promotion remains a separate explicit decision.
+Uninstall preflights owned skills, policies and shell PATH blocks before changing
+Plane. If a later write fails, recovery manifests and connector restore backups
+remain available. It never recursively deletes MEGAI, skill kits, credentials,
+indexes or historical project data. Main promotion remains a separate decision.
 
 ## Verification
 

@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import os
+import shlex
 import shutil
 import tempfile
 import tomllib
@@ -136,6 +137,41 @@ class Plan:
         else:
             self.receipt.pop(str(path), None)
 
+    def shell_paths(self, remove: bool) -> None:
+        paths = [HOME / name for name in (".bashrc", ".zshrc", ".profile")
+                 if (HOME / name).exists() or (HOME / name).is_symlink()]
+        if not paths and not remove:
+            shell = Path(os.environ.get("SHELL", "")).name
+            paths = [HOME / (".zshrc" if shell == "zsh" else ".bashrc" if shell == "bash" else ".profile")]
+        begin = "# >>> megai-managed (do not edit) >>>"
+        end = "# <<< megai-managed <<<"
+        line = f'export PATH={shlex.quote(str(MEGAI / "bin"))}:"$PATH"'
+        block = f"{begin}\n{line}\n{end}\n"
+        legacy = f'{begin}\nexport PATH="{MEGAI}/bin:$PATH"\n{end}\n'
+        for path in paths:
+            before = read(path)
+            text = (before or b"").decode()
+            if text.count(begin) != text.count(end) or text.count(begin) > 1:
+                raise ValueError(f"ambiguous PATH markers: {path}")
+            if begin in text:
+                start = text.index(begin)
+                finish = text.index(end) + len(end)
+                if finish < start:
+                    raise ValueError(f"reversed PATH markers: {path}")
+                if text[finish:finish + 1] == "\n":
+                    finish += 1
+                if text[start:finish] not in (block, legacy) and not self.owned(path, before or b""):
+                    raise ValueError(f"custom PATH block preserved: {path}")
+                updated = text[:start] + ("" if remove else block) + text[finish:]
+            else:
+                updated = text if remove else text + ("\n" if text and not text.endswith("\n") else "") + block
+            if updated != text:
+                self.stage(path, updated.encode(), before)
+            if remove:
+                self.receipt.pop(str(path), None)
+            else:
+                self.receipt[str(path)] = digest(updated.encode())
+
     def client(self, name: str, root: Path, remove: bool) -> None:
         # Validate configs without changing credentials, models, packages or hooks.
         for filename in ("settings.json", "mcp.json") if name != "codex" else ():
@@ -254,7 +290,7 @@ def atomic_write(path: Path, data: bytes | None) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("client", choices=("all", "cc", "codex", "pi", "omp"))
+    parser.add_argument("client", choices=("all", "cc", "codex", "pi", "omp", "path"))
     parser.add_argument("--remove", action="store_true")
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--verify", action="store_true")
@@ -264,7 +300,10 @@ def main() -> int:
         if args.client in ("all", name):
             plan.client(name, root, args.remove)
     bridge = b'#!/usr/bin/env bash\nexec bash "${MEGAI_HOME:-$HOME/.megai}/pi-skill/extensions/memory.sh" "$@"\n'
-    plan.asset(MEGAI / "bin/megai-memory", bridge, args.remove)
+    if args.client != "path":
+        plan.asset(MEGAI / "bin/megai-memory", bridge, args.remove)
+    if args.client in ("all", "path"):
+        plan.shell_paths(args.remove)
     if not args.check and not args.remove and args.client in ("all", "pi") and not shutil.which("zg"):
         raise ValueError("zg is missing; run megai install before using slim")
     plan.apply(args.check or args.verify, args.verify)

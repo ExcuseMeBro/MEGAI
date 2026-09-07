@@ -54,8 +54,8 @@ class Slim(unittest.TestCase):
         p = self.write(self.bin / name, "#!/bin/sh\n" + body)
         p.chmod(0o755)
 
-    def run_cmd(self, *args, ok=True, env=None):
-        result = subprocess.run(args, cwd=self.project, env=env or self.env, text=True, capture_output=True)
+    def run_cmd(self, *args, ok=True, env=None, input_text=None):
+        result = subprocess.run(args, cwd=self.project, env=env or self.env, text=True, capture_output=True, input=input_text)
         if ok:
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         else:
@@ -305,6 +305,69 @@ assert first.read_bytes()==b'concurrent user edit'
         manifests = list((self.megai / "backups").glob("slim-wiring-*/manifest.json"))
         manifest = json.loads(manifests[0].read_text())
         self.assertEqual((manifests[0].parent / manifest[str(self.megai / "bin/megai")]).read_bytes(), previous)
+
+    def test_uninstall_conflicts_preflight_before_plane_mutation(self):
+        self.wire()
+        self.write(self.megai / "lib/plane_mcp.sh", '#!/bin/sh\necho mutated >"$HOME/plane-mutated"\n')
+        skill = self.home / ".agents/skills/megai/SKILL.md"
+        original = skill.read_text()
+        skill.write_text(original + "custom rule")
+        before = self.snapshot()
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "uninstall", ok=False, input_text="y\n")
+        self.assertEqual(before, self.snapshot())
+        skill.write_text(original)
+        rc = next(path for path in (self.home / ".bashrc", self.home / ".zshrc", self.home / ".profile") if path.exists())
+        rc.write_text('# >>> megai-managed (do not edit) >>>\ncustom user shell code\n# <<< megai-managed <<<\n')
+        before = self.snapshot()
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "uninstall", ok=False, input_text="y\n")
+        self.assertEqual(before, self.snapshot())
+        self.assertFalse((self.home / "plane-mutated").exists())
+
+    def test_doctor_requires_every_selected_tool_and_skill_kit(self):
+        self.wire()
+        self.stub("ruff", 'echo "ruff 0.15.0"\n')
+        for name in ("bash", "jq", "git", "rg", "find", "grep"):
+            if not (self.bin / name).exists():
+                (self.bin / name).symlink_to(shutil.which(name))
+        env = dict(self.env, PATH=str(self.bin))
+        ui = self.write(self.megai / "ux-ui-agent-skills/package.json", '{}')
+        self.write(self.megai / "ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md", 'fixture')
+        matt = self.write(self.megai / "mattpocock-skills/skills/example/SKILL.md", 'fixture')
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", env=env)
+        for path in (self.bin / "rtk", self.bin / "agentmemory", ui, matt):
+            hidden = path.with_name(path.name + ".hidden")
+            path.rename(hidden)
+            self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", ok=False, env=env)
+            hidden.rename(path)
+
+    def test_memory_identity_and_failed_start_cleanup(self):
+        self.stub("curl", 'echo \'{"status":"ok","service":"not-memory"}\'\n')
+        self.stub("lsof", 'exit 0\n')
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
+        self.assertFalse((self.megai / "memory-process.json").exists())
+        self.stub("curl", 'echo \'{"status":"ok","service":"agentmemory"}\'\n')
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "start")
+        self.assertFalse((self.megai / "memory-process.json").exists())
+        self.stub("curl", 'exit 7\n')
+        self.stub("lsof", 'exit 1\n')
+        self.write(self.home / "daemon-fixture.py", '''import os,signal,time
+from pathlib import Path
+home=Path(os.environ['HOME'])
+def stop(*args):
+    (home/'child-cleaned').write_text('terminated')
+    raise SystemExit(0)
+signal.signal(signal.SIGTERM,stop)
+(home/'child-started').write_text(str(os.getpid()))
+time.sleep(30)
+''')
+        self.stub("agentmemory", 'exec python3 "$HOME/daemon-fixture.py"\n')
+        for failure in ("ps", "ln"):
+            self.stub(failure, 'exit 7\n')
+            self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
+            self.assertEqual((self.home / "child-cleaned").read_text(), "terminated")
+            self.assertFalse((self.megai / "memory-process.json").exists())
+            (self.home / "child-cleaned").unlink()
+            (self.bin / failure).unlink()
 
     def test_state_values_are_data_and_malformed_state_preserved(self):
         value = json.dumps({"value": 'quote " | error("injected")'})

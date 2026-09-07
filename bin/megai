@@ -76,37 +76,47 @@ cmd_doctor() {
   cmd_status
   python3 "$LIB/slim_wiring.py" all --verify
   local tool
-  for tool in python3 node jq git rg; do command -v "$tool" >/dev/null 2>&1 || die "$tool required"; done
+  for tool in python3 node jq git rg zg rtk ruff agentmemory; do command -v "$tool" >/dev/null 2>&1 || die "$tool required"; done
+  [ -f "$MEGAI_HOME/ux-ui-agent-skills/package.json" ] && [ -f "$MEGAI_HOME/ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md" ] || die "UX/UI kit is incomplete; run megai install"
+  [ -d "$MEGAI_HOME/mattpocock-skills/skills" ] && find "$MEGAI_HOME/mattpocock-skills/skills" -type f -name SKILL.md -print -quit | grep -q . || die "Matt skill kit is incomplete; run megai install"
   local ruff_version
   ruff_version="$(ruff --version)" || die "Ruff version check failed"
   [[ "$ruff_version" == ruff\ * ]] || die "Ruff returned invalid version output"
   ok "slim wiring preflight passed; not a provider, model-quality, or live Plane check"
 }
 
-cmd_start() {
+cmd_start() (
   [ "${1:-agent-memory}" = agent-memory ] || die "only agent-memory is daemonized"
   command -v agentmemory >/dev/null 2>&1 || die "agent-memory missing; run megai install"
   local port
   port="$(state_get '.ports["agent-memory"]')"; port="${port:-3111}"
   [[ "$port" =~ ^[0-9]{1,5}$ ]] && (( 10#$port >= 1 && 10#$port <= 65535 )) || die "invalid local memory port"
-  if curl -fsS --connect-timeout 3 --max-time 5 "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
-    ok "memory endpoint already available on :$port"; return
+  if curl -fsS --connect-timeout 3 --max-time 5 "http://127.0.0.1:$port/agentmemory/livez" | jq -e '.service == "agentmemory" and .status == "ok"' >/dev/null 2>&1; then
+    ok "agent-memory service already available on :$port"; return
   fi
   if lsof -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then die "port $port occupied; reconcile before starting memory"; fi
   local record="$MEGAI_HOME/memory-process.json"
   [ ! -e "$record" ] && [ ! -L "$record" ] && [ ! -e "$MEGAI_HOME/agent-memory.pid" ] || die "existing memory process record preserved; reconcile before starting another daemon"
   mkdir -p "$MEGAI_HOME/logs"
+  local pid="" args started tmp=""
+  # Until the record is published, this invocation owns cleanup of its child.
+  trap 'rc=$?; trap - EXIT; if [ -n "$pid" ]; then kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi; [ -z "$tmp" ] || rm -f "$tmp"; exit "$rc"' EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
   nohup agentmemory --port "$port" >"$MEGAI_HOME/logs/agent-memory.log" 2>&1 &
-  local pid=$! args started tmp
+  pid=$!
   sleep 1
   kill -0 "$pid" 2>/dev/null || die "memory exited; see megai logs"
   args="$(ps -p "$pid" -o command=)"
   started="$(ps -p "$pid" -o lstart=)"
   tmp="$(mktemp "$record.XXXXXX")"
   jq -cn --argjson pid "$pid" --arg args "$args" --arg started "$started" '{pid:$pid,args:$args,started:$started}' >"$tmp"
-  mv "$tmp" "$record"
+  # Hard-link publication is atomic and refuses a concurrent process record.
+  ln "$tmp" "$record"
+  rm -f "$tmp"
+  trap - EXIT INT TERM
   ok "memory started (pid=$pid, port=$port); megai-memory uses bounded HTTP calls"
-}
+)
 
 cmd_stop() {
   [ "${1:-agent-memory}" = agent-memory ] || die "only agent-memory is daemonized"
@@ -139,9 +149,10 @@ cmd_uninstall() {
   warn "Detach owned slim policies/proxy? Tools, credentials, indexes and MEGAI data remain. [y/N]"
   read -r answer
   [ "$answer" = y ] || return 0
+  # Refuse skill, policy and shell-rc conflicts before changing the connector.
+  python3 "$LIB/slim_wiring.py" all --remove --check
   bash "$LIB/plane_mcp.sh" remove --client all || die "Plane removal failed; assets preserved"
-  python3 "$LIB/slim_wiring.py" all --remove
-  bash "$LIB/wire_path.sh" --remove
+  python3 "$LIB/slim_wiring.py" all --remove || die "Slim removal failed; recovery manifests and Plane restore backups retained. Reconcile, then use megai plane restore --client all if needed."
   ok "slim wiring detached; tools, skill kits, backups and project data retained"
 }
 
