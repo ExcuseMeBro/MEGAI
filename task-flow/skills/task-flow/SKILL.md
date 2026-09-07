@@ -55,7 +55,7 @@ Every project has a `.todos/` folder at its root:
 - `/ta <text>` — add a task to `todo.md`
 - `/ts <text|index>` — **start**: move todo → `inprogress.md` (stage set to 📝 spec)
 - `/tg <stage|next>` — **advance stage** of the in-progress task (spec→plan→generate→verify→review→ship)
-- `/td <text|index>` — **done**: move → `done.md`
+- `/td <text|index>` — **done**: standalone flow only; under MEGAI Plane, agents leave the linked line unchecked at `In Review` and only reconcile to `done.md` after the user moves Plane to `Done`
 - `/tp <text|index>` — **pause**: move inprogress → `todo.md`
 
 Prefer these over hand-editing — they move the line atomically and refresh `monitoring.md`.
@@ -68,6 +68,9 @@ Prefer these over hand-editing — they move the line atomically and refresh `mo
 
 - **Default fast path:** for every task, run one bounded inspect → implement → code self-review → focused-test sequence. Do not add separate planner, reviewer, UI/design, browser, final-gate, or full-suite agents unless the user explicitly asks or the focused test fails. UI checks are code-only by default: structure, states, accessibility semantics, token/style usage, diagnostics, and component tests; the user owns visual/manual review.
 - **Tracked/high-risk path:** multi-module or public-contract work, auth/security, schema/data/dependency migrations, production/CI/deployment or infrastructure configuration, permissions/retention/destructive behavior, explicitly tracked tasks, or explicit ship/PR requests. Order is analyze → satisfy the required external start boundary → write the local task → act.
+
+**MEGAI Plane boundary:** when `megai-task-flow` is installed, Plane is the coordination authority and `.todos` is its local mirror. Consume every project and project-work-item page before counting candidates; exactly one is usable, zero requires user direction, and multiple matches block. Keep the original `<!-- asana:GID -->` marker until the confirmed `(project UUID, work item UUID)` is recorded. Agents hand off at Plane `In Review` with the item incomplete; only the user moves it to `Done`. Do not use `/td` as a substitute for that user-only transition.
+
 - **Parallel implementation invariant:** when tracked/high-risk work has two or more independent implementation slices, the parent owns integration. Inside Paseo, create one visible managed worktree workspace per writer from `dev`, then launch the writer with that workspace ID; read-only workers remain tabs in the parent workspace. Outside Paseo, native isolated task worktrees are allowed. Define non-overlapping ownership up front and serialize shared-file or dependency boundaries.
 
 For tracked/high-risk work:
@@ -76,7 +79,7 @@ For tracked/high-risk work:
 2. **Read only what decides current work.** Read `todo.md` and `inprogress.md` once at task start, resume, or a new user turn where external edits are possible. Read `done.md` only to resolve prior identity or complete a task. Do not re-read unchanged board files between ADLC stages.
 3. **The board, not memory, is the truth.** Re-read after a user edit, session resume, or failed board mutation.
 4. **Break work into small lines.** Split into independently completable units while keeping one active line.
-5. **Execute the selected task only.** Move it to `inprogress.md`, implement, self-review the changed code, run focused tests, then move it to `done.md`.
+5. **Execute the selected task only.** Move it to `inprogress.md`, implement, self-review the changed code, and run focused tests. In standalone mode, move it to `done.md`; under MEGAI Plane, hand off at Plane `In Review` and leave the linked `.todos` line unchecked until the user marks Plane `Done`.
 6. **Stop after the requested task.** Never auto-drain queued tasks or start an autonomous loop.
 
 ## Bounded execution
@@ -127,12 +130,12 @@ High/medium/low tasks do **not** preempt — they wait their turn. Only urgent i
 - **Test after implementation.** Use the narrowest existing test, typecheck, lint, or build check that covers the change. Add a regression test only when the user asks or the new observable contract otherwise has no focused proof.
 - **Advance the stage emoji as you go.** Update 📝→📐→🔨→🧪→🔍→🚀 in `inprogress.md` at each transition so the statusline + `monitoring.md` reflect reality. A task stuck on 📝 while you write code means the marker is lying.
 - **Do not poll the board between stages.** Re-read only at a new user turn, session resume, failed mutation, or known external edit.
-- **Keep one line in `inprogress.md`.** Moving several tasks to in-progress at once destroys the "what am I doing now" signal and breaks the timer/stage display. Finish or move the current one back to `todo.md` before starting the next.
-- **Move lines, don't duplicate them.** When advancing status, cut the line from the old file before appending to the new one. A task appearing in both `todo.md` and `done.md` is a sync bug.
+- **Keep one line in `inprogress.md`.** Moving several tasks to in-progress at once destroys the "what am I doing now" signal and breaks the timer/stage display. Finish or move the current one back to `todo.md` before starting the next; under MEGAI Plane, finish means handoff at `In Review`, not agent completion.
+- **Move lines, don't duplicate them.** When advancing status, cut the line from the old file before appending to the new one. A task appearing in both `todo.md` and `done.md` is a sync bug; a Plane-linked task stays in `inprogress.md` until user-confirmed `Done`.
 - **No autonomous loops.** Do not invoke `/loop`, auto-drain `.todos`, or continue into unrelated queued work. Finish the current user-requested task and stop.
 - **Single `!` is usually punctuation.** Do not downgrade a normal sentence ending in `!` to low priority. Only a standalone `!` token counts.
 - **Terse wording does not define risk.** Classify by blast radius and acceptance, but keep the same bounded implementation/self-review/test path unless the user requests a specialty.
 - **`.todos/` is the ONLY task store.** There is no session/Task-tools mirror. Every status change is a file edit (move the line between `todo.md` / `inprogress.md` / `done.md`). If the files and reality disagree, the files win — fix them.
 - **Put a priority marker on every line.** A line with no marker defaults to medium; the statusline still shows and orders it, but be explicit for anything non-default.
 - **Resume after urgent — don't forget the paused task.** After an urgent preemption completes, the previously-running task is back in `todo.md`; pick it up rather than leaving it stranded.
-- **One line in `inprogress.md` at a time.** More than one destroys the "what am I doing now" signal. Move the current one to `done.md` (or back to `todo.md`) before starting the next.
+- **One line in `inprogress.md` at a time.** More than one destroys the "what am I doing now" signal. In standalone mode move the current one to `done.md` (or back to `todo.md`); for Plane-linked work, hand off in `In Review` and wait for the user before moving it to `done.md`.

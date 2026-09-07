@@ -2,12 +2,12 @@ schema: spec-driven
 
 context: |
   MEGAI is a Bash-based local coding-agent integration stack. Reuse existing installers and focused shell tests; avoid new daemons, dependencies beyond the requested tool, and mandatory planning for small fixes.
-  Follow megai-openspec for selective spec work. The parent owns Asana and .todos boundaries; OpenSpec is not an orchestrator. Asana owns status, .todos one linked summary, tasks.md the detailed checklist. Preserve linked identity on resume.
-  Keep agent handoff at In Review with completed=false. Only the user may mark Done; archive and main promotion each require their own explicit user approval. These are separate actions.
+  Follow megai-openspec for selective spec work. The parent owns Plane and .todos boundaries; OpenSpec is not an orchestrator. Plane owns status, .todos one linked summary, tasks.md the detailed checklist. Preserve the linked project/work-item identity pair on resume.
+  Keep agent handoff at Plane In Review in the started group; do not use a completion boolean for boundary states. Only the user may mark Done; archive and main promotion each require their own explicit user approval. These are separate actions.
 
 rules:
   proposal:
-    - Include the linked Asana GID, bounded scope, non-goals and affected code paths.
+    - Include the linked Plane project/work-item UUID pair, any historical source marker, bounded scope, non-goals and affected code paths.
   specs:
     - Define observable WHEN/THEN scenarios, preserved behavior and failure cases.
   design:
@@ -23,4 +23,4 @@ operations:
   archive:
     guidance:
       - Require explicit user approval of this change plus passing verification and no unresolved critical findings.
-      - Keep Asana In Review and completed=false; archive never authorizes Done or main promotion.
+      - Keep the Plane work item in started In Review; archive never authorizes Done or main promotion.
