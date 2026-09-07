@@ -1,38 +1,28 @@
 #!/usr/bin/env bash
-# rtk — Rust Token Killer. Single Rust binary that proxies/compresses dev command outputs.
+# Reuse a working rtk-ai CLI; fresh installs use a checked upstream installer.
 set -euo pipefail
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
-# shellcheck source=ui.sh
 . "$MEGAI_HOME/lib/ui.sh"
-# shellcheck source=state.sh
 . "$MEGAI_HOME/lib/state.sh"
-
-# Detect collision with the unrelated reachingforthejack/rtk (Rust Type Kit).
-collision=0
-if command -v rtk >/dev/null 2>&1; then
-  if rtk gain >/dev/null 2>&1; then
-    ok "rtk-ai already installed -> $(command -v rtk)"
-  else
-    warn "rtk binary found but 'rtk gain' failed — possible collision with another 'rtk' tool. Skipping."
-    collision=1
-  fi
-else
-  if command -v brew >/dev/null 2>&1; then
-    brew install rtk >/dev/null 2>&1 || true
-  fi
-  if ! command -v rtk >/dev/null 2>&1; then
-    curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh \
-      || { warn "rtk installer failed (non-fatal)"; exit 0; }
-  fi
-  ok "rtk installed"
+if ! command -v rtk >/dev/null 2>&1; then
+  target="$MEGAI_HOME/bin/rtk"
+  [ ! -e "$target" ] && [ ! -L "$target" ] || die "rtk destination exists off PATH; reconcile $target"
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' EXIT
+  curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/5a7880d404db8364d602f2ecdc41dd790f64013f/install.sh -o "$tmp/install.sh"
+  python3 - "$tmp/install.sh" <<'PY'
+import hashlib,sys
+from pathlib import Path
+assert hashlib.sha256(Path(sys.argv[1]).read_bytes()).hexdigest() == 'd6eb73a772903e13ff34ee1be8a8b24e896ba9a978f20d2279a08b4083ea6f77', 'rtk installer checksum mismatch'
+PY
+  RTK_VERSION=v0.43.0 RTK_SKIP_CHECKSUM=0 RTK_INSTALL_DIR="$tmp/bin" sh "$tmp/install.sh"
+  "$tmp/bin/rtk" gain >/dev/null || die "downloaded rtk failed identity verification"
+  mkdir -p "$MEGAI_HOME/bin"
+  mv "$tmp/bin/rtk" "$target"
+  export PATH="$MEGAI_HOME/bin:$PATH"
 fi
-
-# Register Claude Code PreToolUse hook (rtk's own command — idempotent).
-if [ "$collision" = "0" ] && command -v rtk >/dev/null 2>&1; then
-  rtk init -g >/dev/null 2>&1 && ok "rtk Claude Code hook registered" \
-    || warn "rtk init -g failed (non-fatal)"
-fi
-
-bin="$(command -v rtk || echo "")"
-ver="$(rtk --version 2>/dev/null | head -n1 || echo "")"
-state_set '.tools["rtk"]' "{\"bin\":\"$bin\",\"version\":\"$ver\"}"
+rtk gain >/dev/null 2>&1 || die "rtk identity ambiguous; existing executable preserved"
+bin="$(command -v rtk)"
+version="$(rtk --version)"
+state_set '.tools.rtk' "$(jq -cn --arg bin "$bin" --arg version "$version" '{bin:$bin,version:$version}')"
+ok "rtk ready; no automatic global hooks installed"

@@ -1,100 +1,75 @@
 #!/usr/bin/env bash
-# main pipeline — invoked by install.sh after files are in place
+# Slim MEGAI installer pipeline: exactly the eight requested product entries.
 set -euo pipefail
 
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 LIB="$MEGAI_HOME/lib"
+export PATH="$PATH:$MEGAI_HOME/bin:$HOME/.local/bin"
 
-# shellcheck source=ui.sh
 . "$LIB/ui.sh"
-# shellcheck source=detect.sh
 . "$LIB/detect.sh"
-# shellcheck source=state.sh
 . "$LIB/state.sh"
-# shellcheck source=banner.sh
 . "$LIB/banner.sh"
 megai_banner
 
-TOTAL=18
-
-step 1 $TOTAL "Detecting OS / runtimes"
+step 1 7 "Detecting core runtimes"
 detect_os
 detect_runtimes
 [ "$MEGAI_OS" = "unsupported" ] && die "Unsupported OS"
 [ "$MEGAI_HAS_CURL" = "1" ] || die "curl required"
-ok "$MEGAI_OS/$MEGAI_ARCH (node=$MEGAI_HAS_NODE py=$MEGAI_HAS_PY brew=$MEGAI_HAS_BREW jq=$MEGAI_HAS_JQ)"
-
+[ "$MEGAI_HAS_PY" = "1" ] || die "Python 3.11+ required for safe policy/config validation"
+python3 -c 'import tomllib' || die "Python 3.11+ required"
+# Validate migration before any third-party installer or config mutation.
+python3 "$LIB/slim_wiring.py" all --check
+command -v git >/dev/null 2>&1 || die "Git required"
+command -v rg >/dev/null 2>&1 || die "ripgrep required; install rg before retrying"
 require_or_install_jq
 require_or_install_node
-require_or_install_python
-require_or_install_pipx
+if ! command -v ruff >/dev/null 2>&1 && ! command -v uv >/dev/null 2>&1; then require_or_install_pipx; fi
+ok "$MEGAI_OS/$MEGAI_ARCH (node=$MEGAI_HAS_NODE py=$MEGAI_HAS_PY jq=$MEGAI_HAS_JQ)"
 
 state_init
 ok "state initialized -> $MEGAI_HOME/state.json"
 
-step 2 $TOTAL "Installing agent-memory"
-bash "$LIB/install_agent_memory.sh"
+step 2 7 "Installing agent-memory (daemon starts only on request)"
+bash "$LIB/install_agent_memory.sh" || die "agent-memory install failed"
 
-step 3 $TOTAL "Installing codedb"
-bash "$LIB/install_codedb.sh"
+step 3 7 "Installing zvec-grep (indexing starts only on request)"
+bash "$LIB/install_zvec_grep.sh" || die "zvec-grep install failed"
 
-step 4 $TOTAL "Installing zvec-grep hybrid workspace search"
-bash "$LIB/install_zvec_grep.sh"
+step 4 7 "Installing rtk, Ruff, and requested skill kits"
+bash "$LIB/install_rtk.sh" || die "rtk install failed"
+bash "$LIB/install_ruff.sh" || die "Ruff install failed"
+bash "$LIB/install_ux_ui_agent_skills.sh" || die "ux-ui-agent-skills install failed"
+bash "$LIB/install_mattpocock_skills.sh" || die "Matt Pocock skills install failed"
 
-step 5 $TOTAL "Optional caveman (MEGAI_CAVEMAN=1 to install)"
-bash "$LIB/install_caveman.sh"
+step 5 7 "Installing Plane-only task flow and worktree safety"
+bash "$LIB/install_taskflow.sh" || die "Plane-only task-flow install failed; inspect the reported migration conflict"
+bash "$LIB/install_worktree_lifecycle.sh" || die "worktree safety install failed; inspect the reported migration conflict"
 
-step 6 $TOTAL "Installing rtk (Rust Token Killer)"
-bash "$LIB/install_rtk.sh"
+step 6 7 "Installing the lazy Pi MCP adapter"
+bash "$LIB/install_pi_packages.sh" || die "Pi adapter install failed"
 
-step 7 $TOTAL "Installing graphify (knowledge-graph skill)"
-bash "$LIB/install_graphify.sh"
-
-step 8 $TOTAL "Installing task-flow + safe agent worktree lifecycle"
-bash "$LIB/install_taskflow.sh" || warn "task-flow install skipped"
-bash "$LIB/install_worktree_lifecycle.sh" || warn "worktree lifecycle install skipped"
-
-step 9 $TOTAL "Installing ui-craft (design-system skill + MCP gates)"
-bash "$LIB/install_ui_craft.sh" || warn "ui-craft install skipped"
-
-step 10 $TOTAL "Installing ux-ui-agent-skills (global, 3 agents)"
-bash "$LIB/install_ux_ui_agent_skills.sh" || warn "ux-ui-agent-skills install skipped"
-
-step 11 $TOTAL "Installing Dembrandt (design-system extraction CLI + MCP)"
-bash "$LIB/install_dembrandt.sh" || warn "Dembrandt install skipped"
-
-step 12 $TOTAL "Installing RepoWise (codebase intelligence + MCP)"
-bash "$LIB/install_repowise.sh" || warn "RepoWise install skipped"
-
-step 13 $TOTAL "Installing Argent (agent-driven app testing CLI + MCP)"
-bash "$LIB/install_argent.sh" || warn "Argent install skipped"
-
-step 14 $TOTAL "Installing Numasec (authorized security CLI + global skill)"
-bash "$LIB/install_numasec.sh" || warn "Numasec install skipped"
-
-step 15 $TOTAL "Installing Matt Pocock's engineering skills (global, 3 agents)"
-bash "$LIB/install_mattpocock_skills.sh" || warn "Matt Pocock skills install skipped"
-
-step 16 $TOTAL "Installing recommended Pi packages (global)"
-bash "$LIB/install_pi_packages.sh" || warn "Pi package install skipped"
-
-step 17 $TOTAL "Wiring MCP into cc / codex / pi / OMP + shell PATH"
-bash "$LIB/wire_cc.sh"    || warn "cc wiring skipped"
-bash "$LIB/wire_codex.sh" || warn "codex wiring skipped"
-bash "$LIB/wire_pi.sh"    || warn "pi wiring skipped"
-bash "$LIB/wire_omp.sh"   || warn "OMP wiring skipped"
+step 7 7 "Wiring core harness policies"
+# Shared ownership-aware wiring; no legacy routing or service/index warmups.
+bash "$LIB/wire_cc.sh"    || die "Claude wiring failed"
+bash "$LIB/wire_codex.sh" || die "Codex wiring failed"
+bash "$LIB/wire_pi.sh"    || die "Pi wiring failed"
+bash "$LIB/wire_omp.sh"   || die "OMP wiring failed"
 bash "$LIB/wire_path.sh"  || warn "PATH wiring skipped"
 
-step 18 $TOTAL "Installing Ruff (Python linter/formatter, uv or pipx)"
-bash "$LIB/install_ruff.sh" || warn "Ruff install skipped"
-
-ok "MEGAI ready"
+for tool in agentmemory zg rtk ruff; do
+  command -v "$tool" >/dev/null 2>&1 || die "$tool missing after installation; slim is not ready"
+done
+[ -f "$MEGAI_HOME/ux-ui-agent-skills/package.json" ] || die "UX/UI kit missing after installation"
+[ -d "$MEGAI_HOME/mattpocock-skills/skills" ] || die "Matt skill kit missing after installation"
+python3 "$LIB/slim_wiring.py" all --verify
+ok "MEGAI slim core ready"
 echo
 echo "    Open a new shell (or 'source ~/.zshrc') so PATH picks up megai/bin"
-echo
-echo "    megai           # activate stack for the current folder"
-echo "    megai cc        # Claude Code (full stack)"
-echo "    megai omp       # Oh My Pi (full stack)"
-echo "    megai status"
-echo "    megai doctor"
+echo "    megai           # verify the current Git worktree and Plane wiring"
+echo "    megai cc|codex|pi|omp  # launch without service/index warmup"
+echo "    megai start agent-memory  # start memory explicitly when needed"
+echo "    megai reindex            # rebuild zvec explicitly when needed"
+echo "    Existing user config, project data, indexes, and credentials are preserved."
 echo

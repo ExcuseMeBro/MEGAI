@@ -6,6 +6,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 export HOME="$TMP/home"
 export MEGAI_HOME="$TMP/megai"
+export PI_CODING_AGENT_DIR="$HOME/.pi/agent"
 export UX_UI_AGENT_SKILLS_SOURCE="$TMP/source"
 mkdir -p "$MEGAI_HOME/lib" "$UX_UI_AGENT_SKILLS_SOURCE/.claude/skills" "$UX_UI_AGENT_SKILLS_SOURCE/accessibility"
 cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$MEGAI_HOME/lib/"
@@ -27,7 +28,10 @@ mkdir -p "$HOME/.agents/skills/prototype"
 printf '%s\n' keep >"$HOME/.agents/skills/prototype/SKILL.md"
 
 bash "$ROOT/lib/install_ux_ui_agent_skills.sh" >/dev/null
+printf 'custom kit data\n' >"$MEGAI_HOME/ux-ui-agent-skills/local-note"
 bash "$ROOT/lib/install_ux_ui_agent_skills.sh" >/dev/null
+saved_note="$(find "$MEGAI_HOME/backups" -path '*/source/local-note' -type f)"
+[ -n "$saved_note" ] && grep -q 'custom kit data' "$saved_note"
 
 for root in "$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.pi/agent/skills"; do
   [ -L "$root/a11y-audit" ]
@@ -51,5 +55,6 @@ bash "$ROOT/lib/install_ux_ui_agent_skills.sh" --remove >/dev/null
 [ ! -e "$HOME/.agents/skills/a11y-audit" ]
 [ ! -e "$HOME/.claude/skills/ux-ui-prototype" ]
 [ -f "$HOME/.agents/skills/prototype/SKILL.md" ]
+[ -d "$MEGAI_HOME/ux-ui-agent-skills" ] # Source/data survive detachment.
 
 echo "ux-ui-agent-skills integration: ok"
