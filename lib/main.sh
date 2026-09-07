@@ -21,6 +21,7 @@ detect_runtimes
 python3 -c 'import tomllib' || die "Python 3.11+ required"
 # Validate migration before any third-party installer or config mutation.
 python3 "$LIB/slim_wiring.py" all --check --install-preflight
+python3 "$LIB/retire_legacy_sources.py" --check
 command -v git >/dev/null 2>&1 || die "Git required"
 command -v rg >/dev/null 2>&1 || die "ripgrep required; install rg before retrying"
 require_or_install_jq
@@ -30,6 +31,12 @@ ok "$MEGAI_OS/$MEGAI_ARCH (node=$MEGAI_HAS_NODE py=$MEGAI_HAS_PY jq=$MEGAI_HAS_J
 
 state_init
 ok "state initialized -> $MEGAI_HOME/state.json"
+
+# Retire only verified MEGAI-owned legacy registrations and source files.
+bash "$LIB/retire_argent.sh"
+bash "$LIB/retire_numasec.sh"
+bash "$LIB/retire_openspec.sh"
+python3 "$LIB/retire_legacy_sources.py"
 
 step 2 7 "Installing agent-memory (daemon starts only on request)"
 bash "$LIB/install_agent_memory.sh" || die "agent-memory install failed"

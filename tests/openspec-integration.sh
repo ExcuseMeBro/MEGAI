@@ -43,5 +43,5 @@ done
 [ ! -f "$ROOT/lib/install_openspec.sh" ]
 [ ! -e "$ROOT/skills/megai-openspec" ]
 if grep -Fq 'install_openspec.sh' "$ROOT/bin/megai" "$ROOT/lib/main.sh"; then exit 1; fi
-! grep -Fq 'retire_openspec.sh' "$ROOT/bin/megai" "$ROOT/lib/main.sh"
+for file in "$ROOT/bin/megai" "$ROOT/lib/main.sh"; do grep -Fq 'bash "$LIB/retire_openspec.sh"' "$file"; done
 echo 'OpenSpec retirement PASS: owned/custom/dangling links removed; foreign skills, specs, independent CLI and unrelated state preserved'

@@ -50,5 +50,6 @@ done
 [ ! -f "$ROOT/lib/install_argent.sh" ] && [ ! -e "$ROOT/skills/argent" ]
 [ ! -f "$ROOT/task-flow/commands/argent.md" ]
 if grep -vF 'bash "$LIB/retire_argent.sh"' "$ROOT/bin/megai" | grep -qi argent; then exit 1; fi
-if grep -qi argent "$ROOT/lib/main.sh"; then exit 1; fi
+if grep -vF 'bash "$LIB/retire_argent.sh"' "$ROOT/lib/main.sh" | grep -qi argent; then exit 1; fi
+for file in "$ROOT/bin/megai" "$ROOT/lib/main.sh"; do grep -Fq 'bash "$LIB/retire_argent.sh"' "$file"; done
 echo 'Argent retirement PASS: owned artifacts cleaned; foreign files/links, reports, independent CLI and unrelated state retained'

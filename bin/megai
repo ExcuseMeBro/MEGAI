@@ -152,6 +152,11 @@ cmd_uninstall() {
   [ "$answer" = y ] || return 0
   # Refuse skill, policy and shell-rc conflicts before changing the connector.
   python3 "$LIB/slim_wiring.py" all --remove --check
+  python3 "$LIB/retire_legacy_sources.py" --check
+  bash "$LIB/retire_argent.sh"
+  bash "$LIB/retire_numasec.sh"
+  bash "$LIB/retire_openspec.sh"
+  python3 "$LIB/retire_legacy_sources.py"
   bash "$LIB/plane_mcp.sh" remove --client all || die "Plane removal failed; assets preserved"
   python3 "$LIB/slim_wiring.py" all --remove || die "Slim removal failed; recovery manifests and Plane restore backups retained. Reconcile, then use megai plane restore --client all if needed."
   ok "slim wiring detached; tools, skill kits, backups and project data retained"

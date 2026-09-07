@@ -45,5 +45,6 @@ for invalid in '' null '[]' '{} {}' '{broken'; do
 done
 [ ! -f "$ROOT/lib/install_numasec.sh" ] && [ ! -e "$ROOT/skills/numasec-security" ]
 if grep -vF 'bash "$LIB/retire_numasec.sh"' "$ROOT/bin/megai" | grep -qi numasec; then exit 1; fi
-if grep -qi numasec "$ROOT/lib/main.sh"; then exit 1; fi
+if grep -vF 'bash "$LIB/retire_numasec.sh"' "$ROOT/lib/main.sh" | grep -qi numasec; then exit 1; fi
+for file in "$ROOT/bin/megai" "$ROOT/lib/main.sh"; do grep -Fq 'bash "$LIB/retire_numasec.sh"' "$file"; done
 echo 'Numasec retirement PASS: no launcher/advertising; owned links cleaned; foreign skills, CLI, reports and unrelated state retained'

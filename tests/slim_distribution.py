@@ -249,6 +249,17 @@ class Slim(unittest.TestCase):
         self.assertEqual((self.megai / "venv/cocoindex/user-data").read_text(), "retain unrelated data")
         self.assertFalse((self.project / ".zvec-grep").exists())
 
+    def retired_artifacts(self):
+        argent = self.write(self.home / ".agents/skills/argent/SKILL.md", "---\nmanaged-by: megai\n---\nlegacy\n")
+        links = []
+        for root, name in ((self.home / ".agents/skills", "numasec-security"),
+                           (self.home / ".pi/agent/skills", "megai-openspec")):
+            root.mkdir(parents=True, exist_ok=True)
+            link = root / name
+            link.symlink_to(self.megai / "skills" / name)
+            links.append(link)
+        return [argent, *links]
+
     def test_pipeline_install_update_exact_stack_and_failure(self):
         self.wire()
         self.write(self.megai / "ux-ui-agent-skills/package.json", '{}')
@@ -261,7 +272,9 @@ class Slim(unittest.TestCase):
             self.write(self.megai / f"lib/wire_{client}.sh", '#!/bin/sh\nexit 0\n')
         self.write(self.megai / "lib/detect.sh", 'detect_os() { MEGAI_OS=test; MEGAI_ARCH=test; }\ndetect_runtimes() { MEGAI_HAS_CURL=1; MEGAI_HAS_PY=1; MEGAI_HAS_NODE=1; MEGAI_HAS_JQ=1; }\nrequire_or_install_jq() { :; }\nrequire_or_install_node() { :; }\nrequire_or_install_pipx() { :; }\n')
         for command in ("install", "update", "install"):
+            retired = self.retired_artifacts()
             self.run_cmd("bash", str(self.megai / "bin/megai"), command)
+            self.assertTrue(all(not p.exists() and not p.is_symlink() for p in retired))
         calls = (self.home / "install-calls").read_text().splitlines()
         self.assertEqual(calls, [f"install:{name}" for name in selected] * 3)
         self.write(self.megai / "lib/install_ruff.sh", '#!/bin/sh\nexit 7\n')
@@ -354,13 +367,36 @@ assert first.read_bytes()==b'concurrent user edit'
         self.write(source / "bin/megai", "#!/bin/sh\necho new-source\n")
         self.write(source / "lib/install_caveman.sh", "#!/bin/sh\necho caveman-helper\n")
         self.write(self.megai / "bin/user-tool", "retain")
+        foreign = self.write(self.megai / "lib/user-script.sh", "retain")
+        foreign.chmod(0o600)
+        retired = self.megai / "lib/install_graphify.sh"
+        retired_bytes = (ROOT / "tests/fixtures/retired-source/install_graphify.sh").read_bytes()
+        retired.write_bytes(retired_bytes)
         previous = (self.megai / "bin/megai").read_bytes()
         self.run_cmd(sys.executable, str(self.megai / "lib/install_slim_source.py"), str(source))
         self.assertEqual((self.megai / "bin/user-tool").read_text(), "retain")
+        self.assertEqual(foreign.stat().st_mode & 0o777, 0o600)
+        self.assertFalse(retired.exists())
         self.assertEqual((self.megai / "lib/install_caveman.sh").read_text(), "#!/bin/sh\necho caveman-helper\n")
         manifests = list((self.megai / "backups").glob("slim-wiring-*/manifest.json"))
         manifest = json.loads(manifests[0].read_text())
         self.assertEqual((manifests[0].parent / manifest[str(self.megai / "bin/megai")]).read_bytes(), previous)
+        self.assertEqual((manifests[0].parent / manifest[str(retired)]).read_bytes(), retired_bytes)
+
+    def test_custom_retired_source_blocks_before_changes(self):
+        custom = self.write(self.megai / "lib/install_graphify.sh", "custom user code\n")
+        before = self.snapshot()
+        self.run_cmd(sys.executable, str(self.megai / "lib/install_slim_source.py"), str(ROOT), ok=False)
+        self.assertEqual(before, self.snapshot())
+        self.assertEqual(custom.read_text(), "custom user code\n")
+
+    def test_uninstall_retires_owned_legacy_artifacts(self):
+        self.wire()
+        retired = self.retired_artifacts()
+        self.write(self.megai / "lib/plane_mcp.sh", "#!/bin/sh\nexit 0\n")
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "uninstall", input_text="y\n")
+        self.assertTrue(all(not p.exists() and not p.is_symlink() for p in retired))
+        self.assertTrue((self.legacy / "sentinel").exists())
 
     def test_uninstall_conflicts_preflight_before_plane_mutation(self):
         self.wire()
