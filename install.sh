@@ -4,6 +4,8 @@
 set -euo pipefail
 
 MEGAI_REPO="${MEGAI_REPO:-ExcuseMeBro/MEGAI}"
+# The public installer follows the integrated main distribution. Set
+# MEGAI_REF explicitly when adopting another branch by choice.
 MEGAI_REF="${MEGAI_REF:-main}"
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 MEGAI_TARBALL="https://codeload.github.com/${MEGAI_REPO}/tar.gz/refs/heads/${MEGAI_REF}"
@@ -41,18 +43,12 @@ say "fetching $MEGAI_TARBALL"
 curl -fsSL "$MEGAI_TARBALL" | tar -xz -C "$tmp" --strip-components=1
 ok "source extracted -> $tmp"
 
-# 2. install into MEGAI_HOME
-mkdir -p "$MEGAI_HOME"/{bin,lib,logs,backups,pi-skill/extensions,omp-skill,task-flow,skills}
-cp -R "$tmp/bin/."        "$MEGAI_HOME/bin/"
-cp -R "$tmp/lib/."        "$MEGAI_HOME/lib/"
-cp -R "$tmp/pi-skill/."   "$MEGAI_HOME/pi-skill/"
-cp -R "$tmp/omp-skill/."  "$MEGAI_HOME/omp-skill/"
-[ -d "$tmp/task-flow" ] && cp -R "$tmp/task-flow/." "$MEGAI_HOME/task-flow/"
-[ -d "$tmp/skills" ] && cp -R "$tmp/skills/." "$MEGAI_HOME/skills/"
-chmod +x "$MEGAI_HOME/bin/megai" "$MEGAI_HOME/lib/"*.sh "$MEGAI_HOME/pi-skill/extensions/"*.sh 2>/dev/null || true
-chmod +x "$MEGAI_HOME/task-flow/bin/"*.sh 2>/dev/null || true
-ok "files installed"
+# 2. Fail migration conflicts before replacing even the distribution source.
+export MEGAI_HOME PYTHONDONTWRITEBYTECODE=1
+python3 -c 'import tomllib' || die "Python 3.11+ required"
+MEGAI_SOURCE="$tmp" python3 "$tmp/lib/slim_wiring.py" all --check
+python3 "$tmp/lib/install_slim_source.py" "$tmp"
+ok "source installed with private recovery manifest"
 
-# 3. run main pipeline
-export MEGAI_HOME
-exec bash "$MEGAI_HOME/lib/main.sh"
+# 3. run main pipeline; retaining the shell ensures the temporary source is cleaned.
+bash "$MEGAI_HOME/lib/main.sh"

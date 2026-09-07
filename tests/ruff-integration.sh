@@ -288,27 +288,14 @@ if grep -F 'ruff format ' "$skill" | grep -v 'ruff format --check' | grep -v '^#
   exit 1
 fi
 
-# ---- 13. bin/megai wires status, doctor, update, and uninstall for ruff ----
-grep -Fq 'install_ruff.sh' "$ROOT/bin/megai"
+# ---- 13–15. Slim install/update share one exact-eight pipeline; doctor checks Ruff. ----
 grep -Fq 'ruff --version' "$ROOT/bin/megai"
-grep -Fq 'MEGAI_UPDATE=1 bash "$LIB/install_ruff.sh"' "$ROOT/bin/megai"
-grep -Fq 'install_ruff.sh"    --remove' "$ROOT/bin/megai"
-# Doctor must require both successful --version exit AND a sensible ruff-prefix.
-grep -Fq 'ruff_rc' "$ROOT/bin/megai"
-# Update must not run auto-upgrade; MEGAI_UPDATE=1 is passed through but the
-# installer never invokes uv tool upgrade / pipx upgrade.
+grep -Fq 'Ruff returned invalid version output' "$ROOT/bin/megai"
+grep -Fq 'MEGAI_UPDATE=1 bash "$LIB/main.sh"' "$ROOT/bin/megai"
 ! grep -Eq 'uv tool upgrade ruff|pipx upgrade ruff' "$ROOT/lib/install_ruff.sh"
-
-# ---- 14. lib/main.sh has step 12 for Ruff ----
-grep -Fq 'TOTAL=12' "$ROOT/lib/main.sh"
 grep -Fq 'install_ruff.sh' "$ROOT/lib/main.sh"
-grep -Fq 'step 12 $TOTAL "Installing Ruff' "$ROOT/lib/main.sh"
-
-# ---- 15. README.md mentions Ruff in the stack table and updated step count ----
-grep -Fq '| 🐍 | [Ruff]' "$ROOT/README.md"
-grep -Fq '12-step pipeline' "$ROOT/README.md"
-grep -Fq '`uv tool install ruff`' "$ROOT/README.md"
-grep -Fq 'ruff check --no-fix --no-fix-only --force-exclude --no-cache' "$ROOT/README.md"
+grep -Fq '| [Ruff]' "$ROOT/README.md"
+grep -Fq 'Non-mutating Python' "$ROOT/README.md"
 
 # ---- 16. Real Ruff fixture: --no-fix alone can mutate under fix-only=true ----
 # This reproduces the documented real-world behavior and asserts the canonical

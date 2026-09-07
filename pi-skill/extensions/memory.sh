@@ -8,6 +8,7 @@ if [ -z "$PORT" ] && [ -f "$MEGAI_HOME/state.json" ] && command -v jq >/dev/null
   PORT="$(jq -r '.ports["agent-memory"] // 3111' "$MEGAI_HOME/state.json")"
 fi
 PORT="${PORT:-3111}"
+[[ "$PORT" =~ ^[0-9]{1,5}$ ]] && (( 10#$PORT >= 1 && 10#$PORT <= 65535 )) || { echo 'invalid local memory port' >&2; exit 1; }
 BASE="http://127.0.0.1:$PORT/agentmemory"
 
 usage() {

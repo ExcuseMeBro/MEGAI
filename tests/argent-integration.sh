@@ -8,6 +8,7 @@ export HOME="$TMP/home" MEGAI_HOME="$TMP/megai" CALLS="$TMP/calls"
 export PI_CODING_AGENT_DIR="$TMP/custom pi"
 mkdir -p "$MEGAI_HOME/lib" "$TMP/bin" "$TMP/project/reports"
 cp "$ROOT/lib/"{ui,state,detect,banner}.sh "$MEGAI_HOME/lib/"
+cp "$ROOT/lib/slim_wiring.py" "$MEGAI_HOME/lib/"
 for root in "$HOME/.agents/skills" "$HOME/.claude/skills" "$PI_CODING_AGENT_DIR/skills" "$HOME/.omp/agent/skills" "$HOME/.omp/profiles/work/agent/skills"; do
   mkdir -p "$root/argent"
   printf 'managed-by: megai\nowned\n' > "$root/argent/SKILL.md"
@@ -35,8 +36,9 @@ for p in "$HOME/.claude/skills/argent/SKILL.md" "$HOME/.omp/agent/skills/argent/
 [ "$(< "$TMP/project/reports/keep.md")" = 'user report' ]
 jq -e '.tools == {keep:{version:"1"}} and .projects == {keep:true}' "$MEGAI_HOME/state.json" >/dev/null
 bash "$ROOT/bin/megai" status > "$TMP/status.out"
-bash "$ROOT/bin/megai" doctor > "$TMP/doctor.out" 2>&1
-if grep -qi argent "$TMP/status.out" "$TMP/doctor.out"; then exit 1; fi
+# Slim status is the supported retirement surface; doctor requires a complete
+# nine-tool installation and is covered by the slim distribution contract.
+if grep -qi argent "$TMP/status.out"; then exit 1; fi
 [ ! -s "$CALLS" ] && [ -x "$TMP/bin/argent" ]
 printf 'managed-by: megai\nowned\n' > "$HOME/.agents/skills/argent/SKILL.md"
 for invalid in '' null '[]' '{} {}' '{broken'; do

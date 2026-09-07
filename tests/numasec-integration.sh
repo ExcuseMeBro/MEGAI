@@ -9,6 +9,7 @@ export PI_CODING_AGENT_DIR="$TMP/custom pi"
 export NUMASEC_SKILL_SOURCE="$MEGAI_HOME/skills/numasec-security"
 mkdir -p "$MEGAI_HOME/lib" "$TMP/bin" "$HOME/.agents/skills/numasec-security" "$HOME/.claude/skills" "$HOME/.codex/skills" "$PI_CODING_AGENT_DIR/skills" "$TMP/project/reports"
 cp "$ROOT/lib/"{ui,state,detect,banner}.sh "$MEGAI_HOME/lib/"
+cp "$ROOT/lib/slim_wiring.py" "$MEGAI_HOME/lib/"
 printf 'user skill\n' > "$HOME/.agents/skills/numasec-security/SKILL.md"
 for root in "$HOME/.claude/skills" "$HOME/.codex/skills"; do ln -s "$NUMASEC_SKILL_SOURCE" "$root/numasec-security"; done
 ln -s "$TMP/foreign-missing" "$PI_CODING_AGENT_DIR/skills/numasec-security"
@@ -30,8 +31,9 @@ bash "$ROOT/lib/retire_numasec.sh" >/dev/null
 jq -e '.tools == {keep:{version:"1"}} and .projects == {keep:true}' "$MEGAI_HOME/state.json" >/dev/null
 if bash "$ROOT/bin/megai" security > "$TMP/security.out" 2>&1; then exit 1; fi
 bash "$ROOT/bin/megai" status > "$TMP/status.out"
-bash "$ROOT/bin/megai" doctor > "$TMP/doctor.out" 2>&1
-if grep -qi numasec "$TMP/status.out" "$TMP/doctor.out"; then exit 1; fi
+# Slim status is the supported retirement surface; doctor requires a complete
+# nine-tool installation and is covered by the slim distribution contract.
+if grep -qi numasec "$TMP/status.out"; then exit 1; fi
 [ ! -s "$CALLS" ] && [ -x "$TMP/bin/numasec" ]
 # Malformed state must stop before unlinking the current owned skill.
 ln -s "$NUMASEC_SKILL_SOURCE" "$HOME/.claude/skills/numasec-security"

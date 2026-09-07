@@ -11,7 +11,7 @@ MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 if command -v agentmemory >/dev/null 2>&1; then
   ok "agent-memory already installed -> $(command -v agentmemory)"
 else
-  npm install -g @agentmemory/agentmemory >/dev/null 2>&1 || die "agent-memory npm install failed"
+  npm install -g --ignore-scripts @agentmemory/agentmemory@0.9.27 >/dev/null 2>&1 || die "agent-memory npm install failed"
   ok "agent-memory installed"
 fi
 
@@ -24,8 +24,9 @@ elif ! AGENTMEMORY_URL="http://127.0.0.1:$port" agentmemory status >/dev/null 2>
   port="$(find_free_port 3111)"
 fi
 bin="$(command -v agentmemory || true)"
-ver="$(agentmemory --version 2>/dev/null | head -n1 || echo "")"
+ver="$(agentmemory --version)" || die "agent-memory version check failed"
+[ -n "$ver" ] || die "agent-memory returned no version"
 
-state_set '.tools["agent-memory"]' "{\"bin\":\"$bin\",\"version\":\"$ver\",\"port\":$port}"
+state_set '.tools["agent-memory"]' "$(jq -cn --arg bin "$bin" --arg version "$ver" --argjson port "$port" '{bin:$bin,version:$version,port:$port}')"
 state_set '.ports["agent-memory"]' "$port"
 ok "agent-memory port: $port"

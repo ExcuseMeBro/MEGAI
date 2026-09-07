@@ -12,7 +12,7 @@ custom="$TMP/custom pi"$'\n'"profile/skills/megai-openspec"
 foreign="$TMP/foreign/megai-openspec"
 user="$TMP/user/megai-openspec"
 mkdir -p "$MEGAI_HOME/lib" "$(dirname "$current")" "$(dirname "$custom")" "$(dirname "$foreign")" "$user" "$TMP/bin" "$TMP/project/openspec"
-cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$MEGAI_HOME/lib/"
+cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$ROOT/lib/slim_wiring.py" "$MEGAI_HOME/lib/"
 ln -s "$source_path" "$current" # dangling owned link: source already retired
 ln -s "$source_path" "$custom"
 ln -s "$TMP/foreign-missing" "$foreign"
@@ -43,5 +43,5 @@ done
 [ ! -f "$ROOT/lib/install_openspec.sh" ]
 [ ! -e "$ROOT/skills/megai-openspec" ]
 if grep -Fq 'install_openspec.sh' "$ROOT/bin/megai" "$ROOT/lib/main.sh"; then exit 1; fi
-grep -Fq 'bash "$LIB/retire_openspec.sh"' "$ROOT/bin/megai"
+! grep -Fq 'retire_openspec.sh' "$ROOT/bin/megai" "$ROOT/lib/main.sh"
 echo 'OpenSpec retirement PASS: owned/custom/dangling links removed; foreign skills, specs, independent CLI and unrelated state preserved'

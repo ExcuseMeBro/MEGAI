@@ -1,16 +1,8 @@
 <!-- megai:task-flow:begin -->
-# Risk-scaled Plane sync + task-flow + ADLC
-- **Default fast path:** execute the user's task through one bounded loop: inspect the exact seam, implement the smallest complete change, self-review the changed code, run focused tests or diagnostics, then stop. Skip separate planning, review, visual-QA, and full-suite agents unless the user explicitly requests them or the focused check fails.
-- UI verification is code-only by default: inspect structure, states, accessibility semantics, and token/style usage; run available static or component checks. Do not launch browsers, simulators, screenshots, or design-review loops unless the user asks. Report remaining visual/manual review to the user.
-- **App/device review is explicit-only:** do not launch external app/device review tools during normal implementation, verification or delivery without an explicit user request.
-- **Tracked/high-risk path:** use Plane and `.todos` for multi-module or public-contract work, auth/security, schema/data/dependency migrations, production/CI/deployment or infrastructure configuration, permissions/retention/destructive behavior, explicitly tracked tasks, or explicit ship/PR requests. Consume every page of the Git-root project list and its work items before counting candidates; exactly one is usable, while zero or multiple matches require the user before the started `In Progress` boundary.
-- `In Progress` and `In Review` remain in Plane's started group; do not invent or write a completion boolean. The user alone moves work to `Done`. Imported work uses `external_id` plus the actual `external_source=asana-migration-v1`; preserve the original `<!-- asana:GID -->` marker verbatim until the Plane pair is confirmed and never duplicate an unresolved identity.
-- **task-flow** (`~/.claude/skills/task-flow/SKILL.md`) is the local execution mirror for tracked/high-risk work. After the Plane start boundary, add one linked line to `.todos/inprogress.md`.
-- At a new tracked task or resumed session, read `todo.md` and `inprogress.md` once. Read `done.md` only to resolve prior identity or complete work. Do not re-read unchanged board files at every stage.
-- **Write emoji task lines:** priority 🔴 urgent · 🟠 high · 🟡 medium · 🟢 low, then stage 📝📐🔨🧪🔍🚀. Never hand-edit `monitoring.md`.
-- ADLC labels are bookkeeping only. Collapse them into implement → self-review → focused test → ship; never create a model/tool round trip per label.
-- **Parallel implementation invariant:** when tracked work decomposes into two or more independent slices, the parent is the sole integration owner. Inside Paseo, every writer gets a visible managed worktree workspace from the same `dev` baseline via `create_workspace`, then its agent is launched with that `workspaceId`; read-only workers remain same-workspace tabs. Outside Paseo, isolated task worktrees may be used. Assign non-overlapping ownership and serialize shared-file/dependency boundaries.
-- **Dev delivery + approved main promotion:** tracked work ships through a task worktree from `dev`. After self-review and focused tests, run `megai finish --verified --target dev` to merge/push `dev`, reuse one open `dev` → `main` PR/MR, and clean the task worktree before the Plane handoff. Then ask the user whether to promote main; run `megai promote --approved` only after an explicit affirmative reply.
-- A required Plane boundary failure must be reconciled before proceeding. There is no fallback or routine dual-sync to another tracker after cutover.
-- Priority markers: `!` low · `!!` medium · `!!!` high · `!!!!` urgent; no marker = medium. Only urgent preempts active work.
+# MEGAI Plane workflow
+- Plane is the only tracker for active MEGAI work. The parent resolves exactly one Git-root project and work item by consuming every paginated page before mutation.
+- Reuse the linked `(project UUID, work item UUID)` pair. Imported work requires `external_id` plus `external_source=asana-migration-v1`; preserve the original `<!-- asana:GID -->` marker until the pair is confirmed.
+- The parent performs the started `In Progress` boundary before edits. Plane unavailable, incomplete, or ambiguous blocks the change; do not use a local tracker fallback.
+- Execute inspect → implement → self-review → focused verification, then hand off at started `In Review`. Only the user moves the item to `Done`.
+- Keep boundaries quiet: no routine milestone comments, polling, or mirror trackers. Main promotion requires explicit user approval.
 <!-- megai:task-flow:end -->

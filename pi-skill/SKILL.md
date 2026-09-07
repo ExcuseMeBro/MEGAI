@@ -1,42 +1,29 @@
 ---
 name: megai
-description: "MEGAI core for Pi: code lookup, explicit persistent memory, and non-mutating Python checks with Ruff."
+description: MEGAI slim code lookup, explicit persistent memory, task-appropriate skills, and non-mutating Python verification.
+managed-by: megai
 ---
 
-# MEGAI core for Pi
+# MEGAI slim
 
-Use native read/edit/write/bash and the repository's own tests. Locate relevant symbols before reading files; avoid repeated scans and unchanged documentation reads.
+When the retained core `caveman` skill is enabled, default to its full chat style unless the user requests normal mode. Preserve the user's language, technical meaning, uncertainty and safety warnings; persisted artifacts, tests and authorization gates remain unchanged. Caveman companions and workflow bundles are not part of this core policy.
 
-When the core `caveman` skill is enabled, default to its full chat style unless the user requests normal mode. Preserve the user's language, technical meaning, uncertainty and safety warnings. Persisted code, documentation and task records stay normal prose; tests and authorization gates remain unchanged.
+## Find and change code
 
-## Code lookup
+Codedb is default core structural lookup: use `megai-codedb symbol NAME`, `megai-codedb outline FILE`, and `megai-codedb tree PATH` when relevant. Index only when the task needs it (`megai-codedb index PATH`); never prewarm on startup. Preserve existing index data. Use `rg` for exact text or unsupported-language fallback and native reads/edits. When location or wording is unknown, use local `zg query "intent"` or `zg query --fts "symbol"`, then read the relevant ranges. Ground impact claims in code/references, not search snippets alone. Review the diff and verify observable task acceptance; fewer tools do not justify weaker tests, thinking, trust or review.
 
-Use `rg` for exact text. When available, `megai-codedb symbol NAME`, `megai-codedb outline FILE`, and `megai-codedb tree PATH` provide structural lookup. Unsupported languages or missing definitions fall back to native tools.
+`megai reindex` explicitly initializes/rebuilds the local zvec index. Startup never prewarms it. Remote embedding requires separate explicit authorization; preserve existing index configuration/data.
 
-For semantic discovery use `zg query "question"` or the lazy `zvec_grep` MCP. `zg status --check-ready` verifies readiness; a stale or absent index is not a successful search. Do not build an index for a tiny task when `rg` suffices. Build one only when the task needs it, with the local embedding model; remote embeddings require explicit approval.
+## Persistent memory
 
-`megai pi` skips automatic memory/index startup. `MEGAI_PI_FULL=1 megai pi` restores core preparation only; retired specialist indexers are not started. Existing indexes/data are retained.
+Start only when needed: `megai start agent-memory`. Use `megai-memory recall "decision"` for relevant prior decisions and `megai-memory save "decision"` only when persistence is requested. Keep secrets and personal data out of memory. HTTP calls have bounded connection/total timeouts; unavailable memory is not authority to invent context.
 
-## Persistent memory — explicit only
+## Task-specific skills and verification
 
-Use `megai-memory recall "query"` or `megai-memory save "observation"` only for requested cross-session memory. If unavailable, report it; do not start a daemon for ordinary coding. `megai start agent-memory` starts the local service when needed.
+Use the requested Matt Pocock engineering skill or plugin87 UI/UX skill only when the task matches; load the body on demand, not entire kits or review chains. UX work retains accessibility semantics and task-relevant tests. For security/data-integrity risks or consequential cross-module changes, get fresh independent review. Visual/app testing is explicit-only.
 
-## Ruff — Python validation
+For task-changed Python files, run `ruff check --no-fix --no-fix-only --force-exclude --no-cache -- <files>`. When repository formatting matches Ruff, also run `ruff format --check --force-exclude --no-cache -- <files>`. Keep project configuration and unrelated files untouched; never write `pyproject.toml` for this check. Never pass `--fix`; `--no-fix-only` also protects projects with `fix-only = true`. No automatic fixes or broad cleanup.
 
-Prefer the project's pinned tool and existing lint/test commands. Check only task-changed, existing `.py`/`.pyi` files; honor exclusions and skip generated/vendor/cache files. Never perform project-wide cleanup; never write `pyproject.toml`, `ruff.toml`, or `.ruff.toml` to make a check pass.
+`rtk` is a command-output helper, not a quality gate. Use raw output for failing diagnostics or whenever compression might hide acceptance evidence. Follow repository test commands and preserve their exit status.
 
-```bash
-ruff check --no-fix --no-fix-only --force-exclude --no-cache -- <changed files>
-```
-
-Both disabling flags are required: project `fix = true` or `fix-only = true` can otherwise cause writes. `--no-cache` avoids creating Ruff cache files.
-
-Only when the project already uses Ruff formatting or requests it:
-
-```bash
-ruff format --check --force-exclude --no-cache -- <changed files>
-```
-
-Never pass `--fix` or run bare formatting from this skill. Report findings, preserve source bytes and run the task's tests. If Ruff is unavailable, report the missing check rather than installing tools during validation.
-
-External specialist tools are not startup dependencies. App/device review requires explicit user authorization. Task tracking, worktree safety, review requirements and main-approval boundaries remain mandatory.
+The parent uses `megai-task-flow` for Plane-only boundaries and `agent-worktree-lifecycle` for isolated writes and agreed branch delivery. Preserve provider/model/thinking/auth, user configuration and existing data. Report measured evidence and gaps; resource counts alone do not prove speed or quality.
