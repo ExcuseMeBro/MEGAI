@@ -98,9 +98,9 @@ cmd_start() (
   local record="$MEGAI_HOME/memory-process.json"
   [ ! -e "$record" ] && [ ! -L "$record" ] && [ ! -e "$MEGAI_HOME/agent-memory.pid" ] || die "existing memory process record preserved; reconcile before starting another daemon"
   mkdir -p "$MEGAI_HOME/logs"
-  local pid="" args started tmp=""
+  local pid="" registered_pid args started tmp=""
   # Until the record is published, this invocation owns cleanup of its child.
-  trap 'rc=$?; trap - EXIT; if [ -n "$pid" ]; then kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi; [ -z "$tmp" ] || rm -f "$tmp"; exit "$rc"' EXIT
+  trap 'rc=$?; trap - EXIT; if [ -n "$pid" ] && ! { [ ! -L "$record" ] && [ "$tmp" -ef "$record" ]; }; then kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi; [ -z "$tmp" ] || rm -f "$tmp"; exit "$rc"' EXIT
   trap 'exit 130' INT
   trap 'exit 143' TERM
   nohup agentmemory --port "$port" >"$MEGAI_HOME/logs/agent-memory.log" 2>&1 &
@@ -113,9 +113,10 @@ cmd_start() (
   jq -cn --argjson pid "$pid" --arg args "$args" --arg started "$started" '{pid:$pid,args:$args,started:$started}' >"$tmp"
   # Hard-link publication is atomic and refuses a concurrent process record.
   ln "$tmp" "$record"
+  registered_pid="$pid"; pid="" # publication transfers ownership to the record
   rm -f "$tmp"
   trap - EXIT INT TERM
-  ok "memory started (pid=$pid, port=$port); megai-memory uses bounded HTTP calls"
+  ok "memory started (pid=$registered_pid, port=$port); megai-memory uses bounded HTTP calls"
 )
 
 cmd_stop() {

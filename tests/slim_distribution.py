@@ -8,6 +8,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 import tempfile
 import unittest
 from pathlib import Path
@@ -350,7 +351,7 @@ assert first.read_bytes()==b'concurrent user edit'
         self.assertFalse((self.megai / "memory-process.json").exists())
         self.stub("curl", 'exit 7\n')
         self.stub("lsof", 'exit 1\n')
-        self.write(self.home / "daemon-fixture.py", '''import os,signal,time
+        self.write(self.home / "agentmemory-fixture.py", '''import os,signal,time
 from pathlib import Path
 home=Path(os.environ['HOME'])
 def stop(*args):
@@ -360,7 +361,7 @@ signal.signal(signal.SIGTERM,stop)
 (home/'child-started').write_text(str(os.getpid()))
 time.sleep(30)
 ''')
-        self.stub("agentmemory", 'exec python3 "$HOME/daemon-fixture.py"\n')
+        self.stub("agentmemory", 'exec python3 "$HOME/agentmemory-fixture.py" "$@"\n')
         for failure in ("ps", "ln"):
             self.stub(failure, 'exit 7\n')
             self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
@@ -368,6 +369,18 @@ time.sleep(30)
             self.assertFalse((self.megai / "memory-process.json").exists())
             (self.home / "child-cleaned").unlink()
             (self.bin / failure).unlink()
+        self.stub("rm", 'exit 7\n')
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
+        self.assertTrue((self.megai / "memory-process.json").is_file())
+        self.assertFalse((self.home / "child-cleaned").exists())
+        (self.bin / "rm").unlink()
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "stop")
+        for _ in range(100):
+            if (self.home / "child-cleaned").exists():
+                break
+            time.sleep(0.01)
+        self.assertEqual((self.home / "child-cleaned").read_text(), "terminated")
+        self.assertFalse((self.megai / "memory-process.json").exists())
 
     def test_state_values_are_data_and_malformed_state_preserved(self):
         value = json.dumps({"value": 'quote " | error("injected")'})
