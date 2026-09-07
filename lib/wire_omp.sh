@@ -298,11 +298,6 @@ if [ -f "$ORCHESTRATOR_SKILL" ]; then
 else
   warn "OMP: smart development orchestrator skill missing — skipped"
 fi
-if [ -f "$ARGENT_SKILL" ]; then
-  install_managed_copy "$ARGENT_SKILL" "$OMP_AGENT/skills/argent/SKILL.md"
-else
-  warn "OMP: explicit Argent skill missing — skipped"
-fi
 install_router_group
 remove_retired_agents
 install_portfolio_agents

@@ -37,4 +37,4 @@ ruff format --check --force-exclude --no-cache -- <changed files>
 
 Never pass `--fix` or run bare formatting from this skill. Report findings, preserve source bytes and run the task's tests. If Ruff is unavailable, report the missing check rather than installing tools during validation.
 
-Specialist design/browser/security tools are on demand, not startup dependencies. Argent remains explicit `/argent` only. Task tracking, worktree safety, review requirements and main-approval boundaries remain mandatory.
+External specialist tools are not startup dependencies. App/device review requires explicit user authorization. Task tracking, worktree safety, review requirements and main-approval boundaries remain mandatory.

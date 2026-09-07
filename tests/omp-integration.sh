@@ -10,6 +10,10 @@ export MEGAI_HOME="$TMP/megai"
 mkdir -p "$HOME/.omp/agent" "$MEGAI_HOME" "$TMP/bin" "$TMP/project/.repowise" "$TMP/project/graphify-out"
 cp -R "$ROOT/bin" "$ROOT/lib" "$ROOT/pi-skill" "$ROOT/omp-skill" "$ROOT/omp-agents" "$ROOT/omp-config" "$ROOT/task-flow" "$ROOT/skills" "$MEGAI_HOME/"
 
+# A leftover source must not resurrect the retired Argent skill during wiring.
+mkdir -p "$MEGAI_HOME/skills/argent"
+printf 'managed-by: megai\nlegacy skill\n' > "$MEGAI_HOME/skills/argent/SKILL.md"
+
 cat >"$MEGAI_HOME/state.json" <<JSON
 {
   "tools": {
@@ -119,8 +123,7 @@ jq -e '
 [ -f "$HOME/.omp/agent/skills/megai-task-flow/SKILL.md" ]
 [ -f "$HOME/.omp/agent/skills/agent-worktree-lifecycle/SKILL.md" ]
 [ -f "$HOME/.omp/agent/skills/smart-development-orchestrator/SKILL.md" ]
-[ -f "$HOME/.omp/agent/skills/argent/SKILL.md" ]
-grep -q 'only when the user invokes /argent' "$HOME/.omp/agent/skills/argent/SKILL.md"
+[ ! -e "$HOME/.omp/agent/skills/argent/SKILL.md" ]
 grep -q '^# Smart Development Orchestrator$' "$HOME/.omp/agent/skills/smart-development-orchestrator/SKILL.md"
 grep -q 'archive_workspace' "$HOME/.omp/agent/skills/smart-development-orchestrator/SKILL.md"
 grep -q '^# MEGAI for Oh My Pi$' "$HOME/.omp/agent/skills/megai/SKILL.md"
@@ -196,7 +199,7 @@ cmp "$TMP/expected.args" "$TMP/omp.args"
 [ -f "$HOME/.omp/profiles/work/agent/mcp.json" ]
 [ -f "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md" ]
 [ -f "$HOME/.omp/profiles/work/agent/skills/agent-worktree-lifecycle/SKILL.md" ]
-[ -f "$HOME/.omp/profiles/work/agent/skills/argent/SKILL.md" ]
+[ ! -e "$HOME/.omp/profiles/work/agent/skills/argent/SKILL.md" ]
 grep -q 'Read-only discovery, planning, and review agents are opt-in' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
 grep -q 'Every writing worker MUST receive a visible Paseo-managed worktree workspace' "$HOME/.omp/profiles/work/agent/skills/megai/SKILL.md"
 while IFS='|' read -r name model effort; do

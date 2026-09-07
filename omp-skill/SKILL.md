@@ -43,9 +43,8 @@ Inspect with direct tools or MiniMax read-only discovery, then GPT implements, s
 
 ## Specialist CLIs
 
-- `argent` — explicit `/argent` app/device review only; never automatic.
 
-Check specialist CLIs only after their activation condition is satisfied. Argent requires `/argent` in the current user message; normal review/test/verify wording is insufficient.
+Check external specialist tools only after their activation condition is satisfied. App/device review requires an explicit user request.
 
 ## Paseo agent tabs
 
