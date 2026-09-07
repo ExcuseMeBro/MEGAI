@@ -45,7 +45,6 @@ Inspect with direct tools or MiniMax read-only discovery, then GPT implements, s
 
 - `dembrandt` — website design extraction.
 - `argent` — explicit `/argent` app/device review only; never automatic.
-- `repowise` — code health, risk, and generated wiki.
 - `numasec` — authorized security work only.
 
 Check specialist CLIs only after their activation condition is satisfied. Argent requires `/argent` in the current user message; normal review/test/verify wording is insufficient.

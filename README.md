@@ -81,7 +81,7 @@ cd ~/path/to/project
 megai
 ```
 
-MEGAI starts or verifies agent-memory, builds codedb structural and zvec-grep hybrid indexes, prepares the knowledge graph and RepoWise index, checks token-saving tools, and prints a project-specific guide.
+MEGAI starts or verifies agent-memory, builds codedb structural and zvec-grep hybrid indexes, optionally prepares the knowledge graph, checks token-saving tools, and prints a project-specific guide.
 
 ### 4. Launch an agent
 
@@ -134,7 +134,6 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | ⚙️ | GPT-core + MiniMax-discovery routing | GPT owns every write; MiniMax only searches, reads, and finds code | OMP roles + managed agents |
 | 🖌️ | [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | 17 UI/UX skills, WCAG references, tokens, components, adapters | Global skills |
 | 🌐 | [Dembrandt](https://github.com/dembrandt/dembrandt) | Extract design tokens, typography, palette, brand, and WCAG data from websites | On-demand CLI |
-| 📚 | [RepoWise](https://github.com/repowise-dev/repowise) | Dependency graph, generated wiki, code health, risk, and history | On-demand CLI + background index |
 | 🧪 | [Argent](https://github.com/software-mansion/argent) | Explicit `/argent` mobile, TV, Electron, and Chromium review | Slash command + on-demand CLI |
 | 🛡️ | [Numasec](https://github.com/FrancescoStabile/numasec) | Authorized AppSec/pentest operations, evidence, replay, and reports | CLI + global handoff skill |
 | 🐍 | [Ruff](https://docs.astral.sh/ruff/) | Extremely fast Python linter and formatter | Reused on PATH or installed via `uv tool` / `pipx` |
@@ -150,7 +149,7 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 MEGAI configures:
 
 - lean default MCP surface in `~/.claude.json`: `agentmemory` and `codedb`
-- Dembrandt, Argent, and RepoWise CLIs available on demand
+- Dembrandt and Argent CLIs available on demand
 - `rtk` `PreToolUse` hook
 - graphify skills; Caveman only when explicitly installed
 - task-flow skill, hooks, commands, monitoring, optional statusline, and safe `dev` merge/worktree cleanup policy
@@ -163,7 +162,7 @@ Existing MCP servers, hooks, and statusline settings are preserved.
 MEGAI configures:
 
 - a lean, marked MCP block in `~/.codex/config.toml` with `agentmemory` and `codedb`
-- Dembrandt, Argent, and RepoWise CLIs available on demand
+- Dembrandt and Argent CLIs available on demand
 - graphify, Matt Pocock, UX/UI, and safe worktree-lifecycle skills; Caveman is optional
 
 Only MEGAI-owned MCP tables are replaced or removed; unrelated Codex configuration remains intact.
@@ -176,7 +175,7 @@ MEGAI configures:
 - Plane-aware task-flow and safe worktree-lifecycle skills under `~/.pi/agent/skills/`
 - `megai-memory` and `megai-codedb` CLI bridges in `~/.megai/bin` (not shell files masquerading as Pi extensions)
 - a global `zvec_grep` MCP entry in `~/.pi/agent/mcp.json` for semantic and hybrid workspace retrieval
-- Dembrandt, Argent, and RepoWise CLIs available on demand instead of permanent MCP entries
+- Dembrandt and Argent CLIs available on demand instead of permanent MCP entries
 - global UX/UI, graphify, and Matt Pocock skills; redundant Caveman/Cavecrew and legacy OMP-routing skills excluded from global Pi discovery
 - the first authenticated model as the global default when no valid default exists
 
@@ -206,7 +205,7 @@ MEGAI configures:
 - OMP's native MiniMax catalog and provider-specific transport compatibility; MEGAI never rewrites user `models.yml`
 - preservation of unrelated OMP servers, model providers, allowlists, denylists, credentials, agents, and user settings
 - hybrid Paseo placement: each writer receives a managed worktree from `dev`, then is archived after verified dev merge/push, one open promotion request, and worktree cleanup
-- Dembrandt, Argent, RepoWise, Numasec, and global skills through OMP's existing CLI and skill discovery surfaces
+- Dembrandt, Argent, Numasec, and global skills through OMP's existing CLI and skill discovery surfaces
 
 OMP provider authentication remains in OMP's own credential store; MEGAI never writes provider credentials.
 
@@ -271,7 +270,6 @@ megai reindex                 Force a codedb re-index for this project
 megai start agent-memory      Start the memory daemon
 megai stop agent-memory       Stop the memory daemon
 megai logs agent-memory       Follow the memory log
-megai logs repowise           Follow this project's RepoWise init log
 
 megai wire cc                 Re-wire Claude Code only
 megai wire codex              Re-wire Codex only
@@ -415,15 +413,9 @@ megai graph .
 megai graph ./docs
 ```
 
-### 📚 RepoWise
+### Retired: RepoWise
 
-```bash
-repowise health
-repowise risk main..HEAD
-repowise serve
-```
-
-The first MEGAI activation in a Git repository starts a background, keyless RepoWise index. The dashboard defaults to `localhost:3000`; the API uses port `7337`.
+MEGAI no longer installs, updates, starts or recommends RepoWise. Existing `.repowise/` indexes and logs remain untouched. Compatibility cleanup still removes only old MEGAI-owned MCP registrations, preserving user-owned entries. See [retirement verification and rollback](docs/audits/repowise-retirement.md).
 
 ---
 
@@ -503,7 +495,7 @@ The full profile also enables `@narumitw/pi-statusline`, `@vigolium/piolium`, `p
 ### Performance without weakening task quality
 
 - `megai pi` starts lean: no automatic memory daemon, codedb/zvec prewarming, or specialist indexing. Worktree/branch safety and wiring remain. Use `MEGAI_PI_FULL=1 megai pi` only when core prewarming is useful; other harness launch behavior is unchanged.
-- Retrieval tools remain available on demand: `rg`, `megai-codedb`, `zg`; explicit memory uses `megai start agent-memory`. Graphify/RepoWise remain on demand. Restoring their startup jobs requires both `MEGAI_PI_FULL=1 MEGAI_SPECIALIST_INDEXES=1 megai pi`. Existing data and indexes are preserved.
+- Retrieval tools remain available on demand: `rg`, `megai-codedb`, `zg`; explicit memory uses `megai start agent-memory`. Graphify remains on demand. Restoring its startup job requires both `MEGAI_PI_FULL=1 MEGAI_SPECIALIST_INDEXES=1 megai pi`. Existing data and indexes are preserved.
 - Caveman installation is opt-in with `MEGAI_CAVEMAN=1 megai install`. Pi wiring excludes global `caveman*`, `cavecrew`, and `smart-development-orchestrator` skills; it does not delete shared skill files or add Ponytail. Use `pi config` to change skill selection. Project-local copies are separate resources and need separate review.
 - Shell bridges are installed on PATH; `symbol` maps to codedb `find`, and memory HTTP requests have a 3-second connection / 15-second total limit. Memory still needs its local daemon (`megai start agent-memory`).
 - Models, thinking, authentication, trust, tests and review requirements are not performance shortcuts. Native standalone Pi delegation remains available when its optional package is enabled; Paseo sessions use Paseo delegation.
@@ -561,7 +553,6 @@ The installer:
 │   ├── codedb
 │   ├── zg
 │   ├── graphify
-│   └── repowise
 ├── lib/                         installer and wiring scripts
 ├── pi-skill/                    Pi MEGAI skill and extensions
 ├── omp-skill/                   OMP-native MEGAI skill
@@ -618,7 +609,7 @@ megai status
 megai doctor
 ```
 
-A healthy installation reports the core CLIs, agent configuration files, agent-memory daemon, global UX/UI and Numasec skills, RepoWise, Argent, and Numasec.
+A healthy installation reports the core CLIs, agent configuration files, agent-memory daemon, global UX/UI and Numasec skills, Argent, and Numasec.
 
 ### Useful checks
 
@@ -629,7 +620,6 @@ zg status --check-ready        # verify the current workspace hybrid index
 megai wire pi                  # repair Pi skills/extensions and global zvec-grep MCP entry
 megai wire codex               # repair Codex MCP block
 megai wire cc                  # repair Claude MCP entries
-megai logs repowise            # inspect background RepoWise indexing
 ```
 
 ### Plane MCP and explicit tracker cutover
@@ -687,7 +677,7 @@ The real-CLI test uses temporary project/config directories with telemetry disab
 - Node.js `22+`
 - Python 3 and `pipx`
 - `jq`
-- `uv` for RepoWise installation
+- `uv` or `pipx` for isolated Python tool installation
 - `ripgrep`
 
 Ruff needs `uv` or `pipx` only when no working `ruff` is already on `PATH`; an existing Python-managed or system install is reused untouched.
@@ -702,7 +692,7 @@ The installer resolves supported missing dependencies where possible and reports
 - 🧩 Skills and plugins run with agent permissions; review third-party skill sources before use.
 - 💾 Configuration files are backed up before MEGAI changes them.
 - 🧱 Only MEGAI-owned MCP entries and marked blocks are replaced or removed.
-- 🏠 agent-memory, zvec-grep, and RepoWise services and indexes run locally by default; zvec-grep remote Embedding requires separate explicit authorization.
+- 🏠 agent-memory and zvec-grep services and indexes run locally by default; zvec-grep remote Embedding requires separate explicit authorization.
 - 🛡️ Numasec execution is opt-in and must stay within an explicitly authorized target scope.
 - 📝 OpenSpec installation is pinned, disables npm lifecycle scripts and upstream telemetry, and initializes no repositories automatically. Specs and evidence stay in the chosen repository; archive is not a test or release authorization.
 
@@ -737,11 +727,10 @@ megai uninstall
 
 MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI, Numasec and registered OpenSpec skill links, and shell PATH entries. The Numasec and OpenSpec CLIs are retained to avoid deleting independently usable tools; OpenSpec project artifacts and privacy settings are also retained.
 
-To prevent data loss, zvec-grep, RepoWise, and their local project indexes are retained. Remove them separately only when their data is no longer needed:
+To prevent data loss, zvec-grep and local project indexes are retained. ui-craft and RepoWise are retired, but their project data is not deleted. Remove retained tools separately only when no longer needed:
 
 ```bash
 npm uninstall -g @zvec/zvec-grep
-uv tool uninstall repowise
 ```
 
 Delete a project's `.zvec-grep/` or `.repowise/` directory manually if you also want to remove its generated index.
