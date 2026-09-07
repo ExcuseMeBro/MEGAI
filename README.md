@@ -20,7 +20,7 @@
 
 <p align="center">
   <b>🚀 One command · 🧰 Core tools + optional specs · 🤖 Four agent harnesses · ⚙️ Managed wiring</b><br>
-  Memory · code intelligence · indexing · bounded orchestration · task flow · OpenSpec · UI/UX · app testing · security operations
+  Memory · code intelligence · indexing · bounded orchestration · task flow · UI/UX · app testing · security operations
 </p>
 
 # 🧠 MEGAI
@@ -107,7 +107,6 @@ Without MEGAI, every agent needs separate MCP entries, skills, hooks, plugins, p
 - 🪨 **Lower agent output/token usage**
 - 📋 **A visible `.todos` execution board with ADLC stages**
 - 🔄 **Parent-owned Plane boundaries with user-owned completion**
-- 📝 **Optional OpenSpec requirements and acceptance scenarios for complex changes**
 - 🎨 **Design-system, accessibility, and UI quality skills**
 - 🌐 **Website-to-design-token extraction**
 - 🧪 **Mobile, TV, Electron, and browser testing**
@@ -137,7 +136,6 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🛡️ | [Numasec](https://github.com/FrancescoStabile/numasec) | Authorized AppSec/pentest operations, evidence, replay, and reports | CLI + global handoff skill |
 | 🐍 | [Ruff](https://docs.astral.sh/ruff/) | Extremely fast Python linter and formatter | Reused on PATH or installed via `uv tool` / `pipx` |
 | 🛠️ | [Matt Pocock's skills](https://github.com/mattpocock/skills) | Specs, TDD, diagnosis, review, domain modeling, architecture, and delivery flows | Global skills |
-| 📝 | [OpenSpec](https://github.com/Fission-AI/OpenSpec) | Durable requirements, scenarios and one detailed checklist for complex changes | **Optional** pinned CLI + one global Pi skill |
 
 ---
 
@@ -180,19 +178,9 @@ MEGAI configures:
 
 Pi keeps provider authentication in `~/.pi/agent/auth.json`; MEGAI never writes credentials.
 
-#### Optional OpenSpec for complex changes
+#### Retired: OpenSpec
 
-```bash
-bash "$HOME/.megai/lib/install_openspec.sh"  # tested OpenSpec 1.12.0 + one global Pi skill
-# In a new/reloaded Pi session:
-# /skill:megai-openspec <change request>
-```
-
-[OpenSpec](https://github.com/Fission-AI/OpenSpec) supplies durable requirements for multi-module features, public API/data migrations, consequential security changes, and explicit spec requests. Small known-seam fixes keep the normal fast path. Installation is opt-in (not part of `megai install`) and does not initialize other repositories. Node >=20.19.0 is required; mismatched existing CLI versions and user-owned skills are preserved with a clear failure instead of being replaced.
-
-The parent keeps Plane as status authority and one `.todos` summary linked to the change; OpenSpec `tasks.md` is the only detailed checklist. MEGAI uses the upstream `spec-driven` schema with a single global Pi bridge, not another generated OPSX prompt/skill bundle. Existing project configuration is preserved. Run real tests as well as strict spec validation: OpenSpec planning completeness and advisory verification are not implementation proof. Agent handoff remains in Plane's started `In Review` group without a completion boolean; archive and main promotion require separate explicit user approval.
-
-The installer disables OpenSpec telemetry and npm lifecycle scripts. Managed Pi destinations are recorded in state, including custom `PI_CODING_AGENT_DIR` installs; removal verifies each symlink's ownership even if that environment variable is no longer set. The workflow stops if the installed CLI differs from the tested version. To unlink only the managed Pi bridge, run `bash "$HOME/.megai/lib/install_openspec.sh" --remove`; CLI, privacy settings and project specs remain. `megai uninstall` also removes the managed link. Source policy: [`skills/megai-openspec/SKILL.md`](skills/megai-openspec/SKILL.md).
+The optional installer and global OpenSpec skill are retired. Existing `openspec/` specifications, checklists and privacy settings remain. `bash "$HOME/.megai/lib/retire_openspec.sh"` removes only registered MEGAI-owned Pi links and state, including stale links from older installations; it cannot install or invoke OpenSpec. See [retirement verification and rollback](docs/audits/openspec-retirement.md).
 
 ### ⚪ Oh My Pi (OMP)
 
@@ -552,7 +540,6 @@ The installer:
 ├── omp-skill/                   OMP-native MEGAI skill
 ├── task-flow/                   skills, hooks, commands, and monitor
 ├── skills/numasec-security/     authorized security handoff guidance
-├── skills/megai-openspec/       optional parent-owned Pi spec workflow
 ├── skills/agent-worktree-lifecycle/  dev delivery, one promotion request, approved main merge
 ├── skills/smart-development-orchestrator/  Luna/Terra and multi-provider routing policy
 ├── omp-agents/                   MiniMax router/worker plus Luna and Terra trusted scouts
@@ -590,7 +577,7 @@ curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh |
 megai update
 ```
 
-This refreshes supported tools, global skills, integrations, and MCP wiring without replacing unrelated user configuration. OpenSpec remains separately opt-in and pinned: after fetching new MEGAI source, rerun its optional installer to refresh the bridge. Neither `megai update` nor the normal install pipeline automatically upgrades the OpenSpec CLI.
+This refreshes supported tools, global skills, integrations, and MCP wiring without replacing unrelated user configuration.
 
 ---
 
@@ -648,21 +635,19 @@ The [historical one-off import checkpoint](docs/one-off-import-checkpoint.md) is
 as unwired source, not an active Asana integration. Its verifier reports partial evidence,
 not full migration parity; no live import runs during installation or branch consolidation.
 
-### Focused OpenSpec and orchestration checks
+### Focused retirement and orchestration checks
 
 From the MEGAI source checkout:
 
 ```bash
-bash tests/openspec-integration.sh  # offline installer lifecycle and preservation
-bash tests/openspec-policy.sh       # static boundaries and negative mutations
-bash tests/openspec-contract.sh     # real installed OpenSpec 1.12.0 contract
+bash tests/openspec-integration.sh  # offline retired-link cleanup and preservation
 bash tests/pi-task-flow.sh          # Plane handoff and Pi wiring regressions
 bash tests/plane-mcp.sh             # Pi/Codex connector lifecycle and rollback
 bash tests/plane-cutover-regressions.sh # Runtime integrity and safe uninstall
 bash tests/orchestration-policy.sh  # shared prompt guardrails
 ```
 
-The real-CLI test uses temporary project/config directories with telemetry disabled. It verifies injected guidance, rejects malformed requirements, and demonstrates that planning completion does not mean implementation tasks passed. These checks validate integration contracts; they do not guarantee future model compliance or replace task-specific tests.
+The retirement test uses temporary directories and requires no OpenSpec installation. It checks owned and foreign links, malformed state and preserved project specifications. These checks do not replace task-specific tests.
 
 ### Common requirements
 
@@ -688,7 +673,6 @@ The installer resolves supported missing dependencies where possible and reports
 - 🧱 Only MEGAI-owned MCP entries and marked blocks are replaced or removed.
 - 🏠 agent-memory and zvec-grep services and indexes run locally by default; zvec-grep remote Embedding requires separate explicit authorization.
 - 🛡️ Numasec execution is opt-in and must stay within an explicitly authorized target scope.
-- 📝 OpenSpec installation is pinned, disables npm lifecycle scripts and upstream telemetry, and initializes no repositories automatically. Specs and evidence stay in the chosen repository; archive is not a test or release authorization.
 
 ---
 
@@ -719,7 +703,7 @@ Ix is no longer installed, updated, checked or recommended by MEGAI. Upgrading d
 megai uninstall
 ```
 
-MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI, Numasec and registered OpenSpec skill links, and shell PATH entries. The Numasec and OpenSpec CLIs are retained to avoid deleting independently usable tools; OpenSpec project artifacts and privacy settings are also retained.
+MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI, Numasec, legacy owned OpenSpec links, and shell PATH entries. Independently installed CLIs, project artifacts and privacy settings are retained; legacy-link cleanup never installs OpenSpec.
 
 To prevent data loss, zvec-grep and local project indexes are retained. ui-craft and RepoWise are retired, but their project data is not deleted. Remove retained tools separately only when no longer needed:
 
