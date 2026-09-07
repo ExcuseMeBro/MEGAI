@@ -13,7 +13,6 @@ import os
 import shlex
 import shutil
 import tempfile
-import tomllib
 from pathlib import Path
 
 HOME = Path.home()
@@ -53,16 +52,8 @@ def encoded(obj: dict) -> bytes:
     return (json.dumps(obj, indent=2, ensure_ascii=False) + "\n").encode()
 
 
-def destinations() -> dict[str, Path]:
-    profile = os.environ.get("OMP_PROFILE", os.environ.get("PI_PROFILE", ""))
-    if profile and (profile in (".", "..") or "/" in profile or "\\" in profile):
-        raise ValueError("OMP profile must be a single directory name")
-    return {
-        "cc": HOME / ".claude",
-        "codex": Path(os.environ.get("CODEX_HOME", HOME / ".codex")),
-        "pi": Path(os.environ.get("PI_CODING_AGENT_DIR", HOME / ".pi/agent")),
-        "omp": HOME / ".omp" / (f"profiles/{profile}/agent" if profile else "agent"),
-    }
+def pi_root() -> Path:
+    return Path(os.environ.get("PI_CODING_AGENT_DIR", HOME / ".pi/agent"))
 
 
 class Plan:
@@ -178,66 +169,71 @@ class Plan:
             else:
                 self.receipt[str(path)] = digest(updated.encode())
 
-    def client(self, name: str, root: Path, remove: bool) -> None:
-        # Validate configs without changing credentials, models, packages or hooks.
-        for filename in ("settings.json", "mcp.json") if name != "codex" else ():
+    def client(self, root: Path, remove: bool) -> None:
+        # Only Pi is inspected or mutated. Other harnesses are not dependencies.
+        for filename in ("settings.json", "mcp.json"):
             obj = load_json(root / filename)
             if filename == "mcp.json" and not isinstance(obj.get("mcpServers", {}), dict):
                 raise ValueError(f"invalid mcpServers: {root / filename}")
             if not remove and "taskflow-" in json.dumps(obj):
                 raise ValueError(f"legacy board hooks preserved: {root / filename}; detach manually")
-        if name == "codex":
-            data = read(root / "config.toml")
-            if data is not None:
-                tomllib.loads(data.decode()) # existing MCP entries remain user-owned
         if not remove:
-            for legacy in ("task-flow", "smart-development-orchestrator"):
-                shared = HOME / ".agents/skills" / legacy
-                if shared.exists() or shared.is_symlink():
-                    raise ValueError(f"shared legacy skill preserved: {shared}; detach manually")
-            if name == "pi" and (root / "skills/megai.md").exists():
+            if (root / "skills/megai.md").exists():
                 raise ValueError(f"legacy MEGAI skill preserved: {root / 'skills/megai.md'}; detach manually")
             for legacy in ("task-flow", "smart-development-orchestrator"):
                 old = root / "skills" / legacy
                 if old.exists() or old.is_symlink():
                     raise ValueError(f"legacy/custom skill preserved: {old}; detach manually before slim adoption")
-            if name == "omp":
-                agents = root / "agents"
-                if agents.exists() and any("minimax" in p.name or p.name == "smart-router.md" for p in agents.iterdir()):
-                    raise ValueError(f"legacy routing agents preserved: {agents}; detach manually")
-        self.policy(root / ("CLAUDE.md" if name == "cc" else "RULES.md" if name == "omp" else "AGENTS.md"), remove)
+        self.policy(root / "AGENTS.md", remove)
+        # Pi normally discovers shared skills used by other harnesses. Exclude
+        # that directory by default, without touching it. Explicit user filters
+        # follow this default, so exact force-includes/opt-outs still win.
+        settings_path = root / "settings.json"
+        before = read(settings_path)
+        settings = load_json(settings_path)
+        selections = settings.get("skills", [])
+        if not isinstance(selections, list) or not all(isinstance(s, str) for s in selections):
+            raise ValueError(f"invalid Pi skill selections: {settings_path}")
+        exclusion = "!" + str(HOME / ".agents/skills") + "/**"
+        key = str(settings_path) + "#shared-skill-exclusion"
+        if remove:
+            if self.prior_receipt.get(key) == digest(exclusion.encode()):
+                settings["skills"] = [s for s in selections if s != exclusion]
+                self.receipt.pop(key, None)
+                self.stage(settings_path, encoded(settings), before)
+        elif exclusion not in selections:
+            settings["skills"] = [exclusion, *selections]
+            self.receipt[key] = digest(exclusion.encode())
+            self.stage(settings_path, encoded(settings), before)
         for relative, skill in (
             ("task-flow/skills/megai-task-flow/SKILL.md", "megai-task-flow"),
             ("skills/agent-worktree-lifecycle/SKILL.md", "agent-worktree-lifecycle"),
             ("pi-skill/SKILL.md", "megai"),
             ("skills/caveman/SKILL.md", "caveman"),
         ):
-            skill_root = HOME / ".agents/skills" if name in ("codex", "pi") else root / "skills"
+            skill_root = root / "skills"
             self.asset(skill_root / skill / "SKILL.md", (SOURCE / relative).read_bytes(), remove)
             if skill == "caveman":
                 self.asset(skill_root / skill / "LICENSE.md", (SOURCE / "skills/caveman/LICENSE.md").read_bytes(), remove)
-        if name == "pi":
-            config_path = root / "mcp.json"
-            config_before = read(config_path)
-            config = json.loads(config_before) if config_before else {}
-            zg = shutil.which("zg")
-            servers = config.setdefault("mcpServers", {})
-            key = str(config_path) + "#zvec_grep"
-            entry = servers.get("zvec_grep")
-            owned = entry is not None and self.prior_receipt.get(key) == digest(encoded(entry))
-            if not remove and entry is not None and not owned:
-                raise ValueError(f"unowned zvec_grep MCP preserved: {config_path}; reconcile manually")
-            if remove:
-                if owned:
-                    del servers["zvec_grep"]
-                    self.receipt.pop(key, None)
-                    self.stage(config_path, encoded(config), config_before)
-            elif zg and (entry is None or owned):
-                servers["zvec_grep"] = {"command": zg, "args": ["server", "--stdio"], "lifecycle": "lazy"}
-                self.receipt[key] = digest(encoded(servers["zvec_grep"]))
+        config_path = root / "mcp.json"
+        config_before = read(config_path)
+        config = json.loads(config_before) if config_before else {}
+        zg = shutil.which("zg")
+        servers = config.setdefault("mcpServers", {})
+        key = str(config_path) + "#zvec_grep"
+        entry = servers.get("zvec_grep")
+        owned = entry is not None and self.prior_receipt.get(key) == digest(encoded(entry))
+        if not remove and entry is not None and not owned:
+            raise ValueError(f"unowned zvec_grep MCP preserved: {config_path}; reconcile manually")
+        if remove:
+            if owned:
+                del servers["zvec_grep"]
+                self.receipt.pop(key, None)
                 self.stage(config_path, encoded(config), config_before)
-        if name == "cc":
-            load_json(HOME / ".claude.json")  # Existing MCP entries remain byte-identical.
+        elif zg and (entry is None or owned):
+            servers["zvec_grep"] = {"command": zg, "args": ["server", "--stdio"], "lifecycle": "lazy"}
+            self.receipt[key] = digest(encoded(servers["zvec_grep"]))
+            self.stage(config_path, encoded(config), config_before)
 
     def apply(self, dry_run: bool, verify: bool = False) -> None:
         self.stage(RECEIPT, encoded(self.receipt), self.receipt_before)
@@ -297,15 +293,14 @@ def atomic_write(path: Path, data: bytes | None) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("client", choices=("all", "cc", "codex", "pi", "omp", "path"))
+    parser.add_argument("client", choices=("pi", "path"))
     parser.add_argument("--remove", action="store_true")
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--verify", action="store_true")
     args = parser.parse_args()
     plan = Plan()
-    for name, root in destinations().items():
-        if args.client in ("all", name):
-            plan.client(name, root, args.remove)
+    if args.client == "pi":
+        plan.client(pi_root(), args.remove)
     bridge = b'#!/usr/bin/env bash\nexec bash "${MEGAI_HOME:-$HOME/.megai}/pi-skill/extensions/memory.sh" "$@"\n'
     if args.client != "path":
         plan.asset(MEGAI / "bin/megai-memory", bridge, args.remove)
@@ -313,9 +308,8 @@ def main() -> int:
         plan.asset(MEGAI / "bin/megai-codedb", codedb_bridge, args.remove)
         if not args.check and not args.remove and not shutil.which("codedb"):
             raise ValueError("codedb is missing; run megai install before using slim")
-    if args.client in ("all", "path"):
-        plan.shell_paths(args.remove)
-    if not args.check and not args.remove and args.client in ("all", "pi") and not shutil.which("zg"):
+    plan.shell_paths(args.remove)
+    if not args.check and not args.remove and args.client == "pi" and not shutil.which("zg"):
         raise ValueError("zg is missing; run megai install before using slim")
     plan.apply(args.check or args.verify, args.verify)
     return 0

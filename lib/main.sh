@@ -20,7 +20,7 @@ detect_runtimes
 [ "$MEGAI_HAS_PY" = "1" ] || die "Python 3.11+ required for safe policy/config validation"
 python3 -c 'import tomllib' || die "Python 3.11+ required"
 # Validate migration before any third-party installer or config mutation.
-python3 "$LIB/slim_wiring.py" all --check
+python3 "$LIB/slim_wiring.py" pi --check
 command -v git >/dev/null 2>&1 || die "Git required"
 command -v rg >/dev/null 2>&1 || die "ripgrep required; install rg before retrying"
 require_or_install_jq
@@ -51,25 +51,22 @@ bash "$LIB/install_worktree_lifecycle.sh" || die "worktree safety install failed
 step 6 7 "Installing the lazy Pi MCP adapter"
 bash "$LIB/install_pi_packages.sh" || die "Pi adapter install failed"
 
-step 7 7 "Wiring core harness policies"
-# Shared ownership-aware wiring; no legacy routing or service/index warmups.
-bash "$LIB/wire_cc.sh"    || die "Claude wiring failed"
-bash "$LIB/wire_codex.sh" || die "Codex wiring failed"
+step 7 7 "Wiring Pi-only policies"
+# Other harnesses and their shared skills are outside this distribution.
 bash "$LIB/wire_pi.sh"    || die "Pi wiring failed"
-bash "$LIB/wire_omp.sh"   || die "OMP wiring failed"
 bash "$LIB/wire_path.sh"  || warn "PATH wiring skipped"
 
 for tool in agentmemory zg codedb rtk ruff; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after installation; slim is not ready"
 done
-[ -f "$MEGAI_HOME/ux-ui-agent-skills/package.json" ] || die "UX/UI kit missing after installation"
-[ -d "$MEGAI_HOME/mattpocock-skills/skills" ] || die "Matt skill kit missing after installation"
-python3 "$LIB/slim_wiring.py" all --verify
+[ -f "$MEGAI_HOME/pi-kits/ux-ui-agent-skills/package.json" ] || die "UX/UI kit missing after installation"
+[ -d "$MEGAI_HOME/pi-kits/mattpocock-skills/skills" ] || die "Matt skill kit missing after installation"
+python3 "$LIB/slim_wiring.py" pi --verify
 ok "MEGAI slim core ready"
 echo
 echo "    Open a new shell (or 'source ~/.zshrc') so PATH picks up megai/bin"
 echo "    megai           # verify the current Git worktree and Plane wiring"
-echo "    megai cc|codex|pi|omp  # launch without service/index warmup"
+echo "    megai pi  # launch Pi without service/index warmup"
 echo "    megai start agent-memory  # start memory explicitly when needed"
 echo "    megai reindex            # rebuild zvec explicitly when needed"
 echo "    Existing user config, project data, indexes, and credentials are preserved."

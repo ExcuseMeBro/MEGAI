@@ -3,5 +3,5 @@
 set -euo pipefail
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 . "$MEGAI_HOME/lib/state.sh"
-python3 "$MEGAI_HOME/lib/slim_wiring.py" all "$@"
+python3 "$MEGAI_HOME/lib/slim_wiring.py" pi "$@"
 [ "${1:-}" = "--remove" ] || state_set '.tools["task-flow"]' '{"wired":true,"mode":"plane-only"}'

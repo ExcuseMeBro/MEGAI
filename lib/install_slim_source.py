@@ -8,7 +8,7 @@ from slim_wiring import MEGAI, Plan, digest, read
 
 source = Path(sys.argv[1]).resolve()
 plan = Plan()
-for folder in ("bin", "lib", "pi-skill", "omp-skill", "task-flow", "skills"):
+for folder in ("bin", "lib", "pi-skill", "task-flow", "skills"):
     for path in sorted((source / folder).rglob("*")):
         if path.is_symlink():
             raise SystemExit(f"unexpected source symlink: {path}")

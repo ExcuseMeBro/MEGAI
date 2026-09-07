@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Secure, additive Plane MCP lifecycle for Pi MCP Adapter and Codex.
+# Secure, additive Plane MCP lifecycle for Pi MCP Adapter only.
 set -euo pipefail
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 . "$MEGAI_HOME/lib/ui.sh"
@@ -9,19 +9,17 @@ PLANE_PYTHON_COMMAND="python3"
 PLANE_TOKEN_DEFAULT="$HOME/.config/megai/credentials/plane-api-token"
 PLANE_AGENT="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
 PLANE_CONFIG="$PLANE_AGENT/mcp.json"
-PLANE_CODEX_CONFIG="${CODEX_HOME:-$HOME/.codex}/config.toml"
 PLANE_HEADER_HELPER="$MEGAI_HOME/lib/plane_mcp_headers.py"
-PLANE_CODEX_HELPER="$MEGAI_HOME/lib/plane_codex.sh"
 PLANE_BACKUP_TOOL="$MEGAI_HOME/lib/plane_backup.py"
 
 plane_usage() {
   cat <<'EOF'
 Usage:
   megai plane bridge install
-  megai plane setup --workspace SLUG [--token-file PATH] [--client pi|codex|all] [--replace-asana]
-  megai plane status [--client pi|codex|all]
-  megai plane remove [--client pi|codex|all]
-  megai plane restore [--client pi|codex|all]
+  megai plane setup --workspace SLUG [--token-file PATH] [--client pi] [--replace-asana]
+  megai plane status [--client pi]
+  megai plane remove [--client pi]
+  megai plane restore [--client pi]
 
 restore is connector-only and target-bound. Task-flow policy backups are managed
 by wire/install_taskflow_policy and are not silently overwritten or restored here.
@@ -55,6 +53,14 @@ plane_validate_token_file() {
 }
 
 plane_validate_config() {
+  # Reject symlinked ancestors before reading or staging any Pi configuration.
+  PYTHONDONTWRITEBYTECODE=1 python3 - "$MEGAI_HOME/lib" "$PLANE_CONFIG" <<'PY'
+import sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from slim_wiring import safe
+safe(Path(sys.argv[2]))
+PY
   [ ! -L "$PLANE_CONFIG" ] || die "refusing symlinked Pi MCP config: $PLANE_CONFIG"
   [ ! -e "$PLANE_CONFIG" ] && return 0
   [ -f "$PLANE_CONFIG" ] || die "Pi MCP config is not a regular file: $PLANE_CONFIG"
@@ -184,7 +190,7 @@ plane_setup() {
       --workspace=*) workspace="${arg#*=}"; shift;;
       --token-file) [ "$#" -ge 2 ] || die "--token-file requires a value"; token_file="$2"; shift 2;;
       --token-file=*) token_file="${arg#*=}"; shift;;
-      --client) [ "$#" -ge 2 ] || die "--client requires pi, codex, or all"; client="$2"; shift 2;;
+      --client) [ "$#" -ge 2 ] || die "--client requires pi"; client="$2"; shift 2;;
       --client=*) client="${arg#*=}"; shift;;
       --replace-asana) replace_asana=true; shift;;
       -h|--help) plane_usage; return 0;;
@@ -192,41 +198,24 @@ plane_setup() {
     esac
   done
   [ -n "$workspace" ] || die "--workspace is required"
-  case "$client" in pi|codex|all);; *) die "--client must be pi, codex, or all";; esac
+  [ "$client" = pi ] || die "slim is Pi-only; --client must be pi"
   token_file="$(plane_absolute_path "$token_file")"
   plane_require_tools; plane_validate_token_file "$token_file" "$workspace"
-  local replace_flag=0; [ "$replace_asana" = true ] && replace_flag=1
-  local pi_candidate codex_candidate pi_had_config=0 pi_changed=0
-  [ -f "$PLANE_CONFIG" ] && pi_had_config=1
-  mkdir -p "$PLANE_AGENT" "$(dirname "$PLANE_CODEX_CONFIG")"
+  plane_validate_config
+  local pi_candidate
+  mkdir -p "$PLANE_AGENT"
   pi_candidate="$(mktemp "$PLANE_AGENT/.mcp.json.stage.XXXXXX")"
-  codex_candidate="$(mktemp "$(dirname "$PLANE_CODEX_CONFIG")/.config.toml.stage.XXXXXX")"
-  trap 'rm -f -- "$pi_candidate" "$codex_candidate"' RETURN
-
-  # Stage every requested client before any target is replaced.
-  if [ "$client" = pi ] || [ "$client" = all ]; then plane_stage_setup "$pi_candidate" "$token_file" "$workspace" "$replace_asana"; fi
-  if [ "$client" = codex ] || [ "$client" = all ]; then
-    [ -f "$PLANE_CODEX_HELPER" ] || die "Plane Codex helper is missing: $PLANE_CODEX_HELPER"
-    bash "$PLANE_CODEX_HELPER" stage-setup "$workspace" "$token_file" "$replace_flag" "$codex_candidate"
-  fi
-  if [ "$client" = pi ] || [ "$client" = all ]; then
-    if [ ! -f "$PLANE_CONFIG" ] || ! cmp -s "$PLANE_CONFIG" "$pi_candidate"; then pi_changed=1; fi
-    plane_commit "$pi_candidate"
-  fi
-  if [ "$client" = codex ] || [ "$client" = all ]; then
-    if ! bash "$PLANE_CODEX_HELPER" commit "$codex_candidate"; then
-      if [ "$client" = all ] && [ "$pi_changed" = 1 ]; then plane_rollback_pi "$pi_had_config"; fi
-      die "Plane Codex commit failed; staged clients were rolled back"
-    fi
-  fi
+  trap 'rm -f -- "$pi_candidate"' RETURN
+  plane_stage_setup "$pi_candidate" "$token_file" "$workspace" "$replace_asana"
+  plane_commit "$pi_candidate"
   trap - RETURN
-  ok "Plane MCP configured (client=$client, workspace=$workspace)"
+  ok "Plane MCP configured (client=pi, workspace=$workspace)"
 }
 
 plane_status() {
   local client=pi arg
   while [ "$#" -gt 0 ]; do case "$1" in --client) [ "$#" -ge 2 ] || die "--client requires a value"; client="$2"; shift 2;; --client=*) client="${1#*=}"; shift;; *) die "unknown Plane status option: $1";; esac; done
-  case "$client" in codex) exec bash "$PLANE_CODEX_HELPER" status;; all) plane_status --client pi; bash "$PLANE_CODEX_HELPER" status;; pi);; *) die "--client must be pi, codex, or all";; esac
+  [ "$client" = pi ] || die "slim is Pi-only; --client must be pi"
   plane_require_tools; plane_validate_config
   local kind token_file workspace
   kind="$(plane_entry_kind "$PLANE_HEADER_HELPER")"
@@ -244,67 +233,33 @@ plane_status() {
 }
 
 plane_remove() {
-  local client=pi arg
+  local client=pi
   while [ "$#" -gt 0 ]; do case "$1" in --client) [ "$#" -ge 2 ] || die "--client requires a value"; client="$2"; shift 2;; --client=*) client="${1#*=}"; shift;; *) die "unknown Plane remove option: $1";; esac; done
-  case "$client" in pi|codex|all);; *) die "--client must be pi, codex, or all";; esac
-  plane_require_tools
-  local pi_candidate codex_candidate pi_had_config=0 pi_changed=0
-  [ -f "$PLANE_CONFIG" ] && pi_had_config=1
-  mkdir -p "$PLANE_AGENT" "$(dirname "$PLANE_CODEX_CONFIG")"
-  pi_candidate="$(mktemp "$PLANE_AGENT/.mcp.json.stage.XXXXXX")"; codex_candidate="$(mktemp "$(dirname "$PLANE_CODEX_CONFIG")/.config.toml.stage.XXXXXX")"
-  trap 'rm -f -- "$pi_candidate" "$codex_candidate"' RETURN
-  if [ "$client" = pi ] || [ "$client" = all ]; then plane_stage_remove "$pi_candidate"; fi
-  if [ "$client" = codex ] || [ "$client" = all ]; then bash "$PLANE_CODEX_HELPER" stage-remove "$codex_candidate"; fi
-  if { [ "$client" = pi ] || [ "$client" = all ]; } && [ -f "$PLANE_CONFIG" ]; then
-    if ! cmp -s "$PLANE_CONFIG" "$pi_candidate"; then pi_changed=1; fi
-    plane_commit "$pi_candidate"
-  fi
-  if { [ "$client" = codex ] || [ "$client" = all ]; } && [ -f "$PLANE_CODEX_CONFIG" ]; then
-    if ! bash "$PLANE_CODEX_HELPER" commit "$codex_candidate"; then
-      if [ "$client" = all ] && [ "$pi_changed" = 1 ]; then plane_rollback_pi "$pi_had_config"; fi
-      die "Plane Codex removal failed; staged clients were rolled back"
-    fi
-  fi
+  [ "$client" = pi ] || die "slim is Pi-only; --client must be pi"
+  plane_require_tools; plane_validate_config
+  [ -f "$PLANE_CONFIG" ] || { ok "Plane MCP not configured"; return 0; }
+  local pi_candidate
+  pi_candidate="$(mktemp "$PLANE_AGENT/.mcp.json.stage.XXXXXX")"
+  trap 'rm -f -- "$pi_candidate"' RETURN
+  plane_stage_remove "$pi_candidate"
+  plane_commit "$pi_candidate"
   trap - RETURN
-  ok "Plane MCP removed (client=$client)"
+  ok "Plane MCP removed (client=pi)"
 }
 
 plane_restore() {
-  local client=pi arg
+  local client=pi
   while [ "$#" -gt 0 ]; do case "$1" in --client) [ "$#" -ge 2 ] || die "--client requires a value"; client="$2"; shift 2;; --client=*) client="${1#*=}"; shift;; *) die "unknown Plane restore option: $1";; esac; done
-  case "$client" in pi|codex|all);; *) die "--client must be pi, codex, or all";; esac
-  plane_require_tools
-  local pi_candidate codex_candidate pi_rollback="" pi_had_config=0 pi_changed=0
-  [ -f "$PLANE_CONFIG" ] && pi_had_config=1
-  mkdir -p "$PLANE_AGENT" "$(dirname "$PLANE_CODEX_CONFIG")"
-  pi_candidate="$(mktemp "$PLANE_AGENT/.mcp.json.stage.XXXXXX")"; codex_candidate="$(mktemp "$(dirname "$PLANE_CODEX_CONFIG")/.config.toml.stage.XXXXXX")"
-  if [ "$client" = all ] && [ "$pi_had_config" = 1 ]; then
-    pi_rollback="$(mktemp "$PLANE_AGENT/.mcp.json.rollback.XXXXXX")"
-    cp -- "$PLANE_CONFIG" "$pi_rollback"
-    chmod 600 "$pi_rollback"
-  fi
-  trap 'rm -f -- "$pi_candidate" "$codex_candidate" "$pi_rollback"' RETURN
-  if [ "$client" = pi ] || [ "$client" = all ]; then plane_restore_to "$pi_candidate"; fi
-  if [ "$client" = codex ] || [ "$client" = all ]; then bash "$PLANE_CODEX_HELPER" stage-restore "$codex_candidate"; fi
-  if [ "$client" = pi ] || [ "$client" = all ]; then
-    if [ ! -f "$PLANE_CONFIG" ] || ! cmp -s "$PLANE_CONFIG" "$pi_candidate"; then pi_changed=1; fi
-    plane_commit "$pi_candidate" 0
-  fi
-  if [ "$client" = codex ] || [ "$client" = all ]; then
-    if [ "$client" = all ]; then
-      if ! bash "$PLANE_CODEX_HELPER" commit "$codex_candidate" 0; then
-        if [ "$pi_changed" = 1 ]; then
-          [ ! -L "$PLANE_CONFIG" ] || die "refusing symlinked Pi rollback target"
-          if [ "$pi_had_config" = 1 ]; then mv -f -- "$pi_rollback" "$PLANE_CONFIG"; else rm -f -- "$PLANE_CONFIG"; fi
-        fi
-        die "Plane Codex restore failed; staged clients were rolled back"
-      fi
-    else
-      bash "$PLANE_CODEX_HELPER" commit "$codex_candidate" 0
-    fi
-  fi
+  [ "$client" = pi ] || die "slim is Pi-only; --client must be pi"
+  plane_require_tools; plane_validate_config
+  local pi_candidate
+  mkdir -p "$PLANE_AGENT"
+  pi_candidate="$(mktemp "$PLANE_AGENT/.mcp.json.stage.XXXXXX")"
+  trap 'rm -f -- "$pi_candidate"' RETURN
+  plane_restore_to "$pi_candidate"
+  plane_commit "$pi_candidate" 0
   trap - RETURN
-  ok "Plane connector restored (client=$client; policy backups untouched)"
+  ok "Plane connector restored (client=pi; policy backups untouched)"
 }
 
 plane_main() {

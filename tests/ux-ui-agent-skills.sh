@@ -9,7 +9,7 @@ export MEGAI_HOME="$TMP/megai"
 export PI_CODING_AGENT_DIR="$HOME/.pi/agent"
 export UX_UI_AGENT_SKILLS_SOURCE="$TMP/source"
 mkdir -p "$MEGAI_HOME/lib" "$UX_UI_AGENT_SKILLS_SOURCE/.claude/skills" "$UX_UI_AGENT_SKILLS_SOURCE/accessibility"
-cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$MEGAI_HOME/lib/"
+cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$ROOT/lib/slim_wiring.py" "$MEGAI_HOME/lib/"
 printf '%s\n' '{"tools":{},"ports":{},"agents":{},"projects":{}}' >"$MEGAI_HOME/state.json"
 printf '%s\n' '{"version":"2.4.0"}' >"$UX_UI_AGENT_SKILLS_SOURCE/package.json"
 printf '%s\n' '# WCAG fixture' >"$UX_UI_AGENT_SKILLS_SOURCE/accessibility/wcag-checklist.md"
@@ -28,19 +28,20 @@ mkdir -p "$HOME/.agents/skills/prototype"
 printf '%s\n' keep >"$HOME/.agents/skills/prototype/SKILL.md"
 
 bash "$ROOT/lib/install_ux_ui_agent_skills.sh" >/dev/null
-printf 'custom kit data\n' >"$MEGAI_HOME/ux-ui-agent-skills/local-note"
+printf 'custom kit data\n' >"$MEGAI_HOME/pi-kits/ux-ui-agent-skills/local-note"
 bash "$ROOT/lib/install_ux_ui_agent_skills.sh" >/dev/null
 saved_note="$(find "$MEGAI_HOME/backups" -path '*/source/local-note' -type f)"
 [ -n "$saved_note" ] && grep -q 'custom kit data' "$saved_note"
 
-for root in "$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.pi/agent/skills"; do
+for root in "$HOME/.pi/agent/skills"; do
   [ -L "$root/a11y-audit" ]
   [ -L "$root/ux-ui-prototype" ]
 done
 [ "$(cat "$HOME/.agents/skills/prototype/SKILL.md")" = keep ]
-grep -q '^name: ux-ui-prototype$' "$HOME/.agents/skills/ux-ui-prototype/SKILL.md"
-grep -q '^# WCAG fixture$' "$HOME/.agents/skills/a11y-audit/accessibility/wcag-checklist.md"
-jq -e '.tools["ux-ui-agent-skills"] == {path: (env.MEGAI_HOME + "/ux-ui-agent-skills"), version:"2.4.0", skills:17}' "$MEGAI_HOME/state.json" >/dev/null
+[ ! -e "$HOME/.claude" ] && [ ! -e "$HOME/.codex" ] && [ ! -e "$HOME/.omp" ]
+grep -q '^name: ux-ui-prototype$' "$HOME/.pi/agent/skills/ux-ui-prototype/SKILL.md"
+grep -q '^# WCAG fixture$' "$HOME/.pi/agent/skills/a11y-audit/accessibility/wcag-checklist.md"
+jq -e '.tools["ux-ui-agent-skills"] == {path: (env.MEGAI_HOME + "/pi-kits/ux-ui-agent-skills"), version:"2.4.0", skills:17}' "$MEGAI_HOME/state.json" >/dev/null
 
 # A malformed update must fail before replacing the working global kit.
 rm "$UX_UI_AGENT_SKILLS_SOURCE/.claude/skills/brandkit/SKILL.md"
@@ -48,13 +49,13 @@ if bash "$ROOT/lib/install_ux_ui_agent_skills.sh" >/dev/null 2>&1; then
   echo "malformed ux-ui-agent-skills update unexpectedly succeeded" >&2
   exit 1
 fi
-[ -f "$HOME/.agents/skills/brandkit/SKILL.md" ]
-grep -q '^name: brandkit$' "$HOME/.agents/skills/brandkit/SKILL.md"
+[ -f "$HOME/.pi/agent/skills/brandkit/SKILL.md" ]
+grep -q '^name: brandkit$' "$HOME/.pi/agent/skills/brandkit/SKILL.md"
 
 bash "$ROOT/lib/install_ux_ui_agent_skills.sh" --remove >/dev/null
-[ ! -e "$HOME/.agents/skills/a11y-audit" ]
-[ ! -e "$HOME/.claude/skills/ux-ui-prototype" ]
+[ ! -e "$HOME/.pi/agent/skills/a11y-audit" ]
+[ ! -e "$HOME/.pi/agent/skills/ux-ui-prototype" ]
 [ -f "$HOME/.agents/skills/prototype/SKILL.md" ]
-[ -d "$MEGAI_HOME/ux-ui-agent-skills" ] # Source/data survive detachment.
+[ -d "$MEGAI_HOME/pi-kits/ux-ui-agent-skills" ] # Source/data survive detachment.
 
 echo "ux-ui-agent-skills integration: ok"

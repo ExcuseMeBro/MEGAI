@@ -1,6 +1,6 @@
-# MEGAI slim
+# MEGAI slim — Pi only
 
-A dedicated, persistent **`slim`** distribution. It keeps nine selected tools plus
+A dedicated, persistent **`slim`** distribution for **Pi coding agent only**. It keeps nine selected tools plus
 bundled Caveman core, Plane-only task boundaries and task-quality gates. Installation and launch do not
 merge or push Git branches. This branch is not automatically integrated into `main`.
 
@@ -38,7 +38,7 @@ curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/slim/install.sh |
 source ~/.zshrc  # or reopen your shell
 megai status
 megai doctor
-megai pi        # also: megai cc / megai codex / megai omp
+megai pi        # Pi is the only supported harness
 ```
 
 The installer itself defaults to `MEGAI_REF=slim`, so that command cannot silently
@@ -61,8 +61,8 @@ Configure the secure connector explicitly; no credentials are bundled:
 
 ```bash
 megai plane bridge install
-megai plane setup --workspace SLUG --token-file /private/path/to/plane-token --client all
-megai plane status --client all
+megai plane setup --workspace SLUG --token-file /private/path/to/plane-token --client pi
+megai plane status --client pi
 ```
 
 The parent loads `megai-task-flow` once before project changes. Reuse known UUIDs;
@@ -83,8 +83,8 @@ need no tracked mutation; refinements reuse the active item.
 
 ## Default behavior and acceptance
 
-All ten stack entries are installed/wired by default for Pi, Claude, Codex and OMP.
-The harness itself must be installed and authenticated separately. Their triggers are:
+All ten stack entries are installed/wired by default for Pi.
+Pi itself must be installed and authenticated separately. Their triggers are:
 
 - **Caveman:** load the bundled core once; full terse chat in the user's language.
   `normal mode`/`stop caveman` opts out. Artifacts, uncertainty and warnings stay clear.
@@ -130,11 +130,9 @@ rg -n 'exact_symbol' src/
 megai stop agent-memory
 ```
 
-MEGAI's preparation before activation/harness launch performs only local
-wiring/worktree checks: no daemon startup, index building, provider requests,
-model selection or legacy routing overlay. The harness itself retains its own
-network/resource behavior. `megai omp --profile work` retains native profile/argument
-forwarding. Existing index configuration is retained on rebuild; configure any
+MEGAI's preparation before Pi launch performs only local wiring/worktree checks:
+no daemon startup, index building, provider requests, model selection or legacy
+routing overlay. Pi itself retains its own network/resource behavior. Existing index configuration is retained on rebuild; configure any
 remote embedding separately only after explicit authorization. Missing or stale
 wiring fails with a repair instruction rather than silently launching a broken
 stack.
@@ -158,8 +156,20 @@ unrelated hooks, MCP tables, auth, models and package selections remain unchange
 It also does not stop already-running services or override user-owned extensions.
 A preserved custom extension can still have its own startup behavior.
 
+The installer, update, doctor, wire, Plane setup/remove/restore and uninstall
+operate only on Pi. `megai cc`, `megai codex`, `megai omp`, non-Pi wire targets and
+Plane `--client all|codex` are rejected before mutation. Historical non-Pi source
+and recovery artifacts are not active entrypoints.
+
+Skills are installed only under `~/.pi/agent/skills` (or `PI_CODING_AGENT_DIR`).
+Skill-kit sources live under `~/.megai/pi-kits/`; old shared kit trees and other
+harness registrations are preserved. Pi defaults exclude automatic
+`~/.agents/skills/**` discovery to avoid inheriting old shared copies; existing
+explicit Pi resource selections follow this default and remain authoritative.
+Previously installed Claude/Codex/OMP policies are not removed or rewritten.
+
 Try alongside a full installation in a separate user/container environment.
-Changing `MEGAI_HOME` alone does not isolate the harnesses' global configuration.
+Changing `MEGAI_HOME` alone does not isolate Pi's global configuration.
 For adoption on an existing host, back up and manually detach the specific legacy
 registrations reported by preflight, review user resource filters, then retry.
 Do not delete project boards or indexes to resolve a wiring conflict.

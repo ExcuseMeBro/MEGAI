@@ -118,8 +118,8 @@ valid_envelope='{"version":1,"method":"POST","url":"https://mcp.plane.so/http/ap
 headers="$(printf '%s' "$valid_envelope" | "$plane_command" "${plane_args[@]}")"
 printf '%s' "$headers" | jq -e --arg token "Bearer $TOKEN" '.Authorization == $token and .["x-workspace-slug"] == "brodev"' >/dev/null
 
-# Explicit all-client cutover removes only the legacy entries and keeps the
-# Codex credential out of TOML, argv, stdout, and stderr.
+# Pi-only cutover leaves other harness configuration untouched; credentials
+# remain absent from config, argv, stdout and stderr.
 export CODEX_HOME="$TMP/custom-codex"
 mkdir -p "$CODEX_HOME"
 cat >"$CODEX_HOME/config.toml" <<'TOML'
@@ -131,14 +131,16 @@ command = "legacy-asana"
 [mcp_servers.unrelated]
 command = "keep-me"
 TOML
-cutover_output="$(run_plane setup --workspace brodev --token-file "$TOKEN_FILE" --client all --replace-asana 2>&1)"
+cp "$CODEX_HOME/config.toml" "$TMP/codex-original"
+for action in setup status remove restore; do
+  if run_plane "$action" --client all >/dev/null 2>&1; then exit 1; fi
+  if run_plane "$action" --client codex >/dev/null 2>&1; then exit 1; fi
+done
+cutover_output="$(run_plane setup --workspace brodev --token-file "$TOKEN_FILE" --client pi --replace-asana 2>&1)"
 ! grep -Fq "$TOKEN" <<<"$cutover_output"
 ! grep -Fq "$TOKEN" "$CODEX_HOME/config.toml"
-grep -q 'megai-plane-managed' "$CODEX_HOME/config.toml"
-! grep -q 'mcp_servers.asana' "$CODEX_HOME/config.toml"
-grep -q 'command = "keep-me"' "$CODEX_HOME/config.toml"
-python3 -c 'import sys,tomllib; tomllib.load(open(sys.argv[1], "rb"))' "$CODEX_HOME/config.toml"
-[ "$(find "$MEGAI_HOME/backups" -type f -name 'codex-plane-mcp.config.bak.*' | wc -l | tr -d ' ')" = 1 ]
+cmp "$CODEX_HOME/config.toml" "$TMP/codex-original"
+[ "$(find "$MEGAI_HOME/backups" -type f -name 'codex-plane-mcp.config.bak.*' | wc -l | tr -d ' ')" = 0 ]
 mkdir -p "$BRIDGE_ROOT/node_modules/mcp-remote/dist"
 printf 'fixture-lock\n' >"$BRIDGE_ROOT/package-lock.json"
 printf 'fixture-entry\n' >"$BRIDGE_ROOT/node_modules/mcp-remote/dist/proxy.js"
@@ -155,23 +157,13 @@ EXPECTED_TOKEN="$TOKEN" ARGV_LOG="$TMP/bridge-argv" \
 grep -Fq 'Authorization:${MEGAI_PLANE_AUTH}' "$TMP/bridge-argv"
 grep -Fq 'x-workspace-slug:${MEGAI_PLANE_WORKSPACE}' "$TMP/bridge-argv"
 ! grep -Fq 'npx' "$CODEX_HOME/config.toml"
-cp "$CODEX_HOME/config.toml" "$TMP/codex-repeat"
-run_plane setup --workspace brodev --token-file "$TOKEN_FILE" --client codex --replace-asana >/dev/null
-cmp "$CODEX_HOME/config.toml" "$TMP/codex-repeat"
-run_plane restore --client codex >/dev/null
-grep -q 'mcp_servers.asana' "$CODEX_HOME/config.toml"
+# Pi restore is repeat-stable and never reads or changes Codex.
 run_plane restore --client pi >/dev/null
 jq -e '.mcpServers.asana.auth == "oauth"' "$PI_CODING_AGENT_DIR/mcp.json" >/dev/null
-run_plane setup --workspace brodev --token-file "$TOKEN_FILE" --client codex --replace-asana >/dev/null
-
-# All-client restore is repeat-stable and does not add a newer rollback state.
-run_plane setup --workspace brodev --token-file "$TOKEN_FILE" --client all --replace-asana >/dev/null
-run_plane restore --client all >/dev/null
-cp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/restore-all-pi"
-cp "$CODEX_HOME/config.toml" "$TMP/restore-all-codex"
-run_plane restore --client all >/dev/null
-cmp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/restore-all-pi"
-cmp "$CODEX_HOME/config.toml" "$TMP/restore-all-codex"
+cp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/restore-pi"
+run_plane restore --client pi >/dev/null
+cmp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/restore-pi"
+cmp "$CODEX_HOME/config.toml" "$TMP/codex-original"
 
 # Endpoint and envelope binding fail before any credential output.
 invalid_output="$TMP/invalid-header-output"
@@ -198,7 +190,7 @@ check_output="$("$plane_command" "${plane_args[@]}" --check </dev/null)"
 cp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/repeat-before"
 run_plane setup --workspace brodev --token-file "$TOKEN_FILE" >/dev/null
 cmp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/repeat-before"
-[ "$(find "$MEGAI_HOME/backups" -type f -name 'pi-plane-mcp.config.bak.*' | wc -l | tr -d ' ')" = 3 ]
+[ "$(find "$MEGAI_HOME/backups" -type f -name 'pi-plane-mcp.config.bak.*' | wc -l | tr -d ' ')" = 2 ]
 
 # Owned-entry customizations, including disabled state, survive setup refresh.
 jq '.mcpServers.plane.disabled = true | .mcpServers.plane.directTools = false | .mcpServers.plane.lifecycle = "keep-alive"' \
@@ -244,7 +236,7 @@ cp "$PI_CODING_AGENT_DIR/mcp.json" "$pi_atomic_before"
 printf 'broken = [\n' >"$CODEX_HOME/config.toml"
 if run_plane setup --workspace newworkspace --token-file "$TOKEN_FILE" --client all >/dev/null 2>&1; then exit 1; fi
 cmp "$PI_CODING_AGENT_DIR/mcp.json" "$pi_atomic_before"
-run_plane restore --client codex >/dev/null
+if run_plane restore --client codex >/dev/null 2>&1; then exit 1; fi
 
 # Malformed configuration is rejected before any write.
 printf '{not-json\n' >"$PI_CODING_AGENT_DIR/mcp.json"
@@ -258,7 +250,7 @@ printf 'broken = [\n' >"$CODEX_HOME/config.toml"
 cp "$CODEX_HOME/config.toml" "$codex_before"
 if run_plane setup --workspace brodev --token-file "$TOKEN_FILE" --client codex >/dev/null 2>&1; then exit 1; fi
 cmp "$CODEX_HOME/config.toml" "$codex_before"
-run_plane restore --client codex >/dev/null
+if run_plane restore --client codex >/dev/null 2>&1; then exit 1; fi
 
 # A pre-existing user-owned plane name is never adopted or removed.
 cat >"$PI_CODING_AGENT_DIR/mcp.json" <<'JSON'
@@ -289,6 +281,5 @@ ln -s "$TMP/config-target" "$PI_CODING_AGENT_DIR/mcp.json"
 if run_plane setup --workspace brodev --token-file "$TMP/token-link" >/dev/null 2>&1; then exit 1; fi
 
 bash -n "$ROOT/bin/megai" "$ROOT/lib/plane_mcp.sh"
-python3 -m py_compile "$ROOT/lib/plane_mcp_headers.py"
-rm -rf "$ROOT/lib/__pycache__"
+python3 -c 'import pathlib,sys; p=pathlib.Path(sys.argv[1]); compile(p.read_text(),str(p),"exec")' "$ROOT/lib/plane_mcp_headers.py"
 echo 'Plane MCP synthetic lifecycle: ok'

@@ -4,12 +4,17 @@ set -euo pipefail
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 . "$MEGAI_HOME/lib/ui.sh"
 . "$MEGAI_HOME/lib/state.sh"
-KIT="$MEGAI_HOME/mattpocock-skills"
+KIT="$MEGAI_HOME/pi-kits/mattpocock-skills"
 REF=6654f6b60cd9d5be8b54c6fafe44346dabeb3b76
-profile="${OMP_PROFILE:-${PI_PROFILE:-}}"
-case "$profile" in .|..|*/*|*\\*) die "invalid OMP profile" ;; esac
-omp_agent="$HOME/.omp/agent"
-[ -z "$profile" ] || omp_agent="$HOME/.omp/profiles/$profile/agent"
+# Reuse the ownership-aware path guard even for standalone installer calls.
+PYTHONDONTWRITEBYTECODE=1 python3 - "$MEGAI_HOME" "$KIT" "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills" <<'PY'
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(sys.argv[1]) / 'lib'))
+from slim_wiring import safe
+for path in sys.argv[2:]:
+    safe(Path(path) / '.preflight')
+PY
 if [ -L "$KIT" ] || { [ -e "$KIT" ] && [ ! -d "$KIT" ]; }; then die "unsafe Matt skill destination: $KIT"; fi
 if [ -d "$KIT" ] && [ "$(state_get '.tools["mattpocock-skills"].path')" != "$KIT" ]; then die "unowned Matt source preserved: $KIT"; fi
 tmp="$(mktemp -d)"
@@ -26,17 +31,21 @@ if [ -d "$KIT" ]; then
   recovery="$(mktemp -d "$MEGAI_HOME/backups/matt-source.XXXXXX")"
   mv "$KIT" "$recovery/source"
 fi
+mkdir -p "$(dirname "$KIT")"
 mv "$tmp" "$KIT"
 trap - EXIT
-# Both supported shared discovery and harness-specific discovery are supplied.
-# Existing custom files/links win; the upstream source remains available by path.
-roots=("$HOME/.agents/skills" "$HOME/.claude/skills" "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills" "$omp_agent/skills")
+# Pi-only discovery; old shared source trees and registrations remain untouched.
+roots=("${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills")
 while IFS= read -r skill; do
   source="$(dirname "$skill")"
   name="$(basename "$source")"
   for root in "${roots[@]}"; do
     mkdir -p "$root"
     dest="$root/$name"
+    legacy="$MEGAI_HOME/mattpocock-skills${source#"$KIT"}"
+    if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$legacy" ]; then
+      rm -f "$dest"  # migrate this exact Pi-local legacy link only
+    fi
     if [ -e "$dest" ] || [ -L "$dest" ]; then
       [ -L "$dest" ] && [ "$(readlink "$dest")" = "$source" ] && continue
       warn "preserving existing skill: $dest (upstream available at $source)"

@@ -64,7 +64,7 @@ class Slim(unittest.TestCase):
         return result
 
     def wire(self, *args, **kwargs):
-        return self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), "all", *args, **kwargs)
+        return self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), "pi", *args, **kwargs)
 
     def snapshot(self):
         result = {}
@@ -81,7 +81,7 @@ class Slim(unittest.TestCase):
         self.wire("--verify")
         proxy = json.loads((self.home / ".pi/agent/mcp.json").read_text())["mcpServers"]["zvec_grep"]
         self.assertEqual(proxy["lifecycle"], "lazy")
-        self.assertTrue((self.home / ".agents/skills/megai-task-flow/SKILL.md").is_file())
+        self.assertTrue((self.home / ".pi/agent/skills/megai-task-flow/SKILL.md").is_file())
         self.assertTrue(os.access(self.megai / "bin/megai-memory", os.X_OK))
         self.assertFalse((self.home / ".claude/hooks").exists())
         self.assertEqual((self.legacy / "sentinel").read_text(), "historical private board, never touched\n")
@@ -91,12 +91,11 @@ class Slim(unittest.TestCase):
 
     def test_four_defaults_are_wired_without_background_work(self):
         self.wire()
-        for root, policy in ((".claude", "CLAUDE.md"), (".codex", "AGENTS.md"),
-                             (".pi/agent", "AGENTS.md"), (".omp/agent", "RULES.md")):
+        for root, policy in ((".pi/agent", "AGENTS.md"),):
             text = (self.home / root / policy).read_text()
             for required in ("caveman", "full", "codedb", "zvec-grep", "RTK", "Ruff", "agent-memory", "Matt Pocock/UI-UX", "megai-task-flow", "agent-worktree-lifecycle", "acceptance", "raw"):
                 self.assertIn(required, text)
-        for root in (".agents/skills", ".claude/skills", ".omp/agent/skills"):
+        for root in (".pi/agent/skills",):
             skill = self.home / root / "caveman/SKILL.md"
             self.assertEqual(skill.read_bytes(), (ROOT / "skills/caveman/SKILL.md").read_bytes())
             self.assertTrue((skill.parent / "LICENSE.md").is_file())
@@ -111,8 +110,8 @@ class Slim(unittest.TestCase):
             self.assertIn(required, style)
         self.assertFalse((self.home / "calls").exists())
         self.wire("--remove")
-        self.assertFalse((self.home / ".agents/skills/caveman/SKILL.md").exists())
-        self.assertFalse((self.home / ".agents/skills/caveman/LICENSE.md").exists())
+        self.assertFalse((self.home / ".pi/agent/skills/caveman/SKILL.md").exists())
+        self.assertFalse((self.home / ".pi/agent/skills/caveman/LICENSE.md").exists())
 
     def test_receipted_old_slim_policy_upgrades_without_overwriting_user_text(self):
         self.wire()
@@ -133,7 +132,7 @@ class Slim(unittest.TestCase):
         self.assertTrue(path.read_text().startswith("Keep this user rule.\n"))
 
     def test_caveman_conflicts_and_resource_opt_outs_are_preserved(self):
-        custom = self.write(self.home / ".agents/skills/caveman/SKILL.md", "custom user style")
+        custom = self.write(self.home / ".pi/agent/skills/caveman/SKILL.md", "custom user style")
         before = self.snapshot()
         self.wire(ok=False)
         self.assertEqual(self.snapshot(), before)
@@ -141,14 +140,127 @@ class Slim(unittest.TestCase):
         settings = self.write(self.home / ".pi/agent/settings.json", json.dumps({
             "defaultModel": "keep", "skills": ["!caveman"], "extensions": ["!rtk*"],
         }))
-        original = settings.read_bytes()
+        original = json.loads(settings.read_text())
         self.wire()
-        self.assertEqual(settings.read_bytes(), original)
-        skill = self.home / ".agents/skills/caveman/SKILL.md"
+        actual = json.loads(settings.read_text())
+        self.assertEqual(actual.pop("skills")[1:], original.pop("skills"))
+        self.assertEqual(actual, original)
+        skill = self.home / ".pi/agent/skills/caveman/SKILL.md"
         skill.write_text(skill.read_text() + "custom change")
         before = self.snapshot()
         self.wire("--remove", ok=False)
         self.assertEqual(self.snapshot(), before)
+
+    def test_pi_only_preserves_other_harnesses_even_when_malformed(self):
+        for path in (".claude/settings.json", ".codex/config.toml", ".omp/agent/mcp.json",
+                     ".agents/skills/task-flow/SKILL.md", ".agents/skills/caveman/SKILL.md"):
+            self.write(self.home / path, "unrelated legacy/custom bytes")
+        def others():
+            return {p: value for p, value in self.snapshot().items()
+                    if p.startswith(("home/.claude/", "home/.codex/", "home/.omp/", "home/.agents/"))}
+        before = others()
+        self.wire()
+        self.wire("--verify")
+        self.wire("--remove")
+        self.assertEqual(others(), before)
+        for client in ("all", "cc", "codex", "omp"):
+            before = self.snapshot()
+            self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), client, ok=False)
+            self.assertEqual(self.snapshot(), before)
+
+    def test_skill_kits_use_pi_private_sources_and_migrate_only_pi_links(self):
+        matt = self.root / "matt-source"
+        self.write(matt / "skills/engineering/example/SKILL.md", '---\nname: example\ndescription: Example\n---\n')
+        old = self.write(self.megai / "mattpocock-skills/skills/engineering/example/SKILL.md", "old shared source")
+        shared = self.home / ".agents/skills/example"
+        shared.parent.mkdir(parents=True)
+        shared.symlink_to(old.parent)
+        local = self.home / ".pi/agent/skills/example"
+        local.parent.mkdir(parents=True)
+        local.symlink_to(old.parent)
+        self.run_cmd("bash", str(self.megai / "lib/install_mattpocock_skills.sh"), env=dict(self.env, MATTPOCOCK_SKILLS_SOURCE=str(matt)))
+        self.assertEqual(old.read_text(), "old shared source")
+        self.assertEqual(shared.readlink(), old.parent)
+        self.assertEqual(local.readlink(), self.megai / "pi-kits/mattpocock-skills/skills/engineering/example")
+        ux = self.root / "ux-source"
+        names = "a11y-audit apply-aesthetic brandkit design-code design-component design-qa design-review design-tokens figma-integration governance image-to-code migrate-design-system performance prototype redesign token-build ux-writing".split()
+        for name in names:
+            self.write(ux / f".claude/skills/{name}/SKILL.md", f"---\nname: {name}\ndescription: Fixture\n---\n")
+        self.write(ux / "package.json", '{"version":"fixture"}')
+        old_ui = self.write(self.megai / "ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md", "keep shared UI")
+        link = local.parent / "a11y-audit"
+        link.symlink_to(old_ui.parent)
+        self.run_cmd("bash", str(self.megai / "lib/install_ux_ui_agent_skills.sh"), env=dict(self.env, UX_UI_AGENT_SKILLS_SOURCE=str(ux)))
+        self.assertEqual(old_ui.read_text(), "keep shared UI")
+        self.assertEqual(link.readlink(), self.megai / "pi-kits/ux-ui-agent-skills/.megai-skills/a11y-audit")
+        self.assertFalse((self.home / ".claude").exists())
+        self.assertFalse((self.home / ".codex").exists())
+        self.assertFalse((self.home / ".omp").exists())
+        self.assertEqual(shared.readlink(), old.parent)
+        self.run_cmd("bash", str(self.megai / "lib/install_ux_ui_agent_skills.sh"), "--remove")
+        self.assertFalse(link.exists())
+        self.assertEqual(old_ui.read_text(), "keep shared UI")
+
+    def test_pi_kit_symlink_ancestors_fail_before_writes(self):
+        external = self.root / "outside"
+        external.mkdir()
+        (self.megai / "pi-kits").symlink_to(external)
+        before = self.snapshot()
+        for script in ("install_mattpocock_skills.sh", "install_ux_ui_agent_skills.sh"):
+            self.run_cmd("bash", str(self.megai / "lib" / script), ok=False)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(list(external.iterdir()), [])
+
+    def test_plane_symlink_ancestors_refused_before_read_or_write(self):
+        token = self.write(self.home / "token", "synthetic-secret")
+        token.chmod(0o600)
+        script = str(self.megai / "lib/plane_mcp.sh")
+        for index, relative in enumerate((".pi", ".pi/agent")):
+            external = self.root / f"outside-{index}"
+            config = self.write(external / ("agent/mcp.json" if index == 0 else "mcp.json"), '{"mcpServers":{}}')
+            link = self.home / relative
+            link.parent.mkdir(parents=True, exist_ok=True)
+            link.symlink_to(external)
+            before = self.snapshot()
+            for action in ("setup", "status", "remove", "restore"):
+                args = ["--workspace", "test", "--token-file", str(token)] if action == "setup" else []
+                result = self.run_cmd("bash", script, action, *args, ok=False)
+                self.assertIn("symlinked path", result.stderr)
+                self.assertEqual(self.snapshot(), before)
+                self.assertEqual(config.read_text(), '{"mcpServers":{}}')
+            link.unlink()
+
+    def test_plane_lifecycle_is_pi_only_and_preserves_credentials(self):
+        token = self.write(self.home / "token", "synthetic-secret")
+        token.chmod(0o600)
+        config = self.write(self.home / ".pi/agent/mcp.json", '{"mcpServers":{"user":{"command":"keep"}}}')
+        other = self.write(self.home / ".codex/config.toml", "invalid but unrelated")
+        script = str(self.megai / "lib/plane_mcp.sh")
+        for action in ("setup", "status", "remove", "restore"):
+            for client in ("all", "codex"):
+                before = self.snapshot()
+                args = ["--workspace", "test", "--token-file", str(token)] if action == "setup" else []
+                self.run_cmd("bash", script, action, *args, "--client", client, ok=False)
+                self.assertEqual(self.snapshot(), before)
+        self.run_cmd("bash", script, "setup", "--workspace", "test", "--token-file", str(token))
+        configured = json.loads(config.read_text())
+        self.assertEqual(configured["mcpServers"]["user"], {"command": "keep"})
+        self.assertNotIn("synthetic-secret", config.read_text())
+        self.run_cmd("bash", script, "status")
+        self.run_cmd("bash", script, "remove")
+        self.assertNotIn("plane", json.loads(config.read_text())["mcpServers"])
+        self.run_cmd("bash", script, "restore")
+        self.assertEqual(json.loads(config.read_text()), configured)
+        self.assertEqual(other.read_text(), "invalid but unrelated")
+        self.assertFalse((self.home / ".claude").exists())
+        self.assertFalse((self.home / ".omp").exists())
+        before = config.read_bytes()
+        token.chmod(0o644)
+        self.run_cmd("bash", script, "setup", "--workspace", "test", "--token-file", str(token), ok=False)
+        self.assertEqual(config.read_bytes(), before)
+        token.chmod(0o600)
+        self.run_cmd("bash", script, "setup", "--workspace", "bad/slug", "--token-file", str(token), ok=False)
+        self.assertEqual(config.read_bytes(), before)
 
     def test_user_config_and_policy_text_survive(self):
         files = {
@@ -163,24 +275,30 @@ class Slim(unittest.TestCase):
         self.write(self.home / ".pi/agent/AGENTS.md", "User policy stays exactly.\n")
         self.wire()
         for path, content in files.items():
-            self.assertEqual((self.home / path).read_text(), content, path)
+            if path == ".pi/agent/settings.json":
+                actual = json.loads((self.home / path).read_text())
+                expected = json.loads(content)
+                self.assertEqual(actual.pop("skills")[1:], expected.pop("skills"))
+                self.assertEqual(actual, expected)
+            else:
+                self.assertEqual((self.home / path).read_text(), content, path)
         self.assertTrue((self.home / ".pi/agent/AGENTS.md").read_text().startswith("User policy stays exactly.\n"))
         before = self.snapshot()
         self.wire()
         self.assertEqual(self.snapshot(), before)
 
     def test_malformed_late_config_fails_before_any_write(self):
-        self.write(self.home / ".omp/agent/mcp.json", '{bad JSON')
+        self.write(self.home / ".pi/agent/mcp.json", '{bad JSON')
         before = self.snapshot()
         self.wire(ok=False)
         self.assertEqual(self.snapshot(), before)
 
     def test_legacy_hooks_and_skills_require_manual_migration(self):
         paths = [
-            (".claude/settings.json", '{"hooks":{"SessionStart":[{"hooks":[{"command":"custom && taskflow-session.js"}]}]}}'),
-            (".agents/skills/task-flow/SKILL.md", "custom legacy skill"),
+            (".pi/agent/settings.json", '{"hooks":{"SessionStart":[{"hooks":[{"command":"custom && taskflow-session.js"}]}]}}'),
+            (".pi/agent/skills/task-flow/SKILL.md", "custom legacy skill"),
             (".pi/agent/AGENTS.md", "custom .todos rules"),
-            (".codex/config.toml", '[mcp_servers\n'),
+            (".pi/agent/mcp.json", '{bad'),
         ]
         for path, content in paths:
             target = self.write(self.home / path, content)
@@ -195,11 +313,11 @@ class Slim(unittest.TestCase):
     def test_symlink_ancestor_and_custom_assets_preserved(self):
         external = self.root / "outside"
         external.mkdir()
-        (self.home / ".claude").symlink_to(external, target_is_directory=True)
+        (self.home / ".pi").symlink_to(external, target_is_directory=True)
         self.wire(ok=False)
         self.assertEqual(list(external.iterdir()), [])
-        (self.home / ".claude").unlink()
-        path = self.write(self.home / ".agents/skills/megai/SKILL.md", "user-owned")
+        (self.home / ".pi").unlink()
+        path = self.write(self.home / ".pi/agent/skills/megai/SKILL.md", "user-owned")
         before = self.snapshot()
         self.wire(ok=False)
         self.assertEqual(self.snapshot(), before)
@@ -214,26 +332,27 @@ class Slim(unittest.TestCase):
         (self.bin / "zg").unlink()
         # Restrict PATH to prevent the host's installed zg from satisfying readiness.
         env = dict(self.env, PATH=f"{self.bin}:/usr/bin:/bin")
-        self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), "all", ok=False, env=env)
+        self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), "pi", ok=False, env=env)
         self.assertFalse((self.megai / "slim-wiring.json").exists())
 
     def test_startup_all_harnesses_and_profile_do_not_prewarm(self):
         self.wire()
         before = self.snapshot()
-        for client in ("cc", "codex", "pi", "omp"):
-            self.run_cmd("bash", str(self.megai / "bin/megai"), client, "--version")
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "pi", "--version")
+        for client in ("cc", "codex", "omp"):
+            self.run_cmd("bash", str(self.megai / "bin/megai"), client, "--version", ok=False)
+            self.run_cmd("bash", str(self.megai / "bin/megai"), "wire", client, ok=False)
         self.run_cmd("bash", str(self.megai / "bin/megai"))
         calls = (self.home / "calls").read_text()
         for name in ("zg", "agentmemory", "npm", "npx", "curl", "node", "rtk"):
             self.assertNotIn(str(self.bin / name), calls)
-        self.assertEqual(calls.count("branch-check"), 5)
+        self.assertEqual(calls.count("branch-check"), 2)
         after = self.snapshot()
         after.pop("home/calls")
         self.assertEqual(before, after)
-        env = dict(self.env, OMP_PROFILE="work")
-        self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), "omp", env=env)
-        self.run_cmd("bash", str(self.megai / "bin/megai"), "omp", "--profile", "work", "--version")
-        self.assertIn("--profile work --version", (self.home / "calls").read_text())
+        for client in ("all", "cc", "codex", "omp"):
+            self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), client, ok=False)
+        self.assertEqual((self.home / "calls").read_text(), calls)
 
     def test_codedb_default_lookup_preserves_existing_mcp_and_indexes(self):
         config = self.write(self.home / ".codex/config.toml", '[mcp_servers.codedb]\ncommand="user-codedb"\n')
@@ -298,8 +417,8 @@ class Slim(unittest.TestCase):
 
     def test_pipeline_install_update_exact_stack_and_failure(self):
         self.wire()
-        self.write(self.megai / "ux-ui-agent-skills/package.json", '{}')
-        (self.megai / "mattpocock-skills/skills").mkdir(parents=True)
+        self.write(self.megai / "pi-kits/ux-ui-agent-skills/package.json", '{}')
+        (self.megai / "pi-kits/mattpocock-skills/skills").mkdir(parents=True)
         selected = ("agent_memory", "zvec_grep", "codedb", "rtk", "ruff", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
         for path in (self.megai / "lib").glob("install_*.sh"):
             name = path.stem.removeprefix("install_")
@@ -319,7 +438,7 @@ class Slim(unittest.TestCase):
         source = self.megai / "pi-skill/SKILL.md"
         source.write_text(source.read_text() + "\nUpdated distribution guidance.\n")
         self.wire()
-        installed = self.home / ".agents/skills/megai/SKILL.md"
+        installed = self.home / ".pi/agent/skills/megai/SKILL.md"
         self.assertEqual(installed.read_text(), source.read_text())
         installed.write_text(installed.read_text() + "custom local rule")
         before = self.snapshot()
@@ -369,10 +488,10 @@ assert first.read_bytes()==b'concurrent user edit'
     def test_matt_source_and_custom_skill_preservation(self):
         source = self.root / "matt-source"
         self.write(source / "skills/engineering/example/SKILL.md", '---\nname: example\ndescription: Example\n---\n')
-        custom = self.write(self.home / ".agents/skills/example/SKILL.md", "user customization")
+        custom = self.write(self.home / ".pi/agent/skills/example/SKILL.md", "user customization")
         env = dict(self.env, MATTPOCOCK_SKILLS_SOURCE=str(source))
         self.run_cmd("bash", str(self.megai / "lib/install_mattpocock_skills.sh"), env=env)
-        kit = self.megai / "mattpocock-skills"
+        kit = self.megai / "pi-kits/mattpocock-skills"
         self.write(kit / "local-note", "keep custom source data")
         self.run_cmd("bash", str(self.megai / "lib/install_mattpocock_skills.sh"), env=env)
         self.assertEqual(custom.read_text(), "user customization")
@@ -410,7 +529,7 @@ assert first.read_bytes()==b'concurrent user edit'
     def test_uninstall_conflicts_preflight_before_plane_mutation(self):
         self.wire()
         self.write(self.megai / "lib/plane_mcp.sh", '#!/bin/sh\necho mutated >"$HOME/plane-mutated"\n')
-        skill = self.home / ".agents/skills/megai/SKILL.md"
+        skill = self.home / ".pi/agent/skills/megai/SKILL.md"
         original = skill.read_text()
         skill.write_text(original + "custom rule")
         before = self.snapshot()
@@ -431,9 +550,9 @@ assert first.read_bytes()==b'concurrent user edit'
             if not (self.bin / name).exists():
                 (self.bin / name).symlink_to(shutil.which(name))
         env = dict(self.env, PATH=str(self.bin))
-        ui = self.write(self.megai / "ux-ui-agent-skills/package.json", '{}')
-        self.write(self.megai / "ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md", 'fixture')
-        matt = self.write(self.megai / "mattpocock-skills/skills/example/SKILL.md", 'fixture')
+        ui = self.write(self.megai / "pi-kits/ux-ui-agent-skills/package.json", '{}')
+        self.write(self.megai / "pi-kits/ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md", 'fixture')
+        matt = self.write(self.megai / "pi-kits/mattpocock-skills/skills/example/SKILL.md", 'fixture')
         self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", env=env)
         for path in (self.bin / "codedb", self.bin / "rtk", self.bin / "agentmemory", ui, matt):
             hidden = path.with_name(path.name + ".hidden")

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# plugin87/ux-ui-agent-skills — global UI/UX skills for Claude Code, Codex, and Pi.
+# plugin87/ux-ui-agent-skills — Pi-only UI/UX skills.
 set -euo pipefail
 
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
-KIT_HOME="$MEGAI_HOME/ux-ui-agent-skills"
+KIT_HOME="$MEGAI_HOME/pi-kits/ux-ui-agent-skills"
 WRAPPERS="$KIT_HOME/.megai-skills"
 REPO="${UX_UI_AGENT_SKILLS_REPO:-plugin87/ux-ui-agent-skills}"
 REF="${UX_UI_AGENT_SKILLS_REF:-2ffb677aa02b225c8a3da1b7f31d9ebb7c38f1dd}"
@@ -21,17 +21,15 @@ resources=(
   CLAUDE.md CONTEXT.md accessibility components content design-systems examples
   frameworks scripts taste tokens workflows package.json
 )
-profile="${OMP_PROFILE:-${PI_PROFILE:-}}"
-case "$profile" in .|..|*/*|*\\*) die "invalid OMP profile" ;; esac
-omp_agent="$HOME/.omp/agent"
-[ -z "$profile" ] || omp_agent="$HOME/.omp/profiles/$profile/agent"
-roots=(
-  "$HOME/.agents/skills"
-  "$HOME/.claude/skills"
-  "$HOME/.codex/skills"
-  "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills"
-  "$omp_agent/skills"
-)
+roots=("${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills")
+PYTHONDONTWRITEBYTECODE=1 python3 - "$MEGAI_HOME" "$KIT_HOME" "${roots[0]}" <<'PY'
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(sys.argv[1]) / 'lib'))
+from slim_wiring import safe
+for path in sys.argv[2:]:
+    safe(Path(path) / '.preflight')
+PY
 
 exposed_name() {
   [ "$1" = "prototype" ] && printf '%s\n' ux-ui-prototype || printf '%s\n' "$1"
@@ -85,6 +83,7 @@ if [ -d "$KIT_HOME" ]; then
   recovery="$(mktemp -d "$MEGAI_HOME/backups/ux-ui-source.XXXXXX")"
   mv "$KIT_HOME" "$recovery/source"
 fi
+mkdir -p "$(dirname "$KIT_HOME")"
 mv "$tmp" "$KIT_HOME"
 trap - EXIT
 
@@ -114,7 +113,7 @@ for root in "${roots[@]}"; do
     if [ -L "$dest" ]; then
       target="$(readlink "$dest")"
       case "$target" in
-      "$WRAPPERS"/*) rm -f "$dest" ;;
+      "$WRAPPERS/$name"|"$MEGAI_HOME/ux-ui-agent-skills/.megai-skills/$name") rm -f "$dest" ;;
       *)
         warn "Keeping existing skill link: $dest"
         continue
@@ -132,4 +131,4 @@ done
 version="$(jq -r '.version // "unknown"' "$KIT_HOME/package.json" 2>/dev/null || echo unknown)"
 metadata="$(jq -n --arg path "$KIT_HOME" --arg version "$version" --argjson skills "${#skills[@]}" '{path:$path,version:$version,skills:$skills}')"
 state_set '.tools["ux-ui-agent-skills"]' "$metadata"
-ok "ux-ui-agent-skills v$version installed globally (${#skills[@]} skills; prototype exposed as ux-ui-prototype)"
+ok "ux-ui-agent-skills v$version installed for Pi (${#skills[@]} skills; prototype exposed as ux-ui-prototype)"

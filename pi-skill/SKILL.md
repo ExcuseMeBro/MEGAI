@@ -32,7 +32,7 @@ For task-changed Python files, run Ruff by default: `ruff check --no-fix --no-fi
 
 ## RTK by default; raw acceptance evidence
 
-For supported discovery output, prefer `rtk git status`, `rtk git log -5`, and `rtk ls` over their verbose equivalents. This is the default agent command policy across harnesses, not shell-wide interception or a tool-call rewrite hook. Unsupported commands, scripts, shell pipelines and quoted/compound commands remain native; do not rewrite their semantics to use RTK.
+For supported discovery output, prefer `rtk git status`, `rtk git log -5`, and `rtk ls` over their verbose equivalents. This is Pi's default agent command policy, not shell-wide interception or a tool-call rewrite hook. Unsupported commands, scripts, shell pipelines and quoted/compound commands remain native; do not rewrite their semantics to use RTK.
 
 Run repository tests, lint, typecheck and build commands exactly as specified, with raw output and their original exit status. Inspect full native `git diff` for review. Never accept a task from an RTK summary alone; capture the raw failure from the original run rather than automatically rerunning a potentially mutating command. Use compression only when it cannot conceal acceptance evidence. Fewer output characters or installed tools alone do not establish better speed or code quality.
 

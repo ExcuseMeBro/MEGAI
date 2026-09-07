@@ -10,10 +10,10 @@ usage() {
   cat <<'EOF'
 megai slim
   megai                         Check installed policy and worktree safety
-  cc | codex | pi | omp [args]   Launch without daemon/index preparation
+  pi [args]                    Launch Pi without daemon/index preparation
   install | update              Install/reuse slim tools and default Caveman core
   status | doctor               Report core availability (no service startup)
-  wire cc|codex|pi|omp|path      Repair managed wiring; conflicts fail safely
+  wire pi|path                 Repair Pi wiring; conflicts fail safely
   start | stop [agent-memory]   Explicit memory daemon lifecycle
   logs [agent-memory]           Follow memory log
   reindex                       Explicit local zvec index/rebuild
@@ -34,15 +34,15 @@ EOF
 
 cmd_wire() {
   case "${1:-}" in
-    cc|codex|pi|omp|path) bash "$LIB/wire_$1.sh" ;;
-    *) die "wire expects cc, codex, pi, omp, or path" ;;
+    pi|path) bash "$LIB/wire_$1.sh" ;;
+    *) die "slim supports only Pi; wire expects pi or path" ;;
   esac
 }
 
 prepare_core() {
   # Check rather than rewriting global config on every launch. No Plane API call:
   # the parent agent owns its task boundary, not this shell launcher.
-  python3 "$LIB/slim_wiring.py" all --verify
+  python3 "$LIB/slim_wiring.py" pi --verify
   bash "$LIB/ensure_dev.sh" --launch
   ok "slim ready — memory/indexing start only on explicit request"
 }
@@ -55,32 +55,21 @@ launch_agent() {
   exec "$bin" "$@"
 }
 
-cmd_omp() {
-  local profile="${OMP_PROFILE:-${PI_PROFILE:-}}" expect=0 arg
-  for arg in "$@"; do
-    if [ "$expect" = 1 ]; then profile="$arg"; expect=0; continue; fi
-    case "$arg" in --profile) expect=1 ;; --profile=*) profile="${arg#--profile=}" ;; esac
-  done
-  [ "$expect" = 0 ] || die "--profile needs a value"
-  export OMP_PROFILE="$profile"
-  launch_agent omp omp "$@"
-}
-
 cmd_status() {
   local tool
   for tool in codedb zg rtk ruff agentmemory git rg; do
     if command -v "$tool" >/dev/null 2>&1; then ok "$tool -> $(command -v "$tool")"; else warn "$tool missing"; fi
   done
-  echo "Memory daemon and zvec indexes are explicit/on demand. Plane: megai plane status --client all"
+  echo "Memory daemon and zvec indexes are explicit/on demand. Plane: megai plane status --client pi"
 }
 
 cmd_doctor() {
   cmd_status
-  python3 "$LIB/slim_wiring.py" all --verify
+  python3 "$LIB/slim_wiring.py" pi --verify
   local tool
   for tool in python3 node jq git rg codedb zg rtk ruff agentmemory; do command -v "$tool" >/dev/null 2>&1 || die "$tool required"; done
-  [ -f "$MEGAI_HOME/ux-ui-agent-skills/package.json" ] && [ -f "$MEGAI_HOME/ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md" ] || die "UX/UI kit is incomplete; run megai install"
-  [ -d "$MEGAI_HOME/mattpocock-skills/skills" ] && find "$MEGAI_HOME/mattpocock-skills/skills" -type f -name SKILL.md -print -quit | grep -q . || die "Matt skill kit is incomplete; run megai install"
+  [ -f "$MEGAI_HOME/pi-kits/ux-ui-agent-skills/package.json" ] && [ -f "$MEGAI_HOME/pi-kits/ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md" ] || die "UX/UI kit is incomplete; run megai install"
+  [ -d "$MEGAI_HOME/pi-kits/mattpocock-skills/skills" ] && find "$MEGAI_HOME/pi-kits/mattpocock-skills/skills" -type f -name SKILL.md -print -quit | grep -q . || die "Matt skill kit is incomplete; run megai install"
   local ruff_version
   ruff_version="$(ruff --version)" || die "Ruff version check failed"
   [[ "$ruff_version" == ruff\ * ]] || die "Ruff returned invalid version output"
@@ -153,17 +142,15 @@ cmd_uninstall() {
   read -r answer
   [ "$answer" = y ] || return 0
   # Refuse skill, policy and shell-rc conflicts before changing the connector.
-  python3 "$LIB/slim_wiring.py" all --remove --check
-  bash "$LIB/plane_mcp.sh" remove --client all || die "Plane removal failed; assets preserved"
-  python3 "$LIB/slim_wiring.py" all --remove || die "Slim removal failed; recovery manifests and Plane restore backups retained. Reconcile, then use megai plane restore --client all if needed."
+  python3 "$LIB/slim_wiring.py" pi --remove --check
+  bash "$LIB/plane_mcp.sh" remove --client pi || die "Plane removal failed; assets preserved"
+  python3 "$LIB/slim_wiring.py" pi --remove || die "Slim removal failed; recovery manifests and Plane restore backups retained. Reconcile, then use megai plane restore --client pi if needed."
   ok "slim wiring detached; tools, skill kits, backups and project data retained"
 }
 
 case "${1:-__project__}" in
-  cc) shift; launch_agent cc claude "$@" ;;
-  codex) shift; launch_agent codex codex "$@" ;;
   pi) shift; launch_agent pi pi "$@" ;;
-  omp) shift; cmd_omp "$@" ;;
+  cc|codex|omp) die "slim is Pi-only; launch other harnesses directly with their own configuration" ;;
   install) bash "$LIB/main.sh" ;;
   update) MEGAI_UPDATE=1 bash "$LIB/main.sh" ;;
   wire) shift; cmd_wire "$@" ;;
