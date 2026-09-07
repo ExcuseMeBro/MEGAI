@@ -15,7 +15,18 @@ The parent coordinates Plane and `.todos/` for every requested project file/code
 - Do not guess when workspace or project matching is ambiguous.
 - Start work only after one Plane mutation leaves the work item in a started `In Progress` state.
 - Finish agent work at Plane `In Review`; only the user may move it to `Done`.
-- Repository delivery follows its worktree policy when required. Main promotion requires separate explicit user approval.
+- Every tracked MEGAI task must pass the mandatory delivery gate before Plane handoff. Main promotion remains a separate explicit user approval.
+
+## Mandatory delivery gate
+
+After verification and self-review, complete this gate for every tracked MEGAI task:
+
+1. Inventory only the workers, registered worktrees, local task branches, and Paseo workspaces owned by the current task. For each worker record its Paseo workspace ID, worktree, branch, and reported committed tip; prove the branch tip exactly matches that tip and the worktree is clean. Preserve `dev`, `main`, the primary and orchestrator workspaces, and unrelated work.
+2. Serially return to each current-task worker's registered worktree and run `megai finish --verified --target dev` once for every safely mergeable worker. `finish` handles one current worktree per invocation; repeat it serially until all safely mergeable current-task branches have been merged into `dev` and pushed. The first successful invocation creates or reuses the single `dev` → `main` PR/MR; later invocations reuse that same request. If any invocation exits nonzero, assume `dev` may have advanced, reconcile local/remote `dev`, the request, source worker, and inventory before retrying, and never archive that failure. Never use a global branch or sibling-worktree sweep.
+3. Confirm the pushed `dev` contains every recorded committed tip with an exact-tip-and-clean proof (the recorded tip is an ancestor of `origin/dev`, and each source was clean and unchanged at finish). Do not treat `finish`'s first PR lookup result as cardinality proof: perform a complete open-request lookup and confirm exactly one open `dev` → `main` PR/MR. Duplicate, missing, incomplete, or uncertain lookup blocks handoff. Then confirm every safely merged current-task worktree and local task branch was cleaned by `finish`, and archive each successfully merged task workspace only after cleanup succeeds.
+4. Pass the final current-task inventory gate: all task workers are accounted for—every safely merged worker is gone and archived, no safely merged current-task worker worktree or local task branch remains, and every corresponding Paseo archive succeeded. Any dirty, unmerged, failed, or ambiguous worker remains preserved and makes the gate fail. An orphan task-local branch may be cleaned only with explicit current-task ownership, merged-tip ancestry proof, and non-force `git branch -d` deletion; otherwise preserve it. Missing push, PR, cleanup, or Paseo archive blocks In Review. Report preserved exceptions; never handoff with them. Never sweep branches or worktrees.
+
+Only after all four checks pass may the parent move the Plane work item to started `In Review`; leave it incomplete. Main promotion is never part of this gate.
 
 ## Project setup
 
@@ -54,13 +65,13 @@ At each boundary, mutate Plane first and then move the `.todos` line. Stop and r
 
 ## Work cycle
 
-1. Use the bounded execution contract: inspect the exact seam, implement the smallest complete change, self-review, run focused tests, then stop or ship when required.
+1. Use the bounded execution contract: inspect the exact seam, implement the smallest complete change, self-review, run focused tests, then run the mandatory delivery gate.
 2. Start boundary: follow the project, state and identity gates above. Reuse a linked pair directly; update an existing item with the resolved `In Progress` UUID once. For an approved new item, creation in that state is the start boundary, not a second update. Inspect the returned state and stop on failure or mismatch. Resolve an uncertain mutation before retrying.
 3. Add the identity pair and historical marker to the `.todos` line and move it to `inprogress.md` at 📝 spec.
 4. Cover bookkeeping stages in the same bounded implementation pass. UI verification is code-only unless explicitly requested.
 5. Routine stage changes and milestone comments are forbidden. Do not dual-sync another tracker.
-6. When required, run `megai finish --verified --target dev` and preserve the one promotion request policy.
-7. Handoff boundary: after verification and required delivery succeed, move the Plane work item to started `In Review`; keep its linked line unchecked in `inprogress.md`, labelled 🔍 In Review. Only after observing the user's Done transition may reconciliation move the line to `done.md`.
+6. Run the mandatory delivery gate above, repeating verified `finish` serially for every current-task worker and passing its final inventory gate.
+7. Handoff boundary: after verification and mandatory delivery succeed, move the Plane work item to started `In Review`; keep its linked line unchecked in `inprogress.md`, labelled 🔍 In Review. Only after observing the user's Done transition may reconciliation move the line to `done.md`.
 8. Ask whether to promote `dev` to `main`; run promotion only after an explicit affirmative answer.
 9. Stop after the current requested task; never auto-drain the queue or launch `/loop`.
 

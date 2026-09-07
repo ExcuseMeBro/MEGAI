@@ -43,7 +43,33 @@ grep -Fq 'Missing, duplicate, wrong-group, failed or incomplete responses block 
 ! grep -q 'when the API permits' "$skill"
 ! grep -q 'before final completion' "$skill"
 grep -q 'megai finish --verified --target dev' "$skill"
+grep -Fq 'mandatory delivery gate before Plane handoff' "$skill"
+grep -Fq 'Serially return to each current-task worker' "$skill"
+grep -Fq '`finish` handles one current worktree per invocation' "$skill"
+grep -Fq 'final current-task inventory gate' "$skill"
+grep -Fq 'all task workers are accounted for' "$skill"
+grep -Fq 'Missing push, PR, cleanup, or Paseo archive blocks In Review' "$skill"
+grep -Fq 'Preserve `dev`, `main`, the primary and orchestrator workspaces, and unrelated work' "$skill"
+grep -Fq 'reported committed tip' "$skill"
+grep -Fq 'exact-tip-and-clean proof' "$skill"
+grep -Fq "first PR lookup result as cardinality proof" "$skill"
+grep -Fq 'complete open-request lookup' "$skill"
+grep -Fq 'nonzero' "$skill"
+grep -Fq 'reconcile local/remote `dev`' "$skill"
+grep -Fq 'orphan task-local branch' "$skill"
+grep -Fq 'non-force `git branch -d` deletion' "$skill"
+! grep -Fq 'ship when required' "$skill"
 [ -f "$PI_CODING_AGENT_DIR/skills/agent-worktree-lifecycle/SKILL.md" ]
+lifecycle="$PI_CODING_AGENT_DIR/skills/agent-worktree-lifecycle/SKILL.md"
+grep -Fq 'repeat the verified finish serially for every current-task worker' "$lifecycle"
+grep -Fq 'final current-task inventory gate' "$lifecycle"
+grep -Fq 'account for all task workers' "$lifecycle"
+grep -Fq 'Archive each successfully merged task workspace only after cleanup' "$lifecycle"
+grep -Fq "first-result lookup—to confirm exactly one open" "$lifecycle"
+grep -Fq 'recorded tip is an ancestor of pushed `origin/dev`' "$lifecycle"
+grep -Fq 'explicit current-task ownership' "$lifecycle"
+grep -Fq 'non-force `git branch -d` deletion' "$lifecycle"
+
 
 # Reinstall must replace an older managed policy block instead of leaving stale rules.
 mkdir -p "$HOME/.claude"
@@ -94,6 +120,8 @@ user-owned delegation policy
 MD
 bash "$MEGAI_HOME/lib/wire_pi.sh" >/dev/null 2>&1
  grep -q 'Plane start boundary' "$PI_CODING_AGENT_DIR/AGENTS.md"
+grep -Fq 'mandatory delivery gate' "$PI_CODING_AGENT_DIR/AGENTS.md"
+grep -Fq 'final current-task inventory gate' "$PI_CODING_AGENT_DIR/AGENTS.md"
 grep -Fxq '## Paseo-visible delegation' "$PI_CODING_AGENT_DIR/AGENTS.md"
 grep -Fxq 'user-owned delegation policy' "$PI_CODING_AGENT_DIR/AGENTS.md"
 
