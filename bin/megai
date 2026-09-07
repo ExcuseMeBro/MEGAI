@@ -52,7 +52,7 @@ Commands:
   version               Print version
   help                  This message
 
-Tools: agent-memory, codedb, zvec-grep, caveman, rtk, graphify, ux-ui-agent-skills, dembrandt, argent, numasec, ruff, mattpocock-skills
+Tools: agent-memory, codedb, zvec-grep, caveman, rtk, graphify, ux-ui-agent-skills, argent, numasec, ruff, mattpocock-skills
 EOF
 }
 
@@ -63,7 +63,7 @@ cmd_install() {
 cmd_status() {
   detect_os; detect_runtimes; state_init
   printf "%-14s %-10s %-8s %s\n" TOOL VERSION PORT STATUS
-  for t in agent-memory codedb zvec-grep caveman rtk graphify dembrandt argent numasec ruff; do
+  for t in agent-memory codedb zvec-grep caveman rtk graphify argent numasec ruff; do
     local ver port stat bin
     ver=$(state_get ".tools[\"$t\"].version") || ver=""
     port=$(state_get ".tools[\"$t\"].port")   || port=""
@@ -133,7 +133,6 @@ cmd_doctor() {
   else
     skip "ux-ui-agent-skills missing or incomplete"
   fi
-  if command -v dembrandt   >/dev/null 2>&1; then ok "dembrandt CLI present";    else skip "dembrandt missing"; fi
   if command -v argent      >/dev/null 2>&1; then ok "Argent CLI present";       else skip "Argent missing"; fi
   if command -v numasec     >/dev/null 2>&1; then
     ok "Numasec CLI present"
@@ -175,7 +174,6 @@ cmd_update() {
   bash "$LIB/install_taskflow.sh"           || true
   bash "$LIB/install_worktree_lifecycle.sh" || true
   bash "$LIB/install_ux_ui_agent_skills.sh"  || true
-  MEGAI_UPDATE=1 bash "$LIB/install_dembrandt.sh" || true
   MEGAI_UPDATE=1 bash "$LIB/install_argent.sh"  || true
   MEGAI_UPDATE=1 bash "$LIB/install_numasec.sh" || true
   MEGAI_UPDATE=1 bash "$LIB/install_ruff.sh"    || true
@@ -668,10 +666,6 @@ ${C_GRN}Knowledge graph${C_OFF}  (graphify)
   megai graph              # build graph of this folder -> graphify-out/
   megai graph ./docs       # graph a sub-tree
   # inside cc/codex: /graphify .  /graphify query "<q>"
-
-${C_GRN}Design extraction${C_OFF}  (Dembrandt)
-  dembrandt example.com --design-md
-  # specialist CLI: starts only when requested
 
 ${C_GRN}App testing${C_OFF}  (Argent)
   argent tools              # list device/browser testing tools

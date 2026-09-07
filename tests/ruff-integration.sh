@@ -299,14 +299,14 @@ grep -Fq 'ruff_rc' "$ROOT/bin/megai"
 # installer never invokes uv tool upgrade / pipx upgrade.
 ! grep -Eq 'uv tool upgrade ruff|pipx upgrade ruff' "$ROOT/lib/install_ruff.sh"
 
-# ---- 14. lib/main.sh has step 16 for Ruff ----
-grep -Fq 'TOTAL=16' "$ROOT/lib/main.sh"
+# ---- 14. lib/main.sh has step 15 for Ruff ----
+grep -Fq 'TOTAL=15' "$ROOT/lib/main.sh"
 grep -Fq 'install_ruff.sh' "$ROOT/lib/main.sh"
-grep -Fq 'step 16 $TOTAL "Installing Ruff' "$ROOT/lib/main.sh"
+grep -Fq 'step 15 $TOTAL "Installing Ruff' "$ROOT/lib/main.sh"
 
 # ---- 15. README.md mentions Ruff in the stack table and updated step count ----
 grep -Fq '| 🐍 | [Ruff]' "$ROOT/README.md"
-grep -Fq '16-step pipeline' "$ROOT/README.md"
+grep -Fq '15-step pipeline' "$ROOT/README.md"
 grep -Fq '`uv tool install ruff`' "$ROOT/README.md"
 grep -Fq 'ruff check --no-fix --no-fix-only --force-exclude --no-cache' "$ROOT/README.md"
 

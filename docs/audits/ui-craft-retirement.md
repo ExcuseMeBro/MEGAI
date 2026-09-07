@@ -1,6 +1,6 @@
 # ui-craft retirement
 
-ui-craft is no longer a MEGAI dependency. Its installer and active install/update/status/doctor/uninstall dispatch are removed. ui-craft removal reduced the pipeline by one step; subsequent RepoWise retirement leaves 16 steps. Ruff and unrelated UX/UI skills remain. Existing `.ui-craft/` design notes stay retained and gitignored.
+ui-craft is no longer a MEGAI dependency. Its installer and active install/update/status/doctor/uninstall dispatch are removed. ui-craft removal reduced the pipeline by one step. Ruff and unrelated UX/UI skills remain. Existing `.ui-craft/` design notes stay retained and gitignored.
 
 ## Local removal and preservation
 

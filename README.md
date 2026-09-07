@@ -133,7 +133,6 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🧭 | smart-development-orchestrator | GPT writer routing, MiniMax read-only discovery, Paseo worktree delivery | Global skill + OMP agents |
 | ⚙️ | GPT-core + MiniMax-discovery routing | GPT owns every write; MiniMax only searches, reads, and finds code | OMP roles + managed agents |
 | 🖌️ | [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | 17 UI/UX skills, WCAG references, tokens, components, adapters | Global skills |
-| 🌐 | [Dembrandt](https://github.com/dembrandt/dembrandt) | Extract design tokens, typography, palette, brand, and WCAG data from websites | On-demand CLI |
 | 🧪 | [Argent](https://github.com/software-mansion/argent) | Explicit `/argent` mobile, TV, Electron, and Chromium review | Slash command + on-demand CLI |
 | 🛡️ | [Numasec](https://github.com/FrancescoStabile/numasec) | Authorized AppSec/pentest operations, evidence, replay, and reports | CLI + global handoff skill |
 | 🐍 | [Ruff](https://docs.astral.sh/ruff/) | Extremely fast Python linter and formatter | Reused on PATH or installed via `uv tool` / `pipx` |
@@ -149,7 +148,7 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 MEGAI configures:
 
 - lean default MCP surface in `~/.claude.json`: `agentmemory` and `codedb`
-- Dembrandt and Argent CLIs available on demand
+- Argent CLI available on demand
 - `rtk` `PreToolUse` hook
 - graphify skills; Caveman only when explicitly installed
 - task-flow skill, hooks, commands, monitoring, optional statusline, and safe `dev` merge/worktree cleanup policy
@@ -162,7 +161,7 @@ Existing MCP servers, hooks, and statusline settings are preserved.
 MEGAI configures:
 
 - a lean, marked MCP block in `~/.codex/config.toml` with `agentmemory` and `codedb`
-- Dembrandt and Argent CLIs available on demand
+- Argent CLI available on demand
 - graphify, Matt Pocock, UX/UI, and safe worktree-lifecycle skills; Caveman is optional
 
 Only MEGAI-owned MCP tables are replaced or removed; unrelated Codex configuration remains intact.
@@ -175,7 +174,7 @@ MEGAI configures:
 - Plane-aware task-flow and safe worktree-lifecycle skills under `~/.pi/agent/skills/`
 - `megai-memory` and `megai-codedb` CLI bridges in `~/.megai/bin` (not shell files masquerading as Pi extensions)
 - a global `zvec_grep` MCP entry in `~/.pi/agent/mcp.json` for semantic and hybrid workspace retrieval
-- Dembrandt and Argent CLIs available on demand instead of permanent MCP entries
+- Argent CLI available on demand instead of a permanent MCP entry
 - global UX/UI, graphify, and Matt Pocock skills; redundant Caveman/Cavecrew and legacy OMP-routing skills excluded from global Pi discovery
 - the first authenticated model as the global default when no valid default exists
 
@@ -205,7 +204,7 @@ MEGAI configures:
 - OMP's native MiniMax catalog and provider-specific transport compatibility; MEGAI never rewrites user `models.yml`
 - preservation of unrelated OMP servers, model providers, allowlists, denylists, credentials, agents, and user settings
 - hybrid Paseo placement: each writer receives a managed worktree from `dev`, then is archived after verified dev merge/push, one open promotion request, and worktree cleanup
-- Dembrandt, Argent, Numasec, and global skills through OMP's existing CLI and skill discovery surfaces
+- Argent, Numasec, and global skills through OMP's existing CLI and skill discovery surfaces
 
 OMP provider authentication remains in OMP's own credential store; MEGAI never writes provider credentials.
 
@@ -370,14 +369,9 @@ It includes:
 
 The upstream `prototype` name overlaps Matt Pocock's engineering skill, so the UI/UX version is exposed as `/ux-ui-prototype`.
 
-### 🌐 Dembrandt
+### Retired: Dembrandt
 
-```bash
-dembrandt example.com --design-md
-dembrandt example.com --wcag --save-output
-```
-
-Dembrandt can extract palettes, typography, spacing, brand identity, tokens, and accessibility findings from live sites.
+MEGAI no longer installs, updates or recommends Dembrandt. Existing design outputs and shared browser caches are preserved. Only stale MEGAI-owned MCP registrations are cleaned up; user-owned entries remain. See [retirement verification and rollback](docs/audits/dembrandt-retirement.md).
 
 ---
 
@@ -521,7 +515,7 @@ The user-approved local profile removes native pi-subagents from startup, select
                                │
                     ┌──────────▼──────────┐
                     │  ~/.megai/lib/main  │
-                    │  16-step pipeline   │
+                    │  15-step pipeline   │
                     └──────────┬──────────┘
                                │
           ┌────────────────────┼────────────────────┐

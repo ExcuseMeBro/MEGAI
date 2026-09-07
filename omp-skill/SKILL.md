@@ -43,7 +43,6 @@ Inspect with direct tools or MiniMax read-only discovery, then GPT implements, s
 
 ## Specialist CLIs
 
-- `dembrandt` — website design extraction.
 - `argent` — explicit `/argent` app/device review only; never automatic.
 - `numasec` — authorized security work only.
 
