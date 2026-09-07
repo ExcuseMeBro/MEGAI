@@ -21,20 +21,25 @@ bash "$MEGAI_HOME/lib/wire_pi.sh" >/dev/null 2>&1
 skill="$PI_CODING_AGENT_DIR/skills/megai-task-flow/SKILL.md"
 [ -f "$skill" ]
 grep -q '^name: megai-task-flow$' "$skill"
-grep -q '<!-- asana:121234567890 -->' "$skill"
-grep -q 'Never create a second task while a linked GID exists' "$skill"
-grep -q 'Boundary-only Asana sync' "$skill"
-grep -q 'Do not mirror individual ADLC stages to Asana' "$skill"
+grep -q 'plane:project-uuid/workitem-uuid' "$skill"
+grep -q 'Never create a second work item while a linked identity pair exists' "$skill"
+grep -q 'Boundary-only Plane sync' "$skill"
+grep -q 'Do not mirror individual ADLC stages to Plane' "$skill"
+grep -q 'external_source=asana-migration-v1' "$skill"
 grep -q 'Routine stage changes and milestone comments are forbidden' "$skill"
-grep -q '| Active from spec through ship | `inprogress.md` | `In Progress` | `false` |' "$skill"
-grep -Fq '| Verified; awaiting user review | `inprogress.md` (unchecked, 🔍 In Review) | `In Review` | `false` |' "$skill"
-grep -Fq '| User marked Done | `done.md` | `Done` | `true` |' "$skill"
-grep -Fq 'agents never set `completed=true`' "$skill"
+grep -q '| Active from spec through ship | `inprogress.md` | started: `In Progress` | start boundary only |' "$skill"
+grep -Fq '| Verified; awaiting user review | `inprogress.md` (unchecked, 🔍 In Review) | started: `In Review` | handoff boundary |' "$skill"
+grep -Fq '| User marks Done; reconcile | `done.md` | completed state | user only |' "$skill"
+grep -Fq 'Do not invent or synchronize a completion boolean' "$skill"
 grep -Fq 'A task already active in this session needs no repeated start mutation' "$skill"
 grep -Fq 'Delegated children inherit' "$skill"
 grep -Fq 'Never create a project implicitly' "$skill"
 ! grep -Fq 'Bounded fast-path changes do not enter this protocol' "$skill"
-grep -q 'Put it in `In Progress` with `completed=false` in one mutation' "$skill"
+grep -Fq 'update an existing item with the resolved `In Progress` UUID once' "$skill"
+grep -Fq 'each with `group=started`; retain their UUIDs' "$skill"
+grep -Fq 'compare that clean title to each exact `name`' "$skill"
+grep -Fq 'creation in that state is the start boundary, not a second update' "$skill"
+grep -Fq 'Missing, duplicate, wrong-group, failed or incomplete responses block work' "$skill"
 ! grep -q 'when the API permits' "$skill"
 ! grep -q 'before final completion' "$skill"
 grep -q 'megai finish --verified --target dev' "$skill"
@@ -56,10 +61,10 @@ MD
 printf '%s\n' '{}' >"$HOME/.claude/settings.json"
 bash "$MEGAI_HOME/lib/install_taskflow.sh" >/dev/null 2>&1
 bash "$MEGAI_HOME/lib/install_taskflow.sh" >/dev/null 2>&1
-grep -q 'Risk-scaled Asana sync' "$HOME/.claude/CLAUDE.md"
+grep -q 'Risk-scaled Plane sync' "$HOME/.claude/CLAUDE.md"
 grep -q 'Default fast path' "$HOME/.claude/CLAUDE.md"
 grep -q 'implement → self-review → focused test → ship' "$HOME/.claude/CLAUDE.md"
-grep -q 'Never discover or sync Plane, Jira' "$HOME/.claude/CLAUDE.md"
+grep -q 'There is no fallback or routine dual-sync to another tracker' "$HOME/.claude/CLAUDE.md"
 grep -q 'Parallel implementation invariant' "$HOME/.claude/CLAUDE.md"
 grep -q 'visible managed worktree workspace' "$HOME/.claude/CLAUDE.md"
 grep -q 'launched with that `workspaceId`' "$HOME/.claude/CLAUDE.md"
@@ -79,4 +84,33 @@ bash "$MEGAI_HOME/lib/wire_pi.sh" --remove >/dev/null 2>&1
 [ ! -e "$PI_CODING_AGENT_DIR/skills/megai-task-flow" ]
 [ ! -e "$PI_CODING_AGENT_DIR/skills/agent-worktree-lifecycle" ]
 
-echo "Pi task-flow wiring: ok"
+# Pi policy replaces only its owned heading and preserves the next heading verbatim.
+cat >"$PI_CODING_AGENT_DIR/AGENTS.md" <<'MD'
+intro
+## MEGAI task flow
+legacy policy
+## Paseo-visible delegation
+user-owned delegation policy
+MD
+bash "$MEGAI_HOME/lib/wire_pi.sh" >/dev/null 2>&1
+ grep -q 'Plane start boundary' "$PI_CODING_AGENT_DIR/AGENTS.md"
+grep -Fxq '## Paseo-visible delegation' "$PI_CODING_AGENT_DIR/AGENTS.md"
+grep -Fxq 'user-owned delegation policy' "$PI_CODING_AGENT_DIR/AGENTS.md"
+
+# Codex policy replaces the exact legacy marker block and honors CODEX_HOME.
+export CODEX_HOME="$TMP/custom-codex"
+mkdir -p "$CODEX_HOME"
+cat >"$CODEX_HOME/AGENTS.md" <<'MD'
+user preface
+<!-- asana-workflow:begin -->
+legacy Asana instructions
+<!-- asana-workflow:end -->
+user suffix
+MD
+bash "$MEGAI_HOME/lib/wire_codex.sh" >/dev/null 2>&1
+grep -q '<!-- plane-workflow:begin -->' "$CODEX_HOME/AGENTS.md"
+! grep -q 'asana-workflow\|legacy Asana' "$CODEX_HOME/AGENTS.md"
+grep -Fxq 'user preface' "$CODEX_HOME/AGENTS.md"
+grep -Fxq 'user suffix' "$CODEX_HOME/AGENTS.md"
+
+echo "Pi/Codex task-flow wiring: ok"

@@ -8,15 +8,27 @@ MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 # shellcheck source=state.sh
 . "$MEGAI_HOME/lib/state.sh"
 
-CX_DIR="$HOME/.codex"
+CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
+CX_DIR="$CODEX_HOME"
 CX_FILE="$CX_DIR/config.toml"
+TASK_FLOW_CODEX_SNIPPET="$MEGAI_HOME/task-flow/CODEX.snippet.md"
+TASK_FLOW_POLICY_INSTALLER="$MEGAI_HOME/lib/install_taskflow_policy.py"
 MODE="${1:-install}"
 MARK_BEG="# >>> megai-managed (do not edit) >>>"
 MARK_END="# <<< megai-managed <<<"
 
 mkdir -p "$CX_DIR"
+if [ -L "$CX_FILE" ]; then
+  die "refusing symlinked Codex config: $CX_FILE"
+fi
+if [ -e "$CX_FILE" ] && [ ! -f "$CX_FILE" ]; then
+  die "Codex config is not a regular file: $CX_FILE"
+fi
 [ -f "$CX_FILE" ] || : >"$CX_FILE"
-
+if [ -f "$TASK_FLOW_CODEX_SNIPPET" ] && [ -f "$TASK_FLOW_POLICY_INSTALLER" ]; then
+  python3 "$TASK_FLOW_POLICY_INSTALLER" codex "$CX_DIR/AGENTS.md" \
+    "$TASK_FLOW_CODEX_SNIPPET" "$MEGAI_HOME/backups"
+fi
 # backup
 mkdir -p "$MEGAI_HOME/backups"
 backup="$(mktemp "$MEGAI_HOME/backups/codex.config.toml.bak.XXXXXX")"

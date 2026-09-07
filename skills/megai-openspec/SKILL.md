@@ -1,6 +1,6 @@
 ---
 name: megai-openspec
-description: Parent-owned OpenSpec workflow for multi-module features, public API or data migrations, and explicit spec requests. Keep small known-seam fixes on the normal fast path; preserve Asana and test gates.
+description: Parent-owned OpenSpec workflow for multi-module features, public API or data migrations, and explicit spec requests. Keep small known-seam fixes on the normal fast path; preserve Plane and test gates.
 ---
 
 # Selective OpenSpec for MEGAI
@@ -15,11 +15,11 @@ OpenSpec is a requirements layer, not another orchestrator or a test runner. App
 
 ## Parent boundary and identity
 
-Complete the existing `megai-task-flow` start boundary before any project writes, including `openspec init` and `new change`. Reuse the linked Asana GID; children never mutate Asana or `.todos`.
+Complete the existing `megai-task-flow` start boundary before any project writes, including `openspec init` and `new change`. Reuse the linked Plane project/work-item UUID pair; children never mutate Plane or `.todos`.
 
-- Asana owns coordination/status. `.todos` holds one linked summary plus the change-directory path.
-- OpenSpec owns requirements/design and the single detailed implementation checklist, `tasks.md`. Do not mirror individual tasks into Asana or `.todos`.
-- Record the Asana GID in `proposal.md`; retain the change path in the task handoff. On resume read the linked change, not every spec or the entire chat.
+- Plane owns coordination/status. `.todos` holds one linked summary plus the change-directory path.
+- OpenSpec owns requirements/design and the single detailed implementation checklist, `tasks.md`. Do not mirror individual tasks into Plane or `.todos`.
+- Record the Plane project/work-item UUID pair in `proposal.md`; retain any historical source marker as metadata. On resume read the linked change, not every spec or the entire chat.
 
 ## Prepare and agree
 
@@ -45,6 +45,6 @@ At handoff:
 
 ## Handoff, archive and stop
 
-Finish required dev delivery through the existing worktree lifecycle. Keep Asana `In Review`, `completed=false`, and the `.todos` line unchecked with its change link. Only the user may mark Asana Done. The OpenSpec change remains active while awaiting user review; neither archive nor a checked checklist authorizes Asana Done or main promotion.
+Finish required dev delivery through the existing worktree lifecycle. Keep the Plane work item in started `In Review` and the `.todos` line unchecked with its change link. Only the user may mark Plane work Done. The OpenSpec change remains active while awaiting user review; neither archive nor a checked checklist authorizes Done or main promotion.
 
 Archive only after explicit user approval of that change and passing verification. Before archiving, fetch current `instructions archive` and `instructions specs`; review the concrete delta paths and sync diff. Stop on errors, conflicts, unchecked tasks or missing evidence. Never use `--no-validate` or blanket force to bypass a gate. Archive is not a Git merge or a production release. Stop after the requested change.

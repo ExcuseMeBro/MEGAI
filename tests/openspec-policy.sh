@@ -10,12 +10,12 @@ skill = Path(sys.argv[1]).read_text()
 contracts = {
     'small-fix bypass': 'Do not initialize OpenSpec or generate artifacts for these tasks unless requested.',
     'one checklist': 'the single detailed implementation checklist, `tasks.md`',
-    'no tracker duplication': 'Do not mirror individual tasks into Asana or `.todos`.',
+    'no tracker duplication': 'Do not mirror individual tasks into Plane or `.todos`.',
     'version mismatch': 'On any version mismatch, stop and escalate to the parent before running the workflow',
     'real tests': "Run the task's actual regression tests and relevant diagnostics/build.",
-    'user-only Done': 'Only the user may mark Asana Done.',
+    'user-only Done': 'Only the user may mark Plane work Done.',
     'archive approval': 'Archive only after explicit user approval of that change and passing verification.',
-    'separate promotion': 'neither archive nor a checked checklist authorizes Asana Done or main promotion.',
+    'separate promotion': 'neither archive nor a checked checklist authorizes Done or main promotion.',
 }
 def missing(text):
     return [name for name, clause in contracts.items() if clause not in text]
