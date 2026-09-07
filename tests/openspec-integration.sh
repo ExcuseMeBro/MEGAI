@@ -1,99 +1,47 @@
 #!/usr/bin/env bash
+# Offline retirement: only registered owned links/state may be removed.
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="${MEGAI_TEST_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-REAL_NODE="$(command -v node)"
-REAL_JQ="$(command -v jq)"
-export HOME="$TMP/home"
-export MEGAI_HOME="$HOME/.megai"
+export HOME="$TMP/home" MEGAI_HOME="$TMP/megai" CALLS="$TMP/calls"
 export PI_CODING_AGENT_DIR="$HOME/.pi/agent"
-export MOCK_BIN="$TMP/bin"
-mkdir -p "$MOCK_BIN" "$MEGAI_HOME/skills" "$TMP/project/openspec"
-cp -R "$ROOT/lib" "$MEGAI_HOME/"
-cp -R "$ROOT/skills/megai-openspec" "$MEGAI_HOME/skills/"
-ln -s "$REAL_NODE" "$MOCK_BIN/node"
-ln -s "$REAL_JQ" "$MOCK_BIN/jq"
-# Exclude the user's real npm/openspec; this test is offline and isolated.
-export PATH="$MOCK_BIN:/usr/bin:/bin"
-cat >"$MOCK_BIN/npm" <<'NPM'
-#!/usr/bin/env bash
-set -euo pipefail
-printf '%s\n' "$*" >>"$HOME/npm.calls"
-cat >"$MOCK_BIN/openspec" <<'CLI'
-#!/usr/bin/env bash
-set -euo pipefail
-[ "${OPENSPEC_TELEMETRY:-}" = 0 ] || exit 70
-if [ "$*" = --version ]; then
-  printf '%s\n' "${MOCK_VERSION:-1.12.0}"
-elif [ "$*" = 'config set telemetry.enabled false' ]; then
-  printf 'disabled\n' >"$HOME/telemetry"
-else
-  echo "unexpected command: $*" >&2
-  exit 71
-fi
-CLI
-chmod +x "$MOCK_BIN/openspec"
-NPM
-chmod +x "$MOCK_BIN/npm"
-printf 'preserve\n' >"$TMP/project/openspec/spec.md"
+source_path="$MEGAI_HOME/skills/megai-openspec"
+current="$PI_CODING_AGENT_DIR/skills/megai-openspec"
+custom="$TMP/custom pi"$'\n'"profile/skills/megai-openspec"
+foreign="$TMP/foreign/megai-openspec"
+user="$TMP/user/megai-openspec"
+mkdir -p "$MEGAI_HOME/lib" "$(dirname "$current")" "$(dirname "$custom")" "$(dirname "$foreign")" "$user" "$TMP/bin" "$TMP/project/openspec"
+cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$ROOT/lib/slim_wiring.py" "$MEGAI_HOME/lib/"
+ln -s "$source_path" "$current" # dangling owned link: source already retired
+ln -s "$source_path" "$custom"
+ln -s "$TMP/foreign-missing" "$foreign"
+printf 'user skill\n' > "$user/SKILL.md"
+printf 'preserve spec\n' > "$TMP/project/openspec/spec.md"
+printf '#!/bin/sh\necho FORBIDDEN >> "$CALLS"\nexit 1\n' > "$TMP/bin/openspec"
+chmod +x "$TMP/bin/openspec"
+export PATH="$TMP/bin:$PATH"
+jq -n --arg current "$current" --arg custom "$custom" --arg foreign "$foreign" --arg user "$user" '{tools:{keep:{version:"1"},openspec:{destinations:[$current,$custom,$foreign,$user]}},privacy:{enabled:false}}' > "$MEGAI_HOME/state.json"
+: > "$CALLS"
 cd "$TMP/project"
-
-bash "$ROOT/lib/install_openspec.sh" >/dev/null
-bash "$ROOT/lib/install_openspec.sh" >/dev/null
-[ "$(wc -l <"$HOME/npm.calls" | tr -d ' ')" = 1 ]
-grep -Fxq 'install --global --ignore-scripts --no-audit --no-fund @fission-ai/openspec@1.12.0' "$HOME/npm.calls"
-[ "$(readlink "$PI_CODING_AGENT_DIR/skills/megai-openspec")" = "$MEGAI_HOME/skills/megai-openspec" ]
-grep -Fxq disabled "$HOME/telemetry"
-jq -e '.tools.openspec.version == "1.12.0" and .tools.openspec.scope == "pi" and .tools.openspec.optional == true' "$MEGAI_HOME/state.json" >/dev/null
-[ ! -e .pi ]
-[ ! -e openspec/config.yaml ]
-grep -Fxq preserve openspec/spec.md
-
-bash "$ROOT/lib/install_openspec.sh" --remove >/dev/null
-[ ! -L "$PI_CODING_AGENT_DIR/skills/megai-openspec" ]
-[ -x "$MOCK_BIN/openspec" ]
-grep -Fxq disabled "$HOME/telemetry"
-grep -Fxq preserve openspec/spec.md
-jq -e '.tools | has("openspec") | not' "$MEGAI_HOME/state.json" >/dev/null
-
-# Refuse mismatched CLIs rather than modifying a user's installation.
-if MOCK_VERSION=9.0.0 bash "$ROOT/lib/install_openspec.sh" >"$TMP/version.log" 2>&1; then exit 1; fi
-grep -q 'retained' "$TMP/version.log"
-[ ! -L "$PI_CODING_AGENT_DIR/skills/megai-openspec" ]
-[ "$(wc -l <"$HOME/npm.calls" | tr -d ' ')" = 1 ]
-
-# Preserve both user-authored directories and foreign/dangling links.
-mkdir -p "$PI_CODING_AGENT_DIR/skills/megai-openspec"
-printf 'user\n' >"$PI_CODING_AGENT_DIR/skills/megai-openspec/SKILL.md"
-if bash "$ROOT/lib/install_openspec.sh" >"$TMP/conflict.log" 2>&1; then exit 1; fi
-bash "$ROOT/lib/install_openspec.sh" --remove >/dev/null
-grep -Fxq user "$PI_CODING_AGENT_DIR/skills/megai-openspec/SKILL.md"
-rm "$PI_CODING_AGENT_DIR/skills/megai-openspec/SKILL.md"
-rmdir "$PI_CODING_AGENT_DIR/skills/megai-openspec"
-ln -s "$TMP/user-owned-missing" "$PI_CODING_AGENT_DIR/skills/megai-openspec"
-if bash "$ROOT/lib/install_openspec.sh" >"$TMP/link.log" 2>&1; then exit 1; fi
-bash "$ROOT/lib/install_openspec.sh" --remove >/dev/null
-[ "$(readlink "$PI_CODING_AGENT_DIR/skills/megai-openspec")" = "$TMP/user-owned-missing" ]
-
-# Track every managed Pi location, even when uninstall runs without the install-time override.
-rm "$PI_CODING_AGENT_DIR/skills/megai-openspec"  # test-owned foreign symlink
-bash "$ROOT/lib/install_openspec.sh" >/dev/null
-PI_CODING_AGENT_DIR="$TMP/custom pi" bash "$ROOT/lib/install_openspec.sh" >/dev/null
-[ -L "$TMP/custom pi/skills/megai-openspec" ]
-jq -e '.tools.openspec.destinations | length == 2' "$MEGAI_HOME/state.json" >/dev/null
-env -u PI_CODING_AGENT_DIR bash "$ROOT/lib/install_openspec.sh" --remove >/dev/null
-[ ! -L "$TMP/custom pi/skills/megai-openspec" ]
-[ ! -L "$PI_CODING_AGENT_DIR/skills/megai-openspec" ]
-jq -e '.tools | has("openspec") | not' "$MEGAI_HOME/state.json" >/dev/null
-
-# A recorded link replaced by its owner is not ours to remove anymore.
-PI_CODING_AGENT_DIR="$TMP/custom pi" bash "$ROOT/lib/install_openspec.sh" >/dev/null
-rm "$TMP/custom pi/skills/megai-openspec"
-ln -s "$TMP/replacement" "$TMP/custom pi/skills/megai-openspec"
-env -u PI_CODING_AGENT_DIR bash "$ROOT/lib/install_openspec.sh" --remove >/dev/null
-[ "$(readlink "$TMP/custom pi/skills/megai-openspec")" = "$TMP/replacement" ]
-
-grep -Fq 'install_openspec.sh" --remove' "$ROOT/bin/megai"
-! grep -Fq 'install_openspec.sh' "$ROOT/lib/main.sh"
-echo 'OpenSpec installer: install/repeat/privacy/preservation/version/remove checks passed'
+bash "$ROOT/lib/retire_openspec.sh" >/dev/null
+bash "$ROOT/lib/retire_openspec.sh" >/dev/null
+[ ! -L "$current" ] && [ ! -L "$custom" ]
+[ "$(readlink "$foreign")" = "$TMP/foreign-missing" ]
+[ "$(< "$user/SKILL.md")" = 'user skill' ]
+[ "$(< "$TMP/project/openspec/spec.md")" = 'preserve spec' ]
+[ -x "$TMP/bin/openspec" ] && [ ! -s "$CALLS" ]
+jq -e '.tools == {keep:{version:"1"}} and .privacy == {enabled:false}' "$MEGAI_HOME/state.json" >/dev/null
+# Invalid state must fail before unlinking even the current owned destination.
+ln -s "$source_path" "$current"
+for invalid in '' null '[]' '{} {}' '{broken'; do
+  printf '%s' "$invalid" > "$MEGAI_HOME/state.json"
+  if bash "$ROOT/lib/retire_openspec.sh" > "$TMP/invalid.log" 2>&1; then exit 1; fi
+  [ -L "$current" ]
+  [ "$(< "$MEGAI_HOME/state.json")" = "$invalid" ]
+done
+[ ! -f "$ROOT/lib/install_openspec.sh" ]
+[ ! -e "$ROOT/skills/megai-openspec" ]
+if grep -Fq 'install_openspec.sh' "$ROOT/bin/megai" "$ROOT/lib/main.sh"; then exit 1; fi
+for file in "$ROOT/bin/megai" "$ROOT/lib/main.sh"; do grep -Fq 'bash "$LIB/retire_openspec.sh"' "$file"; done
+echo 'OpenSpec retirement PASS: owned/custom/dangling links removed; foreign skills, specs, independent CLI and unrelated state preserved'

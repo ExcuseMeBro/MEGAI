@@ -6,7 +6,7 @@ MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 KIT_HOME="$MEGAI_HOME/ux-ui-agent-skills"
 WRAPPERS="$KIT_HOME/.megai-skills"
 REPO="${UX_UI_AGENT_SKILLS_REPO:-plugin87/ux-ui-agent-skills}"
-REF="${UX_UI_AGENT_SKILLS_REF:-main}"
+REF="${UX_UI_AGENT_SKILLS_REF:-2ffb677aa02b225c8a3da1b7f31d9ebb7c38f1dd}"
 # shellcheck source=ui.sh
 . "$MEGAI_HOME/lib/ui.sh"
 # shellcheck source=state.sh
@@ -21,11 +21,16 @@ resources=(
   CLAUDE.md CONTEXT.md accessibility components content design-systems examples
   frameworks scripts taste tokens workflows package.json
 )
+profile="${OMP_PROFILE:-${PI_PROFILE:-}}"
+case "$profile" in .|..|*/*|*\\*) die "invalid OMP profile" ;; esac
+omp_agent="$HOME/.omp/agent"
+[ -z "$profile" ] || omp_agent="$HOME/.omp/profiles/$profile/agent"
 roots=(
   "$HOME/.agents/skills"
   "$HOME/.claude/skills"
   "$HOME/.codex/skills"
   "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills"
+  "$omp_agent/skills"
 )
 
 exposed_name() {
@@ -49,12 +54,18 @@ remove_links() {
 
 if [ "${1:-}" = "--remove" ]; then
   remove_links
-  rm -rf "$KIT_HOME"
+  # Retain source/customized kit data; removal detaches only owned links.
   [ -f "$MEGAI_HOME/state.json" ] && state_set '.tools["ux-ui-agent-skills"]' null
   ok "ux-ui-agent-skills removed"
   exit 0
 fi
 
+if [ -L "$KIT_HOME" ] || { [ -e "$KIT_HOME" ] && [ ! -d "$KIT_HOME" ]; }; then
+  die "unsafe UX/UI kit destination: $KIT_HOME"
+fi
+if [ -d "$KIT_HOME" ] && [ "$(state_get '.tools["ux-ui-agent-skills"].path')" != "$KIT_HOME" ]; then
+  die "unowned UX/UI kit preserved: $KIT_HOME; reconcile before install"
+fi
 source_dir="${UX_UI_AGENT_SKILLS_SOURCE:-}"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
@@ -62,14 +73,18 @@ if [ -n "$source_dir" ]; then
   [ -d "$source_dir/.claude/skills" ] || die "Invalid ux-ui-agent-skills source: $source_dir"
   cp -R "$source_dir/." "$tmp/"
 else
-  curl -fsSL "https://codeload.github.com/${REPO}/tar.gz/refs/heads/${REF}" |
+  curl -fsSL "https://codeload.github.com/${REPO}/tar.gz/${REF}" |
     tar -xz -C "$tmp" --strip-components=1
 fi
 for skill in "${skills[@]}"; do
   [ -f "$tmp/.claude/skills/$skill/SKILL.md" ] || die "Downloaded ux-ui-agent-skills archive is missing: $skill"
 done
 [ -f "$tmp/package.json" ] || die "Downloaded ux-ui-agent-skills archive is missing package.json"
-rm -rf "$KIT_HOME"
+if [ -d "$KIT_HOME" ]; then
+  mkdir -p "$MEGAI_HOME/backups"
+  recovery="$(mktemp -d "$MEGAI_HOME/backups/ux-ui-source.XXXXXX")"
+  mv "$KIT_HOME" "$recovery/source"
+fi
 mv "$tmp" "$KIT_HOME"
 trap - EXIT
 

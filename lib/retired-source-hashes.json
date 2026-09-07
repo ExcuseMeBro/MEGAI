@@ -1,0 +1,37 @@
+{
+  "lib/install_ui_craft.sh": [
+    "214f4f8e10a323fa672a3646e61dd899837ee8329373e85b9e9340c9b7e7cd5e"
+  ],
+  "lib/install_repowise.sh": [
+    "6c26b29fb55e9e07c26002947df8060ed9d2d2309034128ecbc369c99436d0df"
+  ],
+  "lib/install_dembrandt.sh": [
+    "cf6b674ccb08b90853ecda166f0a6ad2fcb86ebbb52edc337079ab3551d79b5b"
+  ],
+  "lib/install_openspec.sh": [
+    "b94e43004d5ee40f5b88ee32182d7c5e345e2b1bbade3a44aec76f7e1218d752"
+  ],
+  "lib/install_numasec.sh": [
+    "117bfe54dcf8133505741eed1bdcbb1314bbda5b2b65965d7297f288399936dc"
+  ],
+  "lib/install_argent.sh": [
+    "0c6420aa61c12f44507e9db309f8b9b70d8b2c8d9da7ec5196fc949594e443ea",
+    "2226187ab87c16e3507c071528e154b5fe33c30e09e05a48bf3f9855f144b536"
+  ],
+  "lib/install_graphify.sh": [
+    "30ef597adcfabd6a91b711c8e7b7ec2bfc75206051cb469be2e1be3bf887703d"
+  ],
+  "skills/argent/SKILL.md": [
+    "a22c1b474a27210fba28b24a957a808df13a9be8cbf407d99ac1b604c8ef5805"
+  ],
+  "skills/numasec-security/SKILL.md": [
+    "56760fbb4a57aa40567d34e977d8331592caba3abaae049497c595ceac6882e7"
+  ],
+  "skills/megai-openspec/SKILL.md": [
+    "14e2d7831f716c63dbb9c616b1c27b094a652f312739e67a010578d1f73a6de2",
+    "340414bf3c7bce31343b47c6f9d872135602e637e21382e5c731ee157dd4ecdc"
+  ],
+  "task-flow/commands/argent.md": [
+    "73c5dcf55b554bb3807cdb3255c09ae0665724301badcbedb6d0b35aad350c0a"
+  ]
+}

@@ -1,8 +1,8 @@
 <!-- plane-workflow:begin -->
 # Plane task flow
-- Plane is the sole coordination authority for tracked work; use the Plane API/MCP project list with pagination and exact Git-root project matching. `.todos` is the local execution mirror.
-- At task start, reuse the linked `(project UUID, work item UUID)` pair. Consume every project and project-work-item page before counting candidates; exactly one is usable, while zero or multiple matches block and require the user. Resolve imported work by `external_id` plus `external_source=asana-migration-v1`; preserve the original `<!-- asana:GID -->` marker verbatim until the Plane pair is confirmed, and never create a duplicate while identity is unresolved.
-- Tracked/high-risk work uses one Plane start boundary in the started group. `In Progress` and `In Review` are started states; do not infer or write a completed boolean. The agent hands off in `In Review`; only the user may move the work item to `Done`.
-- Keep the bounded loop: inspect, implement, self-review, focused test, then stop. Do not mirror routine stages, comments, or dual-sync to another tracker.
-- The local Plane connector is credential-safe: keep tokens in owner-readable files, use TLS-only MCP transports, preserve unrelated settings, and keep private backups for rollback.
+- Plane is the sole coordination authority for tracked work. Consume every paginated project and project-work-item page; require exactly one exact Git-root project and one exact item before mutation.
+- Reuse the linked `(project UUID, work item UUID)` pair. Imported work requires `external_id` plus `external_source=asana-migration-v1`; preserve the original `<!-- asana:GID -->` marker until the pair is confirmed and never create a duplicate while identity is unresolved.
+- The parent performs one started `In Progress` boundary before edits. An unavailable, incomplete, or ambiguous Plane lookup blocks changes; do not fall back to local bookkeeping.
+- Run inspect → implement → self-review → focused verification. Hand off at started `In Review` with the item incomplete; only the user moves it to `Done`.
+- Do not add routine milestone comments, poll for progress, or mirror stages into another tracker. Main promotion requires separate explicit user approval.
 <!-- plane-workflow:end -->
