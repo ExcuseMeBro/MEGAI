@@ -30,7 +30,6 @@ Commands:
   codex                 Launch Codex CLI (full stack init)
   pi                    Launch Pi CLI (full stack init)
   omp                   Launch Oh My Pi CLI (full stack init)
-  security [args]       Launch Numasec for authorized security work
   graph [path]          Build knowledge graph for current folder (graphify .)
   dev                   Switch a clean primary checkout from main/master to dev
   finish [options]      Merge verified task work into dev, push, and reuse one promotion PR
@@ -52,7 +51,7 @@ Commands:
   version               Print version
   help                  This message
 
-Tools: agent-memory, codedb, zvec-grep, caveman, rtk, graphify, ux-ui-agent-skills, argent, numasec, ruff, mattpocock-skills
+Tools: agent-memory, codedb, zvec-grep, caveman, rtk, graphify, ux-ui-agent-skills, argent, ruff, mattpocock-skills
 EOF
 }
 
@@ -63,7 +62,7 @@ cmd_install() {
 cmd_status() {
   detect_os; detect_runtimes; state_init
   printf "%-14s %-10s %-8s %s\n" TOOL VERSION PORT STATUS
-  for t in agent-memory codedb zvec-grep caveman rtk graphify argent numasec ruff; do
+  for t in agent-memory codedb zvec-grep caveman rtk graphify argent ruff; do
     local ver port stat bin
     ver=$(state_get ".tools[\"$t\"].version") || ver=""
     port=$(state_get ".tools[\"$t\"].port")   || port=""
@@ -134,16 +133,6 @@ cmd_doctor() {
     skip "ux-ui-agent-skills missing or incomplete"
   fi
   if command -v argent      >/dev/null 2>&1; then ok "Argent CLI present";       else skip "Argent missing"; fi
-  if command -v numasec     >/dev/null 2>&1; then
-    ok "Numasec CLI present"
-    if [ -f "$HOME/.agents/skills/numasec-security/SKILL.md" ] && [ -f "$HOME/.claude/skills/numasec-security/SKILL.md" ] && [ -f "$HOME/.pi/agent/skills/numasec-security/SKILL.md" ]; then
-      ok "Numasec security handoff ready for Codex, Claude Code, and Pi"
-    else
-      warn "Numasec skill links missing or incomplete"
-    fi
-  else
-    skip "Numasec missing"
-  fi
   if command -v ruff        >/dev/null 2>&1; then
     local ruff_out ruff_rc
     # Run --version inside an `if` so `set -e` does not short-circuit on a
@@ -175,7 +164,6 @@ cmd_update() {
   bash "$LIB/install_worktree_lifecycle.sh" || true
   bash "$LIB/install_ux_ui_agent_skills.sh"  || true
   MEGAI_UPDATE=1 bash "$LIB/install_argent.sh"  || true
-  MEGAI_UPDATE=1 bash "$LIB/install_numasec.sh" || true
   MEGAI_UPDATE=1 bash "$LIB/install_ruff.sh"    || true
   bash "$LIB/install_mattpocock_skills.sh"  || true
   bash "$LIB/wire_cc.sh"                    || true
@@ -257,7 +245,7 @@ cmd_uninstall() {
   bash "$LIB/install_worktree_lifecycle.sh" --remove || true
   bash "$LIB/install_ux_ui_agent_skills.sh" --remove || true
   bash "$LIB/install_argent.sh" --remove || true
-  bash "$LIB/install_numasec.sh" --remove || true
+  bash "$LIB/retire_numasec.sh" || true
   bash "$LIB/install_ruff.sh"    --remove || true
   bash "$LIB/retire_openspec.sh" || true
   rm -rf "$MEGAI_HOME"
@@ -265,11 +253,6 @@ cmd_uninstall() {
 }
 
 cmd_version() { echo "megai 0.1.0"; }
-
-cmd_security() {
-  command -v numasec >/dev/null 2>&1 || die "Numasec missing; run: megai install"
-  exec numasec "$@"
-}
 
 cmd_dev() {
   bash "$LIB/ensure_dev.sh"
@@ -672,10 +655,6 @@ ${C_GRN}App testing${C_OFF}  (Argent)
   argent server status      # inspect the local testing server
   # specialist CLI: starts only when requested
 
-${C_GRN}Security${C_OFF}  (Numasec; authorized targets only)
-  megai security            # launch the interactive security agent
-  # start with /doctor, /opsec strict, then a scoped runbook
-
 ${C_GRN}Agents${C_OFF}  (launches CLI with the lean stack initialised)
   megai cc       — Claude Code
   megai codex    — Codex CLI
@@ -717,7 +696,6 @@ case "${1:-__project__}" in
   codex)     shift; cmd_codex     "$@" ;;
   pi)        shift; cmd_pi        "$@" ;;
   omp)       shift; cmd_omp       "$@" ;;
-  security)  shift; cmd_security  "$@" ;;
   graph)     shift; cmd_graph     "$@" ;;
   dev)       shift; cmd_dev       "$@" ;;
   finish)    shift; cmd_finish    "$@" ;;
