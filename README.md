@@ -1,6 +1,6 @@
 # MEGAI slim
 
-A dedicated, persistent **`slim`** distribution. It keeps the eight selected tools,
+A dedicated, persistent **`slim`** distribution. It keeps the nine selected tools,
 Plane-only task boundaries and task-quality gates. Installation and launch do not
 merge or push Git branches. This branch is not automatically integrated into `main`.
 
@@ -8,6 +8,7 @@ merge or push Git branches. This branch is not automatically integrated into `ma
 
 | Tool | Purpose |
 | --- | --- |
+| [codedb](https://github.com/justrach/codedb) | Default core structural lookup via CLI; on-demand indexing |
 | [zvec-grep](https://github.com/zvec-ai/zvec-grep) | Local hybrid code search; explicit indexing |
 | [rtk](https://github.com/rtk-ai/rtk) | Compact command output; raw diagnostics remain available |
 | task-flow | **Plane-only** identity, acceptance and start/handoff boundaries |
@@ -18,7 +19,7 @@ merge or push Git branches. This branch is not automatically integrated into `ma
 | [Matt Pocock's skills](https://github.com/mattpocock/skills) | Engineering, diagnosis, specifications and verification workflows |
 
 Native read/edit/bash, Git, `rg`, Plane connector configuration and Pi's lazy MCP
-adapter are infrastructure, not additional product entries. Codedb, Graphify,
+adapter are infrastructure, not additional product entries. Graphify,
 RepoWise, Caveman, ui-craft, Dembrandt, Argent, Numasec, OpenSpec, legacy model
 routing and full Pi extension bundles are outside the active slim pipeline.
 Historical standalone source remains unwired; old full-profile flags do not
@@ -45,7 +46,10 @@ until you explicitly run it. Existing valid tools are reused, including during
 `megai update`; updates refresh slim source wiring/skill kits, not unrelated tools.
 
 Fresh downloads pin agent-memory 0.9.27, zvec-grep 0.2.1, RTK 0.43.0 and both skill
-kit source commits. RTK's pinned installer is SHA-256 checked and verifies its
+kit source commits. Codedb fresh installs pin 0.2.56 with embedded SHA-256 hashes
+for macOS ARM64/Linux x86_64; other platforms require a pre-provisioned trusted
+CLI. No upstream codedb installer, hooks, extra services or MCP registrations run.
+Existing codedb MCP settings remain user-owned. RTK's pinned installer is SHA-256 checked and verifies its
 release archive; slim never runs `rtk init -g`. Npm core CLI installs disable
 lifecycle scripts. Reused executable versions and platform dependencies may vary;
 offline integration tests do not prove every fresh upstream install works.
@@ -81,6 +85,8 @@ need no tracked mutation; refinements reuse the active item.
 megai start agent-memory
 megai-memory recall "relevant decision"
 megai-memory save "decision to persist"  # only when persistence is requested
+megai-codedb index .                    # codedb indexing only when needed
+megai-codedb symbol MySymbol            # default structural lookup
 megai reindex                           # initializes/rebuilds zvec explicitly
 zg query "where authentication is validated"
 rg -n 'exact_symbol' src/

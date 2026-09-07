@@ -36,7 +36,7 @@ class Slim(unittest.TestCase):
         for key in ("HOME", "MEGAI_HOME", "PI_CODING_AGENT_DIR", "CODEX_HOME"):
             self.assertTrue(Path(self.env[key]).is_relative_to(self.root))
         (self.bin / "python3").symlink_to(sys.executable)
-        for name in ("zg", "rtk", "ruff", "agentmemory", "pi", "omp", "claude", "codex", "npm", "npx", "curl", "node"):
+        for name in ("codedb", "zg", "rtk", "ruff", "agentmemory", "pi", "omp", "claude", "codex", "npm", "npx", "curl", "node"):
             self.stub(name, 'printf "%s\\n" "$0 $*" >>"$HOME/calls"\nexit 0\n')
         (self.megai / "state.json").write_text('{"tools":{},"agents":{},"ports":{"agent-memory":3111},"keep":{"value":42}}\n')
         self.project = self.root / "project"
@@ -119,7 +119,7 @@ class Slim(unittest.TestCase):
             (".claude/settings.json", '{"hooks":{"SessionStart":[{"hooks":[{"command":"custom && taskflow-session.js"}]}]}}'),
             (".agents/skills/task-flow/SKILL.md", "custom legacy skill"),
             (".pi/agent/AGENTS.md", "custom .todos rules"),
-            (".codex/config.toml", '[mcp_servers.codedb]\ncommand="custom"\n'),
+            (".codex/config.toml", '[mcp_servers\n'),
         ]
         for path, content in paths:
             target = self.write(self.home / path, content)
@@ -174,7 +174,46 @@ class Slim(unittest.TestCase):
         self.run_cmd("bash", str(self.megai / "bin/megai"), "omp", "--profile", "work", "--version")
         self.assertIn("--profile work --version", (self.home / "calls").read_text())
 
-    def test_explicit_reindex_without_codedb(self):
+    def test_codedb_default_lookup_preserves_existing_mcp_and_indexes(self):
+        config = self.write(self.home / ".codex/config.toml", '[mcp_servers.codedb]\ncommand="user-codedb"\n')
+        original = config.read_bytes()
+        snapshot = self.write(self.project / "codedb.snapshot", "existing index")
+        self.wire()
+        self.assertEqual(config.read_bytes(), original)
+        wrapper = str(self.megai / "bin/megai-codedb")
+        self.run_cmd(wrapper, "symbol", "MySymbol")
+        self.run_cmd(wrapper, "outline", "src/main.py")
+        self.run_cmd(wrapper, "index", ".")
+        calls = (self.home / "calls").read_text()
+        self.assertIn("codedb find MySymbol", calls)
+        self.assertIn("codedb outline src/main.py", calls)
+        self.assertIn("codedb . tree", calls)
+        self.assertEqual(snapshot.read_text(), "existing index")
+        self.wire("--remove")
+        self.assertEqual(config.read_bytes(), original)
+        self.assertFalse(Path(wrapper).exists())
+
+    def test_codedb_installer_reuse_and_checksum_failure_are_safe(self):
+        self.stub("codedb", 'echo "codedb 0.2.56"\n')
+        (self.bin / "jq").symlink_to(shutil.which("jq"))
+        env = dict(self.env, PATH=f"{self.bin}:/usr/bin:/bin")
+        installer = str(self.megai / "lib/install_codedb.sh")
+        index = self.write(self.project / "codedb.snapshot", "retain")
+        self.run_cmd("bash", installer, env=env)
+        self.run_cmd("bash", installer, env=dict(env, MEGAI_UPDATE="1"))
+        self.assertEqual(json.loads((self.megai / "state.json").read_text())["tools"]["codedb"]["version"], "codedb 0.2.56")
+        self.assertFalse((self.home / "calls").exists())
+        (self.bin / "codedb").unlink()
+        self.stub("uname", 'case "$1" in -s) echo Darwin;; -m) echo arm64;; esac\n')
+        self.stub("curl", 'echo "$*" >"$HOME/download-call"\nwhile [ "$#" -gt 0 ]; do if [ "$1" = -o ]; then shift; echo invalid-binary >"$1"; break; fi; shift; done\n')
+        self.run_cmd("bash", installer, ok=False, env=env)
+        self.assertIn("/v0.2.56/codedb-darwin-arm64", (self.home / "download-call").read_text())
+        self.assertFalse((self.megai / "bin/codedb").exists())
+        self.assertEqual(index.read_text(), "retain")
+        self.assertFalse((self.home / ".claude.json").exists())
+        self.assertFalse((self.home / ".codedb").exists())
+
+    def test_explicit_zvec_reindex_does_not_rebuild_codedb(self):
         self.run_cmd("bash", str(self.megai / "bin/megai"), "reindex")
         calls = (self.home / "calls").read_text()
         self.assertIn("--embedding local/potion-code-16m-v2", calls)
@@ -200,7 +239,7 @@ class Slim(unittest.TestCase):
         self.wire()
         self.write(self.megai / "ux-ui-agent-skills/package.json", '{}')
         (self.megai / "mattpocock-skills/skills").mkdir(parents=True)
-        selected = ("agent_memory", "zvec_grep", "rtk", "ruff", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
+        selected = ("agent_memory", "zvec_grep", "codedb", "rtk", "ruff", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
         for path in (self.megai / "lib").glob("install_*.sh"):
             name = path.stem.removeprefix("install_")
             self.write(path, f'#!/bin/sh\necho install:{name} >>"$HOME/install-calls"\n')
@@ -335,7 +374,7 @@ assert first.read_bytes()==b'concurrent user edit'
         self.write(self.megai / "ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md", 'fixture')
         matt = self.write(self.megai / "mattpocock-skills/skills/example/SKILL.md", 'fixture')
         self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", env=env)
-        for path in (self.bin / "rtk", self.bin / "agentmemory", ui, matt):
+        for path in (self.bin / "codedb", self.bin / "rtk", self.bin / "agentmemory", ui, matt):
             hidden = path.with_name(path.name + ".hidden")
             path.rename(hidden)
             self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", ok=False, env=env)

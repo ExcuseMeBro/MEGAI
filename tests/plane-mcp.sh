@@ -14,7 +14,8 @@ cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$ROOT/lib/detect.sh" "$ROOT/lib/banne
 cp "$ROOT/lib/slim_wiring.py" "$MEGAI_HOME/lib/"
 mkdir -p "$TMP/bin"
 printf '#!/bin/sh\nexit 0\n' >"$TMP/bin/zg"
-chmod +x "$TMP/bin/zg"
+cp "$TMP/bin/zg" "$TMP/bin/codedb"
+chmod +x "$TMP/bin/zg" "$TMP/bin/codedb"
 export PATH="$TMP/bin:$PATH"
 printf '{"tools":{},"agents":{},"projects":{}}\n' >"$MEGAI_HOME/state.json"
 

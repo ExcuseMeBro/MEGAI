@@ -183,9 +183,7 @@ class Plan:
         if name == "codex":
             data = read(root / "config.toml")
             if data is not None:
-                config = tomllib.loads(data.decode())
-                if not remove and "codedb" in config.get("mcp_servers", {}):
-                    raise ValueError(f"legacy codedb MCP preserved: {root / 'config.toml'}; detach manually")
+                tomllib.loads(data.decode()) # existing MCP entries remain user-owned
         if not remove:
             for legacy in ("task-flow", "smart-development-orchestrator"):
                 shared = HOME / ".agents/skills" / legacy
@@ -302,6 +300,10 @@ def main() -> int:
     bridge = b'#!/usr/bin/env bash\nexec bash "${MEGAI_HOME:-$HOME/.megai}/pi-skill/extensions/memory.sh" "$@"\n'
     if args.client != "path":
         plan.asset(MEGAI / "bin/megai-memory", bridge, args.remove)
+        codedb_bridge = b'#!/usr/bin/env bash\nexec bash "${MEGAI_HOME:-$HOME/.megai}/pi-skill/extensions/codedb.sh" "$@"\n'
+        plan.asset(MEGAI / "bin/megai-codedb", codedb_bridge, args.remove)
+        if not args.check and not args.remove and not shutil.which("codedb"):
+            raise ValueError("codedb is missing; run megai install before using slim")
     if args.client in ("all", "path"):
         plan.shell_paths(args.remove)
     if not args.check and not args.remove and args.client in ("all", "pi") and not shutil.which("zg"):
