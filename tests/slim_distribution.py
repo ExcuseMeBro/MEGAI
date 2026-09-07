@@ -432,7 +432,7 @@ time.sleep(30)
 
     def test_policy_guards_and_public_branch(self):
         policy = (ROOT / "task-flow/skills/megai-task-flow/SKILL.md").read_text()
-        for required in ("every Plane project page", "every workflow-state page", "group=started", "ask approval to create", "In Progress", "In Review", "Only the user", "independent review", "persistent branch", "unavailable", "before retrying"):
+        for required in ("every Plane project page", "every workflow-state page", "group=started", "automatically create exactly one item without asking for approval", "In Progress", "In Review", "Only the user", "independent review", "persistent branch", "unavailable", "before retrying"):
             self.assertIn(required.lower(), policy.lower())
         for active in (ROOT / "pi-skill/SKILL.md", ROOT / "skills/agent-worktree-lifecycle/SKILL.md", ROOT / "task-flow/skills/megai-task-flow/SKILL.md"):
             self.assertNotIn(".todos", active.read_text())

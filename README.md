@@ -66,8 +66,9 @@ megai plane status --client all
 
 The parent loads `megai-task-flow` once before project changes. Reuse known UUIDs;
 otherwise consume all project/work-item/state pages and require unambiguous
-matches. Creating a missing item requires approval. An unavailable Plane boundary
-blocks edits rather than creating a local fallback.
+matches. After a successful complete lookup finds no matching task, create exactly
+one automatically in `In Progress`, without asking. Ambiguity or an unavailable
+Plane boundary blocks edits rather than creating duplicates or a local fallback.
 
 - Start once in started **In Progress**.
 - Keep acceptance and execution evidence in the same Plane item.
