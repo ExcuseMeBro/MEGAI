@@ -674,6 +674,10 @@ target-bound backups are created; setup remains additive without that flag. Rest
 connector-only: it restores the matching client/profile backup and leaves task-flow
 policy/`AGENTS.md` backups untouched. It never changes remote Plane or historical Asana data.
 
+The [historical one-off import checkpoint](docs/one-off-import-checkpoint.md) is retained
+as unwired source, not an active Asana integration. Its verifier reports partial evidence,
+not full migration parity; no live import runs during installation or branch consolidation.
+
 ### Focused OpenSpec and orchestration checks
 
 From the MEGAI source checkout:
