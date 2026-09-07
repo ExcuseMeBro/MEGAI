@@ -86,6 +86,8 @@ after
 MD
 printf '%s\n' '{}' >"$HOME/.claude/settings.json"
 bash "$MEGAI_HOME/lib/install_taskflow.sh" >/dev/null 2>&1
+# Simulate an overlay upgrade retaining a deleted command source.
+printf 'managed-by: megai\nretired\n' > "$MEGAI_HOME/task-flow/commands/argent.md"
 bash "$MEGAI_HOME/lib/install_taskflow.sh" >/dev/null 2>&1
 grep -q 'Risk-scaled Plane sync' "$HOME/.claude/CLAUDE.md"
 grep -q 'Default fast path' "$HOME/.claude/CLAUDE.md"
@@ -142,6 +144,8 @@ grep -Fxq 'user suffix' "$CODEX_HOME/AGENTS.md"
 
 # Task-flow no longer owns the retired Argent command; preserve user replacements.
 printf 'user command\n' > "$HOME/.claude/commands/argent.md"
+bash "$MEGAI_HOME/lib/install_taskflow.sh" >/dev/null 2>&1
+[ "$(< "$HOME/.claude/commands/argent.md")" = 'user command' ]
 bash "$MEGAI_HOME/lib/install_taskflow.sh" --remove >/dev/null 2>&1
 [ "$(< "$HOME/.claude/commands/argent.md")" = 'user command' ]
 

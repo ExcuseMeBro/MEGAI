@@ -34,10 +34,12 @@ bash "$ROOT/lib/retire_openspec.sh" >/dev/null
 jq -e '.tools == {keep:{version:"1"}} and .privacy == {enabled:false}' "$MEGAI_HOME/state.json" >/dev/null
 # Invalid state must fail before unlinking even the current owned destination.
 ln -s "$source_path" "$current"
-printf '{broken' > "$MEGAI_HOME/state.json"
-if bash "$ROOT/lib/retire_openspec.sh" > "$TMP/invalid.log" 2>&1; then exit 1; fi
-[ -L "$current" ]
-[ "$(< "$MEGAI_HOME/state.json")" = '{broken' ]
+for invalid in '' null '[]' '{} {}' '{broken'; do
+  printf '%s' "$invalid" > "$MEGAI_HOME/state.json"
+  if bash "$ROOT/lib/retire_openspec.sh" > "$TMP/invalid.log" 2>&1; then exit 1; fi
+  [ -L "$current" ]
+  [ "$(< "$MEGAI_HOME/state.json")" = "$invalid" ]
+done
 [ ! -f "$ROOT/lib/install_openspec.sh" ]
 [ ! -e "$ROOT/skills/megai-openspec" ]
 if grep -Fq 'install_openspec.sh' "$ROOT/bin/megai" "$ROOT/lib/main.sh"; then exit 1; fi

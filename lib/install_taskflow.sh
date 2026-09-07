@@ -64,7 +64,12 @@ cp -f "$SRC/hooks/taskflow-monitor.js"  "$CLAUDE_DIR/hooks/taskflow-monitor.js"
 cp -f "$SRC/hooks/taskflow-move.js"     "$CLAUDE_DIR/hooks/taskflow-move.js"
 cp -f "$SRC/bin/taskflow-add.sh"        "$CLAUDE_DIR/bin/taskflow-add.sh"
 cp -f "$SRC/bin/statusline-taskflow.sh" "$CLAUDE_DIR/statusline-taskflow.sh"
-cp -f "$SRC/commands/"*.md              "$CLAUDE_DIR/commands/"
+# Overlay upgrades can leave retired source files behind; never copy them back.
+for command_source in "$SRC/commands/"*.md; do
+  [ -f "$command_source" ] || continue
+  [ "$(basename "$command_source")" = "argent.md" ] && continue
+  cp -f "$command_source" "$CLAUDE_DIR/commands/"
+done
 chmod +x "$CLAUDE_DIR/statusline-taskflow.sh" "$CLAUDE_DIR/hooks/taskflow-prompt.sh" "$CLAUDE_DIR/bin/taskflow-add.sh" 2>/dev/null || true
 # Drop the legacy Task-tools mirror hook — the board is the single source now.
 rm -f "$CLAUDE_DIR/hooks/task-state.js"

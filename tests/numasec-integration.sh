@@ -35,10 +35,12 @@ if grep -qi numasec "$TMP/status.out" "$TMP/doctor.out"; then exit 1; fi
 [ ! -s "$CALLS" ] && [ -x "$TMP/bin/numasec" ]
 # Malformed state must stop before unlinking the current owned skill.
 ln -s "$NUMASEC_SKILL_SOURCE" "$HOME/.claude/skills/numasec-security"
-printf '{broken' > "$MEGAI_HOME/state.json"
-if bash "$ROOT/lib/retire_numasec.sh" > "$TMP/invalid.out" 2>&1; then exit 1; fi
-[ -L "$HOME/.claude/skills/numasec-security" ]
-[ "$(< "$MEGAI_HOME/state.json")" = '{broken' ]
+for invalid in '' null '[]' '{} {}' '{broken'; do
+  printf '%s' "$invalid" > "$MEGAI_HOME/state.json"
+  if bash "$ROOT/lib/retire_numasec.sh" > "$TMP/invalid.out" 2>&1; then exit 1; fi
+  [ -L "$HOME/.claude/skills/numasec-security" ]
+  [ "$(< "$MEGAI_HOME/state.json")" = "$invalid" ]
+done
 [ ! -f "$ROOT/lib/install_numasec.sh" ] && [ ! -e "$ROOT/skills/numasec-security" ]
 if grep -vF 'bash "$LIB/retire_numasec.sh"' "$ROOT/bin/megai" | grep -qi numasec; then exit 1; fi
 if grep -qi numasec "$ROOT/lib/main.sh"; then exit 1; fi

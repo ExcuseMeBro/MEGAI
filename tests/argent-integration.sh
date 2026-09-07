@@ -39,10 +39,12 @@ bash "$ROOT/bin/megai" doctor > "$TMP/doctor.out" 2>&1
 if grep -qi argent "$TMP/status.out" "$TMP/doctor.out"; then exit 1; fi
 [ ! -s "$CALLS" ] && [ -x "$TMP/bin/argent" ]
 printf 'managed-by: megai\nowned\n' > "$HOME/.agents/skills/argent/SKILL.md"
-printf '{broken' > "$MEGAI_HOME/state.json"
-if bash "$ROOT/lib/retire_argent.sh" > "$TMP/invalid.out" 2>&1; then exit 1; fi
-[ -f "$HOME/.agents/skills/argent/SKILL.md" ]
-[ "$(< "$MEGAI_HOME/state.json")" = '{broken' ]
+for invalid in '' null '[]' '{} {}' '{broken'; do
+  printf '%s' "$invalid" > "$MEGAI_HOME/state.json"
+  if bash "$ROOT/lib/retire_argent.sh" > "$TMP/invalid.out" 2>&1; then exit 1; fi
+  [ -f "$HOME/.agents/skills/argent/SKILL.md" ]
+  [ "$(< "$MEGAI_HOME/state.json")" = "$invalid" ]
+done
 [ ! -f "$ROOT/lib/install_argent.sh" ] && [ ! -e "$ROOT/skills/argent" ]
 [ ! -f "$ROOT/task-flow/commands/argent.md" ]
 if grep -vF 'bash "$LIB/retire_argent.sh"' "$ROOT/bin/megai" | grep -qi argent; then exit 1; fi

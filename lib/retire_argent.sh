@@ -10,7 +10,7 @@ tmp=""
 trap 'if [ -n "$tmp" ]; then rm -f "$tmp"; fi' EXIT
 if [ -f "$STATE_FILE" ]; then
   tmp="$(mktemp "$MEGAI_HOME/.argent-state.XXXXXX")"
-  jq 'del(.tools.argent)' "$STATE_FILE" > "$tmp"
+  jq -es 'if length == 1 and (.[0] | type) == "object" then .[0] | del(.tools.argent) else error("Expected one state object") end' "$STATE_FILE" > "$tmp"
 fi
 remove_managed_artifact() {
   local dest="$1"

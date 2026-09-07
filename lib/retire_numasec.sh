@@ -12,7 +12,7 @@ trap 'if [ -n "$tmp" ]; then rm -f "$tmp"; fi' EXIT
 # Validate/prepare the state change before touching even owned links.
 if [ -f "$STATE_FILE" ]; then
   tmp="$(mktemp "$MEGAI_HOME/.numasec-state.XXXXXX")"
-  jq 'del(.tools.numasec)' "$STATE_FILE" > "$tmp"
+  jq -es 'if length == 1 and (.[0] | type) == "object" then .[0] | del(.tools.numasec) else error("Expected one state object") end' "$STATE_FILE" > "$tmp"
 fi
 for root in "$HOME/.agents/skills" "$HOME/.claude/skills" "$HOME/.codex/skills" "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills"; do
   dest="$root/numasec-security"

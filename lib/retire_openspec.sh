@@ -11,7 +11,7 @@ DEST="$PI_AGENT/skills/megai-openspec"
 command -v jq >/dev/null 2>&1 || die "jq required for MEGAI state"
 destinations="$(jq -cn --arg dest "$DEST" '[$dest]')"
 if [ -f "$STATE_FILE" ]; then
-  destinations="$(jq -c --arg dest "$DEST" '[(.tools.openspec.destinations // [])[], $dest] | unique' "$STATE_FILE")"
+  destinations="$(jq -ecs --arg dest "$DEST" 'if length == 1 and (.[0] | type) == "object" then .[0] | [(.tools.openspec.destinations // [])[], $dest] | unique else error("Expected one state object") end' "$STATE_FILE")"
 fi
 # Preserve the former installer's removal behavior, including dangling owned
 # links and NUL-delimited custom destinations with spaces/newlines.
@@ -22,7 +22,7 @@ while IFS= read -r -d '' registered; do
 done < <(printf '%s' "$destinations" | jq -j '.[] | ., "\u0000"')
 if [ -f "$STATE_FILE" ]; then
   tmp="$(mktemp "$MEGAI_HOME/.openspec-state.XXXXXX")"
-  if ! jq 'del(.tools.openspec)' "$STATE_FILE" >"$tmp"; then
+  if ! jq -es 'if length == 1 and (.[0] | type) == "object" then .[0] | del(.tools.openspec) else error("Expected one state object") end' "$STATE_FILE" >"$tmp"; then
     rm "$tmp"
     die "OpenSpec links removed but state update failed; reconcile before continuing"
   fi
