@@ -1,6 +1,6 @@
 # Numasec retirement
 
-Removed the Numasec installer, global handoff skill source, install/update/status/doctor recommendations and `megai security` launcher. The install pipeline now has 14 contiguous steps. Security, authorization and task-specific validation requirements are unchanged.
+Removed the Numasec installer, global handoff skill source, install/update/status/doctor recommendations and `megai security` launcher. This removes one install step while preserving contiguous numbering. Security, authorization and task-specific validation requirements are unchanged.
 
 ## Local removal and preservation
 

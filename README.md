@@ -20,7 +20,7 @@
 
 <p align="center">
   <b>🚀 One command · 🧰 Core tools + optional specs · 🤖 Four agent harnesses · ⚙️ Managed wiring</b><br>
-  Memory · code intelligence · indexing · bounded orchestration · task flow · UI/UX · app testing
+  Memory · code intelligence · indexing · bounded orchestration · task flow · UI/UX
 </p>
 
 # 🧠 MEGAI
@@ -48,7 +48,6 @@ megai doctor
 - [📋 task-flow and Plane](#-task-flow-and-plane)
 - [🎨 Design and UI/UX stack](#-design-and-uiux-stack)
 - [🗃️ Code intelligence and memory](#️-code-intelligence-and-memory)
-- [🧪 App testing](#-app-testing)
 - [🧭 Bounded Pi/Paseo orchestration](#-bounded-pipaseo-orchestration)
 - [📦 Pi package stack](#-pi-package-stack)
 - [🏗️ How it works](#️-how-it-works)
@@ -131,7 +130,6 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🧭 | smart-development-orchestrator | GPT writer routing, MiniMax read-only discovery, Paseo worktree delivery | Global skill + OMP agents |
 | ⚙️ | GPT-core + MiniMax-discovery routing | GPT owns every write; MiniMax only searches, reads, and finds code | OMP roles + managed agents |
 | 🖌️ | [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | 17 UI/UX skills, WCAG references, tokens, components, adapters | Global skills |
-| 🧪 | [Argent](https://github.com/software-mansion/argent) | Explicit `/argent` mobile, TV, Electron, and Chromium review | Slash command + on-demand CLI |
 | 🐍 | [Ruff](https://docs.astral.sh/ruff/) | Extremely fast Python linter and formatter | Reused on PATH or installed via `uv tool` / `pipx` |
 | 🛠️ | [Matt Pocock's skills](https://github.com/mattpocock/skills) | Specs, TDD, diagnosis, review, domain modeling, architecture, and delivery flows | Global skills |
 
@@ -144,7 +142,6 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 MEGAI configures:
 
 - lean default MCP surface in `~/.claude.json`: `agentmemory` and `codedb`
-- Argent CLI available on demand
 - `rtk` `PreToolUse` hook
 - graphify skills; Caveman only when explicitly installed
 - task-flow skill, hooks, commands, monitoring, optional statusline, and safe `dev` merge/worktree cleanup policy
@@ -157,7 +154,6 @@ Existing MCP servers, hooks, and statusline settings are preserved.
 MEGAI configures:
 
 - a lean, marked MCP block in `~/.codex/config.toml` with `agentmemory` and `codedb`
-- Argent CLI available on demand
 - graphify, Matt Pocock, UX/UI, and safe worktree-lifecycle skills; Caveman is optional
 
 Only MEGAI-owned MCP tables are replaced or removed; unrelated Codex configuration remains intact.
@@ -170,7 +166,6 @@ MEGAI configures:
 - Plane-aware task-flow and safe worktree-lifecycle skills under `~/.pi/agent/skills/`
 - `megai-memory` and `megai-codedb` CLI bridges in `~/.megai/bin` (not shell files masquerading as Pi extensions)
 - a global `zvec_grep` MCP entry in `~/.pi/agent/mcp.json` for semantic and hybrid workspace retrieval
-- Argent CLI available on demand instead of a permanent MCP entry
 - global UX/UI, graphify, and Matt Pocock skills; redundant Caveman/Cavecrew and legacy OMP-routing skills excluded from global Pi discovery
 - the first authenticated model as the global default when no valid default exists
 
@@ -190,7 +185,7 @@ MEGAI configures:
 - OMP's native MiniMax catalog and provider-specific transport compatibility; MEGAI never rewrites user `models.yml`
 - preservation of unrelated OMP servers, model providers, allowlists, denylists, credentials, agents, and user settings
 - hybrid Paseo placement: each writer receives a managed worktree from `dev`, then is archived after verified dev merge/push, one open promotion request, and worktree cleanup
-- Argent and global skills through OMP's existing CLI and skill discovery surfaces
+- global skills through OMP's existing skill discovery surface
 
 OMP provider authentication remains in OMP's own credential store; MEGAI never writes provider credentials.
 
@@ -398,27 +393,11 @@ MEGAI no longer installs, updates, starts or recommends RepoWise. Existing `.rep
 
 ---
 
-## 🧪 App testing
+## Retired: Argent
 
-Argent is disabled during normal implementation, review, verification, UI checks, and delivery. Invoke it explicitly:
+Argent's CLI, managed skill and `/argent` command are retired. MEGAI installation, updates and OMP/task-flow wiring no longer recreate them. Existing reports, screenshots, recordings, SDKs and shared browser caches remain. External app/device review still requires explicit user authorization.
 
-```text
-/argent [target or scenario]
-```
-
-That single turn may inspect `argent tools` and `argent server status`, then run the narrowest requested app/device review. It makes no code edits and stops after reporting observed findings.
-
-Supported targets include:
-
-- 📱 iOS and Android
-- 📺 Apple TV, Android TV, and Fire TV/Vega
-- 🖥️ Electron
-- 🌐 Chromium through CDP
-- 🎥 recording and replay
-- 🖼️ screenshots and visual regression
-- 📡 logs, network inspection, and profiling
-
-Native targets still require their platform SDKs: Xcode for Apple, Android Platform Tools for Android, and Vega SDK for Fire TV/Vega.
+`bash "$HOME/.megai/lib/retire_argent.sh"` cleans only marked MEGAI artifacts and tool state, preserving user-owned or linked replacements. Legacy MCP cleanup remains ownership-scoped. See [retirement verification and rollback](docs/audits/argent-retirement.md).
 
 ---
 
@@ -579,7 +558,7 @@ megai status
 megai doctor
 ```
 
-A healthy installation reports the core CLIs, agent configuration files, agent-memory daemon, global UX/UI skills and Argent.
+A healthy installation reports the core CLIs, agent configuration files, agent-memory daemon, global UX/UI skills.
 
 ### Useful checks
 
@@ -691,7 +670,7 @@ Ix is no longer installed, updated, checked or recommended by MEGAI. Upgrading d
 megai uninstall
 ```
 
-MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI, legacy owned Numasec/OpenSpec links, and shell PATH entries. Independently installed CLIs, project artifacts and privacy settings are retained; legacy-link cleanup never installs OpenSpec.
+MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI, legacy owned Argent/Numasec/OpenSpec artifacts, and shell PATH entries. Independently installed CLIs, project artifacts and privacy settings are retained; legacy-link cleanup never installs OpenSpec.
 
 To prevent data loss, zvec-grep and local project indexes are retained. ui-craft and RepoWise are retired, but their project data is not deleted. Remove retained tools separately only when no longer needed:
 
