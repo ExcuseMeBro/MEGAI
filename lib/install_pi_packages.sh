@@ -15,9 +15,9 @@ PI_AGENT="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
 SETTINGS="$PI_AGENT/settings.json"
 CORE_PACKAGES=(
   "npm:pi-mcp-adapter"
-  "npm:@narumitw/pi-statusline"
 )
 OPTIONAL_PACKAGES=(
+  "npm:@narumitw/pi-statusline"
   "npm:@vigolium/piolium"
   "npm:pi-web-access"
   "npm:pi-subagents"
@@ -72,6 +72,7 @@ if [ "${MEGAI_PI_FULL:-0}" != "1" ] && [ -f "$SETTINGS" ] && jq -e 'type == "obj
       (.packages // [])[]
       | . as $package
       | select(([
+          "npm:@narumitw/pi-statusline",
           "npm:@vigolium/piolium",
           "npm:pi-web-access",
           "npm:pi-subagents",

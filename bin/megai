@@ -441,7 +441,14 @@ launch_agent() {
   printf "%s[megai]%s launching %s%s%s in %s\n\n" "$C_BLUE" "$C_OFF" "$C_GRN" "$agent" "$C_OFF" "$proj"
 
   ensure_wired "$agent"
-  prepare_stack
+  if [ "$agent" = "pi" ] && [ "${MEGAI_PI_FULL:-0}" != "1" ]; then
+    bash "$LIB/ensure_dev.sh" --launch
+    state_init
+    mark_project_active
+    ok "Pi lean startup — memory and indexes on demand (MEGAI_PI_FULL=1 to prewarm)"
+  else
+    prepare_stack
+  fi
 
   if ! command -v "$bin" >/dev/null 2>&1; then
     err "$bin CLI not found in PATH."

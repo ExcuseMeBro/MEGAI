@@ -52,7 +52,6 @@ bash "$MEGAI_HOME/lib/install_pi_packages.sh" >/dev/null
 jq -e '
   .packages == [
     "npm:pi-mcp-adapter",
-    "npm:@narumitw/pi-statusline",
     "npm:user-owned-extension",
     {"source": "npm:user-owned-object", "enabled": true}
   ]
@@ -74,7 +73,8 @@ jq -e '
     "npm:pi-subagents",
     "npm:bigpowers",
     "npm:@dietrichgebert/ponytail",
-    "npm:pi-lens"
+    "npm:pi-lens",
+    "npm:@narumitw/pi-statusline"
   ] - [.packages[] | source]) == []
   and any(.packages[]; type == "object" and .source == "npm:pi-web-access" and .enabled == true)
   and any(.packages[]; source == "npm:user-owned-extension")
