@@ -1,64 +1,29 @@
 #!/usr/bin/env bash
+# Retired background indexing cannot return through either startup mode.
 set -euo pipefail
-
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="${MEGAI_TEST_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-export HOME="$TMP/home"
-export MEGAI_HOME="$TMP/megai"
-export REPOWISE_TEST_COUNT="$TMP/repowise-runs"
-mkdir -p "$HOME" "$MEGAI_HOME/lib" "$MEGAI_HOME/logs" "$TMP/bin" "$TMP/repo"
+export HOME="$TMP/home" MEGAI_HOME="$TMP/megai" CALLS="$TMP/calls"
+mkdir -p "$HOME" "$MEGAI_HOME/lib"
 cp -R "$ROOT/lib/." "$MEGAI_HOME/lib/"
-
-cat > "$TMP/bin/lsof" <<'SH'
-#!/bin/sh
-exit 0
-SH
-cat > "$TMP/bin/codedb" <<'SH'
-#!/bin/sh
-exit 0
-SH
-cat > "$TMP/bin/graphify" <<'SH'
-#!/bin/sh
-exit 0
-SH
-cat > "$TMP/bin/repowise" <<'SH'
-#!/bin/sh
-if [ "${1:-}" = "init" ]; then
-  echo run >> "$REPOWISE_TEST_COUNT"
-  mkdir -p .repowise
-  exit 1
-fi
-SH
-chmod +x "$TMP/bin/"*
-JQ_DIR="$(dirname "$(command -v jq)")"
-export PATH="$TMP/bin:$JQ_DIR:/usr/bin:/bin"
-git -C "$TMP/repo" init -q -b main
-git -C "$TMP/repo" config user.name "MEGAI Test"
-git -C "$TMP/repo" config user.email "megai@example.test"
-printf 'base\n' >"$TMP/repo/README"
-git -C "$TMP/repo" add README
-git -C "$TMP/repo" commit -qm "base"
-
-wait_for_failed_run() {
-  local pidf pid i=0
-  pidf="$(find "$MEGAI_HOME/logs" -name 'repowise-*.pid' -print -quit)"
-  while [ -z "$pidf" ] && [ "$i" -lt 50 ]; do
-    sleep 0.02
-    pidf="$(find "$MEGAI_HOME/logs" -name 'repowise-*.pid' -print -quit)"
-    i=$((i + 1))
-  done
-  pid="$(cat "$pidf")"
-  while kill -0 "$pid" 2>/dev/null && [ "$i" -lt 100 ]; do sleep 0.02; i=$((i + 1)); done
-}
-
-(cd "$TMP/repo" && bash "$ROOT/bin/megai" >/dev/null 2>&1)
-wait_for_failed_run
-(cd "$TMP/repo" && bash "$ROOT/bin/megai" >/dev/null 2>&1)
-wait_for_failed_run
-
-[ "$(wc -l < "$REPOWISE_TEST_COUNT" | tr -d ' ')" = "2" ]
-log="$(find "$MEGAI_HOME/logs" -name 'repowise-*.log' -print -quit)"
-[ "$(grep -c '^--- RepoWise init ' "$log")" = "2" ]
-
-echo "RepoWise background retry: ok"
+printf '#!/bin/sh\nexit 0\n' > "$MEGAI_HOME/lib/ensure_dev.sh"
+source "$ROOT/bin/megai" --help >/dev/null
+state_init() { :; }
+is_project_initialized() { return 1; }
+mark_project_active() { :; }
+ensure_agent_memory() { echo memory >> "$CALLS"; }
+ensure_codedb_index() { echo codedb >> "$CALLS"; }
+ensure_zvec_index() { echo zvec >> "$CALLS"; }
+ensure_graphify_bg() { echo graphify >> "$CALLS"; }
+ensure_repowise_bg() { echo repowise >> "$CALLS"; }
+check_caveman() { :; }
+check_rtk() { :; }
+: > "$CALLS"
+MEGAI_SPECIALIST_INDEXES=0 prepare_stack > "$TMP/default.out"
+[ "$(< "$CALLS")" = $'memory\ncodedb\nzvec' ]
+: > "$CALLS"
+MEGAI_SPECIALIST_INDEXES=1 prepare_stack > "$TMP/full.out"
+[ "$(< "$CALLS")" = $'memory\ncodedb\nzvec\ngraphify' ]
+if grep -qi repowise "$TMP/default.out" "$TMP/full.out"; then exit 1; fi
+echo 'RepoWise background retirement PASS; core indexing and opt-in graphify preserved'

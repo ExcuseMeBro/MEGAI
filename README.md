@@ -529,7 +529,7 @@ The user-approved local profile removes native pi-subagents from startup, select
                                │
                     ┌──────────▼──────────┐
                     │  ~/.megai/lib/main  │
-                    │  17-step pipeline   │
+                    │  16-step pipeline   │
                     └──────────┬──────────┘
                                │
           ┌────────────────────┼────────────────────┐
