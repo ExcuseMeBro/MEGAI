@@ -904,6 +904,8 @@ class Importer:
         if old and old.get("id"):
             current = self.client.project(str(old["id"]))
             _verify_identity(current, source_gid)
+            if current.get("network") != 0:
+                raise MigrationError(f"resumed project {source_gid} is not private; no source data will be sent")
             current_hash = owned_fingerprint("projects", current)
             if old.get("fingerprint_version") == 1 and old.get("readback_hash") != current_hash:
                 raise ConflictError(f"destination drift detected for project {source_gid}")
@@ -968,7 +970,10 @@ class Importer:
             if old.get("origin") == "created":
                 _verify_identity(current, key)
             self._verify_state(current, project_id, mapped["name"], mapped["group"])
-            old["readback_hash"] = owned_fingerprint("states", current)
+            current_hash = owned_fingerprint("states", current)
+            if old.get("fingerprint_version") == 1 and old.get("readback_hash") != current_hash:
+                raise ConflictError(f"destination state drift detected for {key}")
+            old["readback_hash"] = current_hash
             old["fingerprint_version"] = 1
             old.setdefault("source_section_ids", []).append(source_section_id)
             old["source_section_ids"] = sorted(set(old["source_section_ids"]))
@@ -1051,7 +1056,11 @@ class Importer:
         if old:
             current = self.client.request("GET", f"/api/v1/workspaces/{self.client.slug}/projects/{project_id}/labels/{old['id']}/")
             _verify_identity(current, key)
-            old["readback_hash"] = owned_fingerprint("labels", current)
+            current_hash = owned_fingerprint("labels", current)
+            if old.get("fingerprint_version") == 1 and old.get("readback_hash") != current_hash:
+                raise ConflictError(f"destination label drift detected for {key}")
+            _verify_owned_payload("labels", payload, current)
+            old["readback_hash"] = current_hash
             old["fingerprint_version"] = 1
             self.ledger.save()
             self.label_cache[key] = current
@@ -1105,7 +1114,14 @@ class Importer:
                 continue
             story_id = str(story.get("gid"))
             comment_payload = {"comment_html": f"<p><strong>Original Asana comment by {html.escape(str(story.get('created_by', {}).get('name') if isinstance(story.get('created_by'), dict) else 'unknown'))} at {html.escape(str(story.get('created_at') or 'unknown'))}</strong></p><p>{sanitize_html(story.get('html_text') or story.get('text') or '')}</p>", "external_source": EXTERNAL_SOURCE, "external_id": story_id}
-            if not self.ledger.mapping("comments", story_id):
+            old_comment = self.ledger.mapping("comments", story_id)
+            if old_comment:
+                readback = self.client.comment(destination_project_id, str(current["id"]), str(old_comment["id"]))
+                _verify_identity(readback, story_id)
+                _verify_owned_payload("comments", comment_payload, readback)
+                if old_comment.get("fingerprint_version") == 1 and old_comment.get("readback_hash") != owned_fingerprint("comments", readback):
+                    raise ConflictError(f"destination comment drift detected for {story_id}")
+            else:
                 self.ledger.pending("comments", story_id, comment_payload)
                 try:
                     created = self.client.request("POST", f"/api/v1/workspaces/{self.client.slug}/projects/{destination_project_id}/work-items/{current['id']}/comments/", comment_payload)
@@ -1125,12 +1141,27 @@ class Importer:
         self.ledger.clear_detail_pending(gid)
         self.ledger.save()
 
+    def _verify_attachment_resume(self, project_id: str, task_id: str, source_gid: str, digest: str) -> None:
+        old = self.ledger.mapping("attachments", source_gid)
+        item = self.client.work_item(project_id, task_id)
+        destination = find_destination_attachment(item, source_gid)
+        if not destination or str(destination.get("id")) != str(old.get("id")):
+            raise MigrationError(f"destination attachment readback missing or mismatched {source_gid}")
+        _verify_identity(destination, source_gid)
+        if old.get("sha256") != digest:
+            raise ConflictError(f"source attachment checksum drift detected for {source_gid}")
+        if old.get("fingerprint_version") == 1 and old.get("readback_hash") != owned_fingerprint("attachments", destination):
+            raise ConflictError(f"destination attachment drift detected for {source_gid}")
+        target = destination_download_url(destination)
+        if not target or self.client.download_checksum(target) != digest:
+            raise MigrationError(f"destination attachment checksum verification failed {source_gid}")
+
     def import_attachment(self, project_id: str, task_id: str, attachment: dict[str, Any]) -> None:
         source_gid = source_id(str(attachment.get("gid")))
         file, receipt = _validate_receipt(self.snapshot, attachment)
         old = self.ledger.mapping("attachments", source_gid)
         if old:
-            # Attachment list readback is intentionally required before resume.
+            self._verify_attachment_resume(project_id, task_id, source_gid, receipt["sha256"])
             return
         name = str(receipt.get("name") or attachment.get("name") or f"attachment-{source_gid}")
         content_type = str(receipt.get("content_type") or mimetypes.guess_type(name)[0] or "application/octet-stream")
@@ -1177,6 +1208,7 @@ class Importer:
 
     def import_attachment_file(self, project_id: str, task_id: str, source_gid: str, file: Path, content_type: str, digest: str) -> None:
         if self.ledger.mapping("attachments", source_gid):
+            self._verify_attachment_resume(project_id, task_id, source_gid, digest)
             return
         payload = {"name": "migration-record.json", "type": content_type, "size": file.stat().st_size, "external_source": EXTERNAL_SOURCE, "external_id": source_gid}
         self.ledger.pending("attachments", source_gid, payload)
@@ -1214,7 +1246,7 @@ class Importer:
             archived = self.client.project(destination_id)
             if not archived.get("archived_at") and not archived.get("archived"):
                 raise MigrationError(f"project archive readback failed for {source_gid}")
-        return {"source_gid": source_gid, "destination_id": destination_id, "tasks": len(task_map), "phase": "all", "full_verification": not self.snapshot.coverage_gaps and self.snapshot.full_account_export_complete, "archived": bool(detail.get("archived")), "details_pending": len(self.ledger.data.get("detail_pending", {}))}
+        return {"source_gid": source_gid, "destination_id": destination_id, "tasks": len(task_map), "phase": "all", "full_verification": False, "verification_scope": "import_readbacks_only", "archived": bool(detail.get("archived")), "details_pending": len(self.ledger.data.get("detail_pending", {}))}
 
     def import_my_tasks(self, *, phase: str = "all") -> dict[str, Any]:
         # My Tasks is private and deliberately separate from source projects.
@@ -1226,9 +1258,12 @@ class Importer:
         for task in self.snapshot.tasks_for(None):
             self.import_task(pseudo, str(project["id"]), task, task_map, phase=phase)
         self.verify_cached_definitions(str(project["id"]))
-        return {"source_gid": pseudo, "destination_id": project["id"], "tasks": len(task_map), "private": True, "phase": phase, "full_verification": phase == "all" and not self.snapshot.coverage_gaps and self.snapshot.full_account_export_complete, "details_pending": len(self.ledger.data.get("detail_pending", {})), "fidelity_gaps": self.ledger.data.get("fidelity_gaps", [])}
+        return {"source_gid": pseudo, "destination_id": project["id"], "tasks": len(task_map), "private": True, "phase": phase, "full_verification": False, "verification_scope": "import_readbacks_only", "details_pending": len(self.ledger.data.get("detail_pending", {})), "fidelity_gaps": self.ledger.data.get("fidelity_gaps", [])}
 
     def verify(self, selected: str | None = None, *, phase: str = "all") -> dict[str, Any]:
+        # Identity readbacks are not preservation proof. Until complete source
+        # coverage and every detail are independently checked, fail closed even
+        # for an empty pending queue or a complete source manifest.
         checked = 0
         for source_gid, mapping in self.ledger.data.get("projects", {}).items():
             if source_gid == "my-tasks" or selected is None or source_gid == selected:
@@ -1244,7 +1279,7 @@ class Importer:
                 current = self.client.work_item(str(mapping["project_id"]), str(mapping["id"]))
                 _verify_identity(current, source_gid)
                 checked += 1
-        return {"checked": checked, "pending": len(self.ledger.data.get("pending", {})), "details_pending": len(self.ledger.data.get("detail_pending", {})), "status": "verified", "phase": phase, "full_verification": phase == "all" and not self.snapshot.coverage_gaps and self.snapshot.full_account_export_complete, "source_scope": self.snapshot.scope, "coverage_gaps": self.snapshot.coverage_gaps, "full_account_export_complete": self.snapshot.full_account_export_complete}
+        return {"checked": checked, "pending": len(self.ledger.data.get("pending", {})), "details_pending": len(self.ledger.data.get("detail_pending", {})), "status": "partial", "phase": phase, "full_verification": False, "verification_scope": "core_identity_only", "unverified": ["complete source/destination coverage", "definitions", "comments", "attachments/checksums"], "source_scope": self.snapshot.scope, "coverage_gaps": self.snapshot.coverage_gaps, "full_account_export_complete": self.snapshot.full_account_export_complete}
 
 
 def plan(snapshot: Snapshot, selected: str | None, all_projects: bool, *, phase: str = "all") -> dict[str, Any]:
@@ -1253,7 +1288,7 @@ def plan(snapshot: Snapshot, selected: str | None, all_projects: bool, *, phase:
     if not selected and not all_projects:
         raise MigrationError("apply requires --project SOURCE_GID or --all")
     projects = [selected] if selected else sorted(snapshot.projects)
-    result = {"source_workspace_gid": snapshot.manifest["source_workspace_gid"], "projects": [], "my_tasks": False, "phase": phase, "export_complete": bool(snapshot.manifest.get("export_complete")), "source_scope": snapshot.scope, "coverage_gaps": snapshot.coverage_gaps, "full_account_export_complete": snapshot.full_account_export_complete, "full_account_parity": phase == "all" and not snapshot.coverage_gaps and snapshot.full_account_export_complete}
+    result = {"source_workspace_gid": snapshot.manifest["source_workspace_gid"], "projects": [], "my_tasks": False, "phase": phase, "export_complete": bool(snapshot.manifest.get("export_complete")), "source_scope": snapshot.scope, "coverage_gaps": snapshot.coverage_gaps, "full_account_export_complete": snapshot.full_account_export_complete, "full_account_parity": False}
     for project in projects:
         tasks = snapshot.tasks_for(project)
         result["projects"].append({"source_gid": project, "tasks": len(tasks), "archived": bool(snapshot.projects[project].get("archived"))})
@@ -1300,11 +1335,11 @@ def main(argv: list[str] | None = None) -> int:
                     results.append(importer.import_project(project_gid, phase=args.phase))
                 if args.all and snapshot.tasks_for(None):
                     results.append(importer.import_my_tasks(phase=args.phase))
-                result = {"status": "applied", "results": results, "phase": args.phase, "pending": len(ledger.data.get("pending", {})), "details_pending": len(ledger.data.get("detail_pending", {})), "fidelity_gaps": ledger.data.get("fidelity_gaps", []), "full_verification": args.phase == "all" and not snapshot.coverage_gaps and snapshot.full_account_export_complete, "source_scope": snapshot.scope, "coverage_gaps": snapshot.coverage_gaps, "full_account_export_complete": snapshot.full_account_export_complete}
+                result = {"status": "applied", "results": results, "phase": args.phase, "pending": len(ledger.data.get("pending", {})), "details_pending": len(ledger.data.get("detail_pending", {})), "fidelity_gaps": ledger.data.get("fidelity_gaps", []), "full_verification": False, "verification_scope": "import_readbacks_only", "source_scope": snapshot.scope, "coverage_gaps": snapshot.coverage_gaps, "full_account_export_complete": snapshot.full_account_export_complete}
             else:
                 result = importer.verify(selected, phase=args.phase)
     print(json.dumps(redact_secrets(result), sort_keys=True))
-    return 0
+    return 2 if args.command == "verify" and result["status"] != "verified" else 0
 
 
 if __name__ == "__main__":
