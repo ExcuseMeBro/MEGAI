@@ -1,23 +1,37 @@
-# MEGAI slim — Pi only
+# ⚡ MEGAI slim — Pi only
+
+**A focused tool stack for Pi. Explicit boundaries. Verified delivery.**
+
+[🚀 Install](#install) · [🧰 Stack](#included-stack) · [🛫 Workflow](#plane-only-workflow) · [⚙️ Defaults](#default-behavior-and-acceptance) · [🛡️ Safety](#adoption-preservation-and-rollback) · [✅ Verification](#verification)
 
 A dedicated, persistent **`slim`** distribution for **Pi coding agent only**. It keeps nine selected tools plus
 bundled Caveman core, Plane-only task boundaries and task-quality gates. Installation and launch do not
 merge or push Git branches. This branch is not automatically integrated into `main`.
 
-## Included stack
+| 🎯 Pi only | 💤 On demand | 🔒 User control |
+| :--- | :--- | :--- |
+| One supported coding harness | No added startup daemon or model call | Credentials, model choices and data stay yours |
+
+---
+
+<a id="included-stack"></a>
+
+## 🧰 Included stack
+
+**Nine selected tools + Caveman core.** Activated when the task calls for them.
 
 | Tool | Purpose |
 | --- | --- |
-| [codedb](https://github.com/justrach/codedb) | Default core structural lookup via CLI; on-demand indexing |
-| [zvec-grep](https://github.com/zvec-ai/zvec-grep) | Local hybrid code search; explicit indexing |
-| [rtk](https://github.com/rtk-ai/rtk) | Default supported discovery output; raw acceptance diagnostics remain authoritative |
-| [Caveman core](https://github.com/JuliusBrussee/caveman) | Default full terse chat; bundled MIT core adaptation, no companion/runtime package |
-| task-flow | **Plane-only** identity, acceptance and start/handoff boundaries |
-| [Ruff](https://docs.astral.sh/ruff/) | Non-mutating Python lint/format checks |
-| [agent-memory](https://www.agent-memory.dev/) | Default relevant recall; lazy local service, saving only on user request |
-| agent-worktree-lifecycle | Isolated writers and verified, user-agreed branch delivery |
-| [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | Task-appropriate UI/UX and accessibility guidance |
-| [Matt Pocock's skills](https://github.com/mattpocock/skills) | Engineering, diagnosis, specifications and verification workflows |
+| 🗂️ [codedb](https://github.com/justrach/codedb) | Default core structural lookup via CLI; on-demand indexing |
+| 🔎 [zvec-grep](https://github.com/zvec-ai/zvec-grep) | Local hybrid code search; explicit indexing |
+| 📦 [rtk](https://github.com/rtk-ai/rtk) | Default supported discovery output; raw acceptance diagnostics remain authoritative |
+| 🪨 [Caveman core](https://github.com/JuliusBrussee/caveman) | Default full terse chat; bundled MIT core adaptation, no companion/runtime package |
+| 🛫 task-flow | **Plane-only** identity, acceptance and start/handoff boundaries |
+| 🧹 [Ruff](https://docs.astral.sh/ruff/) | Non-mutating Python lint/format checks |
+| 🧠 [agent-memory](https://www.agent-memory.dev/) | Default relevant recall; lazy local service, saving only on user request |
+| 🌿 agent-worktree-lifecycle | Isolated writers and verified, user-agreed branch delivery |
+| 🎨 [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | Task-appropriate UI/UX and accessibility guidance |
+| 🛠️ [Matt Pocock's skills](https://github.com/mattpocock/skills) | Engineering, diagnosis, specifications and verification workflows |
 
 Native read/edit/bash, Git, `rg`, Plane connector configuration and Pi's lazy MCP
 adapter are infrastructure, not additional product entries. Graphify,
@@ -26,12 +40,18 @@ OpenSpec, legacy model routing and full Pi extension bundles are outside the act
 Historical standalone source remains unwired; old full-profile flags do not
 restore it through slim install/update/launch.
 
-## Install
+<a id="install"></a>
+
+## 🚀 Install
+
+### Prerequisites
 
 Requires macOS/Linux, Python **3.11+**, Git, ripgrep and curl. The installer
 resolves jq and Node **22+**; Ruff reuses an existing working executable or uses
 uv/pipx. Authenticate your chosen harness separately. Credentials and model/
 thinking choices are never installed or changed for performance.
+
+### Quick start
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/slim/install.sh | bash
@@ -46,6 +66,8 @@ fetch `main`. It does **not** apply this repository's changes to your current ho
 until you explicitly run it. Existing valid tools are reused, including during
 `megai update`; updates refresh slim source wiring/skill kits, not unrelated tools.
 
+### Pinned downloads & reuse
+
 Fresh downloads pin agent-memory 0.9.27, zvec-grep 0.2.1, RTK 0.43.0 and both skill
 kit source commits. Codedb fresh installs pin 0.2.56 with embedded SHA-256 hashes
 for macOS ARM64/Linux x86_64; other platforms require a pre-provisioned trusted
@@ -55,7 +77,11 @@ release archive; slim never runs `rtk init -g`. Npm core CLI installs disable
 lifecycle scripts. Reused executable versions and platform dependencies may vary;
 offline integration tests do not prove every fresh upstream install works.
 
-## Plane-only workflow
+<a id="plane-only-workflow"></a>
+
+## 🛫 Plane-only workflow
+
+**🟠 In Progress → 🟣 In Review → 🟢 Done (user only)**
 
 Configure the secure connector explicitly; no credentials are bundled:
 
@@ -71,17 +97,19 @@ matches. After a successful complete lookup finds no matching task, create exact
 one automatically in `In Progress`, without asking. Ambiguity or an unavailable
 Plane boundary blocks edits rather than creating duplicates or a local fallback.
 
-- Start once in started **In Progress**.
-- Keep acceptance and execution evidence in the same Plane item.
-- Verify task behavior and agreed branch delivery; hand off in started **In Review**.
-- Only the user marks **Done** or approves main promotion.
+- 🟠 Start once in started **In Progress**.
+- 📋 Keep acceptance and execution evidence in the same Plane item.
+- 🟣 Verify task behavior and agreed branch delivery; hand off in started **In Review**.
+- 🔐 Only the user marks **Done** or approves main promotion.
 
 There is no `.todos` creation, reading, writing, mirroring, ADLC board, monitoring,
 board hook, routine milestone sync or queue draining in the active slim workflow.
 Historical project boards stay untouched. Pure questions/read-only investigation
 need no tracked mutation; refinements reuse the active item.
 
-## Default behavior and acceptance
+<a id="default-behavior-and-acceptance"></a>
+
+## ⚙️ Default behavior and acceptance
 
 All ten stack entries are installed/wired by default for Pi.
 Pi itself must be installed and authenticated separately. Their triggers are:
@@ -103,8 +131,12 @@ Pi itself must be installed and authenticated separately. Their triggers are:
 - **UX/UI kit:** select the matching UI/accessibility skill for UI work.
 - **Matt Pocock kit:** select the matching engineering/diagnosis/verification skill.
 
-Defaults are task-appropriate choices, not ten compulsory calls per task. Before
-edits define the observable outcome, acceptance checks and stop condition. Run
+> [!IMPORTANT]
+> Defaults are task-appropriate choices, not ten compulsory calls per task.
+
+### Acceptance comes first
+
+Before edits define the observable outcome, acceptance checks and stop condition. Run
 repository tests/build/lint unchanged with raw output and original exit status;
 review full native diffs. RTK summaries alone never prove acceptance. Keep security,
 accessibility, compatibility and independent-review gates. User resource exclusions
@@ -116,7 +148,9 @@ relevant recall; index only when a task needs it;
 missing/stale indexes must be reported rather than silently treated as results.
 Smaller context/output is not a measured speed or quality improvement.
 
-## On-demand operation
+<a id="on-demand-operation"></a>
+
+## 💤 On-demand operation
 
 ```bash
 megai start agent-memory
@@ -145,16 +179,25 @@ independent security/data-integrity review. Use raw diagnostics when compressed
 output could conceal evidence. Fewer tools/jobs alone are **not** proof of faster
 completion, lower token costs or equal model quality.
 
-## Adoption, preservation and rollback
+<a id="adoption-preservation-and-rollback"></a>
 
-**Migrating an existing full installation is deliberately fail-closed.** A
-read-only preflight runs before replacing distribution source or running package
+## 🛡️ Adoption, preservation and rollback
+
+> [!WARNING]
+> Migrating an existing full installation is deliberately fail-closed.
+> Back up first and reconcile only the conflicts reported by preflight.
+
+### Preflight & ownership
+
+A read-only preflight runs before replacing distribution source or running package
 installers. Legacy board/routing instructions, conflicting skills/proxies,
 malformed configs (including shell PATH blocks) and symlinked destinations require manual reconciliation;
 slim does not guess ownership or delete custom registrations by name. Existing
 unrelated hooks, MCP tables, auth, models and package selections remain unchanged.
 It also does not stop already-running services or override user-owned extensions.
 A preserved custom extension can still have its own startup behavior.
+
+### Pi-only isolation
 
 The installer, update, doctor, wire, Plane setup/remove/restore and uninstall
 operate only on Pi. `megai cc`, `megai codex`, `megai omp`, non-Pi wire targets and
@@ -173,6 +216,8 @@ Changing `MEGAI_HOME` alone does not isolate Pi's global configuration.
 For adoption on an existing host, back up and manually detach the specific legacy
 registrations reported by preflight, review user resource filters, then retry.
 Do not delete project boards or indexes to resolve a wiring conflict.
+
+### Updates & recovery
 
 Successful wiring records exact ownership hashes and private recovery manifests
 under `~/.megai/backups/slim-wiring-*/`. Source replacements and skill-kit updates
@@ -194,7 +239,9 @@ Plane. If a later write fails, recovery manifests and connector restore backups
 remain available. It never recursively deletes MEGAI, skill kits, credentials,
 indexes or historical project data. Main promotion remains a separate decision.
 
-## Verification
+<a id="verification"></a>
+
+## ✅ Verification
 
 ```bash
 bash tests/slim-distribution.sh  # isolated offline install/update/wiring/runtime contracts
