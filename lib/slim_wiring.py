@@ -66,12 +66,13 @@ def destinations() -> dict[str, Path]:
 
 
 class Plan:
-    def __init__(self) -> None:
+    def __init__(self, allow_missing_caveman: bool = False) -> None:
         self.receipt_before = read(RECEIPT)
         self.receipt = json.loads(self.receipt_before) if self.receipt_before else {}
         if not isinstance(self.receipt, dict):
             raise ValueError("invalid slim ownership receipt")
         self.prior_receipt = dict(self.receipt)
+        self.allow_missing_caveman = allow_missing_caveman
         load_json(MEGAI / "state.json")
         self.changes: dict[Path, bytes | None] = {}
         self.originals: dict[Path, bytes | None] = {}
@@ -187,15 +188,29 @@ class Plan:
         skills = settings.get("skills", [])
         if isinstance(skills, dict):
             legacy = skills
-            if "enableSkillCommands" not in settings and "enableSkillCommands" in legacy:
-                settings["enableSkillCommands"] = legacy["enableSkillCommands"]
-            custom = legacy.get("customDirectories", [])
-            skills = custom if isinstance(custom, list) else []
+            allowed = {"customDirectories", "enableSkillCommands"}
+            unknown = set(legacy) - allowed
+            if unknown:
+                raise ValueError(f"unsupported legacy Pi skills keys: {sorted(unknown)}")
+            if "customDirectories" not in legacy or not isinstance(legacy["customDirectories"], list):
+                raise ValueError(f"malformed legacy Pi customDirectories: {path}")
+            if any(not isinstance(item, str) for item in legacy["customDirectories"]):
+                raise ValueError(f"malformed legacy Pi customDirectories: {path}")
+            if "enableSkillCommands" in legacy:
+                if not isinstance(legacy["enableSkillCommands"], bool):
+                    raise ValueError(f"malformed legacy Pi enableSkillCommands: {path}")
+                if "enableSkillCommands" not in settings:
+                    settings["enableSkillCommands"] = legacy["enableSkillCommands"]
+            skills = legacy["customDirectories"]
         if not isinstance(skills, list) or any(not isinstance(item, str) for item in skills):
             raise ValueError(f"expected Pi skills to be a string array: {path}")
         core_path = HOME / ".agents/skills/caveman/SKILL.md"
         core = "+" + str(core_path)
-        if os.environ.get("MEGAI_CAVEMAN", "1") == "1" and not core_path.is_file():
+        if (
+            os.environ.get("MEGAI_CAVEMAN", "1") == "1"
+            and not core_path.is_file()
+            and not self.allow_missing_caveman
+        ):
             raise ValueError(f"Caveman core skill missing: {core_path}; run megai install")
         skills = [item for item in skills if item != core]
         for exclusion in ("!caveman*", "!cavecrew"):
@@ -330,8 +345,11 @@ def main() -> int:
     parser.add_argument("--remove", action="store_true")
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--verify", action="store_true")
+    parser.add_argument("--install-preflight", action="store_true")
     args = parser.parse_args()
-    plan = Plan()
+    if args.install_preflight and (not args.check or args.verify):
+        parser.error("--install-preflight requires --check and cannot be combined with --verify")
+    plan = Plan(allow_missing_caveman=args.install_preflight)
     for name, root in destinations().items():
         if args.client in ("all", name):
             plan.client(name, root, args.remove)

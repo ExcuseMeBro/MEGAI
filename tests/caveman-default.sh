@@ -30,6 +30,21 @@ chmod +x "$TMP/bin/"*
 export PATH="$TMP/bin:$PATH"
 : > "$CALLS"
 
+# A genuinely fresh HOME passes the public install preflight before the core
+# exists; normal check remains fail-closed until install_caveman creates it.
+grep -Fq 'slim_wiring.py" all --check --install-preflight' "$ROOT/install.sh"
+grep -Fq 'slim_wiring.py" all --check --install-preflight' "$ROOT/lib/main.sh"
+env -u MEGAI_CAVEMAN python3 "$ROOT/lib/slim_wiring.py" all --check --install-preflight >/dev/null
+[ ! -e "$HOME/.agents/skills/caveman/SKILL.md" ] && [ ! -e "$MEGAI_HOME/slim-wiring.json" ]
+if env -u MEGAI_CAVEMAN python3 "$ROOT/lib/slim_wiring.py" all --check >/dev/null 2>&1; then
+  echo 'normal preflight unexpectedly accepted missing enabled Caveman core' >&2
+  exit 1
+fi
+if env -u MEGAI_CAVEMAN python3 "$ROOT/lib/slim_wiring.py" pi --verify >/dev/null 2>&1; then
+  echo 'normal verify unexpectedly accepted missing enabled Caveman core' >&2
+  exit 1
+fi
+
 # Explicit opt-out does nothing and does not invoke npm or the Caveman CLI.
 MEGAI_CAVEMAN=0 bash "$ROOT/lib/install_caveman.sh" >/dev/null
 [ ! -e "$HOME/.agents/skills/caveman/SKILL.md" ] && [ ! -s "$CALLS" ]
@@ -74,6 +89,29 @@ cmp "$PI_CODING_AGENT_DIR/auth.json" "$TMP/auth.before"
 MEGAI_CAVEMAN=0 python3 "$ROOT/lib/slim_wiring.py" pi >/dev/null
 jq -e --arg core "$core" '(.skills | index($core)) == null and (.skills | index("!caveman*")) != null and .defaultModel == "keep-model"' "$PI_CODING_AGENT_DIR/settings.json" >/dev/null
 cmp "$PI_CODING_AGENT_DIR/auth.json" "$TMP/auth.before"
+
+# Legacy Pi skills dictionaries are validated before any write; unknown keys,
+# malformed customDirectories and malformed values are never discarded.
+for legacy_json in \
+  '{"skills":{"customDirectories":[],"unexpected":true}}' \
+  '{"skills":{"customDirectories":"not-an-array"}}' \
+  '{"skills":{"customDirectories":[42]}}'; do
+  LEGACY_HOME="$TMP/legacy-home-${RANDOM}"
+  LEGACY_MEGAI="$TMP/legacy-megai-${RANDOM}"
+  LEGACY_PI="$LEGACY_HOME/.pi/agent"
+  mkdir -p "$LEGACY_PI" "$LEGACY_HOME/.agents/skills/caveman" "$LEGACY_MEGAI/lib"
+  cp "$MEGAI_HOME/state.json" "$LEGACY_MEGAI/state.json"
+  printf 'core\n' > "$LEGACY_HOME/.agents/skills/caveman/SKILL.md"
+  printf '%s\n' "$legacy_json" > "$LEGACY_PI/settings.json"
+  printf '{}\n' > "$LEGACY_PI/mcp.json"
+  cp "$LEGACY_PI/settings.json" "$TMP/legacy.before"
+  if HOME="$LEGACY_HOME" MEGAI_HOME="$LEGACY_MEGAI" PI_CODING_AGENT_DIR="$LEGACY_PI" MEGAI_SOURCE="$ROOT" python3 "$ROOT/lib/slim_wiring.py" pi >/dev/null 2>&1; then
+    echo "legacy Pi settings unexpectedly accepted: $legacy_json" >&2
+    exit 1
+  fi
+  cmp "$LEGACY_PI/settings.json" "$TMP/legacy.before"
+  [ ! -e "$LEGACY_MEGAI/slim-wiring.json" ]
+done
 
 # Concurrent/custom edits fail closed rather than overwriting unrelated settings.
 jq '.defaultModel = "user-edited"' "$PI_CODING_AGENT_DIR/settings.json" > "$TMP/edited.json"

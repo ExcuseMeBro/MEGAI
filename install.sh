@@ -46,7 +46,7 @@ ok "source extracted -> $tmp"
 # 2. Fail migration conflicts before replacing even the distribution source.
 export MEGAI_HOME PYTHONDONTWRITEBYTECODE=1
 python3 -c 'import tomllib' || die "Python 3.11+ required"
-MEGAI_SOURCE="$tmp" python3 "$tmp/lib/slim_wiring.py" all --check
+MEGAI_SOURCE="$tmp" python3 "$tmp/lib/slim_wiring.py" all --check --install-preflight
 python3 "$tmp/lib/install_slim_source.py" "$tmp"
 ok "source installed with private recovery manifest"
 

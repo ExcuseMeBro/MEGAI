@@ -20,7 +20,7 @@ detect_runtimes
 [ "$MEGAI_HAS_PY" = "1" ] || die "Python 3.11+ required for safe policy/config validation"
 python3 -c 'import tomllib' || die "Python 3.11+ required"
 # Validate migration before any third-party installer or config mutation.
-python3 "$LIB/slim_wiring.py" all --check
+python3 "$LIB/slim_wiring.py" all --check --install-preflight
 command -v git >/dev/null 2>&1 || die "Git required"
 command -v rg >/dev/null 2>&1 || die "ripgrep required; install rg before retrying"
 require_or_install_jq
