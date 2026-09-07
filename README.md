@@ -650,7 +650,10 @@ megai logs repowise            # inspect background RepoWise indexing
 
 Configure the official Plane hosted MCP for Pi and Codex without putting the API token in
 MCP JSON, shell arguments, or logs. Install the pinned bridge as a separate,
-credential-free preflight; runtime never downloads packages:
+credential-free preflight; runtime never downloads packages. The private receipt verifies
+Node, the lockfile and the complete installed dependency tree (including imported chunks).
+Trusted root-owned, non-writable system Node executables are supported. Reinstall the bridge
+after an intentional Node or dependency update to renew its receipt:
 
 ```bash
 megai plane bridge install
@@ -680,6 +683,8 @@ bash tests/openspec-integration.sh  # offline installer lifecycle and preservati
 bash tests/openspec-policy.sh       # static boundaries and negative mutations
 bash tests/openspec-contract.sh     # real installed OpenSpec 1.12.0 contract
 bash tests/pi-task-flow.sh          # Plane handoff and Pi wiring regressions
+bash tests/plane-mcp.sh             # Pi/Codex connector lifecycle and rollback
+bash tests/plane-cutover-regressions.sh # Runtime integrity and safe uninstall
 bash tests/orchestration-policy.sh  # shared prompt guardrails
 ```
 

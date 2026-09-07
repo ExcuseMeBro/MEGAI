@@ -127,7 +127,11 @@ def install(target: Path, source: Path, kind: str, backup_dir: Path) -> None:
             finish = current.find(marker_end, start) + len(marker_end)
             if start < 0 or finish == len(marker_end) - 1:
                 fail(f"unpaired Codex task-flow markers: {target}")
-            replacement = source_text
+            # The marker owns its line ending; retain all following user text
+            # without inserting an extra newline on every repeated install.
+            if current[finish:finish + 1] == "\n":
+                finish += 1
+            replacement = source_text.rstrip("\n") + "\n"
             updated = current[:start] + replacement + current[finish:]
         else:
             updated = current + ("\n" if current and not current.endswith("\n") else "") + source_text

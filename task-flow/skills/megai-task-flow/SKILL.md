@@ -23,9 +23,10 @@ The parent coordinates Plane and `.todos/` for every requested project file/code
 2. Locate or create `<root>/.todos/` with `todo.md`, `inprogress.md`, and `done.md`.
 3. At a new task or resumed session, read `todo.md` and `inprogress.md` once. Read `done.md` only when resolving an existing task or completing work.
 4. Reuse a known Plane project UUID and work item UUID from current context before searching.
-5. List Plane projects through the API/MCP and consume every page. The result must be exactly one exact Git-root project: zero means ask the user; multiple means stop and ask. Never create a project implicitly; never create a project implicitly while identity is unresolved.
-6. For exactly one project, consume every page of its project-scoped work-item list. Resolve zero, one, or multiple matches explicitly: zero means ask before creating, one is usable, and multiple means stop and ask. An imported item is identified by the pair `(project UUID, work item UUID)`.
-7. Resolve imported legacy work by matching both `external_id` and the actual `external_source=asana-migration-v1`; if the API cannot filter those fields, paginate and match locally. Never create a duplicate while identity is unresolved.
+5. List Plane projects through the API/MCP and consume every page. Require exactly one exact Git-root project name: zero or multiple means stop and ask. Never create a project implicitly. For managed worktrees reuse the parent's resolved repository/project identity, not the temporary worktree folder name.
+6. Before any task mutation, list the project's workflow states with pagination. Require one exact `In Progress` and one exact `In Review` name, each with `group=started`; retain their UUIDs. Missing, duplicate, wrong-group, failed or incomplete responses block work: ask the user to resolve them rather than inventing IDs or silently creating/changing states.
+7. For ordinary unlinked work, strip checkbox/priority/ADLC metadata and HTML markers from the local title. Consume every page of the project-scoped work-item list and compare that clean title to each exact `name`. One match: reuse its UUID. Multiple matches: stop and ask. Zero matches after a successful complete lookup: ask approval to create; after approval create one item with that exact title and the resolved `In Progress` state UUID, then record the returned `(project UUID, work item UUID)` pair in `.todos` before editing. Failed or incomplete lookup is never zero matches. If creation has an uncertain result, reconcile by lookup before retrying.
+8. Existing `<!-- asana:GID -->` markers take precedence over title-based creation: match both `external_id=GID` and `external_source=asana-migration-v1` in the project-scoped Plane list; if filtering is unavailable, paginate and match locally. Require exactly one match before adding the Plane pair; zero or multiple matches block for reconciliation, never create a replacement. Preserve the original marker verbatim as history.
 
 Boundary-only Plane sync: one start boundary and one verified handoff boundary. Reuse the active linked work item for follow-up refinements; load this skill and read the board once at task start/resume, not for each edit. A task already active in this session needs no repeated start mutation. Avoid routine reads, comments, and section changes between boundaries.
 
@@ -34,7 +35,7 @@ Boundary-only Plane sync: one start boundary and one verified handoff boundary. 
 Store the Plane identity pair and any historical source marker at the end of the `.todos` line. Preserve the original imported marker verbatim until the pair is confirmed:
 
 ```markdown
-- [ ] 🟠 📝 Fix login redirect <!-- asana:121234567890 plane:project-uuid/workitem-uuid -->
+- [ ] 🟠 📝 Fix login redirect <!-- plane:project-uuid/workitem-uuid --> <!-- asana:121234567890 -->
 ```
 
 Keep both the Plane pair and `<!-- asana:GID -->` historical marker when moving the line or changing its ADLC stage. Do not rename the marker to `legacy-asana`, and never invent a second item while an identity lookup is unresolved.
@@ -54,7 +55,7 @@ At each boundary, mutate Plane first and then move the `.todos` line. Stop and r
 ## Work cycle
 
 1. Use the bounded execution contract: inspect the exact seam, implement the smallest complete change, self-review, run focused tests, then stop or ship when required.
-2. Start boundary: use the active `(project UUID, work item UUID)` directly. For an unlinked task, resolve the exact project and paginated work-item identity before mutating; zero or multiple matches are blocking outcomes. Put it in started `In Progress` in one mutation once the unique item is resolved; stop if the mutation fails.
+2. Start boundary: follow the project, state and identity gates above. Reuse a linked pair directly; update an existing item with the resolved `In Progress` UUID once. For an approved new item, creation in that state is the start boundary, not a second update. Inspect the returned state and stop on failure or mismatch. Resolve an uncertain mutation before retrying.
 3. Add the identity pair and historical marker to the `.todos` line and move it to `inprogress.md` at 📝 spec.
 4. Cover bookkeeping stages in the same bounded implementation pass. UI verification is code-only unless explicitly requested.
 5. Routine stage changes and milestone comments are forbidden. Do not dual-sync another tracker.

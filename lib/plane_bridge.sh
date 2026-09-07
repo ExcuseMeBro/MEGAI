@@ -29,18 +29,24 @@ with open(sys.argv[1], encoding='utf-8') as stream:
     if json.load(stream).get('version') != '0.1.43': raise SystemExit(1)
 PY
   tmp="$(mktemp "$MANIFEST.XXXXXX")"
-  python3 - "$tmp" "$node_bin" "$entry" "$lock" <<'PY'
+  PYTHONDONTWRITEBYTECODE=1 python3 - "$tmp" "$node_bin" "$entry" "$lock" "$MEGAI_HOME/lib" <<'PY'
 import hashlib, json, os, sys
-out, node, entry, lock = sys.argv[1:]
+from pathlib import Path
+out, node, entry, lock, lib = sys.argv[1:]
+sys.path.insert(0, lib)
+from plane_mcp_remote import regular, runtime_digest
+regular(Path(node), system=True)
 def digest(path):
     h = hashlib.sha256()
     with open(path, 'rb') as stream:
         for chunk in iter(lambda: stream.read(1024 * 1024), b''): h.update(chunk)
     return h.hexdigest()
 value = {
-    'version': 1, 'package': 'mcp-remote', 'package_version': '0.1.43',
+    'version': 2, 'package': 'mcp-remote', 'package_version': '0.1.43',
     'node': node, 'entry': entry, 'lockfile': lock,
     'entry_sha256': digest(entry), 'lock_sha256': digest(lock),
+    'node_sha256': digest(node),
+    'runtime_sha256': runtime_digest(Path(lock).parent / 'node_modules'),
 }
 with open(out, 'w', encoding='utf-8') as stream: json.dump(value, stream, sort_keys=True); stream.write('\n')
 os.chmod(out, 0o600)

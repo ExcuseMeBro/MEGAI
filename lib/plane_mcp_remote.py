@@ -24,12 +24,16 @@ def fail(message: str) -> None:
     raise SystemExit(1)
 
 
-def regular(path: Path, private: bool = False) -> None:
+def regular(path: Path, private: bool = False, system: bool = False) -> None:
     if path.is_symlink() or not path.is_file():
         fail(f"invalid Plane bridge artifact: {path}")
     info = path.stat()
-    if info.st_uid != os.getuid():
-        fail(f"Plane bridge artifact is not user-owned: {path}")
+    if info.st_uid not in ({0, os.getuid()} if system else {os.getuid()}):
+        fail(f"Plane bridge artifact has an untrusted owner: {path}")
+    if info.st_mode & 0o022:
+        fail(f"Plane bridge artifact is group/world writable: {path}")
+    if system and not os.access(path, os.X_OK):
+        fail(f"Plane bridge system executable is not executable: {path}")
     if private and stat.S_IMODE(info.st_mode) & 0o077:
         fail(f"Plane bridge receipt is not private: {path}")
 
@@ -42,6 +46,33 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def runtime_digest(root: Path) -> str:
+    """Cover all installed dependencies and imported chunks, not just proxy.js."""
+    root = root.resolve(strict=True)
+    records = []
+    for directory, dirs, files in os.walk(root, followlinks=False):
+        parent = Path(directory)
+        info = parent.stat()
+        if info.st_uid != os.getuid() or info.st_mode & 0o022:
+            fail(f"Unsafe Plane runtime directory: {parent}")
+        for name in sorted(dirs + files):
+            path = parent / name
+            relative = path.relative_to(root).as_posix()
+            if path.is_symlink():
+                # npm creates .bin links. Cover the link and require its target
+                # to be a regular file within the separately hashed tree.
+                resolved = path.resolve(strict=True)
+                if not resolved.is_relative_to(root) or not resolved.is_file():
+                    fail(f"Unsafe Plane runtime link: {path}")
+                records.append((relative, "link", os.readlink(path)))
+            elif path.is_dir():
+                records.append((relative, "dir", ""))
+            else:
+                regular(path)
+                records.append((relative, "file", sha256(path)))
+    return hashlib.sha256(json.dumps(sorted(records), separators=(",", ":")).encode()).hexdigest()
+
+
 def bridge_manifest() -> dict:
     home = Path(os.environ.get("MEGAI_HOME", Path.home() / ".megai")).expanduser()
     if not home.is_absolute() or home.is_symlink():
@@ -51,7 +82,7 @@ def bridge_manifest() -> dict:
     regular(manifest_path, private=True)
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        if manifest.get("version") != 1 or manifest.get("package") != "mcp-remote" or manifest.get("package_version") != BRIDGE_VERSION:
+        if manifest.get("version") != 2 or manifest.get("package") != "mcp-remote" or manifest.get("package_version") != BRIDGE_VERSION:
             raise ValueError("wrong bridge version")
         node_raw = Path(manifest["node"])
         entry_raw = Path(manifest["entry"])
@@ -72,10 +103,13 @@ def bridge_manifest() -> dict:
             raise ValueError("bridge installation path is not local and regular")
         if entry != expected_entry or lock != expected_lock:
             raise ValueError("bridge receipt is not bound to the pinned installation")
-        regular(node)
+        regular(node, system=True)
         regular(entry)
         regular(lock)
-        if manifest["lock_sha256"] != sha256(lock) or manifest["entry_sha256"] != sha256(entry):
+        if (manifest["lock_sha256"] != sha256(lock)
+                or manifest["entry_sha256"] != sha256(entry)
+                or manifest["node_sha256"] != sha256(node)
+                or manifest["runtime_sha256"] != runtime_digest(install_root / "node_modules")):
             raise ValueError("bridge receipt hash mismatch")
     except (KeyError, TypeError, ValueError, OSError, UnicodeError) as exc:
         fail(f"invalid Plane bridge receipt: {exc}")

@@ -11,6 +11,12 @@ Linked legacy source: `1218209651694005`. Plane identity pair remains `59005e36-
 | OpenSpec CLI contract | `bash tests/openspec-contract.sh`; `bash tests/openspec-integration.sh` | PASS |
 | Static validation | `bash -n bin/megai lib/*.sh`; Python compilation; non-mutating Ruff on changed Python files; `git diff --check` | PASS |
 
+## Parent correction evidence
+
+- `bash tests/plane-cutover-regressions.sh`: PASS with real system Node, modified/deleted/added runtime chunk rejection, external symlink rejection, byte-identical repeated Codex policy installation with stable backup count, and all-client uninstall failure preserving assets.
+- Parent reran Plane MCP/Codex config, Pi task-flow, MCP wiring and all three OpenSpec focused suites: PASS; strict change validation, non-mutating Ruff and shell syntax: PASS.
+- Policy scenario review: ordinary clean exact-title zero matches requires approval then creates once in the resolved start state; one reuses, multiple stops; incomplete lookup and unresolved legacy IDs cannot create. State lookup requires unique exact In Progress/In Review UUIDs with started groups, and stops on missing/duplicate/wrong-group responses. These instructions and static guards do not prove future model compliance.
+
 ## Remaining parent-owned evidence
 
 - Apply the explicit cutover only in an isolated/approved local environment after review:

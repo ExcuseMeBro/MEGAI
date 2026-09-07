@@ -28,16 +28,22 @@ cat >"$BRIDGE_ROOT/node" <<'SH'
 printf '%s\n' "$*" >"$ARGV_LOG"
 SH
 chmod 700 "$BRIDGE_ROOT/node"
-python3 - "$BRIDGE_ROOT" <<'PY'
+write_bridge_receipt() {
+PYTHONDONTWRITEBYTECODE=1 python3 - "$BRIDGE_ROOT" <<'PY'
 import hashlib, json, os, sys
 from pathlib import Path
+sys.path.insert(0, str(Path(os.environ['MEGAI_HOME'])/'lib'))
+from plane_mcp_remote import runtime_digest
 root=Path(sys.argv[1])
 def h(p): return hashlib.sha256(p.read_bytes()).hexdigest()
-manifest={'version':1,'package':'mcp-remote','package_version':'0.1.43',
+manifest={'version':2,'package':'mcp-remote','package_version':'0.1.43',
  'node':str(root/'node'),'entry':str(root/'node_modules/mcp-remote/dist/proxy.js'),'lockfile':str(root/'package-lock.json'),
- 'entry_sha256':h(root/'node_modules/mcp-remote/dist/proxy.js'),'lock_sha256':h(root/'package-lock.json')}
+ 'entry_sha256':h(root/'node_modules/mcp-remote/dist/proxy.js'),'lock_sha256':h(root/'package-lock.json'),
+ 'node_sha256':h(root/'node'),'runtime_sha256':runtime_digest(root/'node_modules')}
 path=Path(os.environ['MEGAI_HOME'])/'plane-bridge.json'; path.write_text(json.dumps(manifest)+'\n'); os.chmod(path,0o600)
 PY
+}
+write_bridge_receipt
 
 cat >"$PI_CODING_AGENT_DIR/mcp.json" <<'JSON'
 {
@@ -136,16 +142,7 @@ cat >"$BRIDGE_ROOT/node" <<'SH'
 printf '%s\n' "$*" >"$ARGV_LOG"
 SH
 chmod 700 "$BRIDGE_ROOT/node"
-python3 - "$BRIDGE_ROOT" <<'PY'
-import hashlib, json, os, sys
-from pathlib import Path
-root=Path(sys.argv[1])
-def h(p): return hashlib.sha256(p.read_bytes()).hexdigest()
-manifest={'version':1,'package':'mcp-remote','package_version':'0.1.43',
- 'node':str(root/'node'),'entry':str(root/'node_modules/mcp-remote/dist/proxy.js'),'lockfile':str(root/'package-lock.json'),
- 'entry_sha256':h(root/'node_modules/mcp-remote/dist/proxy.js'),'lock_sha256':h(root/'package-lock.json')}
-path=Path(os.environ['MEGAI_HOME'])/'plane-bridge.json'; path.write_text(json.dumps(manifest)+'\n'); os.chmod(path,0o600)
-PY
+write_bridge_receipt
 EXPECTED_TOKEN="$TOKEN" ARGV_LOG="$TMP/bridge-argv" \
   python3 "$MEGAI_HOME/lib/plane_mcp_remote.py" --token-file "$TOKEN_FILE" --workspace brodev >/dev/null 2>&1
 ! grep -Fq "$TOKEN" "$TMP/bridge-argv"

@@ -250,9 +250,10 @@ cmd_uninstall() {
   warn "Uninstall megai? This will remove ~/.megai and revert MCP configs. [y/N]"
   read -r ans
   [ "$ans" = "y" ] || { skip "cancelled"; return 0; }
+  # Abort before deleting any assets if either client cannot be unwired.
+  bash "$LIB/plane_mcp.sh" remove --client all || die "Plane removal failed; MEGAI assets preserved"
   bash "$LIB/wire_cc.sh"        --remove || true
   bash "$LIB/wire_codex.sh"     --remove || true
-  bash "$LIB/plane_mcp.sh"      remove    || true
   bash "$LIB/wire_pi.sh"        --remove || true
   if [ -d "$HOME/.omp/profiles" ]; then
     for agent_dir in "$HOME/.omp/profiles/"*/agent; do
