@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import os
 import shutil
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import NoReturn
 
@@ -21,18 +24,61 @@ def check_target(path: Path) -> None:
         fail(f"refusing symlinked policy file: {path}")
     if path.exists() and not path.is_file():
         fail(f"policy path is not a regular file: {path}")
+    if path.exists() and path.stat().st_uid != os.getuid():
+        fail(f"policy path is not owned by current user: {path}")
 
 
 def backup(path: Path, backup_dir: Path, label: str) -> None:
     if not path.exists():
         return
-    backup_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-    os.chmod(backup_dir, 0o700)
-    fd, name = tempfile.mkstemp(prefix=f"{label}.bak.", dir=backup_dir)
-    os.close(fd)
-    backup_path = Path(name)
-    shutil.copyfile(path, backup_path)
-    os.chmod(backup_path, 0o600)
+    if path.is_symlink() or not path.is_file() or path.stat().st_uid != os.getuid():
+        fail(f"refusing unsafe policy backup source: {path}")
+    if backup_dir.is_symlink():
+        fail(f"refusing symlinked policy backup directory: {backup_dir}")
+    identity = hashlib.sha256(str(path.resolve()).encode()).hexdigest()
+    policy_root = backup_dir / "task-flow-policy"
+    if policy_root.is_symlink():
+        fail(f"refusing symlinked policy backup root: {policy_root}")
+    target_dir = policy_root / identity
+    if target_dir.is_symlink():
+        fail(f"refusing symlinked policy target backup directory: {target_dir}")
+    target_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    info = target_dir.stat()
+    if info.st_uid != os.getuid() or info.st_mode & 0o077:
+        fail(f"policy target backup directory is not private: {target_dir}")
+    os.chmod(target_dir, 0o700)
+    stamp = f"{time.time_ns()}"
+    backup_path = target_dir / f"{label}.bak.{stamp}"
+    fd, temporary_name = tempfile.mkstemp(prefix=f".tmp-{stamp}-", dir=target_dir)
+    temporary = Path(temporary_name)
+    try:
+        with path.open("rb") as source, os.fdopen(fd, "wb") as destination:
+            fd = -1
+            shutil.copyfileobj(source, destination)
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, backup_path)
+    finally:
+        if fd >= 0:
+            os.close(fd)
+        temporary.unlink(missing_ok=True)
+    metadata = {
+        "version": 1, "target": str(path.resolve()), "label": label,
+        "payload": backup_path.name,
+        "sha256": hashlib.sha256(backup_path.read_bytes()).hexdigest(),
+    }
+    meta = target_dir / f"metadata.{stamp}.json"
+    fd, meta_tmp_name = tempfile.mkstemp(prefix=f".metadata-{stamp}-", dir=target_dir, text=True)
+    meta_tmp = Path(meta_tmp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            fd = -1
+            stream.write(json.dumps(metadata, sort_keys=True) + "\n")
+        os.chmod(meta_tmp, 0o600)
+        os.replace(meta_tmp, meta)
+    finally:
+        if fd >= 0:
+            os.close(fd)
+        meta_tmp.unlink(missing_ok=True)
 
 
 def atomic_write(path: Path, content: str) -> None:

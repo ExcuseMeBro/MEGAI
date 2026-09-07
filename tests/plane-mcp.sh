@@ -10,13 +10,34 @@ export HOME="$TMP/home"
 export MEGAI_HOME="$TMP/megai"
 export PI_CODING_AGENT_DIR="$HOME/.pi/agent"
 mkdir -p "$HOME" "$PI_CODING_AGENT_DIR" "$MEGAI_HOME/lib" "$MEGAI_HOME/backups"
-cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$ROOT/lib/detect.sh" "$ROOT/lib/banner.sh" "$ROOT/lib/wire_pi.sh" "$ROOT/lib/plane_mcp.sh" "$ROOT/lib/plane_codex.sh" "$ROOT/lib/plane_mcp_headers.py" "$ROOT/lib/plane_mcp_remote.py" "$ROOT/lib/install_taskflow_policy.py" "$MEGAI_HOME/lib/"
+cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$ROOT/lib/detect.sh" "$ROOT/lib/banner.sh" "$ROOT/lib/wire_pi.sh" "$ROOT/lib/plane_mcp.sh" "$ROOT/lib/plane_codex.sh" "$ROOT/lib/plane_mcp_headers.py" "$ROOT/lib/plane_mcp_remote.py" "$ROOT/lib/plane_codex_config.py" "$ROOT/lib/plane_backup.py" "$ROOT/lib/plane_bridge.sh" "$ROOT/lib/install_taskflow_policy.py" "$MEGAI_HOME/lib/"
 printf '{"tools":{},"agents":{},"projects":{}}\n' >"$MEGAI_HOME/state.json"
 
 TOKEN_FILE="$TMP/plane-token"
 TOKEN='synthetic-plane-token-do-not-print'
 printf '%s\n' "$TOKEN" >"$TOKEN_FILE"
 chmod 600 "$TOKEN_FILE"
+
+# Install a synthetic receipt-verified bridge; production uses `megai plane bridge install`.
+BRIDGE_ROOT="$MEGAI_HOME/plane-bridge/mcp-remote-0.1.43"
+mkdir -p "$BRIDGE_ROOT/node_modules/mcp-remote/dist"
+printf 'fixture-lock\n' >"$BRIDGE_ROOT/package-lock.json"
+printf 'fixture-entry\n' >"$BRIDGE_ROOT/node_modules/mcp-remote/dist/proxy.js"
+cat >"$BRIDGE_ROOT/node" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >"$ARGV_LOG"
+SH
+chmod 700 "$BRIDGE_ROOT/node"
+python3 - "$BRIDGE_ROOT" <<'PY'
+import hashlib, json, os, sys
+from pathlib import Path
+root=Path(sys.argv[1])
+def h(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+manifest={'version':1,'package':'mcp-remote','package_version':'0.1.43',
+ 'node':str(root/'node'),'entry':str(root/'node_modules/mcp-remote/dist/proxy.js'),'lockfile':str(root/'package-lock.json'),
+ 'entry_sha256':h(root/'node_modules/mcp-remote/dist/proxy.js'),'lock_sha256':h(root/'package-lock.json')}
+path=Path(os.environ['MEGAI_HOME'])/'plane-bridge.json'; path.write_text(json.dumps(manifest)+'\n'); os.chmod(path,0o600)
+PY
 
 cat >"$PI_CODING_AGENT_DIR/mcp.json" <<'JSON'
 {
@@ -39,6 +60,23 @@ before_setup="$TMP/before-setup.json"
 cp "$PI_CODING_AGENT_DIR/mcp.json" "$before_setup"
 setup_output="$(run_plane setup --workspace brodev --token-file "$TOKEN_FILE")"
 ! grep -Fq "$TOKEN" <<<"$setup_output"
+manifest_backup="$TMP/bridge-manifest"
+cp "$MEGAI_HOME/plane-bridge.json" "$manifest_backup"
+python3 - "$MEGAI_HOME/plane-bridge.json" <<'PY'
+import json, sys
+path=sys.argv[1]
+data=json.loads(open(path, encoding='utf-8').read()); data['entry']='relative/proxy.js'
+open(path, 'w', encoding='utf-8').write(json.dumps(data)+'\n')
+PY
+if python3 "$MEGAI_HOME/lib/plane_mcp_remote.py" --check --token-file "$TOKEN_FILE" --workspace brodev >/dev/null 2>&1; then exit 1; fi
+cp "$manifest_backup" "$MEGAI_HOME/plane-bridge.json"
+chmod 600 "$MEGAI_HOME/plane-bridge.json"
+bridge_real="$TMP/bridge-real"
+mv "$MEGAI_HOME/plane-bridge" "$bridge_real"
+ln -s "$bridge_real" "$MEGAI_HOME/plane-bridge"
+if python3 "$MEGAI_HOME/lib/plane_mcp_remote.py" --check --token-file "$TOKEN_FILE" --workspace brodev >/dev/null 2>&1; then exit 1; fi
+rm "$MEGAI_HOME/plane-bridge"
+mv "$bridge_real" "$MEGAI_HOME/plane-bridge"
 ! grep -Fq "$TOKEN" "$PI_CODING_AGENT_DIR/mcp.json"
 jq -e --arg token "$TOKEN_FILE" --arg helper "$MEGAI_HOME/lib/plane_mcp_headers.py" '
   .settings.hostConfigDiscovery == "off"
@@ -51,8 +89,8 @@ jq -e --arg token "$TOKEN_FILE" --arg helper "$MEGAI_HOME/lib/plane_mcp_headers.
   and .mcpServers.plane.requestHeadersCommand.command == "python3"
   and .mcpServers.plane.requestHeadersCommand.args == [$helper, "--token-file", $token, "--workspace", "brodev"]
 ' "$PI_CODING_AGENT_DIR/mcp.json" >/dev/null
-[ "$(find "$MEGAI_HOME/backups" -type f -name 'pi-plane-mcp.json.bak.*' | wc -l | tr -d ' ')" = 1 ]
-backup_file="$(find "$MEGAI_HOME/backups" -type f -name 'pi-plane-mcp.json.bak.*' -print -quit)"
+[ "$(find "$MEGAI_HOME/backups" -type f -name 'pi-plane-mcp.config.bak.*' | wc -l | tr -d ' ')" = 1 ]
+backup_file="$(find "$MEGAI_HOME/backups" -type f -name 'pi-plane-mcp.config.bak.*' -print -quit)"
 cmp "$backup_file" "$before_setup"
 config_mode="$(stat -c '%a' "$PI_CODING_AGENT_DIR/mcp.json" 2>/dev/null || stat -f '%Lp' "$PI_CODING_AGENT_DIR/mcp.json")"
 backup_mode="$(stat -c '%a' "$backup_file" 2>/dev/null || stat -f '%Lp' "$backup_file")"
@@ -88,19 +126,32 @@ grep -q 'megai-plane-managed' "$CODEX_HOME/config.toml"
 ! grep -q 'mcp_servers.asana' "$CODEX_HOME/config.toml"
 grep -q 'command = "keep-me"' "$CODEX_HOME/config.toml"
 python3 -c 'import sys,tomllib; tomllib.load(open(sys.argv[1], "rb"))' "$CODEX_HOME/config.toml"
-[ "$(find "$MEGAI_HOME/backups" -type f -name 'codex-plane-mcp.toml.bak.*' | wc -l | tr -d ' ')" = 1 ]
-mkdir -p "$TMP/fake-bin"
-cat >"$TMP/fake-bin/npx" <<'SH'
+[ "$(find "$MEGAI_HOME/backups" -type f -name 'codex-plane-mcp.config.bak.*' | wc -l | tr -d ' ')" = 1 ]
+mkdir -p "$BRIDGE_ROOT/node_modules/mcp-remote/dist"
+printf 'fixture-lock\n' >"$BRIDGE_ROOT/package-lock.json"
+printf 'fixture-entry\n' >"$BRIDGE_ROOT/node_modules/mcp-remote/dist/proxy.js"
+cat >"$BRIDGE_ROOT/node" <<'SH'
 #!/usr/bin/env bash
 [ "$MEGAI_PLANE_AUTH" = "Bearer $EXPECTED_TOKEN" ]
 printf '%s\n' "$*" >"$ARGV_LOG"
 SH
-chmod +x "$TMP/fake-bin/npx"
-EXPECTED_TOKEN="$TOKEN" ARGV_LOG="$TMP/npx-argv" PATH="$TMP/fake-bin:$PATH" \
+chmod 700 "$BRIDGE_ROOT/node"
+python3 - "$BRIDGE_ROOT" <<'PY'
+import hashlib, json, os, sys
+from pathlib import Path
+root=Path(sys.argv[1])
+def h(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+manifest={'version':1,'package':'mcp-remote','package_version':'0.1.43',
+ 'node':str(root/'node'),'entry':str(root/'node_modules/mcp-remote/dist/proxy.js'),'lockfile':str(root/'package-lock.json'),
+ 'entry_sha256':h(root/'node_modules/mcp-remote/dist/proxy.js'),'lock_sha256':h(root/'package-lock.json')}
+path=Path(os.environ['MEGAI_HOME'])/'plane-bridge.json'; path.write_text(json.dumps(manifest)+'\n'); os.chmod(path,0o600)
+PY
+EXPECTED_TOKEN="$TOKEN" ARGV_LOG="$TMP/bridge-argv" \
   python3 "$MEGAI_HOME/lib/plane_mcp_remote.py" --token-file "$TOKEN_FILE" --workspace brodev >/dev/null 2>&1
-! grep -Fq "$TOKEN" "$TMP/npx-argv"
-grep -Fq 'Authorization:${MEGAI_PLANE_AUTH}' "$TMP/npx-argv"
-grep -Fq 'x-workspace-slug:${MEGAI_PLANE_WORKSPACE}' "$TMP/npx-argv"
+! grep -Fq "$TOKEN" "$TMP/bridge-argv"
+grep -Fq 'Authorization:${MEGAI_PLANE_AUTH}' "$TMP/bridge-argv"
+grep -Fq 'x-workspace-slug:${MEGAI_PLANE_WORKSPACE}' "$TMP/bridge-argv"
+! grep -Fq 'npx' "$CODEX_HOME/config.toml"
 cp "$CODEX_HOME/config.toml" "$TMP/codex-repeat"
 run_plane setup --workspace brodev --token-file "$TOKEN_FILE" --client codex --replace-asana >/dev/null
 cmp "$CODEX_HOME/config.toml" "$TMP/codex-repeat"
@@ -109,6 +160,15 @@ grep -q 'mcp_servers.asana' "$CODEX_HOME/config.toml"
 run_plane restore --client pi >/dev/null
 jq -e '.mcpServers.asana.auth == "oauth"' "$PI_CODING_AGENT_DIR/mcp.json" >/dev/null
 run_plane setup --workspace brodev --token-file "$TOKEN_FILE" --client codex --replace-asana >/dev/null
+
+# All-client restore is repeat-stable and does not add a newer rollback state.
+run_plane setup --workspace brodev --token-file "$TOKEN_FILE" --client all --replace-asana >/dev/null
+run_plane restore --client all >/dev/null
+cp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/restore-all-pi"
+cp "$CODEX_HOME/config.toml" "$TMP/restore-all-codex"
+run_plane restore --client all >/dev/null
+cmp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/restore-all-pi"
+cmp "$CODEX_HOME/config.toml" "$TMP/restore-all-codex"
 
 # Endpoint and envelope binding fail before any credential output.
 invalid_output="$TMP/invalid-header-output"
@@ -135,7 +195,7 @@ check_output="$("$plane_command" "${plane_args[@]}" --check </dev/null)"
 cp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/repeat-before"
 run_plane setup --workspace brodev --token-file "$TOKEN_FILE" >/dev/null
 cmp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/repeat-before"
-[ "$(find "$MEGAI_HOME/backups" -type f -name 'pi-plane-mcp.json.bak.*' | wc -l | tr -d ' ')" = 2 ]
+[ "$(find "$MEGAI_HOME/backups" -type f -name 'pi-plane-mcp.config.bak.*' | wc -l | tr -d ' ')" = 3 ]
 
 # Owned-entry customizations, including disabled state, survive setup refresh.
 jq '.mcpServers.plane.disabled = true | .mcpServers.plane.directTools = false | .mcpServers.plane.lifecycle = "keep-alive"' \
@@ -174,6 +234,14 @@ chmod 600 "$TOKEN_FILE"
 ln -s "$TOKEN_FILE" "$TMP/token-link"
 if run_plane setup --workspace brodev --token-file "$TMP/token-link" >/dev/null 2>&1; then exit 1; fi
 cmp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/missing-before"
+
+# All-client staging is fail-closed: malformed Codex does not commit a staged Pi change.
+pi_atomic_before="$TMP/pi-atomic-before"
+cp "$PI_CODING_AGENT_DIR/mcp.json" "$pi_atomic_before"
+printf 'broken = [\n' >"$CODEX_HOME/config.toml"
+if run_plane setup --workspace newworkspace --token-file "$TOKEN_FILE" --client all >/dev/null 2>&1; then exit 1; fi
+cmp "$PI_CODING_AGENT_DIR/mcp.json" "$pi_atomic_before"
+run_plane restore --client codex >/dev/null
 
 # Malformed configuration is rejected before any write.
 printf '{not-json\n' >"$PI_CODING_AGENT_DIR/mcp.json"

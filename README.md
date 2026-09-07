@@ -323,7 +323,7 @@ The fast path is `implement → code self-review → focused test → ship when 
 
 ### 🔗 Boundary-only Plane mapping
 
-The Plane-aware `megai-task-flow` skill used by Pi and OMP synchronizes only at boundaries. The parent starts a linked work item before project edits; questions and read-only investigation need no task. Resolve the exact Git-root project through the paginated Plane project list, then retain the `(project UUID, work item UUID)` pair. Imported work matches `external_id` plus `external_source=asana-migration-v1`; the legacy marker remains historical metadata.
+The Plane-aware `megai-task-flow` skill used by Pi and OMP synchronizes only at boundaries. The parent starts a linked work item before project edits; questions and read-only investigation need no task. Consume all paginated project and work-item pages and require exactly one match; retain the `(project UUID, work item UUID)` pair. Imported work matches `external_id` plus `external_source=asana-migration-v1`; preserve the original `<!-- asana:GID -->` marker verbatim until the Plane pair is confirmed.
 
 | Boundary | `.todos` | Plane state group | Agent action |
 | --- | --- | --- | --- |
@@ -649,10 +649,11 @@ megai logs repowise            # inspect background RepoWise indexing
 ### Plane MCP and explicit tracker cutover
 
 Configure the official Plane hosted MCP for Pi and Codex without putting the API token in
-MCP JSON, shell arguments, or logs. The token file must be owner-readable only
-(and is checked again for every request):
+MCP JSON, shell arguments, or logs. Install the pinned bridge as a separate,
+credential-free preflight; runtime never downloads packages:
 
 ```bash
+megai plane bridge install
 megai plane setup --workspace SLUG \
   --token-file ~/.config/megai/credentials/plane-api-token \
   --client all --replace-asana
@@ -661,11 +662,14 @@ megai plane remove --client all
 megai plane restore --client all
 ```
 
-Setup is idempotent, backs up the Pi MCP config before a change, and manages
-only MEGAI-owned Plane entries. `megai wire pi` and `megai update` preserve
-an existing Plane setup without starting authentication. The explicit `--replace-asana`
-flag removes local Asana MCP entries after private backups are created; setup remains
-additive without that flag. `megai plane restore` restores the latest private backup.
+The token file must be owner-readable only and is checked again at each request/bridge
+launch. Setup is idempotent, stages every requested client before replacement, preserves
+unrelated settings, and manages only MEGAI-owned Plane entries. `megai wire pi` and
+`megai update` preserve an existing Plane setup without starting authentication. The
+explicit `--replace-asana` flag removes local Asana entries only after private,
+target-bound backups are created; setup remains additive without that flag. Restore is
+connector-only: it restores the matching client/profile backup and leaves task-flow
+policy/`AGENTS.md` backups untouched. It never changes remote Plane or historical Asana data.
 
 ### Focused OpenSpec and orchestration checks
 

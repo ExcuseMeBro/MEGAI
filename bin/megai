@@ -39,7 +39,8 @@ Commands:
   status                Show tools/ports/versions
   doctor                Diagnose problems
   reindex               Rebuild codedb and zvec-grep indexes for this project
-  plane setup ...       Configure secure Plane MCP for Pi
+  plane bridge install  Install the pinned Codex Plane bridge (no credentials)
+  plane setup ...       Configure secure Plane MCP for Pi and Codex
   plane status          Show Plane MCP configuration health
   plane remove          Remove only MEGAI-owned Plane MCP configuration
   start [tool]          Start daemon (agent-memory)
