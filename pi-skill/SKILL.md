@@ -7,6 +7,8 @@ description: "MEGAI core for Pi: code lookup, explicit persistent memory, and no
 
 Use native read/edit/write/bash and the repository's own tests. Locate relevant symbols before reading files; avoid repeated scans and unchanged documentation reads.
 
+When the core `caveman` skill is enabled, default to its full chat style unless the user requests normal mode. Preserve the user's language, technical meaning, uncertainty and safety warnings. Persisted code, documentation and task records stay normal prose; tests and authorization gates remain unchanged.
+
 ## Code lookup
 
 Use `rg` for exact text. When available, `megai-codedb symbol NAME`, `megai-codedb outline FILE`, and `megai-codedb tree PATH` provide structural lookup. Unsupported languages or missing definitions fall back to native tools.

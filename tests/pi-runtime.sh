@@ -84,15 +84,18 @@ megai_banner() { :; }
 (MEGAI_PI_FULL=0 MEGAI_SPECIALIST_INDEXES=0 launch_agent cc pi) >/dev/null
 [ "$(< "$CALLS")" = $'wired\nmemory\ncodedb\nzvec' ]
 
-# Default Caveman installation must not call either npm or the installer.
+# Explicit opt-out skips all work; enabled core must not invoke the upstream installer.
 printf '#!/bin/sh\necho caveman >> "$CALLS"\n' > "$TMP/bin/caveman"
 printf '#!/bin/sh\necho npm >> "$CALLS"\nprintf "{}\\n"\n' > "$TMP/bin/npm"
 chmod +x "$TMP/bin/caveman" "$TMP/bin/npm"
 : > "$CALLS"
 MEGAI_CAVEMAN=0 bash "$MEGAI_HOME/lib/install_caveman.sh" >/dev/null
 [ ! -s "$CALLS" ]
+mkdir -p "$HOME/.agents/skills/caveman"
+printf 'existing core\n' > "$HOME/.agents/skills/caveman/SKILL.md"
 MEGAI_CAVEMAN=1 bash "$MEGAI_HOME/lib/install_caveman.sh" >/dev/null
-grep -Fxq caveman "$CALLS"
+if grep -Fxq caveman "$CALLS"; then echo 'force-wiring must not run' >&2; exit 1; fi
+[ "$(< "$HOME/.agents/skills/caveman/SKILL.md")" = 'existing core' ]
 
 # Only owned links are removed; foreign replacements survive reinstall/removal.
 rm "$MEGAI_HOME/bin/megai-memory"
@@ -111,7 +114,7 @@ bash "$MEGAI_HOME/lib/wire_pi.sh" >/dev/null
 jq -e '.skills[0] == "legacy-skills" and .enableSkillCommands == false and .defaultModel == "keep"' "$PI_CODING_AGENT_DIR/settings.json" >/dev/null
 printf '{"skills":{"customDirectories":[],"enableSkillCommands":false},"enableSkillCommands":true}\n' > "$PI_CODING_AGENT_DIR/settings.json"
 bash "$MEGAI_HOME/lib/wire_pi.sh" >/dev/null
-jq -e '.enableSkillCommands == true and .skills == ["!caveman*","!cavecrew","!smart-development-orchestrator"]' "$PI_CODING_AGENT_DIR/settings.json" >/dev/null
+jq -e '.enableSkillCommands == true and .skills == ["!caveman*","!cavecrew","!smart-development-orchestrator",("+" + env.HOME + "/.agents/skills/caveman/SKILL.md")]' "$PI_CODING_AGENT_DIR/settings.json" >/dev/null
 
 # Invalid settings fail without overwriting the original document.
 printf '{invalid json\n' > "$PI_CODING_AGENT_DIR/settings.json"

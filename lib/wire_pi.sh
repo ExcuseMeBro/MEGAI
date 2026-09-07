@@ -130,7 +130,9 @@ wire_cli_bridges() {
 }
 
 configure_skill_profile() {
-  local settings="$PI_AGENT/settings.json" tmp backup
+  local settings="$PI_AGENT/settings.json" tmp backup caveman_enabled=0
+  local caveman_skill="$HOME/.agents/skills/caveman/SKILL.md"
+  if [ "${MEGAI_CAVEMAN:-1}" = "1" ] && [ -f "$caveman_skill" ]; then caveman_enabled=1; fi
   [ -f "$settings" ] || printf '{}\n' > "$settings"
   jq -e 'type == "object" and ((.skills // []) | type == "array" or type == "object")' "$settings" >/dev/null || {
     warn "pi: invalid settings — preserved without changes"
@@ -142,7 +144,7 @@ configure_skill_profile() {
   tmp="$(mktemp "$PI_AGENT/settings.json.XXXXXX")"
   # Match Pi SettingsManager's legacy skills-object migration. Preserve an
   # explicit top-level enableSkillCommands value over the legacy nested value.
-  jq '
+  jq --arg core "+$caveman_skill" --arg enabled "$caveman_enabled" '
     (if (.skills | type) == "object" then
       .skills as $legacy
       | (if ($legacy | has("enableSkillCommands")) and (has("enableSkillCommands") | not)
@@ -150,9 +152,11 @@ configure_skill_profile() {
       | .skills = (if ($legacy.customDirectories | type) == "array"
                    then $legacy.customDirectories else [] end)
      else . end)
+    | .skills = ((.skills // []) | map(select(. != $core)))
     | ["!caveman*", "!cavecrew", "!smart-development-orchestrator"] as $filters
-    | .skills = (reduce $filters[] as $filter ((.skills // []);
+    | .skills = (reduce $filters[] as $filter (.skills;
         if index($filter) == null then . + [$filter] else . end))
+    | if $enabled == "1" then .skills += [$core] else . end
   ' "$settings" > "$tmp"
   chmod 600 "$tmp"
   mv "$tmp" "$settings"

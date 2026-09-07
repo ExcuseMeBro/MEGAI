@@ -591,7 +591,7 @@ ensure_zvec_index() {
 }
 
 check_caveman() {
-  if command -v caveman >/dev/null 2>&1; then ok "caveman CLI installed (optional; activation depends on agent config)"
+  if command -v caveman >/dev/null 2>&1; then ok "caveman CLI installed (Pi core defaults on when available)"
   else skip "caveman not installed"; fi
 }
 
@@ -664,7 +664,7 @@ ${C_GRN}Development + ship${C_OFF}
 ${C_GRN}Manage${C_OFF}
   megai status     megai doctor     megai stop     megai update
 
-${C_DIM}Optional token helpers: caveman skills and rtk; installed does not mean active.${C_OFF}
+${C_DIM}Token helpers: Caveman core defaults on; installed tools still require agent configuration.${C_OFF}
 EOF
 }
 

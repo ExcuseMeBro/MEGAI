@@ -122,7 +122,7 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🧠 | [agent-memory](https://www.agent-memory.dev/) | Persistent cross-session memory | MCP + daemon, default port `3111` |
 | 🔎 | [codedb](https://github.com/justrach/codedb) | Code search, symbols, outlines, and file intelligence | MCP + CLI |
 | 🗂️ | [zvec-grep](https://github.com/zvec-ai/zvec-grep) | Local hybrid workspace search: BM25, vectors, and managed ripgrep | CLI + global Pi MCP |
-| 🪨 | [caveman](https://github.com/JuliusBrussee/caveman) | Optional compressed communication/workflow skills (`MEGAI_CAVEMAN=1`) | Global skills/plugins, not a core dependency |
+| 🪨 | [caveman](https://github.com/JuliusBrussee/caveman) | Default compressed chat style; opt out with `MEGAI_CAVEMAN=0` | Core skill only; no forced hooks or workflow bundles |
 | ⚡ | [rtk](https://github.com/rtk-ai/rtk) | Rust Token Killer for compact command output | CLI + Claude hook |
 | 🕸️ | [graphify](https://graphify.net) | Tree-sitter knowledge graph and code relationships | CLI + global skill |
 | 📋 | task-flow | `.todos` board, priority queue, ADLC, monitoring, Plane mirror | Claude hooks + global skills |
@@ -143,7 +143,7 @@ MEGAI configures:
 
 - lean default MCP surface in `~/.claude.json`: `agentmemory` and `codedb`
 - `rtk` `PreToolUse` hook
-- graphify skills; Caveman only when explicitly installed
+- graphify and the shared core Caveman skill
 - task-flow skill, hooks, commands, monitoring, optional statusline, and safe `dev` merge/worktree cleanup policy
 - global Matt Pocock and UX/UI skills
 
@@ -154,7 +154,7 @@ Existing MCP servers, hooks, and statusline settings are preserved.
 MEGAI configures:
 
 - a lean, marked MCP block in `~/.codex/config.toml` with `agentmemory` and `codedb`
-- graphify, Matt Pocock, UX/UI, and safe worktree-lifecycle skills; Caveman is optional
+- graphify, core Caveman, Matt Pocock, UX/UI, and safe worktree-lifecycle skills
 
 Only MEGAI-owned MCP tables are replaced or removed; unrelated Codex configuration remains intact.
 
@@ -166,7 +166,7 @@ MEGAI configures:
 - Plane-aware task-flow and safe worktree-lifecycle skills under `~/.pi/agent/skills/`
 - `megai-memory` and `megai-codedb` CLI bridges in `~/.megai/bin` (not shell files masquerading as Pi extensions)
 - a global `zvec_grep` MCP entry in `~/.pi/agent/mcp.json` for semantic and hybrid workspace retrieval
-- global UX/UI, graphify, and Matt Pocock skills; redundant Caveman/Cavecrew and legacy OMP-routing skills excluded from global Pi discovery
+- global UX/UI, graphify, and Matt Pocock skills; core Caveman enabled, extra Caveman/Cavecrew and legacy OMP-routing skills excluded
 - the first authenticated model as the global default when no valid default exists
 
 Pi keeps provider authentication in `~/.pi/agent/auth.json`; MEGAI never writes credentials.
@@ -447,7 +447,7 @@ The full profile also enables `@narumitw/pi-statusline`, `@vigolium/piolium`, `p
 
 - `megai pi` starts lean: no automatic memory daemon, codedb/zvec prewarming, or specialist indexing. Worktree/branch safety and wiring remain. Use `MEGAI_PI_FULL=1 megai pi` only when core prewarming is useful; other harness launch behavior is unchanged.
 - Retrieval tools remain available on demand: `rg`, `megai-codedb`, `zg`; explicit memory uses `megai start agent-memory`. Graphify remains on demand. Restoring its startup job requires both `MEGAI_PI_FULL=1 MEGAI_SPECIALIST_INDEXES=1 megai pi`. Existing data and indexes are preserved.
-- Caveman installation is opt-in with `MEGAI_CAVEMAN=1 megai install`. Pi wiring excludes global `caveman*`, `cavecrew`, and `smart-development-orchestrator` skills; it does not delete shared skill files or add Ponytail. Use `pi config` to change skill selection. Project-local copies are separate resources and need separate review.
+- Caveman's core skill is installed/reused by default, without invoking its force-wiring installer or adding hooks/workflow bundles. Pi explicitly enables only `~/.agents/skills/caveman/SKILL.md`, even with a lean `!*` filter; extra `caveman*`, `cavecrew`, and legacy OMP-routing skills stay excluded. `MEGAI_CAVEMAN=0 megai wire pi` opts out of managed core discovery; `MEGAI_CAVEMAN=0 megai install` also skips its installation. Existing files and unrelated settings remain. Chat defaults to full style when enabled; request normal mode to change it. Persisted artifacts, safety warnings and tests are not compressed or weakened.
 - Shell bridges are installed on PATH; `symbol` maps to codedb `find`, and memory HTTP requests have a 3-second connection / 15-second total limit. Memory still needs its local daemon (`megai start agent-memory`).
 - Models, thinking, authentication, trust, tests and review requirements are not performance shortcuts. Native standalone Pi delegation remains available when its optional package is enabled; Paseo sessions use Paseo delegation.
 
