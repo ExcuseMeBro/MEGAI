@@ -4,7 +4,7 @@ The requested removal was split into independently checked slices: local runtime
 
 ## Result and preservation
 
-- Removed MEGAI's installer, update/status/doctor/help references and background-index function/calls. This removed one install step; core preparation has five steps. Graphify's explicit opt-in and core memory/codedb/zvec behavior remain.
+- Removed MEGAI's installer, update/status/doctor/help references and background-index function/calls. This removed one install step; subsequent Graphify retirement leaves only core preparation. Core memory/codedb/zvec behavior remains.
 - Removed the locally registered `uv` tool `repowise` 0.44.0 and its three executables (`repowise`, `repowise-augment`, `repowise-rewrite`). Removed the verified MEGAI shim/helper and only its tool-state entry. No RepoWise init/serve process was found before removal.
 - Retained `.repowise/` indexes and existing logs. All 33 files in the primary project's index matched their pre-removal hashes. No index deletion command was used.
 - No RepoWise registration was found in the checked global Claude/Codex/Gemini/OpenCode/Pi MCP maps. Existing wiring cleanup remains deliberately: it removes only stale `megai-repowise` registrations and preserves user-owned entries. It must not be deleted just because its name refers to the retired tool.
@@ -14,7 +14,7 @@ The requested removal was split into independently checked slices: local runtime
 
 `tests/repowise-integration.sh` uses the shared `tests/ui-craft-retirement.sh` sandbox to exercise real install/update/status/doctor/uninstall dispatch against forbidden CLIs and stale installers. Both independent tools and sample project data survive generic MEGAI uninstall. Explicit failing assertions are used rather than relying on Bash `set -e` for negated `grep` commands.
 
-`tests/repowise-background.sh` checks actual default and specialist-opt-in preparation: neither starts RepoWise, while core indexing and opt-in graphify remain. Both retirement regressions fail against the preceding source and pass after removal. Related Ruff, Pi runtime and MCP wiring gates provide compatibility evidence.
+`tests/repowise-background.sh` checks actual default and specialist-opt-in preparation: neither starts retired specialist indexers, while core indexing remains. Both retirement regressions fail against the preceding source and pass after removal. Related Ruff, Pi runtime and MCP wiring gates provide compatibility evidence.
 
 ## Recovery limits
 

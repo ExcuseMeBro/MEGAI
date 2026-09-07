@@ -15,7 +15,7 @@ Use `rg` for exact text. When available, `megai-codedb symbol NAME`, `megai-code
 
 For semantic discovery use `zg query "question"` or the lazy `zvec_grep` MCP. `zg status --check-ready` verifies readiness; a stale or absent index is not a successful search. Do not build an index for a tiny task when `rg` suffices. Build one only when the task needs it, with the local embedding model; remote embeddings require explicit approval.
 
-`megai pi` skips automatic memory/index startup. `MEGAI_PI_FULL=1 megai pi` restores core preparation; graphify remains separately opt-in. Existing indexes/data are retained.
+`megai pi` skips automatic memory/index startup. `MEGAI_PI_FULL=1 megai pi` restores core preparation only; retired specialist indexers are not started. Existing indexes/data are retained.
 
 ## Persistent memory — explicit only
 

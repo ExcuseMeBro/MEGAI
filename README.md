@@ -79,7 +79,7 @@ cd ~/path/to/project
 megai
 ```
 
-MEGAI starts or verifies agent-memory, builds codedb structural and zvec-grep hybrid indexes, optionally prepares the knowledge graph, checks token-saving tools, and prints a project-specific guide.
+MEGAI starts or verifies agent-memory, builds codedb structural and zvec-grep hybrid indexes, checks token-saving tools, and prints a project-specific guide.
 
 ### 4. Launch an agent
 
@@ -124,7 +124,6 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | 🗂️ | [zvec-grep](https://github.com/zvec-ai/zvec-grep) | Local hybrid workspace search: BM25, vectors, and managed ripgrep | CLI + global Pi MCP |
 | 🪨 | [caveman](https://github.com/JuliusBrussee/caveman) | Default compressed chat style; opt out with `MEGAI_CAVEMAN=0` | Core skill only; no forced hooks or workflow bundles |
 | ⚡ | [rtk](https://github.com/rtk-ai/rtk) | Rust Token Killer for compact command output | CLI + Claude hook |
-| 🕸️ | [graphify](https://graphify.net) | Tree-sitter knowledge graph and code relationships | CLI + global skill |
 | 📋 | task-flow | `.todos` board, priority queue, ADLC, monitoring, Plane mirror | Claude hooks + global skills |
 | 🌿 | agent-worktree-lifecycle | Task worktrees → `dev`; one open promotion PR; user-approved `main` merge | Global policy + `megai dev`/`finish`/`promote` |
 | 🧭 | smart-development-orchestrator | GPT writer routing, MiniMax read-only discovery, Paseo worktree delivery | Global skill + OMP agents |
@@ -143,7 +142,7 @@ MEGAI configures:
 
 - lean default MCP surface in `~/.claude.json`: `agentmemory` and `codedb`
 - `rtk` `PreToolUse` hook
-- graphify and the shared core Caveman skill
+- the shared core Caveman skill
 - task-flow skill, hooks, commands, monitoring, optional statusline, and safe `dev` merge/worktree cleanup policy
 - global Matt Pocock and UX/UI skills
 
@@ -154,7 +153,7 @@ Existing MCP servers, hooks, and statusline settings are preserved.
 MEGAI configures:
 
 - a lean, marked MCP block in `~/.codex/config.toml` with `agentmemory` and `codedb`
-- graphify, core Caveman, Matt Pocock, UX/UI, and safe worktree-lifecycle skills
+- core Caveman, Matt Pocock, UX/UI, and safe worktree-lifecycle skills
 
 Only MEGAI-owned MCP tables are replaced or removed; unrelated Codex configuration remains intact.
 
@@ -166,7 +165,7 @@ MEGAI configures:
 - Plane-aware task-flow and safe worktree-lifecycle skills under `~/.pi/agent/skills/`
 - `megai-memory` and `megai-codedb` CLI bridges in `~/.megai/bin` (not shell files masquerading as Pi extensions)
 - a global `zvec_grep` MCP entry in `~/.pi/agent/mcp.json` for semantic and hybrid workspace retrieval
-- global UX/UI, graphify, and Matt Pocock skills; core Caveman enabled, extra Caveman/Cavecrew and legacy OMP-routing skills excluded
+- global UX/UI and Matt Pocock skills; core Caveman enabled, extra Caveman/Cavecrew and legacy OMP-routing skills excluded
 - the first authenticated model as the global default when no valid default exists
 
 Pi keeps provider authentication in `~/.pi/agent/auth.json`; MEGAI never writes credentials.
@@ -232,7 +231,6 @@ megai codex                   Launch Codex with the stack ready
 megai pi                      Launch Pi with the stack ready
 megai omp                     Launch Oh My Pi with the stack ready
 megai omp --profile work      Launch OMP and wire the named profile
-megai graph [path]            Build a graphify knowledge graph
 megai dev                     Switch a clean primary main/master checkout to dev
 megai finish --dry-run --target dev
 megai finish --verified --target dev
@@ -380,12 +378,9 @@ megai-codedb tree src/
 
 The first MEGAI activation builds `.zvec-grep/` with the local `potion-code-16m-v2` embedding model. Override it with `MEGAI_ZVEC_EMBEDDING`; MEGAI never authorizes remote Embedding automatically.
 
-### 🕸️ Knowledge graph
+### Retired: Graphify
 
-```bash
-megai graph .
-megai graph ./docs
-```
+Graphify installation, skill registration and `megai graph` are retired. Existing `graphify-out/` data and logs are preserved. `MEGAI_SPECIALIST_INDEXES` no longer starts background jobs; full Pi preparation retains only core services/indexes. See [retirement evidence and recovery](docs/audits/graphify-retirement.md).
 
 ### Retired: RepoWise
 
@@ -446,7 +441,7 @@ The full profile also enables `@narumitw/pi-statusline`, `@vigolium/piolium`, `p
 ### Performance without weakening task quality
 
 - `megai pi` starts lean: no automatic memory daemon, codedb/zvec prewarming, or specialist indexing. Worktree/branch safety and wiring remain. Use `MEGAI_PI_FULL=1 megai pi` only when core prewarming is useful; other harness launch behavior is unchanged.
-- Retrieval tools remain available on demand: `rg`, `megai-codedb`, `zg`; explicit memory uses `megai start agent-memory`. Graphify remains on demand. Restoring its startup job requires both `MEGAI_PI_FULL=1 MEGAI_SPECIALIST_INDEXES=1 megai pi`. Existing data and indexes are preserved.
+- Retrieval tools remain available on demand: `rg`, `megai-codedb`, `zg`; explicit memory uses `megai start agent-memory`. `MEGAI_PI_FULL=1 megai pi` restores only core preparation; the retired specialist-index flag has no effect. Existing data and indexes are preserved.
 - Caveman's core skill is installed/reused by default, without invoking its force-wiring installer or adding hooks/workflow bundles. Pi explicitly enables only `~/.agents/skills/caveman/SKILL.md`, even with a lean `!*` filter; extra `caveman*`, `cavecrew`, and legacy OMP-routing skills stay excluded. `MEGAI_CAVEMAN=0 megai wire pi` opts out of managed core discovery; `MEGAI_CAVEMAN=0 megai install` also skips its installation. Existing files and unrelated settings remain. Chat defaults to full style when enabled; request normal mode to change it. Persisted artifacts, safety warnings and tests are not compressed or weakened.
 - Shell bridges are installed on PATH; `symbol` maps to codedb `find`, and memory HTTP requests have a 3-second connection / 15-second total limit. Memory still needs its local daemon (`megai start agent-memory`).
 - Models, thinking, authentication, trust, tests and review requirements are not performance shortcuts. Native standalone Pi delegation remains available when its optional package is enabled; Paseo sessions use Paseo delegation.
@@ -503,7 +498,6 @@ The installer:
 │   ├── megai
 │   ├── codedb
 │   ├── zg
-│   ├── graphify
 ├── lib/                         installer and wiring scripts
 ├── pi-skill/                    Pi MEGAI skill and extensions
 ├── omp-skill/                   OMP-native MEGAI skill
