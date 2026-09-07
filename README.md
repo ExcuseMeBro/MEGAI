@@ -503,8 +503,7 @@ MEGAI keeps Pi's default startup lean:
 
 | Default package | Role |
 | --- | --- |
-| `pi-mcp-adapter` | lazy MCP support with cached direct tools |
-| `@narumitw/pi-statusline` | statusline integration |
+| `pi-mcp-adapter` | lazy MCP proxy; individual tool schemas are opt-in |
 
 Optional extensions are available through the full profile:
 
@@ -512,25 +511,25 @@ Optional extensions are available through the full profile:
 MEGAI_PI_FULL=1 megai install
 ```
 
-The full profile also enables `@vigolium/piolium`, `pi-web-access`, `pi-subagents`, `bigpowers`, `@dietrichgebert/ponytail`, and `pi-lens`. Without `MEGAI_PI_FULL=1`, repeated installs remove only those MEGAI-owned optional entries from Pi's startup list; unrelated user packages are preserved.
+The full profile also enables `@narumitw/pi-statusline`, `@vigolium/piolium`, `pi-web-access`, `pi-subagents`, `bigpowers`, `@dietrichgebert/ponytail`, and `pi-lens`. Without `MEGAI_PI_FULL=1`, repeated installs remove only those MEGAI-owned optional entries from Pi's startup list; unrelated user packages are preserved.
 
 ### Performance without weakening task quality
 
-- Core startup retains memory, codedb and local zvec-grep. Codedb warms its index with its supported `<root> tree` command, not a nonexistent `index` subcommand.
-- Graphify and RepoWise indexing is **on demand**: `megai graph` or `repowise init --yes --no-prose --no-claude-md`. To explicitly restore both startup jobs, use `MEGAI_SPECIALIST_INDEXES=1 megai pi`. Existing graphs/indexes are preserved.
+- `megai pi` starts lean: no automatic memory daemon, codedb/zvec prewarming, or specialist indexing. Worktree/branch safety and wiring remain. Use `MEGAI_PI_FULL=1 megai pi` only when core prewarming is useful; other harness launch behavior is unchanged.
+- Retrieval tools remain available on demand: `rg`, `megai-codedb`, `zg`; explicit memory uses `megai start agent-memory`. Graphify/RepoWise remain on demand. Restoring their startup jobs requires both `MEGAI_PI_FULL=1 MEGAI_SPECIALIST_INDEXES=1 megai pi`. Existing data and indexes are preserved.
 - Caveman installation is opt-in with `MEGAI_CAVEMAN=1 megai install`. Pi wiring excludes global `caveman*`, `cavecrew`, and `smart-development-orchestrator` skills; it does not delete shared skill files or add Ponytail. Use `pi config` to change skill selection. Project-local copies are separate resources and need separate review.
 - Shell bridges are installed on PATH; `symbol` maps to codedb `find`, and memory HTTP requests have a 3-second connection / 15-second total limit. Memory still needs its local daemon (`megai start agent-memory`).
 - Models, thinking, authentication, trust, tests and review requirements are not performance shortcuts. Native standalone Pi delegation remains available when its optional package is enabled; Paseo sessions use Paseo delegation.
 
 Run `bash tests/pi-runtime.sh`, `bash tests/pi-task-flow.sh`, and `bash tests/pi-performance.sh`. See [the scoped audit](docs/audits/pi-quality-performance.md) for evidence and limitations. Fewer prompt characters or background launches are not a measured end-to-end speedup. Existing sessions need `/reload` or a new session to load changed skills; compaction alone is not a configuration reload.
 
-### Optional parent/worker model composition
+### Lean GPT execution
 
-The [parent-only routing reference](skills/model-composition/routing.md) keeps **Astra/high** as the user-facing decision owner, uses **MiniMax M3/high** for bounded routine implementation (**medium** for discovery), **Luna/high** for high-risk implementation/fallback, and **Sol/high** for complex debugging and risk-based independent review. Tiny work stays direct; this is not a mandatory four-model chain.
+The [parent-only routing reference](skills/model-composition/routing.md) uses **Astra/high** with direct tools for bounded tasks. Delegate only when it saves work: **Luna/medium** discovery, **Luna/high** implementation, **Sol/high** complex debugging or required independent review. No MiniMax route, automatic review chain or repeated parent/worker implementation. Preserve tests, trust, security review, tracker and main-approval boundaries.
 
-Opt in by pointing parent instructions to `$MEGAI_HOME/skills/model-composition/routing.md` and selecting `openai-codex/gpt-6-astra` / `high` as the parent default. The reference ships with MEGAI's existing skill assets but is not auto-loaded as another skill or automatically enabled for other installations. No credentials or provider endpoints are installed. M3 requires the existing direct MiniMax provider and public or explicitly approved non-sensitive context; unapproved or classification-uncertain private workloads keep the established GPT route. Repository restrictions always win. This composition uses **medium/high only**. After explicit owner approval, standalone native Pi delegation sets both `subagents.defaultModel` and the scout/researcher/delegate/worker model overrides to `minimax/MiniMax-M3`; an allowlist alone does not select M3. Luna remains the explicit risk/trust/failure fallback, with strict scope enforcement and Sol-only review/debug/oracle roles. Default thinking stays medium, worker/review high, with a high ceiling. Paseo launches must separately specify `pi/minimax/MiniMax-M3` and the assigned thinking level, then verify the returned model identity. An owner may approve non-sensitive source across their public/private projects in global parent instructions; that does not authorize secrets, personal/production data, or private transcripts. Higher-priority project/per-run settings can override defaults; callers must follow the same thinking policy.
+The user-approved local profile removes native pi-subagents from startup, selects only core engineering/task skills, and disables optional Pencil/Headroom/codebase-memory MCP entries without deleting shared tools or data. It retains the lazy tracker and zvec proxy. Optional specialist skills remain on disk for explicit requests. This local selection is not imposed on other users by the installer; their unrelated package/skill preferences remain intact. Native delegation, if explicitly re-enabled, has strict GPT-only scopes. Paseo dispatch separately specifies its model/thinking.
 
-`python3 tests/model-composition.py` checks policy structure, not model intelligence. The optional `--live` check validates this local rollout's parent defaults, instruction pointer and source parity without contacting providers. The local rollout completed a bounded M3/medium validation task through Paseo, confirming authenticated execution on the requested model. This is not implementation-quality evidence: comparable task TPS and acceptance/correction performance still need real-work measurements. Do not label this a benchmark-proven "ideal" composition.
+`python3 tests/model-composition.py --live` verifies local GPT defaults, lean settings and policy parity, not model quality. See [the lean rollout evidence](docs/audits/lean-gpt-runtime.md). Reduced resource counts do not prove token savings, faster completion or unchanged quality. Use a **new Pi session** to shed old context and removed tool schemas; `/reload` refreshes resources but cannot erase the history of a long session.
 
 ---
 

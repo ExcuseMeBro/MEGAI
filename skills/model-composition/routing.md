@@ -1,39 +1,39 @@
-# Parent-owned model composition
+# Lean GPT execution
 
-Parent-only delegation policy; leaves use their assigned model/scope and never create agents. System/developer instructions and repository restrictions win. This policy is not programmatic routing enforcement or a proven model ranking.
+Parent-only reference. System/developer instructions and repository restrictions win. Leaves follow their assigned scope and never create agents.
 
-## Select one lane
+## Default path
 
-| Work | Pi model ID | Thinking |
+Use direct parent tools for bounded work. Define acceptance, locate the responsible seam, patch, self-review, run focused tests, then stop. Do not delegate merely to select another model. Do not repeat a child's successful exploration or implementation.
+
+| Work requiring delegation | Pi model ID | Thinking |
 | --- | --- | --- |
-| User-facing parent: scope, acceptance, decisions, integration | `openai-codex/gpt-6-astra` | high |
-| Bounded read-only discovery/research | `minimax/MiniMax-M3` | medium |
-| Routine implementation with a known seam and observable tests | `minimax/MiniMax-M3` | high |
-| High-risk implementation: auth, permissions, payments, concurrency, data/schema migrations, compatibility | `openai-codex/gpt-5.6-luna` | high |
-| Complex debugging, independent review, architecture/security advice | `openai-codex/gpt-5.6-sol` | high |
-| M3 unavailable, failed validation, or context not cleared for MiniMax | `openai-codex/gpt-5.6-luna` | medium for read-only; high for writing |
+| User-facing parent | `openai-codex/gpt-6-astra` | high |
+| Bounded discovery/research | `openai-codex/gpt-5.6-luna` | medium |
+| Scoped implementation, including high-risk work | `openai-codex/gpt-5.6-luna` | high |
+| Complex debugging, independent review or security advice | `openai-codex/gpt-5.6-sol` | high |
 
-Use only medium or high thinking, including retries/fallback. Tiny known-seam work stays with the parent when delegation costs more. Otherwise one scoped worker replaces parent implementation. Accept handoffs using the diff and actual test evidence; Astra does not redo passing work.
+GPT-only: no MiniMax routing or fallback. Use only medium or high thinking. These are operational defaults, not a benchmark-proven ranking. Never change credentials, provider endpoints, permissions or test requirements for speed.
 
-## Trust before speed
+## Delegate only when necessary
 
-M3 receives only public or explicitly owner-approved non-sensitive repository context. An owner may give blanket approval across their public/private projects; record that scope in their global parent instructions, not in this shared policy. Such approval covers non-sensitive source only, not credentials, personal/production data or private session transcripts. Unknown classification goes to Luna. Repository-specific restrictions still win.
+- Known seam: parent is the sole writer. Unknown seam: one scout only when isolated discovery saves work. A scoped worker replaces parent implementation, not duplicates it.
+- Exactly one writer per checkout. Use a managed worktree; serialize integration with other parents. Children never mutate trackers, merge, promote or drain queues.
+- Give fresh context: acceptance, relevant paths, authority and focused verification only. No full parent transcript. Return verdict, changed paths, commands/results and risks in at most ten bullets.
+- Use one fresh Sol review for security/data-integrity risks, consequential cross-module changes or an explicit independent-review request. Otherwise parent diff review suffices. Keep existing tests, accessibility, compatibility and data-integrity gates.
+- Permit one diagnosed transient retry or one focused correction. If acceptance still fails, preserve evidence and stop/escalate once to Sol; no model ping-pong or repeated repair chain.
+- Use async completion notifications; do not poll running agents. Report actual blockers promptly. User-owned decisions remain with the user.
 
-Use the existing direct provider (`https://api.minimax.io/anthropic`), not an inferred router or substitute endpoint. Catalog presence is not proof of authentication, throughput or task quality. Confirm availability before use. Keep OpenAI-Codex for unavailable/unapproved MiniMax; never install providers, change credentials or switch endpoints automatically.
+## Dispatch and trust
 
-## Execution and escalation
+Inside Paseo, use visible Paseo children with an explicit model and thinking, e.g. `pi/openai-codex/gpt-5.6-luna` / high for a necessary writer. Check the returned model identity. The lean Pi profile does not load native pi-subagents; do not reinstall it just to delegate. If no authorized delegation mechanism is available, work directly when safe or report the blocker.
 
-- Parent fixes the acceptance contract before dispatch. Follow the existing bounded child contract with fresh context and only scope-relevant evidence, not a full parent transcript. One worker owns implementation, self-review and focused tests.
-- Exactly one writer per checkout; writing children use managed Paseo worktrees. Stop the current writer before a model handoff and preserve its diff/failing tests.
-- Use one fresh Sol review for consequential cross-module or security/data-integrity changes, or an explicit review request. Trivial changes use parent diff review and focused tests. No mandatory Astra → M3 → Luna → Sol chain.
-- Retry a diagnosed transient failure at most once. Report unresolved acceptance failures after one focused correction, unclear scope or an unverified critical path to Astra; an expected TDD red test is not an escalation. Escalate to Luna once; no model ping-pong or concurrent repair of the same checkout.
-- Keep existing tests, validation, accessibility, error handling, trust and data-integrity gates. Children never mutate trackers, merge or promote. Parent owns acceptance and the In Review handoff; main promotion still needs separate explicit user approval.
-- Prefer asynchronous completion notifications; do not poll running agents. Return verdict, paths, command/result evidence and risks in at most ten bullets.
+A user who explicitly enables native delegation retains Luna default/scout/researcher/delegate/worker, Sol reviewer/debugger/oracle, strict GPT-only model scopes, medium default thinking and a high ceiling. Project/per-run restrictions still win.
 
-## Dispatch and evidence
+Use only approved providers and scope-relevant data. Never expose credentials, personal/production data or private transcripts to unauthorized tools or providers. Resource pruning does not authorize weaker security or task-tracker boundaries. Finish at In Review; main promotion needs separate explicit user approval.
 
-For an owner-approved rollout, M3 is the default for routine delegated tasks, not just an allowed model. Discover available profiles/models and explicitly pass the selected model/thinking. In Paseo, use `--provider pi/minimax/MiniMax-M3 --thinking high` for routine implementation and `--thinking medium` for discovery; fallback writing uses `--provider pi/openai-codex/gpt-5.6-luna --thinking high`. Keep the global agent-scoped creation/workspace rules. Check the returned model identity; report any mismatch or fallback rather than claiming M3 ran.
+## Resource and outcome evidence
 
-Outside Paseo, set `subagents.defaultModel` and `agentOverrides` for scout/researcher/delegate/worker to `minimax/MiniMax-M3` after owner approval. Native settings do not configure Paseo launches. Retain strict model-scope enforcement, Luna as an explicit risk/trust/failure fallback, and Sol-only review/debug/oracle roles. Set native default thinking to medium, worker/review to high, other routine roles to medium, and maximum thinking to high. This sets defaults and a ceiling, not a hard minimum; callers follow the same policy. Project/per-run overrides win; inspect them when the effective model differs. Unapproved installations keep their existing defaults.
+Keep optional skill/tool packages installed but outside automatic discovery; load a specialist only for an explicit relevant request. Keep the required tracker lazy and reachable. Start memory/index services only when needed, not on every Pi launch.
 
-Compare task time, corrections and acceptance on comparable real work before claiming improvement. TPS alone is not task quality. Keep failures visible; never run synthetic tasks to fill a measurement sample.
+Record available wall time, reported tokens/cache, correction count and acceptance on actual tasks without extra agents or synthetic task generation. Missing counters stay unknown. Smaller prompts and fewer startup jobs are resource measurements, not proof of faster completion or unchanged quality. TPS alone is not task quality. A fresh session is needed to shed old context and removed tool schemas.

@@ -71,6 +71,19 @@ is_project_initialized() { return 0; }
 MEGAI_SPECIALIST_INDEXES=0 prepare_stack | grep -q 'core readiness checked; specialist indexes on demand'
 MEGAI_SPECIALIST_INDEXES=1 prepare_stack | grep -q 'core readiness checked; specialist indexes requested'
 
+# Pi launches skip memory/index jobs by default; full opt-in preserves dispatch.
+ensure_wired() { echo wired >> "$CALLS"; }
+megai_banner() { :; }
+: > "$CALLS"
+(MEGAI_PI_FULL=0 launch_agent pi pi) >/dev/null
+[ "$(< "$CALLS")" = wired ]
+: > "$CALLS"
+(MEGAI_PI_FULL=1 MEGAI_SPECIALIST_INDEXES=0 launch_agent pi pi) >/dev/null
+[ "$(< "$CALLS")" = $'wired\nmemory\ncodedb\nzvec' ]
+: > "$CALLS"
+(MEGAI_PI_FULL=0 MEGAI_SPECIALIST_INDEXES=0 launch_agent cc pi) >/dev/null
+[ "$(< "$CALLS")" = $'wired\nmemory\ncodedb\nzvec' ]
+
 # Default Caveman installation must not call either npm or the installer.
 printf '#!/bin/sh\necho caveman >> "$CALLS"\n' > "$TMP/bin/caveman"
 printf '#!/bin/sh\necho npm >> "$CALLS"\nprintf "{}\\n"\n' > "$TMP/bin/npm"
