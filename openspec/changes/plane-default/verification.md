@@ -17,9 +17,12 @@ Linked legacy source: `1218209651694005`. Plane identity pair remains `59005e36-
 - Parent reran Plane MCP/Codex config, Pi task-flow, MCP wiring and all three OpenSpec focused suites: PASS; strict change validation, non-mutating Ruff and shell syntax: PASS.
 - Policy scenario review: ordinary clean exact-title zero matches requires approval then creates once in the resolved start state; one reuses, multiple stops; incomplete lookup and unresolved legacy IDs cannot create. State lookup requires unique exact In Progress/In Review UUIDs with started groups, and stops on missing/duplicate/wrong-group responses. These instructions and static guards do not prove future model compliance.
 
-## Remaining parent-owned evidence
+## Local cutover and final review
 
-- Apply the explicit cutover only in an isolated/approved local environment after review:
-  `megai wire pi && megai wire codex && megai plane bridge install && megai plane setup --workspace SLUG --token-file PRIVATE_TOKEN --client all --replace-asana`.
-- Run `megai plane status --client all`, then perform read-only Pi and Codex MCP handshakes with the real private credential. Do not print or copy token material.
-- If local connector verification fails, use `megai plane restore --client all`; this restores connector backups only, leaves policy/`AGENTS.md` backups untouched, and does not delete remote records.
+- Independent Sol review PASS on parent correction `0f053c7`: all accepted findings resolved; independent runtime-integrity, Plane lifecycle and Pi task-flow tests passed.
+- Applied the reviewed MEGAI runtime assets; installed the pinned bridge explicitly without token material, then ran `megai wire pi`, `megai wire codex`, `megai plane setup --workspace brodev --token-file <private-file> --client all --replace-asana`, and `megai plane status --client all`: PASS. Preserved the installed CLI executable bit, as the repository's installer does.
+- Fresh read-only handshakes using the actual configured Pi HTTP header command and Codex stdio executable each returned 30 tools, 21 active projects, and the unique expected MEGAI project. Codex bridge stderr: 0 bytes. `codex mcp get plane --json` confirms the native client entry is enabled.
+- Parsed before/after equality proves unrelated Pi MCP entries, all unrelated Codex settings, Pi model/settings and non-task-flow global instructions were preserved. Asana connector absent in both clients; active policies and shared lifecycle skill are Plane-first. No remote records were deleted.
+- Private rollback/evidence directory: `~/.megai/backups/plane-default-20260907-134833/`, including `live-verification.json`, original client policies/configs and installed runtime asset backups. `megai plane restore --client all` restores connectors only; restore the explicitly backed-up policy/runtime files separately if reverting the whole rollout.
+- Existing Pi sessions require `/reload`; restart Codex sessions to consume the new instructions and MCP configuration. New on-disk defaults do not rewrite already-loaded prompts.
+- User explicitly approved main promotion in this conversation. Git delivery receipts are recorded at the linked task handoff after verified delivery. OpenSpec archival and cleanup of unrelated historical migration work remain unapproved.

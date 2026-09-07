@@ -16,5 +16,5 @@
 
 ## 4. Handoff evidence
 
-- [ ] 4.1 Run the complete affected focused shell set (`plane-mcp`, `pi-task-flow`, `mcp-wiring`, OpenSpec policy/contract), strict OpenSpec validation, shell syntax, and non-mutating Python Ruff; record command results and remaining live-handshake/local-apply steps in `verification.md`.
+- [x] 4.1 Run the complete affected focused shell set (`plane-mcp`, `pi-task-flow`, `mcp-wiring`, OpenSpec policy/contract), strict OpenSpec validation, shell syntax, and non-mutating Python Ruff; record command results and remaining live-handshake/local-apply steps in `verification.md`.
 - [x] 4.2 Self-review the diff, commit this worktree slice, and provide the parent exact isolated local-apply commands; verify `git status --short` is clean after commit.
