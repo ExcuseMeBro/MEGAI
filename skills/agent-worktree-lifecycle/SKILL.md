@@ -90,4 +90,4 @@ Stop without task completion when:
 
 Do not force-delete dirty or unmerged work. Do not scan and delete sibling repositories by name. For Paseo, archive only successfully merged worker workspaces after the dev push, one open request, and worktree cleanup are confirmed; main approval is not required for workspace cleanup.
 
-After task delivery, reconcile Asana and `.todos`, report the one request URL and removed task worktree/branch, then ask whether to promote `dev` to `main`. Run `megai promote --approved` only after an explicit affirmative reply.
+After task delivery, reconcile Plane and `.todos`, report the one request URL and removed task worktree/branch, then ask whether to promote `dev` to `main`. Run `megai promote --approved` only after an explicit affirmative reply.

@@ -27,7 +27,7 @@ Use the existing direct provider (`https://api.minimax.io/anthropic`), not an in
 - Exactly one writer per checkout; writing children use managed Paseo worktrees. Stop the current writer before a model handoff and preserve its diff/failing tests.
 - Use one fresh Sol review for consequential cross-module or security/data-integrity changes, or an explicit review request. Trivial changes use parent diff review and focused tests. No mandatory Astra → M3 → Luna → Sol chain.
 - Retry a diagnosed transient failure at most once. Report unresolved acceptance failures after one focused correction, unclear scope or an unverified critical path to Astra; an expected TDD red test is not an escalation. Escalate to Luna once; no model ping-pong or concurrent repair of the same checkout.
-- Keep existing tests, validation, accessibility, error handling, trust and data-integrity gates. Children never mutate trackers, merge or promote. Parent owns acceptance and In Review/completed=false handoff; main promotion still needs separate explicit user approval.
+- Keep existing tests, validation, accessibility, error handling, trust and data-integrity gates. Children never mutate trackers, merge or promote. Parent owns acceptance and the In Review handoff; main promotion still needs separate explicit user approval.
 - Prefer asynchronous completion notifications; do not poll running agents. Return verdict, paths, command/result evidence and risks in at most ten bullets.
 
 ## Dispatch and evidence
