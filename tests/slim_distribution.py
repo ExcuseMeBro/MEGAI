@@ -390,6 +390,20 @@ assert first.read_bytes()==b'concurrent user edit'
         self.assertEqual(before, self.snapshot())
         self.assertEqual(custom.read_text(), "custom user code\n")
 
+    def test_retirement_metadata_preflight_is_aggregate(self):
+        self.wire()
+        self.retired_artifacts()
+        state_path = self.megai / "state.json"
+        state = json.loads(state_path.read_text())
+        for invalid in ("not-an-array", {}, [5], ["relative/path"]):
+            state["tools"]["openspec"] = {"destinations": invalid}
+            state_path.write_text(json.dumps(state))
+            before = self.snapshot()
+            self.run_cmd("bash", str(self.megai / "bin/megai"), "uninstall", ok=False, input_text="y\n")
+            self.assertEqual(before, self.snapshot())
+            self.run_cmd(sys.executable, str(self.megai / "lib/install_slim_source.py"), str(ROOT), ok=False)
+            self.assertEqual(before, self.snapshot())
+
     def test_uninstall_retires_owned_legacy_artifacts(self):
         self.wire()
         retired = self.retired_artifacts()

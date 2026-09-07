@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from slim_wiring import MEGAI, Plan, digest, read
+from slim_wiring import MEGAI, Plan, digest, load_json, read
 
 RETIRED_PATHS = {
     *(f"lib/install_{tool}.sh" for tool in (
@@ -16,6 +16,19 @@ RETIRED_PATHS = {
 
 
 def stage_retirements(plan: Plan) -> None:
+    # Validate every helper's state input before any source or registration changes.
+    tools = load_json(MEGAI / "state.json").get("tools")
+    if tools is not None and not isinstance(tools, dict):
+        raise ValueError("invalid legacy tools object")
+    openspec = (tools or {}).get("openspec")
+    if openspec is not None and not isinstance(openspec, dict):
+        raise ValueError("invalid legacy OpenSpec object")
+    destinations = (openspec or {}).get("destinations")
+    if destinations is not None and (
+        not isinstance(destinations, list)
+        or any(not isinstance(p, str) or "\u0000" in p or not Path(p).is_absolute() for p in destinations)
+    ):
+        raise ValueError("invalid legacy OpenSpec destinations")
     hashes = json.loads(Path(__file__).with_name("retired-source-hashes.json").read_text())
     if not isinstance(hashes, dict) or set(hashes) != RETIRED_PATHS:
         raise ValueError("invalid retired source ownership manifest")
