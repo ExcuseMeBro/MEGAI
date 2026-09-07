@@ -65,11 +65,11 @@ MEGAI_SPECIALIST_INDEXES=0 prepare_stack >/dev/null
 [ "$(< "$CALLS")" = $'memory\ncodedb\nzvec' ]
 : > "$CALLS"
 MEGAI_SPECIALIST_INDEXES=1 prepare_stack >/dev/null
-grep -Fxq graphify "$CALLS"
+if grep -Fxq graphify "$CALLS"; then echo 'retired graphify started' >&2; exit 1; fi
 if grep -Fxq repowise "$CALLS"; then echo 'retired RepoWise started' >&2; exit 1; fi
 is_project_initialized() { return 0; }
-MEGAI_SPECIALIST_INDEXES=0 prepare_stack | grep -q 'core readiness checked; specialist indexes on demand'
-MEGAI_SPECIALIST_INDEXES=1 prepare_stack | grep -q 'core readiness checked; specialist indexes requested'
+MEGAI_SPECIALIST_INDEXES=0 prepare_stack | grep -q 'core readiness checked'
+MEGAI_SPECIALIST_INDEXES=1 prepare_stack | grep -q 'core readiness checked'
 
 # Pi launches skip memory/index jobs by default; full opt-in preserves dispatch.
 ensure_wired() { echo wired >> "$CALLS"; }

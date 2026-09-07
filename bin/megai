@@ -30,7 +30,6 @@ Commands:
   codex                 Launch Codex CLI (full stack init)
   pi                    Launch Pi CLI (full stack init)
   omp                   Launch Oh My Pi CLI (full stack init)
-  graph [path]          Build knowledge graph for current folder (graphify .)
   dev                   Switch a clean primary checkout from main/master to dev
   finish [options]      Merge verified task work into dev, push, and reuse one promotion PR
   promote [options]     Merge the reviewed dev-to-main PR after explicit approval
@@ -51,7 +50,7 @@ Commands:
   version               Print version
   help                  This message
 
-Tools: agent-memory, codedb, zvec-grep, caveman, rtk, graphify, ux-ui-agent-skills, ruff, mattpocock-skills
+Tools: agent-memory, codedb, zvec-grep, caveman, rtk, ux-ui-agent-skills, ruff, mattpocock-skills
 EOF
 }
 
@@ -62,7 +61,7 @@ cmd_install() {
 cmd_status() {
   detect_os; detect_runtimes; state_init
   printf "%-14s %-10s %-8s %s\n" TOOL VERSION PORT STATUS
-  for t in agent-memory codedb zvec-grep caveman rtk graphify ruff; do
+  for t in agent-memory codedb zvec-grep caveman rtk ruff; do
     local ver port stat bin
     ver=$(state_get ".tools[\"$t\"].version") || ver=""
     port=$(state_get ".tools[\"$t\"].port")   || port=""
@@ -125,7 +124,6 @@ cmd_doctor() {
   fi
   if command -v caveman     >/dev/null 2>&1; then ok "caveman CLI present";      else skip "caveman missing"; fi
   if command -v rtk         >/dev/null 2>&1; then ok "rtk CLI present";          else skip "rtk missing"; fi
-  if command -v graphify    >/dev/null 2>&1; then ok "graphify CLI present";     else skip "graphify missing"; fi
   if command -v omp >/dev/null 2>&1; then ok "OMP CLI present"; else skip "OMP missing"; fi
   if [ -f "$HOME/.agents/skills/design-code/SKILL.md" ] && [ -f "$HOME/.claude/skills/design-code/SKILL.md" ] && [ -f "$HOME/.pi/agent/skills/design-code/SKILL.md" ]; then
     ok "ux-ui-agent-skills ready for Codex, Claude Code, and Pi"
@@ -158,7 +156,6 @@ cmd_update() {
   MEGAI_UPDATE=1 bash "$LIB/install_zvec_grep.sh" || true
   bash "$LIB/install_caveman.sh"      || true
   bash "$LIB/install_rtk.sh"          || true
-  bash "$LIB/install_graphify.sh"           || true
   bash "$LIB/install_taskflow.sh"           || true
   bash "$LIB/install_worktree_lifecycle.sh" || true
   bash "$LIB/install_ux_ui_agent_skills.sh"  || true
@@ -279,22 +276,6 @@ ensure_wired() {
   fi
 }
 
-ensure_graphify_bg() {
-  if ! command -v graphify >/dev/null 2>&1; then
-    skip "graphify not installed"
-    return 0
-  fi
-  if [ -d "graphify-out" ]; then
-    ok "graphify graph already built (graphify-out/)"
-    return 0
-  fi
-  mkdir -p "$MEGAI_HOME/logs"
-  local log="$MEGAI_HOME/logs/graphify.log"
-  : > "$log"
-  ( nohup graphify . --no-viz >"$log" 2>&1 & )
-  ok "graphify graph build started in background (megai logs graphify)"
-}
-
 # --- project lifecycle ---
 
 project_key() { printf '%s' "$(pwd)" | sed 's/[\"]/_/g'; }
@@ -330,30 +311,20 @@ prepare_stack() {
     printf "%s↑%s initialising project (first run)\n\n" "$C_BLUE" "$C_OFF"
   fi
 
-  step 1 5 "agent-memory daemon"
+  step 1 4 "agent-memory daemon"
   ensure_agent_memory
-  step 2 5 "codedb structural index"
+  step 2 4 "codedb structural index"
   ensure_codedb_index "$(pwd)"
-  step 3 5 "zvec-grep hybrid index"
+  step 3 4 "zvec-grep hybrid index"
   ensure_zvec_index "$(pwd)"
-  if [ "${MEGAI_SPECIALIST_INDEXES:-0}" = "1" ]; then
-    step 4 5 "graphify knowledge graph"
-    ensure_graphify_bg
-  else
-    step 4 5 "graphify: on demand (megai graph)"
-  fi
-  step 5 5 "token savers + skill checks"
+  step 4 4 "token savers + skill checks"
   check_caveman
   check_rtk
 
   mark_project_active
   if [ "$resume" = "1" ]; then
     echo
-    if [ "${MEGAI_SPECIALIST_INDEXES:-0}" = "1" ]; then
-      ok "resumed — core readiness checked; specialist indexes requested"
-    else
-      ok "resumed — core readiness checked; specialist indexes on demand"
-    fi
+    ok "resumed — core readiness checked"
   fi
 }
 
@@ -487,17 +458,6 @@ cmd_omp() {
     launch_agent omp omp "$@"
   fi
 }
-cmd_graph() {
-  if ! command -v graphify >/dev/null 2>&1; then
-    err "graphify not installed — run: megai install"
-    return 1
-  fi
-  local target="${1:-.}"
-  megai_banner
-  ok "graphify -> $target (building knowledge graph)"
-  exec graphify "$target"
-}
-
 # ---------- project bootstrap (default action) ----------
 
 is_port_listening() {
@@ -604,15 +564,6 @@ check_rtk() {
   fi
 }
 
-check_graphify() {
-  if command -v graphify >/dev/null 2>&1; then
-    if [ -d "graphify-out" ]; then ok "graphify graph ready (graphify-out/)"
-    else ok "graphify skill installed (run: megai graph)"; fi
-  else
-    skip "graphify not installed"
-  fi
-}
-
 check_mcp_wired() {
   state_init
   local cc cx pi omp
@@ -642,11 +593,6 @@ ${C_GRN}Structural code intelligence${C_OFF}  (codedb)
   megai-codedb symbol <name>
   megai-codedb outline <file>
   megai-codedb tree
-
-${C_GRN}Knowledge graph${C_OFF}  (graphify)
-  megai graph              # build graph of this folder -> graphify-out/
-  megai graph ./docs       # graph a sub-tree
-  # inside cc/codex: /graphify .  /graphify query "<q>"
 
 ${C_GRN}Agents${C_OFF}  (launches CLI with the lean stack initialised)
   megai cc       — Claude Code
@@ -689,7 +635,6 @@ case "${1:-__project__}" in
   codex)     shift; cmd_codex     "$@" ;;
   pi)        shift; cmd_pi        "$@" ;;
   omp)       shift; cmd_omp       "$@" ;;
-  graph)     shift; cmd_graph     "$@" ;;
   dev)       shift; cmd_dev       "$@" ;;
   finish)    shift; cmd_finish    "$@" ;;
   promote)   shift; cmd_promote   "$@" ;;

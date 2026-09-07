@@ -15,7 +15,7 @@ LIB="$MEGAI_HOME/lib"
 . "$LIB/banner.sh"
 megai_banner
 
-TOTAL=13
+TOTAL=12
 
 step 1 $TOTAL "Detecting OS / runtimes"
 detect_os
@@ -47,30 +47,27 @@ bash "$LIB/install_caveman.sh"
 step 6 $TOTAL "Installing rtk (Rust Token Killer)"
 bash "$LIB/install_rtk.sh"
 
-step 7 $TOTAL "Installing graphify (knowledge-graph skill)"
-bash "$LIB/install_graphify.sh"
-
-step 8 $TOTAL "Installing task-flow + safe agent worktree lifecycle"
+step 7 $TOTAL "Installing task-flow + safe agent worktree lifecycle"
 bash "$LIB/install_taskflow.sh" || warn "task-flow install skipped"
 bash "$LIB/install_worktree_lifecycle.sh" || warn "worktree lifecycle install skipped"
 
-step 9 $TOTAL "Installing ux-ui-agent-skills (global, 3 agents)"
+step 8 $TOTAL "Installing ux-ui-agent-skills (global, 3 agents)"
 bash "$LIB/install_ux_ui_agent_skills.sh" || warn "ux-ui-agent-skills install skipped"
 
-step 10 $TOTAL "Installing Matt Pocock's engineering skills (global, 3 agents)"
+step 9 $TOTAL "Installing Matt Pocock's engineering skills (global, 3 agents)"
 bash "$LIB/install_mattpocock_skills.sh" || warn "Matt Pocock skills install skipped"
 
-step 11 $TOTAL "Installing recommended Pi packages (global)"
+step 10 $TOTAL "Installing recommended Pi packages (global)"
 bash "$LIB/install_pi_packages.sh" || warn "Pi package install skipped"
 
-step 12 $TOTAL "Wiring MCP into cc / codex / pi / OMP + shell PATH"
+step 11 $TOTAL "Wiring MCP into cc / codex / pi / OMP + shell PATH"
 bash "$LIB/wire_cc.sh"    || warn "cc wiring skipped"
 bash "$LIB/wire_codex.sh" || warn "codex wiring skipped"
 bash "$LIB/wire_pi.sh"    || warn "pi wiring skipped"
 bash "$LIB/wire_omp.sh"   || warn "OMP wiring skipped"
 bash "$LIB/wire_path.sh"  || warn "PATH wiring skipped"
 
-step 13 $TOTAL "Installing Ruff (Python linter/formatter, uv or pipx)"
+step 12 $TOTAL "Installing Ruff (Python linter/formatter, uv or pipx)"
 bash "$LIB/install_ruff.sh" || warn "Ruff install skipped"
 
 ok "MEGAI ready"

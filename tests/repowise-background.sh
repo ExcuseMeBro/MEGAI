@@ -24,6 +24,6 @@ MEGAI_SPECIALIST_INDEXES=0 prepare_stack > "$TMP/default.out"
 [ "$(< "$CALLS")" = $'memory\ncodedb\nzvec' ]
 : > "$CALLS"
 MEGAI_SPECIALIST_INDEXES=1 prepare_stack > "$TMP/full.out"
-[ "$(< "$CALLS")" = $'memory\ncodedb\nzvec\ngraphify' ]
-if grep -qi repowise "$TMP/default.out" "$TMP/full.out"; then exit 1; fi
-echo 'RepoWise background retirement PASS; core indexing and opt-in graphify preserved'
+[ "$(< "$CALLS")" = $'memory\ncodedb\nzvec' ]
+if grep -Eqi 'repowise|graphify' "$TMP/default.out" "$TMP/full.out"; then exit 1; fi
+echo 'Specialist background retirement PASS; core indexing preserved'
