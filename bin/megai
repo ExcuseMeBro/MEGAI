@@ -150,7 +150,7 @@ cmd_uninstall() {
 
 case "${1:-__project__}" in
   pi) shift; launch_agent pi pi "$@" ;;
-  cc|codex|omp) die "slim is Pi-only; launch other harnesses directly with their own configuration" ;;
+  cc|codex|omp) die "slim requires Pi for parents and all delegates; non-Pi launch is disabled" ;;
   install) bash "$LIB/main.sh" ;;
   update) MEGAI_UPDATE=1 bash "$LIB/main.sh" ;;
   wire) shift; cmd_wire "$@" ;;

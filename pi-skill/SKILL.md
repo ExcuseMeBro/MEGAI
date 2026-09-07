@@ -12,6 +12,14 @@ Before edits, state the requested outcome, observable acceptance checks and stop
 
 Use the defaults below when their purpose matches the task. Do not run all tools on every task, repeat known lookups or build indexes merely to prove activation. Task acceptance and code quality outrank compression: keep security, accessibility, compatibility, error handling, required tests and independent review. Preserve provider/model/thinking choices. Report a missing tool or stale index honestly and use a stated native fallback.
 
+## Pi-only delegation
+
+Parents, reviewers, scouts and workers all run through the **Pi harness**. This overrides any task skill's generic harness examples. Use direct tools for bounded work; if delegation is necessary, use visible Paseo agents. Create isolated writer workspaces first; read-only children may share the caller workspace.
+
+Select the harness explicitly: CLI `paseo run --background --provider pi --model openai-codex/<model> --thinking <medium-or-high>`, or Paseo `create_agent` with `provider: "pi/openai-codex/<model>"` and explicit thinking. Keep the approved task-appropriate model. Confirm the returned harness is `pi` and the model/thinking match before sending proprietary task context. On mismatch, interrupt the new child and report it; do not continue or relabel it. There is no non-Pi fallback: if Pi cannot run, use direct parent tools when safe or stop with a blocker.
+
+`openai-codex/...` is a model-provider namespace **inside Pi**, not permission to select Paseo's `codex` harness or spawn the Codex CLI. Do not launch other harnesses through bash, native subagents, scripts or skill examples. Children never delegate, mutate Plane or integrate branches. Use `agent-worktree-lifecycle` for checkout and delivery rules.
+
 ## Find and change code
 
 Codedb is default core structural lookup: use `megai-codedb symbol NAME`, `megai-codedb outline FILE`, and `megai-codedb tree PATH` when relevant. Index only when the task needs it (`megai-codedb index PATH`); never prewarm on startup. Preserve existing index data. Use `rg` for exact text or unsupported-language fallback and native reads/edits. When location or wording is unknown, use local `zg query "intent"` or `zg query --fts "symbol"`, then read the relevant ranges. Ground impact claims in code/references, not search snippets alone. Review the diff and verify observable task acceptance; fewer tools do not justify weaker tests, thinking, trust or review.

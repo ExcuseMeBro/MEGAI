@@ -30,7 +30,7 @@ class Slim(unittest.TestCase):
             shutil.copytree(ROOT / folder, self.megai / folder)
         self.env = dict(os.environ, HOME=str(self.home), MEGAI_HOME=str(self.megai),
                         PI_CODING_AGENT_DIR=str(self.home / ".pi/agent"),
-                        CODEX_HOME=str(self.home / ".codex"), OMP_PROFILE="", PI_PROFILE="",
+                        CODEX_HOME=str(self.home / ".codex"), PASEO_HOME=str(self.home / ".paseo"), OMP_PROFILE="", PI_PROFILE="",
                         PATH=f"{self.bin}:{os.environ['PATH']}", PYTHONDONTWRITEBYTECODE="1")
         # A second outer sandbox protects against single-export shell expansion bugs.
         for key in ("HOME", "MEGAI_HOME", "PI_CODING_AGENT_DIR", "CODEX_HOME"):
@@ -88,6 +88,73 @@ class Slim(unittest.TestCase):
         self.wire("--remove")
         self.assertNotIn("zvec_grep", json.loads((self.home / ".pi/agent/mcp.json").read_text())["mcpServers"])
         self.assertTrue((self.legacy / "sentinel").exists())
+
+    def test_paseo_allows_only_pi_preserving_other_settings(self):
+        original = {"version": 1, "daemon": {"listen": "127.0.0.1:6767", "appendSystemPrompt": "keep"},
+                    "agents": {"providers": {"codex": {"enabled": True, "model": "keep"},
+                                               "pi": {"enabled": False, "thinking": "keep"},
+                                               "custom": {"extends": "codex", "enabled": True}},
+                               "skills": {"selection": {"mode": "all"}}}}
+        config = self.write(self.home / ".paseo/config.json", json.dumps(original))
+        before = self.snapshot()
+        self.wire("--check")
+        self.assertEqual(self.snapshot(), before)
+        self.wire()
+        actual = json.loads(config.read_text())
+        providers = actual["agents"]["providers"]
+        self.assertTrue(providers["pi"]["enabled"])
+        for name in ("codex", "claude", "omp", "opencode", "copilot", "custom"):
+            self.assertFalse(providers[name]["enabled"])
+        for name, settings in original["agents"]["providers"].items():
+            self.assertEqual({k: v for k, v in providers[name].items() if k != "enabled"},
+                             {k: v for k, v in settings.items() if k != "enabled"})
+        self.assertEqual(actual["daemon"], original["daemon"])
+        self.assertEqual(actual["agents"]["skills"], original["agents"]["skills"])
+        before = self.snapshot()
+        self.wire()
+        self.assertEqual(self.snapshot(), before)
+        self.wire("--verify")
+        self.assertFalse((self.home / "calls").exists(), "Wiring must not start/reload daemons")
+        # Uninstall must not silently re-enable a forbidden harness.
+        self.wire("--remove")
+        self.assertEqual(json.loads(config.read_text()), actual)
+
+    def test_paseo_malformed_config_fails_before_any_write(self):
+        config = self.home / ".paseo/config.json"
+        for value in ("{bad", '[]', '{"agents":null}', '{"agents":{"providers":[]}}',
+                      '{"agents":{"providers":{"codex":null}}}',
+                      '{"agents":{"providers":{"pi":{"enabled":"yes"}}}}'):
+            self.write(config, value)
+            before = self.snapshot()
+            self.wire(ok=False)
+            self.assertEqual(self.snapshot(), before)
+
+    def test_paseo_home_override_and_empty_default(self):
+        config = self.write(self.home / ".paseo/config.json", '{"version":1}')
+        self.wire(env=dict(self.env, PASEO_HOME=""))
+        self.assertTrue(json.loads(config.read_text())["agents"]["providers"]["pi"]["enabled"])
+        config.write_text("{unrelated malformed default")
+        alternate = self.write(self.root / "custom-paseo/config.json", '{"version":1}')
+        self.wire(env=dict(self.env, PASEO_HOME=str(alternate.parent)))
+        self.assertEqual(config.read_text(), "{unrelated malformed default")
+        self.assertTrue(json.loads(alternate.read_text())["agents"]["providers"]["pi"]["enabled"])
+
+    def test_paseo_symlinked_root_is_refused(self):
+        outside = self.root / "outside"
+        self.write(outside / "config.json", '{"version":1}')
+        (self.home / ".paseo").symlink_to(outside)
+        before = self.snapshot()
+        self.wire(ok=False)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_pi_only_delegation_policy_and_optional_paseo(self):
+        self.wire()
+        self.assertFalse((self.home / ".paseo").exists())
+        policy = (self.home / ".pi/agent/AGENTS.md").read_text()
+        self.assertIn("Parents and all delegated agents use Pi only", policy)
+        core = (self.home / ".pi/agent/skills/megai/SKILL.md").read_text()
+        for text in ("--provider pi", "openai-codex/", "returned harness", "no non-Pi fallback"):
+            self.assertIn(text, core)
 
     def test_four_defaults_are_wired_without_background_work(self):
         self.wire()

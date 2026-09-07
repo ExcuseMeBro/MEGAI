@@ -6,7 +6,7 @@ managed-by: megai
 
 # Agent worktree lifecycle
 
-The parent owns integration. Use one writer per registered worktree; read-only children may share the parent workspace. Inside Paseo create writers through `create_workspace` with worktree isolation and then `create_agent` with that workspace ID. Children never create agents, mutate trackers or integrate branches. Independent slices may use separate worktrees only with non-overlapping ownership.
+The parent owns integration. Use one writer per registered worktree; read-only children may share the parent workspace. Inside Paseo create writers through `create_workspace` with worktree isolation and then `create_agent` with that workspace ID. Select Pi explicitly for every child and verify its returned harness/model/thinking; follow `megai`'s Pi-only delegation contract. Children never create agents, mutate trackers or integrate branches. Independent slices may use separate worktrees only with non-overlapping ownership.
 
 ## Delivery contract
 

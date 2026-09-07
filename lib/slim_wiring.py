@@ -56,6 +56,10 @@ def pi_root() -> Path:
     return Path(os.environ.get("PI_CODING_AGENT_DIR", HOME / ".pi/agent"))
 
 
+def paseo_config() -> Path:
+    return Path(os.environ.get("PASEO_HOME") or HOME / ".paseo") / "config.json"
+
+
 class Plan:
     def __init__(self) -> None:
         self.receipt_before = read(RECEIPT)
@@ -99,6 +103,9 @@ class Plan:
             "Use `agent-worktree-lifecycle` for isolated writes and the agreed delivery target. "
             "Verify task acceptance with actual tests and review; security/data-integrity risks require independent review. "
             "Hand off at In Review, never Done. Main promotion requires separate explicit approval.\n"
+            "Parents and all delegated agents use Pi only. In Paseo select the Pi harness explicitly with a Pi model and thinking; "
+            "verify the returned harness/model before sending task context. No non-Pi fallback or direct Codex/Claude/OMP execution. "
+            "Follow the Pi-only delegation contract in `megai`; if Pi is unavailable, stop and report the blocker.\n"
             "Default workflow: load `megai` for coding tasks and `caveman` once for full terse chat in the user's language. "
             "Use codedb for structural lookup, zvec-grep for intent search, and RTK for supported discovery output. "
             "Apply Ruff to changed Python, agent-memory recall to relevant prior decisions, and matching Matt Pocock/UI-UX skills to the task. "
@@ -168,6 +175,31 @@ class Plan:
                 self.receipt.pop(str(path), None)
             else:
                 self.receipt[str(path)] = digest(updated.encode())
+
+    def paseo(self, remove: bool) -> None:
+        # A host allowlist, not a model/provider credential rewrite. Never start
+        # Paseo or silently re-enable other harnesses on slim uninstall.
+        if remove:
+            return
+        path = paseo_config()
+        before = read(path)
+        if before is None:
+            return
+        config = json.loads(before)
+        if not isinstance(config, dict):
+            raise ValueError(f"expected Paseo config object: {path}")
+        agents = config.setdefault("agents", {})
+        if not isinstance(agents, dict):
+            raise ValueError(f"invalid Paseo agents: {path}")
+        providers = agents.setdefault("providers", {})
+        if not isinstance(providers, dict):
+            raise ValueError(f"invalid Paseo providers: {path}")
+        for name, settings in providers.items():
+            if not isinstance(settings, dict) or ("enabled" in settings and not isinstance(settings["enabled"], bool)):
+                raise ValueError(f"invalid Paseo provider settings for {name}: {path}")
+        for name in sorted(set(providers) | {"pi", "codex", "claude", "omp", "opencode", "copilot"}):
+            providers.setdefault(name, {})["enabled"] = name == "pi"
+        self.stage(path, encoded(config), before)
 
     def client(self, root: Path, remove: bool) -> None:
         # Only Pi is inspected or mutated. Other harnesses are not dependencies.
@@ -301,6 +333,7 @@ def main() -> int:
     plan = Plan()
     if args.client == "pi":
         plan.client(pi_root(), args.remove)
+        plan.paseo(args.remove)
     bridge = b'#!/usr/bin/env bash\nexec bash "${MEGAI_HOME:-$HOME/.megai}/pi-skill/extensions/memory.sh" "$@"\n'
     if args.client != "path":
         plan.asset(MEGAI / "bin/megai-memory", bridge, args.remove)
@@ -312,6 +345,9 @@ def main() -> int:
     if not args.check and not args.remove and args.client == "pi" and not shutil.which("zg"):
         raise ValueError("zg is missing; run megai install before using slim")
     plan.apply(args.check or args.verify, args.verify)
+    paseo_path = paseo_config()
+    if not (args.check or args.verify or args.remove) and paseo_path in plan.changes and plan.changes[paseo_path] != plan.originals[paseo_path]:
+        print("Paseo Pi-only allowlist updated; run `paseo reload` for a running daemon. Existing sessions are not stopped.")
     return 0
 
 

@@ -211,6 +211,26 @@ harness registrations are preserved. Pi defaults exclude automatic
 explicit Pi resource selections follow this default and remain authoritative.
 Previously installed Claude/Codex/OMP policies are not removed or rewritten.
 
+### Pi-only subagents
+
+Parents, reviewers, scouts and workers all use the **Pi harness**. Select it explicitly
+in Paseo (`--provider pi --model openai-codex/<model> --thinking <medium-or-high>`)
+and verify the returned harness/model/thinking. `openai-codex/...` is Pi's model
+namespace, not the Codex CLI. If Pi is unavailable, use direct parent tools when
+safe or report a blocker; never switch harnesses as a fallback.
+
+When an existing `${PASEO_HOME:-~/.paseo}/config.json` is present, slim wiring enables
+Pi and disables the other built-in/configured Paseo harnesses, including custom
+aliases. It preserves their credentials, model/permission settings and sessions.
+This is the intentional orchestration-level exception to preserving other harness
+settings. The config participates in preflight, private backup and write rollback.
+Wiring does not start or reload a daemon: run `paseo reload` after a reported change,
+then confirm `paseo provider ls` shows only Pi enabled. Already-running agents are
+not interrupted by wiring; stop or finish non-Pi work before continuing. If Paseo
+is installed later, run `megai wire pi` again. Uninstall leaves this host restriction
+in place rather than silently re-enabling other harnesses; restore deliberately
+from the config backup if needed. This is not an OS-wide executable sandbox.
+
 Try alongside a full installation in a separate user/container environment.
 Changing `MEGAI_HOME` alone does not isolate Pi's global configuration.
 For adoption on an existing host, back up and manually detach the specific legacy
