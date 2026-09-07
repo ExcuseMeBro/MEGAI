@@ -20,7 +20,7 @@
 
 <p align="center">
   <b>🚀 One command · 🧰 Core tools + optional specs · 🤖 Four agent harnesses · ⚙️ Managed wiring</b><br>
-  Memory · code intelligence · indexing · bounded orchestration · task flow · UI/UX · app testing · security operations
+  Memory · code intelligence · indexing · bounded orchestration · task flow · UI/UX · app testing
 </p>
 
 # 🧠 MEGAI
@@ -49,7 +49,6 @@ megai doctor
 - [🎨 Design and UI/UX stack](#-design-and-uiux-stack)
 - [🗃️ Code intelligence and memory](#️-code-intelligence-and-memory)
 - [🧪 App testing](#-app-testing)
-- [🛡️ Security operations](#️-security-operations)
 - [🧭 Bounded Pi/Paseo orchestration](#-bounded-pipaseo-orchestration)
 - [📦 Pi package stack](#-pi-package-stack)
 - [🏗️ How it works](#️-how-it-works)
@@ -133,7 +132,6 @@ MEGAI reuses existing installations and preserves unrelated user configuration o
 | ⚙️ | GPT-core + MiniMax-discovery routing | GPT owns every write; MiniMax only searches, reads, and finds code | OMP roles + managed agents |
 | 🖌️ | [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | 17 UI/UX skills, WCAG references, tokens, components, adapters | Global skills |
 | 🧪 | [Argent](https://github.com/software-mansion/argent) | Explicit `/argent` mobile, TV, Electron, and Chromium review | Slash command + on-demand CLI |
-| 🛡️ | [Numasec](https://github.com/FrancescoStabile/numasec) | Authorized AppSec/pentest operations, evidence, replay, and reports | CLI + global handoff skill |
 | 🐍 | [Ruff](https://docs.astral.sh/ruff/) | Extremely fast Python linter and formatter | Reused on PATH or installed via `uv tool` / `pipx` |
 | 🛠️ | [Matt Pocock's skills](https://github.com/mattpocock/skills) | Specs, TDD, diagnosis, review, domain modeling, architecture, and delivery flows | Global skills |
 
@@ -192,7 +190,7 @@ MEGAI configures:
 - OMP's native MiniMax catalog and provider-specific transport compatibility; MEGAI never rewrites user `models.yml`
 - preservation of unrelated OMP servers, model providers, allowlists, denylists, credentials, agents, and user settings
 - hybrid Paseo placement: each writer receives a managed worktree from `dev`, then is archived after verified dev merge/push, one open promotion request, and worktree cleanup
-- Argent, Numasec, and global skills through OMP's existing CLI and skill discovery surfaces
+- Argent and global skills through OMP's existing CLI and skill discovery surfaces
 
 OMP provider authentication remains in OMP's own credential store; MEGAI never writes provider credentials.
 
@@ -239,7 +237,6 @@ megai codex                   Launch Codex with the stack ready
 megai pi                      Launch Pi with the stack ready
 megai omp                     Launch Oh My Pi with the stack ready
 megai omp --profile work      Launch OMP and wire the named profile
-megai security [args]         Launch Numasec (authorized targets only)
 megai graph [path]            Build a graphify knowledge graph
 megai dev                     Switch a clean primary main/master checkout to dev
 megai finish --dry-run --target dev
@@ -425,16 +422,9 @@ Native targets still require their platform SDKs: Xcode for Apple, Android Platf
 
 ---
 
-## 🛡️ Security operations
+## Retired: Numasec
 
-Numasec runs as an isolated interactive security specialist while MEGAI remains the project and task orchestrator:
-
-```bash
-cd ~/path/to/authorized-target
-megai security
-```
-
-Start with `/doctor`, `/opsec strict`, and a narrowly scoped runbook. Use Numasec only for systems you own, labs/CTFs, or targets where you have explicit testing permission. Its `numasec-security` handoff skill is linked globally for Claude Code, Codex, and Pi; generated reports or share artifacts can return to MEGAI for remediation.
+Numasec and the `megai security` launcher are retired. Existing reports, user settings and project files remain. `bash "$HOME/.megai/lib/retire_numasec.sh"` cleans only known MEGAI-owned skill links and its state entry; it cannot install or invoke Numasec. Security and authorization requirements still apply to all work. See [retirement verification and rollback](docs/audits/numasec-retirement.md).
 
 ---
 
@@ -539,7 +529,6 @@ The installer:
 ├── pi-skill/                    Pi MEGAI skill and extensions
 ├── omp-skill/                   OMP-native MEGAI skill
 ├── task-flow/                   skills, hooks, commands, and monitor
-├── skills/numasec-security/     authorized security handoff guidance
 ├── skills/agent-worktree-lifecycle/  dev delivery, one promotion request, approved main merge
 ├── skills/smart-development-orchestrator/  Luna/Terra and multi-provider routing policy
 ├── omp-agents/                   MiniMax router/worker plus Luna and Terra trusted scouts
@@ -590,7 +579,7 @@ megai status
 megai doctor
 ```
 
-A healthy installation reports the core CLIs, agent configuration files, agent-memory daemon, global UX/UI and Numasec skills, Argent, and Numasec.
+A healthy installation reports the core CLIs, agent configuration files, agent-memory daemon, global UX/UI skills and Argent.
 
 ### Useful checks
 
@@ -672,7 +661,6 @@ The installer resolves supported missing dependencies where possible and reports
 - 💾 Configuration files are backed up before MEGAI changes them.
 - 🧱 Only MEGAI-owned MCP entries and marked blocks are replaced or removed.
 - 🏠 agent-memory and zvec-grep services and indexes run locally by default; zvec-grep remote Embedding requires separate explicit authorization.
-- 🛡️ Numasec execution is opt-in and must stay within an explicitly authorized target scope.
 
 ---
 
@@ -703,7 +691,7 @@ Ix is no longer installed, updated, checked or recommended by MEGAI. Upgrading d
 megai uninstall
 ```
 
-MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI, Numasec, legacy owned OpenSpec links, and shell PATH entries. Independently installed CLIs, project artifacts and privacy settings are retained; legacy-link cleanup never installs OpenSpec.
+MEGAI removes its home directory and reverts MEGAI-managed MCP entries, task-flow pieces, UX/UI, legacy owned Numasec/OpenSpec links, and shell PATH entries. Independently installed CLIs, project artifacts and privacy settings are retained; legacy-link cleanup never installs OpenSpec.
 
 To prevent data loss, zvec-grep and local project indexes are retained. ui-craft and RepoWise are retired, but their project data is not deleted. Remove retained tools separately only when no longer needed:
 

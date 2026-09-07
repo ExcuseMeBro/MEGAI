@@ -1,6 +1,6 @@
 # Dembrandt retirement
 
-Removed MEGAI's Dembrandt installer, install/update/status/doctor/help references and OMP recommendation. The install pipeline now has 15 contiguous steps. Existing compatibility cleanup for `megai-dembrandt` MCP registrations remains; it preserves user-owned entries.
+Removed MEGAI's Dembrandt installer, install/update/status/doctor/help references and OMP recommendation. This removes one install step; the remaining numbering is contiguous. Existing compatibility cleanup for `megai-dembrandt` MCP registrations remains; it preserves user-owned entries.
 
 ## Local removal
 

@@ -1,6 +1,6 @@
 # OpenSpec retirement
 
-Removed the optional OpenSpec installer and `megai-openspec` skill from MEGAI. Installation was already opt-in, so the normal pipeline remains at 15 steps. Superseded upstream CLI/prompt-policy tests are replaced by retirement preservation checks; existing `openspec/` specifications and historical evidence are not removed.
+Removed the optional OpenSpec installer and `megai-openspec` skill from MEGAI. Installation was already opt-in, so this removal does not change the normal pipeline. Superseded upstream CLI/prompt-policy tests are replaced by retirement preservation checks; existing `openspec/` specifications and historical evidence are not removed.
 
 The former installer's owned-link removal behavior remains as `lib/retire_openspec.sh`. Generic MEGAI uninstall calls it to avoid leaving dangling Pi links on older installations. It checks each registered link target, preserves foreign links/directories, supports custom paths with spaces/newlines, removes only the OpenSpec state entry, and never invokes or installs the CLI. It can run after the skill source is already gone.
 
