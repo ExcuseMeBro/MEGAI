@@ -30,6 +30,15 @@ effort router.
 - Plane is the only execution tracker. Parents start/reuse the linked item and
   hand off verified work in In Review; children do not mutate Plane or delegate.
 
+## Delegation
+
+Before creating or reusing any subagent, read [delegation.md](delegation.md).
+Delegate only through Pi with the exact Astra/Luna/Terra/Sol allowlist and explicit
+medium/high thinking; verify the returned identity before task context. This rule
+restricts children, not the user's current parent model. Local Pi installs the
+`megai-model-guard` tool-call guard; preserve explicit resource opt-outs and report
+when it is inactive.
+
 ## Headroom matrix
 
 | Harness | Compression and retrieval | Memory |
