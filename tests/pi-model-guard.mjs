@@ -49,6 +49,10 @@ try {
     { ...args(models[0]), settings: { thinkingOptionId: 'low' } }]) {
     await check('mcp__paseo', { tool: 'create_agent', args: input }, true);
   }
+  await check('mcp', { tool: 'paseo-create-agent', args: args('gpt-5.4') }, true);
+  await check('mcp', { tool: 'create_agent', args: args('gpt-5.4') }, true);
+  await check('create_agent', args('gpt-5.4'), true);
+  await check('mcp__paseo', { tool: 'create-agent', args: args('gpt-5.4') }, true);
   await check('mcp', { tool: 'paseo/create_agent', args: '{bad' }, true);
   await check('mcp', { tool: 'paseo_create_agent', args: 'null' }, true);
   await check('mcp', { tool: 'paseo_create_agent', args: args(models[0]), action: 'ui-messages' }, false);

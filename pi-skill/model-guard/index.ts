@@ -10,12 +10,14 @@ const thinking = (value: unknown) => value === "medium" || value === "high";
 const object = (value: unknown): Record<string, unknown> | undefined =>
   value !== null && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown> : undefined;
+const paseoMutations = new Set(["create_agent", "update_agent", "create_schedule", "update_schedule", "resume_schedule", "run_schedule_once"]);
 const reason = "MEGAI subagents require Pi with an exact openai-codex model: gpt-6-astra, gpt-5.6-luna, gpt-5.6-sol or gpt-5.6-terra; explicit medium/high thinking. Use structured Paseo MCP calls, never a default, wildcard or another-model fallback.";
 
 /** Tool-call guard, not an OS sandbox. Never rewrites a requested model or task. */
 export function blocked(name: string, value: unknown): boolean {
   const input = object(value) ?? {};
-  name = name.replace(/^functions\./, "");
+  name = name.replace(/^functions\./, "").replace(/-/g, "_");
+  if (paseoMutations.has(name)) name = `paseo_${name}`;
   if (name === "mcpScript" || ["subagent", "subagents", "dispatch_agent"].includes(name)) return true;
   if (name === "bash" || name === "powershell") {
     // Route obvious agent CLI launches through inspectable MCP. This is not a
@@ -28,8 +30,10 @@ export function blocked(name: string, value: unknown): boolean {
     // Match the gateway's documented precedence. Discovery never launches.
     if (name === "mcp" && input.action) return false;
     if (typeof input.tool !== "string") return false;
-    const tool = input.tool;
-    const paseo = name === "mcp__paseo" || input.server === "paseo" || /^paseo[_/:]/.test(tool);
+    // pi-mcp-adapter accepts hyphen/underscore aliases and prefix-free tools.
+    const tool = input.tool.replace(/-/g, "_");
+    const paseo = name === "mcp__paseo" || input.server === "paseo" || /^paseo[_/:]/.test(tool)
+      || (!input.server && paseoMutations.has(tool));
     if (!paseo) return false;
     name = `paseo_${tool.replace(/^paseo[_/:]/, "")}`;
     let args = input.args;
