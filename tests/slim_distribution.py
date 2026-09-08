@@ -496,14 +496,34 @@ assert first.read_bytes()==b'concurrent after publish'
     def test_doctor_requires_every_selected_tool_and_skill_kit(self):
         self.wire()
         self.stub("ruff", 'echo "ruff 0.15.0"\n')
-        for name in ("bash", "jq", "git", "rg", "find", "grep"):
+        for name in ("bash", "env", "jq", "git", "rg", "find", "grep"):
             if not (self.bin / name).exists():
                 (self.bin / name).symlink_to(shutil.which(name))
         env = dict(self.env, PATH=str(self.bin))
         ui = self.write(self.megai / "ux-ui-agent-skills/package.json", '{}')
         self.write(self.megai / "ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md", 'fixture')
         matt = self.write(self.megai / "mattpocock-skills/skills/example/SKILL.md", 'fixture')
+        runtime = self.write(self.megai / "venv/headroom/bin/python",
+                             '#!/bin/sh\necho checked >>"$HOME/headroom-probes"\nexit 0\n')
+        runtime.chmod(0o700)
         self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", env=env)
+        self.assertEqual((self.home / "headroom-probes").read_text(), "checked\n")
+        for pi_present in (True, False):
+            pi = self.bin / "pi"
+            hidden_pi = self.bin / "pi-hidden"
+            if not pi_present:
+                pi.rename(hidden_pi)
+            try:
+                runtime.write_text("#!/bin/sh\nexit 17\n")
+                failure = self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", ok=False, env=env)
+                self.assertIn("Headroom runtime verification failed", failure.stdout + failure.stderr)
+                runtime.unlink()
+                self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", ok=False, env=env)
+                runtime.write_text("#!/bin/sh\nexit 0\n")
+                runtime.chmod(0o700)
+            finally:
+                if not pi_present:
+                    hidden_pi.rename(pi)
         for path in (self.bin / "codedb", ui, matt):
             hidden = path.with_name(path.name + ".hidden")
             path.rename(hidden)

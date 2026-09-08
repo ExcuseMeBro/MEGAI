@@ -43,8 +43,20 @@ selected-client launch verification, profile/path validation, remote-bridge
 checks, transaction publication guards, tgrep readiness/freshness guidance and
 Pi activation failure handling. Correction raw logs are retained under `/tmp/megai-correction-*`.
 
-No CC, Codex or OMP process was executed. No host installation, provider call,
-Plane mutation or main promotion was performed. Ruff format remains a visible
+Follow-up review of `364e717` identified two remaining failures: directory
+mutation during remove preflight and doctor checking only Pi registration. The
+parent reproduced both as red regressions, then retained inert empty directories
+while staging only receipt-owned files, and added an unconditional 30-second
+local Headroom doctor probe separate from Pi activation. Removal/reinstallation,
+dry-run immutability, and missing/failing runtime with Pi present/absent are covered.
+Final parent logs: `/tmp/megai-all-harness-final.ygmVfy/logs` (including the red
+regressions). Distribution 28, tgrep 34 (includes those 28), Headroom wiring 14 and
+real runtime 11 pass without skips; Pi extension, Plane lifecycle/cutover,
+retirement, policy, skill-kit and Ruff gates also pass. Final independent review
+and exact delivery refs are recorded on the linked Plane item, not assumed here.
+
+No live CC, Codex or OMP process was executed. No host installation, provider call,
+Plane mutation by delegated agents or main promotion was performed. Ruff format remains a visible
 check-only baseline difference; this audit does not claim formatting parity.
 
 ## Limits

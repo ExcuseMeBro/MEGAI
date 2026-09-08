@@ -43,6 +43,37 @@ class HeadroomWiring(unittest.TestCase):
         self.wire()
         self.assertEqual(before, self.snapshot())
 
+    def test_remove_preflight_preserves_empty_shared_directories(self):
+        self.wire()
+        directory = self.home / ".agents/skills/caveman/empty"
+        directory.mkdir(parents=True)
+        before = self.snapshot()
+        self.wire("--remove", "--check")
+        self.assertTrue(directory.is_dir())
+        self.assertEqual(before, self.snapshot())
+
+    def test_remove_archives_receipted_shared_files_and_retains_directories(self):
+        self.wire()
+        path = self.write(self.home / ".agents/skills/caveman/SKILL.md", "owned old core")
+        receipt_path = self.megai / "slim-wiring.json"
+        receipt = json.loads(receipt_path.read_text())
+        receipt[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+        receipt_path.write_text(json.dumps(receipt))
+        before = self.snapshot()
+        self.wire("--remove", "--check")
+        self.assertEqual(before, self.snapshot())
+        self.wire("--remove")
+        self.assertFalse(path.exists())
+        self.assertTrue(path.parent.is_dir())
+        self.assertNotIn(str(path), json.loads(receipt_path.read_text()))
+        backups = []
+        for manifest in (self.megai / "backups").glob("slim-wiring-*/manifest.json"):
+            name = json.loads(manifest.read_text()).get(str(path))
+            if name is not None:
+                backups.append((manifest.parent / name).read_text())
+        self.assertIn("owned old core", backups)
+        self.wire()  # Retained empty directories must not prevent reinstallation.
+
     def test_nonempty_legacy_memory_store_blocks_without_mutation(self):
         cache = self.write(self.home / ".pi/agent/mcp-cache.json", json.dumps({
             "version": 1, "servers": {name: {"tools": [name]} for name in

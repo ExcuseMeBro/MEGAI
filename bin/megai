@@ -80,9 +80,13 @@ cmd_doctor() {
   [ -d "$MEGAI_HOME/mattpocock-skills/skills" ] && find "$MEGAI_HOME/mattpocock-skills/skills" -type f -name SKILL.md -print -quit | grep -q . || die "Matt skill kit is incomplete; run megai install"
   local ruff_version; ruff_version="$(ruff --version)" || die "Ruff version check failed"
   [[ "$ruff_version" == ruff\ * ]] || die "Ruff returned invalid version output"
+  # Explicit doctor checks local compression/inference, not just an executable
+  # or Pi tool registration. No runtime probe is added to harness launch.
+  python3 -I -B -c 'import subprocess, sys; subprocess.run([sys.argv[1], "doctor"], check=True, timeout=30)' \
+    "$MEGAI_HOME/bin/megai-headroom" || die "Headroom runtime verification failed"
   if command -v pi >/dev/null 2>&1; then
     if bash "$LIB/verify_headroom_activation.sh" >/dev/null; then
-      ok "Pi Headroom runtime is locally available"
+      ok "Pi Headroom adapter is active"
     else
       local activation_status=$?
       if [ "$activation_status" = 2 ]; then

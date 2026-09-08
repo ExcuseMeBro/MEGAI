@@ -259,10 +259,8 @@ class Plan:
             return
         for child in path.iterdir():
             self.retire_tree(child, remove)
-        try:
-            path.rmdir()
-        except OSError:
-            raise ValueError(f"nonempty retired resource preserved: {path}; reconcile manually")
+        # Stage only receipt-owned files. Retain directories: planning/checks
+        # must never mutate them, and empty directories are not active skills.
 
     def client(self, name: str, root: Path, remove: bool) -> None:
         # Validate configs without changing credentials, models, packages or hooks.
@@ -277,12 +275,21 @@ class Plan:
             if data is not None:
                 tomllib.loads(data.decode()) # existing MCP entries remain user-owned
         shared_caveman = HOME / ".agents/skills/caveman"
-        if shared_caveman.exists() or shared_caveman.is_symlink():
+        # Empty directories retained by removal are inert and allow reinstall.
+        shared_content = shared_caveman.is_symlink() or (
+            shared_caveman.exists() and (
+                not shared_caveman.is_dir() or any(
+                    child.is_symlink() or not child.is_dir()
+                    for child in shared_caveman.rglob("*")
+                )
+            )
+        )
+        if shared_content:
             if not remove:
                 raise ValueError(f"shared legacy skill preserved: {shared_caveman}; detach manually")
             self.retire_tree(shared_caveman, remove)
         if not remove:
-            for legacy in ("task-flow", "smart-development-orchestrator", "caveman", "rtk", "agent-memory", "agentmemory", "megai-memory"):
+            for legacy in ("task-flow", "smart-development-orchestrator", "rtk", "agent-memory", "agentmemory", "megai-memory"):
                 shared = HOME / ".agents/skills" / legacy
                 if shared.exists() or shared.is_symlink():
                     raise ValueError(f"shared legacy skill preserved: {shared}; detach manually")
