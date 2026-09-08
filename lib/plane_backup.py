@@ -64,7 +64,7 @@ def digest(path: Path) -> str:
 def payload_is_valid(path: Path, kind: str) -> bool:
     try:
         text = path.read_text(encoding="utf-8")
-        if kind == "pi":
+        if kind in ("pi", "cc", "omp"):
             value = json.loads(text)
             return isinstance(value, dict)
         import tomllib
@@ -171,7 +171,7 @@ def main() -> int:
     parser.add_argument("action", choices=("save", "restore"))
     parser.add_argument("--root", required=True)
     parser.add_argument("--target", required=True)
-    parser.add_argument("--kind", choices=("pi", "codex"), required=True)
+    parser.add_argument("--kind", choices=("pi", "codex", "cc", "omp"), required=True)
     parser.add_argument("--source")
     parser.add_argument("--destination")
     args = parser.parse_args()

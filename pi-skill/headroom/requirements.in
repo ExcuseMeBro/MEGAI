@@ -1,0 +1,5 @@
+# Python 3.14 avoids the unused LiteLLM provider/router dependency.
+headroom-ai==0.37.0
+onnxruntime==1.29.0
+tokenizers==0.23.2
+huggingface-hub==1.30.0

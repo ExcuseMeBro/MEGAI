@@ -1,184 +1,145 @@
 # MEGAI
 
-The integrated distribution uses the slim architecture: task-appropriate tools,
-Plane-only task boundaries and task-quality gates. Installation and launch do not
-merge or push Git branches; task delivery and main promotion remain explicit.
-
-## Included stack
-
-| Tool | Purpose |
-| --- | --- |
-| [tgrep](https://github.com/microsoft/tgrep) | Default indexed literal/regex discovery; native `rg` readiness/freshness fallback |
-| [codedb](https://github.com/justrach/codedb) | Default core structural lookup via CLI; on-demand indexing |
-| [zvec-grep](https://github.com/zvec-ai/zvec-grep) | Local hybrid code search; explicit indexing |
-| [rtk](https://github.com/rtk-ai/rtk) | Compact command output; raw diagnostics remain available |
-| task-flow | **Plane-only** identity, acceptance and start/handoff boundaries |
-| [Ruff](https://docs.astral.sh/ruff/) | Non-mutating Python lint/format checks |
-| [agent-memory](https://www.agent-memory.dev/) | Explicit persistent memory; daemon starts on request |
-| agent-worktree-lifecycle | Isolated writers and verified, user-agreed branch delivery |
-| [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | Task-appropriate UI/UX and accessibility guidance |
-| [Matt Pocock's skills](https://github.com/mattpocock/skills) | Engineering, diagnosis, specifications and verification workflows |
-
-Native read/edit/bash, Git, `rg`, Plane connector configuration and Pi's lazy MCP
-adapter are infrastructure, not additional product entries. Graphify, RepoWise,
-ui-craft, Dembrandt, Argent, Numasec, OpenSpec, legacy model routing and full Pi
-extension bundles are retired or outside the active pipeline; their data and
-retirement evidence remain preserved. Caveman's core installer and slim Pi wiring
-are default-on, core-only and opt-out capable via `MEGAI_CAVEMAN=0`; they select
-only `~/.agents/skills/caveman/SKILL.md`, preserve unrelated settings/models/auth,
-and never install companion workflows, hooks or force-wiring. Historical
-standalone source remains unwired; old full-profile flags do not restore retired
-components through install/update/launch.
+MEGAI is a harness-neutral coding workflow for **Pi, Claude Code (cc), Codex and
+OMP**. It keeps the selected provider, model, thinking level, credentials, native
+arguments and user-owned resources unchanged. This branch is prepared for parent
+review; it does not promote itself to `main`.
 
 ## Install
 
-Requires macOS/Linux, Python **3.11+**, Git, ripgrep and curl. The installer
-resolves jq and Node **22+**; Ruff reuses an existing working executable or uses
-uv/pipx. Authenticate your chosen harness separately. Credentials and model/
-thinking choices are never installed or changed for performance.
+The public installer defaults to the integrated distribution and preserves an
+explicit ref:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | bash
-source ~/.zshrc  # or reopen your shell
+# Optional deliberate branch/ref selection:
+curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | MEGAI_REF=dev bash
+source ~/.zshrc  # or reopen the shell
 megai status
 megai doctor
-megai pi        # also: megai cc / megai codex / megai omp
 ```
 
-The installer defaults to the integrated `main` distribution. Set `MEGAI_REF`
-explicitly when adopting another retained branch; an explicit override is never
-silently replaced. It does **not** apply this repository's changes to your current
-host until you explicitly run it. Existing valid tools are reused, including during
-`megai update`; updates refresh the integrated slim source wiring/skill kits, not
-unrelated tools.
+Supported launchers forward native arguments unchanged:
 
-Fresh downloads pin agent-memory 0.9.27, zvec-grep 0.2.1, RTK 0.43.0 and both skill
-kit source commits. Tgrep pins 1.0.4: SHA-256-checked native archives for macOS/Linux
-ARM64/x86_64, validated before atomic no-overwrite publication. Other versions or
-ambiguous destinations are preserved and require reconciliation. No upstream agent
-installer, hooks or index/server startup runs. Codedb fresh installs pin 0.2.56 with embedded SHA-256 hashes
-for macOS ARM64/Linux x86_64; other platforms require a pre-provisioned trusted
-CLI. No upstream codedb installer, hooks, extra services or MCP registrations run.
-Existing codedb MCP settings remain user-owned. RTK's pinned installer is SHA-256 checked and verifies its
-release archive; slim never runs `rtk init -g`. Npm core CLI installs disable
-lifecycle scripts. Reused executable versions and platform dependencies may vary;
-offline integration tests do not prove every fresh upstream install works.
+```bash
+megai pi [pi args]
+megai cc [claude args]
+megai codex [codex args]
+megai omp --profile work [omp args]
+```
 
-## Plane-only workflow
+`megai omp --profile work` preserves both the profile and all other OMP arguments.
+The launcher performs local wiring/worktree checks only; it makes no provider
+request, model selection, Plane mutation or startup daemon call.
 
-Configure the secure connector explicitly; no credentials are bundled:
+## Active stack
+
+| Tool | Purpose |
+| --- | --- |
+| Headroom 0.37.0 | Local discovery compression and explicit semantic memory |
+| tgrep / codedb / zvec-grep | Text, structural and intent discovery |
+| [Ruff](https://docs.astral.sh/ruff/) | Non-mutating Python verification |
+
+- Headroom 0.37.0 in a pinned, hash-locked Python 3.14 runtime for local
+  discovery compression and local ONNX semantic memory.
+- tgrep, codedb and zvec-grep for task-appropriate discovery, structure and intent.
+- Plane-only task-flow, worktree lifecycle, and task-appropriate skill kits.
+- [Ruff](https://docs.astral.sh/ruff/) for non-mutating Python checks.
+- Native harness configurations remain the source of provider/auth/model/thinking
+  choices. RTK, Caveman and agent-memory are retired from the active defaults.
+
+## Headroom use and compatibility
+
+Pi has an automatic native extension. It compresses only eligible successful
+read-only discovery output; native session messages, source reads, edits, tests,
+full diffs and failures remain raw. `headroom_retrieve` pages exact originals,
+which are repository-scoped and retained for seven days within a bounded cache.
+`headroom_memory` provides explicit local recall/save; saves are only for requested
+persistence. `MEGAI_HEADROOM=0` disables Pi automation and normal mode or
+`/headroom-verbosity 0` disables concise guidance.
+
+Claude Code, Codex and OMP do **not** receive invented interception hooks,
+provider rewrites or API proxies. They use the same local bridge explicitly:
+
+```bash
+megai headroom doctor
+megai headroom compress < discovery.txt
+megai headroom retrieve ID
+megai headroom recall "relevant prior decision"
+megai headroom save "decision to persist"
+printf '%s' '{"action":"compress","text":"..."}' | megai-headroom json
+```
+
+This is compatibility, not native-auto parity. Runtime assets are prepared during
+installation and runtime network access is disabled. If Headroom is unavailable,
+the Pi extension reports raw-context fallback and the other hosts report the CLI
+failure; no silent active claim is made.
+
+## Plane connector matrix
+
+Plane remains the sole execution tracker. Configure only the clients you use:
 
 ```bash
 megai plane bridge install
-megai plane setup --workspace SLUG --token-file /private/path/to/plane-token --client all
+megai plane setup --workspace SLUG --token-file /private/path/to/token --client all
 megai plane status --client all
+# Supported client values: pi, codex, cc, omp, all
 ```
 
-The parent loads `megai-task-flow` once before project changes. Reuse known UUIDs;
-otherwise consume all project/work-item/state pages and require unambiguous
-matches. After a successful complete lookup finds no matching task, create exactly
-one automatically in `In Progress`, without asking. Ambiguity or an unavailable
-Plane boundary blocks edits rather than creating duplicates or a local fallback.
+Pi uses its native `requestHeadersCommand` shape. Codex keeps its existing native
+TOML integration. Claude Code uses `~/.claude.json` `mcpServers.plane`; OMP uses
+`mcp.json` under its selected profile (`~/.omp/agent` or
+`~/.omp/profiles/<profile>/agent`). CC/OMP use the receipt-verified local
+`plane_mcp_remote.py` stdio bridge with a private token-file path and workspace
+slug in configuration; the token itself is never placed in config or argv.
 
-- Start once in started **In Progress**.
-- Keep acceptance and execution evidence in the same Plane item.
-- Verify task behavior and agreed branch delivery; hand off in started **In Review**.
-- Only the user marks **Done** or approves main promotion.
+Every requested client is parsed and staged before the first mutation. Existing
+unowned or malformed Plane entries refuse setup/removal. Private target-bound
+backups support restore; connector failures preserve staged/unrelated settings.
+Existing Pi/Codex semantics remain unchanged.
 
-There is no `.todos` creation, reading, writing, mirroring, ADLC board, monitoring,
-board hook, routine milestone sync or queue draining in the active slim workflow.
-Historical project boards stay untouched. Pure questions/read-only investigation
-need no tracked mutation; refinements reuse the active item.
+## Preservation and migration
 
-## On-demand operation
+Adoption is fail-closed. Retirement metadata for Graphify, RepoWise, ui-craft,
+Dembrandt, Argent, Numasec and OpenSpec is preflighted before source publication
+or cleanup. Receipt-owned legacy wiring is archived in private backups; custom or
+ambiguous registrations, nonempty legacy memory/process receipts, malformed
+configs, symlinked destinations and custom policy markers require manual
+reconciliation with an actionable error. Historical sessions, memory stores,
+indexes, auth, hooks, models and unrelated settings are not deleted or rewritten.
+Multi-file wiring writes use ownership receipts, private recovery manifests,
+permission preservation, concurrency checks and rollback. Unrelated third-party
+installer work is not falsely represented as an atomic rollback.
 
-Tgrep is the default for literal/regex discovery on a ready index; codedb remains
-structural and zvec remains intent search. Native `rg` is the fallback for absent,
-partial or stale indexes, required rg semantics and authoritative acceptance/absence
-checks. Read [the query/readiness/freshness contract](pi-skill/tgrep.md) before text
-search. This is agent policy, not a shell alias or tool-call interceptor.
-
-```bash
-megai start agent-memory
-megai-memory recall "relevant decision"
-megai-memory save "decision to persist"  # only when persistence is requested
-megai-codedb index .                    # codedb indexing only when needed
-megai-codedb symbol MySymbol            # default structural lookup
-megai reindex                           # initializes/rebuilds zvec explicitly
-zg query "where authentication is validated"
-tgrep status .                          # readiness hint, never starts a server
-tgrep -nH -F 'exact_symbol' src/         # default discovery on a ready index
-rg -nH -F 'exact_symbol' src/            # freshness/absence/acceptance fallback
-megai stop agent-memory
-```
-
-MEGAI's preparation before activation/harness launch performs only local
-wiring/worktree checks: no daemon startup, index building, provider requests,
-model selection or legacy routing overlay. The harness itself retains its own
-network/resource behavior. `megai omp --profile work` retains native profile/argument
-forwarding. Existing index configuration is retained on rebuild; configure any
-remote embedding separately only after explicit authorization. Missing or stale
-wiring fails with a repair instruction rather than silently launching a broken
-stack.
-
-Skill descriptions are discovered by the harness; full bodies are loaded only
-for matching tasks. Existing user skill/package filters are preserved. Use
-`pi config` to select resources rather than forcing every specialist into startup.
-Preserve acceptance tests, accessibility, compatibility, error handling and
-independent security/data-integrity review. Use raw diagnostics when compressed
-output could conceal evidence. Fewer tools/jobs alone are **not** proof of faster
-completion, lower token costs or equal model quality.
-
-## Adoption, preservation and rollback
-
-**Migrating an existing full installation is deliberately fail-closed.** A
-read-only preflight runs before replacing distribution source or running package
-installers. Legacy board/routing instructions, conflicting skills/proxies,
-malformed configs (including shell PATH blocks) and symlinked destinations require manual reconciliation;
-slim does not guess ownership or delete custom registrations by name. Existing
-unrelated hooks, MCP tables, auth, models and package selections remain unchanged.
-It also does not stop already-running services or override user-owned extensions.
-A preserved custom extension can still have its own startup behavior.
-
-Try alongside a full installation in a separate user/container environment.
-Changing `MEGAI_HOME` alone does not isolate the harnesses' global configuration.
-For adoption on an existing host, back up and manually detach the specific legacy
-registrations reported by preflight, review user resource filters, then retry.
-Do not delete project boards or indexes to resolve a wiring conflict.
-
-Successful wiring records exact ownership hashes and private recovery manifests
-under `~/.megai/backups/slim-wiring-*/`. Source replacements and skill-kit updates
-retain prior bytes/trees in backups. On a wiring write failure, already-applied
-changes roll back; failures in a third-party tool installer are reported and are
-not represented as an atomic all-tools rollback. Re-run after resolving the failure.
-
-```bash
-megai update
-megai wire pi
-megai uninstall  # detaches owned slim wiring/Plane connector; tools and data remain
-```
-
-For rollback, reconcile later edits first, then restore only each manifest's
-listed target from its numbered backup. A `null` manifest value means the target
-was newly created. Restore previous skill-source trees separately if needed.
-Uninstall preflights owned skills, policies and shell PATH blocks before changing
-Plane. If a later write fails, recovery manifests and connector restore backups
-remain available. It never recursively deletes MEGAI, skill kits, credentials,
-indexes or historical project data. Main promotion remains a separate decision.
+Pi-owned shared skills are excluded from Pi discovery when harness-specific copies
+are installed, preventing duplicate MEGAI skill resolution. Codex/CC/OMP retain
+their native/shared destinations and explicit filters. User opt-outs remain in
+force and inactive resources are reported honestly.
 
 ## Verification
 
+Focused, non-live checks use disposable HOME/config roots and do not execute
+non-Pi harnesses or send provider calls:
+
 ```bash
-bash tests/slim-distribution.sh  # isolated offline install/update/wiring/runtime contracts
-bash tests/caveman-default.sh   # core-only default, opt-out and Pi preservation contract
-bash tests/pi-performance.sh    # adapter selection and user-package preservation
-bash tests/agent-memory-port.sh
-bash tests/ruff-integration.sh
-bash tests/ux-ui-agent-skills.sh
-bash tests/orchestration-policy.sh
+bash tests/slim-distribution.sh
+python3 tests/headroom_wiring.py
+HEADROOM_TEST_PYTHON="$HOME/.megai/venv/headroom/bin/python" \
+  HEADROOM_TEST_ASSETS="$HOME/.megai/headroom-assets" \
+  python3 tests/headroom_runtime.py
+bash tests/plane-mcp.sh
+bash -n bin/megai lib/*.sh install.sh
+python3 -m py_compile lib/*.py pi-skill/headroom/*.py
+ruff check --no-fix --no-fix-only --force-exclude --no-cache -- lib/*.py pi-skill/headroom/*.py tests/*.py
+ git diff --check
 ```
 
-The slim contracts use disposable outer HOME/config roots and fake backends;
-they make no model calls or live app requests. They verify branch selection,
-exact installer dispatch, idempotence, conflict refusal, preservation, on-demand
-startup, CLI behavior and quality-policy clauses—not a performance benchmark.
+The Pi extension suites require an explicitly selected local Pi package via
+`PI_PACKAGE_ROOT`; they use disposable settings and a fake/no-provider bridge.
+Actual local Headroom runtime tests may read already-installed assets but write
+only disposable test storage. No live CC/Codex/OMP execution is part of this
+verification.
+
+See `docs/audits/headroom-migration.md` for the concise source/conflict decision
+record and run evidence. It records only evidence produced in this checkout; no
+host install, nonexistent review or main promotion is claimed.

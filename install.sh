@@ -44,11 +44,10 @@ curl -fsSL "$MEGAI_TARBALL" | tar -xz -C "$tmp" --strip-components=1
 ok "source extracted -> $tmp"
 
 # 2. Fail migration conflicts before replacing even the distribution source.
+# The transaction journals source plus all selected client wiring and rolls back
+# publication on any downstream failure. Inactive dependencies remain available
+# for explicit recovery rather than being guessed away.
 export MEGAI_HOME PYTHONDONTWRITEBYTECODE=1
 python3 -c 'import tomllib' || die "Python 3.11+ required"
-MEGAI_SOURCE="$tmp" python3 "$tmp/lib/slim_wiring.py" all --check --install-preflight
-python3 "$tmp/lib/install_slim_source.py" "$tmp"
+MEGAI_SOURCE="$tmp" python3 "$tmp/lib/install_transaction.py" "$tmp"
 ok "source installed with private recovery manifest"
-
-# 3. run main pipeline; retaining the shell ensures the temporary source is cleaned.
-bash "$MEGAI_HOME/lib/main.sh"

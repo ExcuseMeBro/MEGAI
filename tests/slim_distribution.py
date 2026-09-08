@@ -8,7 +8,6 @@ import os
 import shutil
 import subprocess
 import sys
-import time
 import tempfile
 import unittest
 from pathlib import Path
@@ -36,14 +35,13 @@ class Slim(unittest.TestCase):
         for key in ("HOME", "MEGAI_HOME", "PI_CODING_AGENT_DIR", "CODEX_HOME"):
             self.assertTrue(Path(self.env[key]).is_relative_to(self.root))
         (self.bin / "python3").symlink_to(sys.executable)
-        for name in ("tgrep", "codedb", "zg", "rtk", "ruff", "agentmemory", "pi", "omp", "claude", "codex", "npm", "npx", "curl", "node"):
+        for name in ("tgrep", "codedb", "zg", "ruff", "pi", "omp", "claude", "codex", "npm", "npx", "curl", "node"):
             self.stub(name, 'printf "%s\\n" "$0 $*" >>"$HOME/calls"\nexit 0\n')
         (self.megai / "state.json").write_text('{"tools":{},"agents":{},"ports":{"agent-memory":3111},"keep":{"value":42}}\n')
         self.project = self.root / "project"
         self.project.mkdir()
-        # The installer owns acquisition; wiring tests provide an installed core
-        # skill so they exercise selection/preservation rather than npm behavior.
-        self.write(self.home / ".agents/skills/caveman/SKILL.md", "core fixture\n")
+        # Shared retired Caveman resources are intentionally absent; ambiguous
+        # legacy content must block adoption rather than become an active default.
         self.legacy = self.project / ".todos"
         self.legacy.mkdir()
         (self.legacy / "sentinel").write_text("historical private board, never touched\n")
@@ -85,7 +83,7 @@ class Slim(unittest.TestCase):
         proxy = json.loads((self.home / ".pi/agent/mcp.json").read_text())["mcpServers"]["zvec_grep"]
         self.assertEqual(proxy["lifecycle"], "lazy")
         self.assertTrue((self.home / ".agents/skills/megai-task-flow/SKILL.md").is_file())
-        self.assertTrue(os.access(self.megai / "bin/megai-memory", os.X_OK))
+        self.assertTrue(os.access(self.megai / "bin/megai-headroom", os.X_OK))
         self.assertFalse((self.home / ".claude/hooks").exists())
         self.assertEqual((self.legacy / "sentinel").read_text(), "historical private board, never touched\n")
         self.wire("--remove")
@@ -106,7 +104,7 @@ class Slim(unittest.TestCase):
         self.wire()
         for path, content in files.items():
             if path == ".pi/agent/settings.json":
-                continue  # slim owns only the Caveman skill-selection delta
+                continue  # slim owns only the managed Pi selection delta
             self.assertEqual((self.home / path).read_text(), content, path)
         settings = json.loads((self.home / ".pi/agent/settings.json").read_text())
         self.assertEqual(settings["defaultProvider"], "keep")
@@ -114,9 +112,8 @@ class Slim(unittest.TestCase):
         self.assertEqual(settings["defaultThinkingLevel"], "high")
         self.assertEqual(settings["packages"], ["user-extension"])
         self.assertIn("user-skill", settings["skills"])
-        self.assertIn("!caveman*", settings["skills"])
-        self.assertIn("!cavecrew", settings["skills"])
-        self.assertEqual(sum(item.endswith("/.agents/skills/caveman/SKILL.md") for item in settings["skills"]), 1)
+        self.assertTrue(any(item.endswith("/.agents/skills/**") and item.startswith("!") for item in settings["skills"]))
+        self.assertTrue((self.home / ".pi/agent/skills/megai/SKILL.md").is_file())
         self.assertTrue((self.home / ".pi/agent/AGENTS.md").read_text().startswith("User policy stays exactly.\n"))
         before = self.snapshot()
         self.wire()
@@ -127,6 +124,27 @@ class Slim(unittest.TestCase):
         before = self.snapshot()
         self.wire(ok=False)
         self.assertEqual(self.snapshot(), before)
+
+    def test_shared_retired_skill_blocks_and_legacy_pi_boolean_survives(self):
+        shared = self.write(self.home / ".agents/skills/caveman/SKILL.md", "user-owned legacy\n")
+        before = self.snapshot()
+        self.wire(ok=False)
+        self.assertEqual(self.snapshot(), before)
+        shared.unlink()
+        shared.parent.rmdir()
+        settings = self.write(self.home / ".pi/agent/settings.json", json.dumps({
+            "skills": {"customDirectories": ["user-skill"], "enableSkillCommands": False},
+        }))
+        self.wire()
+        updated = json.loads(settings.read_text())
+        self.assertEqual(updated["enableSkillCommands"], False)
+        self.assertIsInstance(updated["skills"], list)
+        self.assertIn("user-skill", updated["skills"])
+        settings.write_text('{"skills":{"customDirectories":[],"enableSkillCommands":"bad"}}')
+        malformed_before = self.snapshot()
+        self.wire(ok=False)
+        self.assertEqual(settings.read_text(), '{"skills":{"customDirectories":[],"enableSkillCommands":"bad"}}')
+        self.assertEqual(malformed_before, self.snapshot())
 
     def test_legacy_hooks_and_skills_require_manual_migration(self):
         paths = [
@@ -170,6 +188,35 @@ class Slim(unittest.TestCase):
         self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), "all", ok=False, env=env)
         self.assertFalse((self.megai / "slim-wiring.json").exists())
 
+    def test_all_harnesses_share_policy_and_pi_uses_native_headroom(self):
+        self.wire()
+        for path in (
+            self.home / ".claude/CLAUDE.md",
+            self.home / ".codex/AGENTS.md",
+            self.home / ".pi/agent/AGENTS.md",
+            self.home / ".omp/agent/RULES.md",
+        ):
+            self.assertIn("Headroom", path.read_text())
+            self.assertNotIn("GPT-only", path.read_text())
+        for name in ("index.ts", "bridge.py", "assets.py", "persistence.py"):
+            self.assertTrue((self.home / ".pi/agent/extensions/megai-headroom" / name).is_file())
+        settings = json.loads((self.home / ".pi/agent/settings.json").read_text())
+        self.assertTrue(any(value.startswith("!") and ".agents/skills/**" in value for value in settings["skills"]))
+        env = dict(self.env, OMP_PROFILE="work")
+        self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), "omp", env=env)
+        self.assertIn("Headroom", (self.home / ".omp/profiles/work/agent/RULES.md").read_text())
+
+    def test_launch_verifies_only_selected_client_and_forwards_omp_profile(self):
+        self.wire()
+        self.write(self.home / ".claude/settings.json", "{bad JSON")
+        self.write(self.home / ".codex/config.toml", "broken = [\n")
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "pi", "--version")
+        self.write(self.home / ".claude/settings.json", "{}\n")
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "cc", "--version")
+        self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), "omp", env=dict(self.env, OMP_PROFILE="work"))
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "omp", "--profile", "work", "--version")
+        self.assertIn("--profile work --version", (self.home / "calls").read_text())
+
     def test_startup_all_harnesses_and_profile_do_not_prewarm(self):
         self.wire()
         before = self.snapshot()
@@ -177,7 +224,7 @@ class Slim(unittest.TestCase):
             self.run_cmd("bash", str(self.megai / "bin/megai"), client, "--version")
         self.run_cmd("bash", str(self.megai / "bin/megai"))
         calls = (self.home / "calls").read_text()
-        for name in ("zg", "agentmemory", "npm", "npx", "curl", "node", "rtk"):
+        for name in ("zg", "npm", "npx", "curl", "node"):
             self.assertNotIn(str(self.bin / name), calls)
         self.assertEqual(calls.count("branch-check"), 5)
         after = self.snapshot()
@@ -264,7 +311,7 @@ class Slim(unittest.TestCase):
         self.wire()
         self.write(self.megai / "ux-ui-agent-skills/package.json", '{}')
         (self.megai / "mattpocock-skills/skills").mkdir(parents=True)
-        selected = ("agent_memory", "tgrep", "zvec_grep", "codedb", "rtk", "ruff", "caveman", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
+        selected = ("headroom", "tgrep", "zvec_grep", "codedb", "ruff", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
         for path in (self.megai / "lib").glob("install_*.sh"):
             name = path.stem.removeprefix("install_")
             self.write(path, f'#!/bin/sh\necho install:{name} >>"$HOME/install-calls"\n')
@@ -318,19 +365,30 @@ try:p.apply(False)
 except ValueError:pass
 else:raise AssertionError('concurrent edit overwritten')
 assert first.read_bytes()==b'concurrent user edit'
+# A concurrent edit after one publication must also survive rollback.
+first.write_bytes(b'original')
+p=w.Plan();p.stage(first,b'new',b'original');p.stage(second,b'new',None)
+real=w.atomic_write; count=0
+def injected_after_publish(path,data):
+ global count
+ count+=1
+ if count==2:
+  first.write_bytes(b'concurrent after publish')
+  raise OSError('injected late write failure')
+ real(path,data)
+w.atomic_write=injected_after_publish
+try:p.apply(False)
+except OSError:pass
+else:raise AssertionError('late write failure swallowed')
+assert first.read_bytes()==b'concurrent after publish'
 '''
         self.run_cmd(sys.executable, "-c", code)
 
-    def test_memory_bridge_has_bounded_http_and_no_startup(self):
+    def test_headroom_cli_is_shared_and_no_legacy_daemon_startup(self):
         self.wire()
-        self.run_cmd(str(self.megai / "bin/megai-memory"), "recall", 'quoted " query')
-        calls = (self.home / "calls").read_text()
-        self.assertIn("--connect-timeout 3 --max-time 15", calls)
-        self.assertIn("smart-search", calls)
-        self.assertNotIn("agentmemory --port", calls)
-        for port in ("3111@remote.invalid", "0", "65536", "not-a-port"):
-            self.run_cmd(str(self.megai / "bin/megai-memory"), "recall", "private-test", ok=False, env=dict(self.env, AGENTMEMORY_PORT=port))
-        self.assertEqual((self.home / "calls").read_text(), calls)
+        self.assertTrue((self.megai / "bin/megai-headroom").is_file())
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
+        self.assertFalse((self.home / "calls").exists())
 
     def test_matt_source_and_custom_skill_preservation(self):
         source = self.root / "matt-source"
@@ -373,11 +431,17 @@ assert first.read_bytes()==b'concurrent user edit'
         retired_bytes = (ROOT / "tests/fixtures/retired-source/install_graphify.sh").read_bytes()
         retired.write_bytes(retired_bytes)
         previous = (self.megai / "bin/megai").read_bytes()
+        receipt = {str(path): hashlib.sha256(path.read_bytes()).hexdigest()
+                   for path in (self.megai / "lib/install_agent_memory.sh",
+                                self.megai / "lib/install_rtk.sh",
+                                self.megai / "lib/install_caveman.sh",
+                                self.megai / "pi-skill/extensions/memory.sh") if path.exists()}
+        (self.megai / "slim-wiring.json").write_text(json.dumps(receipt))
         self.run_cmd(sys.executable, str(self.megai / "lib/install_slim_source.py"), str(source))
         self.assertEqual((self.megai / "bin/user-tool").read_text(), "retain")
         self.assertEqual(foreign.stat().st_mode & 0o777, 0o600)
         self.assertFalse(retired.exists())
-        self.assertEqual((self.megai / "lib/install_caveman.sh").read_text(), "#!/bin/sh\necho caveman-helper\n")
+        self.assertFalse((self.megai / "lib/install_caveman.sh").exists())
         manifests = list((self.megai / "backups").glob("slim-wiring-*/manifest.json"))
         manifest = json.loads(manifests[0].read_text())
         self.assertEqual((manifests[0].parent / manifest[str(self.megai / "bin/megai")]).read_bytes(), previous)
@@ -432,60 +496,39 @@ assert first.read_bytes()==b'concurrent user edit'
     def test_doctor_requires_every_selected_tool_and_skill_kit(self):
         self.wire()
         self.stub("ruff", 'echo "ruff 0.15.0"\n')
-        for name in ("bash", "jq", "git", "rg", "find", "grep"):
+        for name in ("bash", "env", "jq", "git", "rg", "find", "grep"):
             if not (self.bin / name).exists():
                 (self.bin / name).symlink_to(shutil.which(name))
         env = dict(self.env, PATH=str(self.bin))
         ui = self.write(self.megai / "ux-ui-agent-skills/package.json", '{}')
         self.write(self.megai / "ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md", 'fixture')
         matt = self.write(self.megai / "mattpocock-skills/skills/example/SKILL.md", 'fixture')
+        runtime = self.write(self.megai / "venv/headroom/bin/python",
+                             '#!/bin/sh\necho checked >>"$HOME/headroom-probes"\nexit 0\n')
+        runtime.chmod(0o700)
         self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", env=env)
-        for path in (self.bin / "codedb", self.bin / "rtk", self.bin / "agentmemory", ui, matt):
+        self.assertEqual((self.home / "headroom-probes").read_text(), "checked\n")
+        for pi_present in (True, False):
+            pi = self.bin / "pi"
+            hidden_pi = self.bin / "pi-hidden"
+            if not pi_present:
+                pi.rename(hidden_pi)
+            try:
+                runtime.write_text("#!/bin/sh\nexit 17\n")
+                failure = self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", ok=False, env=env)
+                self.assertIn("Headroom runtime verification failed", failure.stdout + failure.stderr)
+                runtime.unlink()
+                self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", ok=False, env=env)
+                runtime.write_text("#!/bin/sh\nexit 0\n")
+                runtime.chmod(0o700)
+            finally:
+                if not pi_present:
+                    hidden_pi.rename(pi)
+        for path in (self.bin / "codedb", ui, matt):
             hidden = path.with_name(path.name + ".hidden")
             path.rename(hidden)
             self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", ok=False, env=env)
             hidden.rename(path)
-
-    def test_memory_identity_and_failed_start_cleanup(self):
-        self.stub("curl", 'echo \'{"status":"ok","service":"not-memory"}\'\n')
-        self.stub("lsof", 'exit 0\n')
-        self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
-        self.assertFalse((self.megai / "memory-process.json").exists())
-        self.stub("curl", 'echo \'{"status":"ok","service":"agentmemory"}\'\n')
-        self.run_cmd("bash", str(self.megai / "bin/megai"), "start")
-        self.assertFalse((self.megai / "memory-process.json").exists())
-        self.stub("curl", 'exit 7\n')
-        self.stub("lsof", 'exit 1\n')
-        self.write(self.home / "agentmemory-fixture.py", '''import os,signal,time
-from pathlib import Path
-home=Path(os.environ['HOME'])
-def stop(*args):
-    (home/'child-cleaned').write_text('terminated')
-    raise SystemExit(0)
-signal.signal(signal.SIGTERM,stop)
-(home/'child-started').write_text(str(os.getpid()))
-time.sleep(30)
-''')
-        self.stub("agentmemory", 'exec python3 "$HOME/agentmemory-fixture.py" "$@"\n')
-        for failure in ("ps", "ln"):
-            self.stub(failure, 'exit 7\n')
-            self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
-            self.assertEqual((self.home / "child-cleaned").read_text(), "terminated")
-            self.assertFalse((self.megai / "memory-process.json").exists())
-            (self.home / "child-cleaned").unlink()
-            (self.bin / failure).unlink()
-        self.stub("rm", 'exit 7\n')
-        self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
-        self.assertTrue((self.megai / "memory-process.json").is_file())
-        self.assertFalse((self.home / "child-cleaned").exists())
-        (self.bin / "rm").unlink()
-        self.run_cmd("bash", str(self.megai / "bin/megai"), "stop")
-        for _ in range(100):
-            if (self.home / "child-cleaned").exists():
-                break
-            time.sleep(0.01)
-        self.assertEqual((self.home / "child-cleaned").read_text(), "terminated")
-        self.assertFalse((self.megai / "memory-process.json").exists())
 
     def test_state_values_are_data_and_malformed_state_preserved(self):
         value = json.dumps({"value": 'quote " | error("injected")'})
