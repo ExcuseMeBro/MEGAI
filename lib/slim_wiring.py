@@ -195,6 +195,9 @@ class Plan:
 
     def configure_pi_resources(self, root: Path, remove: bool) -> None:
         """Keep Pi local resources authoritative and exclude shared duplicates."""
+        from pi_model_policy import stage_model_policy
+
+        stage_model_policy(self, root, SOURCE, remove)
         path = root / "settings.json"
         before = read(path)
         settings = load_json(path)
@@ -263,7 +266,7 @@ class Plan:
         # must never mutate them, and empty directories are not active skills.
 
     def client(self, name: str, root: Path, remove: bool) -> None:
-        # Validate configs without changing credentials, models, packages or hooks.
+        # Validate configs without changing credentials, parent models, packages or hooks.
         for filename in ("settings.json", "mcp.json") if name != "codex" else ():
             obj = load_json(root / filename)
             if filename == "mcp.json" and not isinstance(obj.get("mcpServers", {}), dict):
@@ -319,6 +322,7 @@ class Plan:
             self.asset(skill_root / skill / "SKILL.md", (SOURCE / relative).read_bytes(), remove)
             if skill == "megai":
                 self.asset(skill_root / skill / "tgrep.md", (SOURCE / "pi-skill/tgrep.md").read_bytes(), remove)
+                self.asset(skill_root / skill / "delegation.md", (SOURCE / "pi-skill/delegation.md").read_bytes(), remove)
         if name == "pi":
             if not remove:
                 settings = load_json(root / "settings.json")
