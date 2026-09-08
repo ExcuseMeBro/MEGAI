@@ -36,7 +36,7 @@ class Slim(unittest.TestCase):
         for key in ("HOME", "MEGAI_HOME", "PI_CODING_AGENT_DIR", "CODEX_HOME"):
             self.assertTrue(Path(self.env[key]).is_relative_to(self.root))
         (self.bin / "python3").symlink_to(sys.executable)
-        for name in ("codedb", "zg", "rtk", "ruff", "agentmemory", "pi", "omp", "claude", "codex", "npm", "npx", "curl", "node"):
+        for name in ("tgrep", "codedb", "zg", "rtk", "ruff", "agentmemory", "pi", "omp", "claude", "codex", "npm", "npx", "curl", "node"):
             self.stub(name, 'printf "%s\\n" "$0 $*" >>"$HOME/calls"\nexit 0\n')
         (self.megai / "state.json").write_text('{"tools":{},"agents":{},"ports":{"agent-memory":3111},"keep":{"value":42}}\n')
         self.project = self.root / "project"
@@ -264,7 +264,7 @@ class Slim(unittest.TestCase):
         self.wire()
         self.write(self.megai / "ux-ui-agent-skills/package.json", '{}')
         (self.megai / "mattpocock-skills/skills").mkdir(parents=True)
-        selected = ("agent_memory", "zvec_grep", "codedb", "rtk", "ruff", "caveman", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
+        selected = ("agent_memory", "tgrep", "zvec_grep", "codedb", "rtk", "ruff", "caveman", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
         for path in (self.megai / "lib").glob("install_*.sh"):
             name = path.stem.removeprefix("install_")
             self.write(path, f'#!/bin/sh\necho install:{name} >>"$HOME/install-calls"\n')

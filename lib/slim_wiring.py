@@ -109,6 +109,8 @@ class Plan:
             "Use `agent-worktree-lifecycle` for isolated writes and the agreed delivery target. "
             "Verify task acceptance with actual tests and review; security/data-integrity risks require independent review. "
             "Hand off at In Review, never Done. Main promotion requires separate explicit approval.\n"
+            "For text search load megai: use tgrep for literal/regex discovery (rg fallback; follow readiness/freshness rules), "
+            "codedb for structure and zvec-grep for intent. Index on demand, never at startup; raw acceptance remains authoritative.\n"
             + END + "\n"
         )
         if BEGIN in text:
@@ -259,6 +261,8 @@ class Plan:
         ):
             skill_root = HOME / ".agents/skills" if name in ("codex", "pi") else root / "skills"
             self.asset(skill_root / skill / "SKILL.md", (SOURCE / relative).read_bytes(), remove)
+            if skill == "megai":
+                self.asset(skill_root / skill / "tgrep.md", (SOURCE / "pi-skill/tgrep.md").read_bytes(), remove)
         if name == "pi":
             self.configure_pi_caveman(root, remove)
             config_path = root / "mcp.json"
