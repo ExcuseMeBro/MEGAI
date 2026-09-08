@@ -1,6 +1,6 @@
 # MEGAI
 
-The integrated distribution uses the slim architecture: nine selected tools,
+The integrated distribution uses the slim architecture: task-appropriate tools,
 Plane-only task boundaries and task-quality gates. Installation and launch do not
 merge or push Git branches; task delivery and main promotion remain explicit.
 
@@ -8,6 +8,7 @@ merge or push Git branches; task delivery and main promotion remain explicit.
 
 | Tool | Purpose |
 | --- | --- |
+| [tgrep](https://github.com/microsoft/tgrep) | Default indexed literal/regex discovery; native `rg` readiness/freshness fallback |
 | [codedb](https://github.com/justrach/codedb) | Default core structural lookup via CLI; on-demand indexing |
 | [zvec-grep](https://github.com/zvec-ai/zvec-grep) | Local hybrid code search; explicit indexing |
 | [rtk](https://github.com/rtk-ai/rtk) | Compact command output; raw diagnostics remain available |
@@ -52,7 +53,10 @@ host until you explicitly run it. Existing valid tools are reused, including dur
 unrelated tools.
 
 Fresh downloads pin agent-memory 0.9.27, zvec-grep 0.2.1, RTK 0.43.0 and both skill
-kit source commits. Codedb fresh installs pin 0.2.56 with embedded SHA-256 hashes
+kit source commits. Tgrep pins 1.0.4: SHA-256-checked native archives for macOS/Linux
+ARM64/x86_64, validated before atomic no-overwrite publication. Other versions or
+ambiguous destinations are preserved and require reconciliation. No upstream agent
+installer, hooks or index/server startup runs. Codedb fresh installs pin 0.2.56 with embedded SHA-256 hashes
 for macOS ARM64/Linux x86_64; other platforms require a pre-provisioned trusted
 CLI. No upstream codedb installer, hooks, extra services or MCP registrations run.
 Existing codedb MCP settings remain user-owned. RTK's pinned installer is SHA-256 checked and verifies its
@@ -88,6 +92,12 @@ need no tracked mutation; refinements reuse the active item.
 
 ## On-demand operation
 
+Tgrep is the default for literal/regex discovery on a ready index; codedb remains
+structural and zvec remains intent search. Native `rg` is the fallback for absent,
+partial or stale indexes, required rg semantics and authoritative acceptance/absence
+checks. Read [the query/readiness/freshness contract](pi-skill/tgrep.md) before text
+search. This is agent policy, not a shell alias or tool-call interceptor.
+
 ```bash
 megai start agent-memory
 megai-memory recall "relevant decision"
@@ -96,7 +106,9 @@ megai-codedb index .                    # codedb indexing only when needed
 megai-codedb symbol MySymbol            # default structural lookup
 megai reindex                           # initializes/rebuilds zvec explicitly
 zg query "where authentication is validated"
-rg -n 'exact_symbol' src/
+tgrep status .                          # readiness hint, never starts a server
+tgrep -nH -F 'exact_symbol' src/         # default discovery on a ready index
+rg -nH -F 'exact_symbol' src/            # freshness/absence/acceptance fallback
 megai stop agent-memory
 ```
 
