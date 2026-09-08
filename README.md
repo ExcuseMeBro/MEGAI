@@ -4,7 +4,7 @@
 
 [🚀 Install](#install) · [🧰 Stack](#included-stack) · [🛫 Workflow](#plane-only-workflow) · [⚙️ Defaults](#default-behavior-and-acceptance) · [🛡️ Safety](#adoption-preservation-and-rollback) · [✅ Verification](#verification)
 
-A dedicated, persistent **`slim`** distribution for **Pi coding agent only**. It keeps nine selected tools plus
+A dedicated, persistent **`slim`** distribution for **Pi coding agent only**. It keeps selected tools plus
 bundled Caveman core, Plane-only task boundaries and task-quality gates. Installation and launch do not
 merge or push Git branches. This branch is not automatically integrated into `main`.
 
@@ -18,10 +18,11 @@ merge or push Git branches. This branch is not automatically integrated into `ma
 
 ## 🧰 Included stack
 
-**Nine selected tools + Caveman core.** Activated when the task calls for them.
+**Task-appropriate tools + Caveman core.** Activated when the task calls for them.
 
 | Tool | Purpose |
 | --- | --- |
+| ⚡ [tgrep](https://github.com/microsoft/tgrep) | Default indexed literal/regex discovery; native `rg` readiness/freshness fallback |
 | 🗂️ [codedb](https://github.com/justrach/codedb) | Default core structural lookup via CLI; on-demand indexing |
 | 🔎 [zvec-grep](https://github.com/zvec-ai/zvec-grep) | Local hybrid code search; explicit indexing |
 | 📦 [rtk](https://github.com/rtk-ai/rtk) | Default supported discovery output; raw acceptance diagnostics remain authoritative |
@@ -69,7 +70,10 @@ until you explicitly run it. Existing valid tools are reused, including during
 ### Pinned downloads & reuse
 
 Fresh downloads pin agent-memory 0.9.27, zvec-grep 0.2.1, RTK 0.43.0 and both skill
-kit source commits. Codedb fresh installs pin 0.2.56 with embedded SHA-256 hashes
+kit source commits. Tgrep pins 1.0.4: SHA-256-checked native archives for macOS/Linux
+ARM64/x86_64, validated before atomic no-overwrite publication. Other versions or
+ambiguous destinations are preserved and require reconciliation. No upstream agent
+installer, hooks or index/server startup runs. Codedb fresh installs pin 0.2.56 with embedded SHA-256 hashes
 for macOS ARM64/Linux x86_64; other platforms require a pre-provisioned trusted
 CLI. No upstream codedb installer, hooks, extra services or MCP registrations run.
 Existing codedb MCP settings remain user-owned. RTK's pinned installer is SHA-256 checked and verifies its
@@ -111,11 +115,15 @@ need no tracked mutation; refinements reuse the active item.
 
 ## ⚙️ Default behavior and acceptance
 
-All ten stack entries are installed/wired by default for Pi.
+All listed stack entries are installed/wired by default for Pi.
 Pi itself must be installed and authenticated separately. Their triggers are:
 
 - **Caveman:** load the bundled core once; full terse chat in the user's language.
   `normal mode`/`stop caveman` opts out. Artifacts, uncertainty and warnings stay clear.
+- **tgrep:** first choice for literal/regex discovery on a ready index. Native `rg`
+  is the fallback for unavailable/partial/stale indexes and required rg semantics.
+  Read [the query/readiness/freshness contract](pi-skill/tgrep.md) before text search.
+  This is Pi parent/child policy, not a tool interceptor or a shell-wide alias.
 - **codedb:** first choice for relevant structural lookup; existing indexes are reused.
 - **zvec-grep:** first choice for unknown wording/intent; CLI plus lazy Pi MCP.
 - **RTK:** default agent policy for supported discovery commands such as
@@ -132,7 +140,7 @@ Pi itself must be installed and authenticated separately. Their triggers are:
 - **Matt Pocock kit:** select the matching engineering/diagnosis/verification skill.
 
 > [!IMPORTANT]
-> Defaults are task-appropriate choices, not ten compulsory calls per task.
+> Defaults are task-appropriate choices, not compulsory calls to every tool per task.
 
 ### Acceptance comes first
 
@@ -160,7 +168,9 @@ megai-codedb index .                    # codedb indexing only when needed
 megai-codedb symbol MySymbol            # default structural lookup
 megai reindex                           # initializes/rebuilds zvec explicitly
 zg query "where authentication is validated"
-rg -n 'exact_symbol' src/
+tgrep status .                          # readiness hint, never starts a server
+tgrep -nH -F 'exact_symbol' src/         # default discovery on a ready index
+rg -nH -F 'exact_symbol' src/            # freshness/absence/acceptance fallback
 megai stop agent-memory
 ```
 

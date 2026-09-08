@@ -107,7 +107,8 @@ class Plan:
             "verify the returned harness/model before sending task context. No non-Pi fallback or direct Codex/Claude/OMP execution. "
             "Follow the Pi-only delegation contract in `megai`; if Pi is unavailable, stop and report the blocker.\n"
             "Default workflow: load `megai` for coding tasks and `caveman` once for full terse chat in the user's language. "
-            "Use codedb for structural lookup, zvec-grep for intent search, and RTK for supported discovery output. "
+            "Use tgrep for literal/regex discovery (rg fallback; follow megai's readiness/freshness rules), "
+            "codedb for structural lookup, zvec-grep for intent search, and RTK for supported discovery output. "
             "Apply Ruff to changed Python, agent-memory recall to relevant prior decisions, and matching Matt Pocock/UI-UX skills to the task. "
             "These are task-appropriate defaults, not mandatory extra calls; index on demand, never at startup. "
             "Keep acceptance tests, exit status and raw review/failure diagnostics authoritative. "
@@ -245,6 +246,8 @@ class Plan:
         ):
             skill_root = root / "skills"
             self.asset(skill_root / skill / "SKILL.md", (SOURCE / relative).read_bytes(), remove)
+            if skill == "megai":
+                self.asset(skill_root / skill / "tgrep.md", (SOURCE / "pi-skill/tgrep.md").read_bytes(), remove)
             if skill == "caveman":
                 self.asset(skill_root / skill / "LICENSE.md", (SOURCE / "skills/caveman/LICENSE.md").read_bytes(), remove)
         config_path = root / "mcp.json"

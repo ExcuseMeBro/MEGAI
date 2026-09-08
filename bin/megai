@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MEGAI slim: nine selected tools plus Caveman core, explicit services and Plane-only policies.
+# MEGAI slim: task-appropriate tools, Caveman core, explicit services and Plane-only policies.
 set -euo pipefail
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 LIB="$MEGAI_HOME/lib"
@@ -24,9 +24,9 @@ megai slim
   uninstall                     Detach owned slim wiring; retain tools/data
   version | help
 
-Stack: codedb, zvec-grep, rtk, Plane-only task-flow, Ruff, agent-memory,
+Stack: tgrep, codedb, zvec-grep, rtk, Plane-only task-flow, Ruff, agent-memory,
        agent-worktree-lifecycle, ux-ui-agent-skills, Matt Pocock's skills.
-Defaults: Caveman core chat, codedb structure, zvec intent, RTK discovery output.
+Defaults: Caveman core chat, tgrep text (rg fallback), codedb structure, zvec intent, RTK discovery output.
 Acceptance: original test commands, raw diagnostics, full native diff review.
 Infrastructure: native tools, rg/Git, lazy Pi MCP adapter.
 EOF
@@ -57,17 +57,17 @@ launch_agent() {
 
 cmd_status() {
   local tool
-  for tool in codedb zg rtk ruff agentmemory git rg; do
+  for tool in tgrep codedb zg rtk ruff agentmemory git rg; do
     if command -v "$tool" >/dev/null 2>&1; then ok "$tool -> $(command -v "$tool")"; else warn "$tool missing"; fi
   done
-  echo "Memory daemon and zvec indexes are explicit/on demand. Plane: megai plane status --client pi"
+  echo "Memory, tgrep server/index and zvec indexes are explicit/on demand. Plane: megai plane status --client pi"
 }
 
 cmd_doctor() {
   cmd_status
   python3 "$LIB/slim_wiring.py" pi --verify
   local tool
-  for tool in python3 node jq git rg codedb zg rtk ruff agentmemory; do command -v "$tool" >/dev/null 2>&1 || die "$tool required"; done
+  for tool in python3 node jq git rg tgrep codedb zg rtk ruff agentmemory; do command -v "$tool" >/dev/null 2>&1 || die "$tool required"; done
   [ -f "$MEGAI_HOME/pi-kits/ux-ui-agent-skills/package.json" ] && [ -f "$MEGAI_HOME/pi-kits/ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md" ] || die "UX/UI kit is incomplete; run megai install"
   [ -d "$MEGAI_HOME/pi-kits/mattpocock-skills/skills" ] && find "$MEGAI_HOME/pi-kits/mattpocock-skills/skills" -type f -name SKILL.md -print -quit | grep -q . || die "Matt skill kit is incomplete; run megai install"
   local ruff_version

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Slim installer: nine tool entries plus bundled Caveman core; no startup services.
+# Slim installer: task-appropriate tools and bundled Caveman core; no startup services.
 set -euo pipefail
 
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
@@ -35,6 +35,7 @@ step 2 7 "Installing agent-memory (daemon starts only on request)"
 bash "$LIB/install_agent_memory.sh" || die "agent-memory install failed"
 
 step 3 7 "Installing core search (indexing starts only on request)"
+bash "$LIB/install_tgrep.sh" || die "tgrep install failed"
 bash "$LIB/install_zvec_grep.sh" || die "zvec-grep install failed"
 bash "$LIB/install_codedb.sh" || die "codedb install failed"
 
@@ -56,7 +57,7 @@ step 7 7 "Wiring Pi-only policies"
 bash "$LIB/wire_pi.sh"    || die "Pi wiring failed"
 bash "$LIB/wire_path.sh"  || warn "PATH wiring skipped"
 
-for tool in agentmemory zg codedb rtk ruff; do
+for tool in agentmemory tgrep zg codedb rtk ruff; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after installation; slim is not ready"
 done
 [ -f "$MEGAI_HOME/pi-kits/ux-ui-agent-skills/package.json" ] || die "UX/UI kit missing after installation"
@@ -69,5 +70,6 @@ echo "    megai           # verify the current Git worktree and Plane wiring"
 echo "    megai pi  # launch Pi without service/index warmup"
 echo "    megai start agent-memory  # start memory explicitly when needed"
 echo "    megai reindex            # rebuild zvec explicitly when needed"
+echo "    tgrep status .           # check text index readiness without starting it"
 echo "    Existing user config, project data, indexes, and credentials are preserved."
 echo
