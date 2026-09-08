@@ -22,6 +22,25 @@ class ModelPolicy(Slim):
         self.assertNotIn("megai:subagent-models:begin", (agent / "AGENTS.md").read_text())
         self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
 
+    def test_timebox_and_escalation_policy_reaches_both_entrypoints(self):
+        self.wire()
+        agent = self.home / ".pi/agent"
+        source = (self.megai / "pi-skill/delegation.md").read_text()
+        installed = (agent / "skills/megai/delegation.md").read_text()
+        self.assertEqual(installed, source)
+        self.assertIn(source.rstrip(), (agent / "AGENTS.md").read_text())
+        for rule in (
+            "5 minutes (300 seconds)",
+            "including model/tool waits",
+            "same-model retry loop",
+            "Luna -> Terra -> Sol -> Astra",
+            "at most two escalation transitions per slice",
+            "Confirm the old writer has stopped",
+            "not a runtime watchdog",
+        ):
+            with self.subTest(rule=rule):
+                self.assertIn(rule, installed)
+
     def test_standalone_preserves_local_resources(self):
         agent = self.home / ".pi/agent"
         settings = '{"defaultModel":"keep","packages":["custom"],"extensions":["!*"]}'
