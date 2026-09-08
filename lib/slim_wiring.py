@@ -103,9 +103,7 @@ class Plan:
             self.receipt.pop(str(path), None)
             return
         if not self.owned(path, current):
-            canonical = SOURCE / "pi-skill/extensions/memory.sh"
-            if path != MEGAI / "pi-skill/extensions/memory.sh" or not canonical.is_file() or current != canonical.read_bytes():
-                raise ValueError(f"unowned retired asset preserved: {path}; reconcile manually")
+            raise ValueError(f"unowned retired asset preserved: {path}; reconcile manually")
         self.stage(path, None, current)
         self.receipt.pop(str(path), None)
 
@@ -123,7 +121,10 @@ class Plan:
             "Verify task acceptance with actual tests and review; security/data-integrity risks require independent review. "
             "Hand off at In Review, never Done. Main promotion requires separate explicit approval.\n"
             "Headroom provides local context compression, concise output and explicit persistent memory. "
-            "Use tgrep for literal/regex discovery (rg fallback; follow readiness/freshness rules), codedb for structure and zvec-grep for intent. "
+            "Use tgrep for literal/regex discovery first, and only when a task-owned index is ready; its status is a readiness hint, not a freshness certificate. "
+            "If tgrep is absent, fails, has no ready index, or differs from required semantics, use rg with the intended flags; a failed search is diagnostic, not zero matches. "
+            "After edits, branch switches, ignore-rule changes or watcher warnings, use rg until a completed rebuild and restart is known to cover the current tree. "
+            "Use codedb for structure and zvec-grep for intent. Confirm absence and exhaustive impact claims with native rg. "
             "Use Headroom recall for relevant prior decisions, and save only when persistence is requested. "
             "These are task-appropriate defaults, not mandatory extras; index on demand, never at startup. "
             "Preserve the chosen provider, model and thinking level; report unavailable tools instead of silently claiming use. "
@@ -198,6 +199,7 @@ class Plan:
         before = read(path)
         settings = load_json(path)
         skills = settings.get("skills", [])
+        legacy_enable = None
         if isinstance(skills, dict):
             legacy = skills
             allowed = {"customDirectories", "enableSkillCommands"}
@@ -207,6 +209,10 @@ class Plan:
             skills = legacy.get("customDirectories")
             if not isinstance(skills, list) or any(not isinstance(item, str) for item in skills):
                 raise ValueError(f"malformed legacy Pi customDirectories: {path}")
+            if "enableSkillCommands" in legacy:
+                legacy_enable = legacy["enableSkillCommands"]
+                if not isinstance(legacy_enable, bool):
+                    raise ValueError(f"malformed legacy Pi enableSkillCommands: {path}")
         if not isinstance(skills, list) or any(not isinstance(item, str) for item in skills):
             raise ValueError(f"expected Pi skills to be a string array: {path}")
         exclusion = "!" + str(HOME / ".agents/skills") + "/**"
@@ -216,10 +222,14 @@ class Plan:
                 settings["skills"] = [item for item in skills if item != exclusion]
                 self.receipt.pop(key, None)
                 self.stage(path, encoded(settings), before)
-        elif exclusion not in skills:
-            settings["skills"] = [exclusion, *skills]
+        else:
+            desired = skills if exclusion in skills else [exclusion, *skills]
+            settings["skills"] = desired
+            if legacy_enable is not None:
+                settings["enableSkillCommands"] = legacy_enable
+            if encoded(settings) != before:
+                self.stage(path, encoded(settings), before)
             self.receipt[key] = digest(exclusion.encode())
-            self.stage(path, encoded(settings), before)
         # Existing user filters, including an explicit Headroom opt-out, win.
         if not remove:
             for group in ("extensions", "packages"):
@@ -239,6 +249,21 @@ class Plan:
                      root / "extensions/megai-memory/index.ts"):
             self.retire(path)
 
+    def retire_tree(self, path: Path, remove: bool) -> None:
+        if not path.exists() and not path.is_symlink():
+            return
+        if path.is_symlink():
+            raise ValueError(f"symlinked retired resource preserved: {path}; reconcile manually")
+        if path.is_file():
+            self.retire(path)
+            return
+        for child in path.iterdir():
+            self.retire_tree(child, remove)
+        try:
+            path.rmdir()
+        except OSError:
+            raise ValueError(f"nonempty retired resource preserved: {path}; reconcile manually")
+
     def client(self, name: str, root: Path, remove: bool) -> None:
         # Validate configs without changing credentials, models, packages or hooks.
         for filename in ("settings.json", "mcp.json") if name != "codex" else ():
@@ -251,17 +276,28 @@ class Plan:
             data = read(root / "config.toml")
             if data is not None:
                 tomllib.loads(data.decode()) # existing MCP entries remain user-owned
+        shared_caveman = HOME / ".agents/skills/caveman"
+        if shared_caveman.exists() or shared_caveman.is_symlink():
+            if not remove:
+                raise ValueError(f"shared legacy skill preserved: {shared_caveman}; detach manually")
+            self.retire_tree(shared_caveman, remove)
         if not remove:
-            for legacy in ("task-flow", "smart-development-orchestrator"):
+            for legacy in ("task-flow", "smart-development-orchestrator", "caveman", "rtk", "agent-memory", "agentmemory", "megai-memory"):
                 shared = HOME / ".agents/skills" / legacy
                 if shared.exists() or shared.is_symlink():
                     raise ValueError(f"shared legacy skill preserved: {shared}; detach manually")
             if name == "pi" and (root / "skills/megai.md").exists():
                 raise ValueError(f"legacy MEGAI skill preserved: {root / 'skills/megai.md'}; detach manually")
-            for legacy in ("task-flow", "smart-development-orchestrator"):
+            for legacy in ("task-flow", "smart-development-orchestrator", "caveman", "rtk", "agent-memory", "agentmemory", "megai-memory"):
+                if name == "pi" and legacy == "caveman":
+                    continue
                 old = root / "skills" / legacy
                 if old.exists() or old.is_symlink():
                     raise ValueError(f"legacy/custom skill preserved: {old}; detach manually before slim adoption")
+            for legacy in ("caveman", "rtk", "agent-memory", "agentmemory", "megai-memory"):
+                old = root / "extensions" / legacy
+                if old.exists() or old.is_symlink():
+                    raise ValueError(f"legacy/custom extension preserved: {old}; detach manually before slim adoption")
             if name == "omp":
                 agents = root / "agents"
                 if agents.exists() and any("minimax" in p.name or p.name == "smart-router.md" for p in agents.iterdir()):
@@ -282,6 +318,9 @@ class Plan:
                 retired = re.compile(r"(?:^|[/@:])(?:rtk|caveman|agent[-_]memory|agentmemory|megai-memory)(?:$|[/@.])", re.I)
                 for group in ("skills", "extensions", "packages"):
                     entries = settings.get(group, [])
+                    if group == "skills" and isinstance(entries, dict):
+                        # The legacy object is validated and promoted below.
+                        continue
                     if not isinstance(entries, list):
                         raise ValueError(f"invalid Pi {group} selections")
                     for entry in entries:
@@ -293,6 +332,8 @@ class Plan:
                     for child in old_style.iterdir():
                         if child.name not in ("SKILL.md", "LICENSE.md"):
                             raise ValueError(f"custom retired skill contents preserved: {child}")
+                        if not self.owned(child, read(child) or b""):
+                            raise ValueError(f"unowned retired skill preserved: {child}; reconcile manually")
             self.configure_pi_resources(root, remove)
             self.retire_legacy_pi_assets(root, remove)
             for retired_path in (root / "skills/caveman/SKILL.md", root / "skills/caveman/LICENSE.md"):
@@ -413,6 +454,21 @@ def atomic_write(path: Path, data: bytes | None) -> None:
         tmp.unlink(missing_ok=True)
 
 
+def legacy_memory_store_paths() -> tuple[Path, ...]:
+    return (MEGAI / "memory", MEGAI / "memory.db", MEGAI / "agent-memory",
+            HOME / ".agentmemory", HOME / ".config/agentmemory")
+
+
+def check_legacy_memory_stores() -> None:
+    for path in legacy_memory_store_paths():
+        if path.is_symlink():
+            raise ValueError(f"legacy memory store is symlinked; preserve and reconcile manually: {path}")
+        if path.is_file() and path.stat().st_size:
+            raise ValueError(f"nonempty legacy memory store preserved; migration is unsupported: {path}")
+        if path.is_dir() and any(path.iterdir()):
+            raise ValueError(f"nonempty legacy memory store preserved; migration is unsupported: {path}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("client", choices=("all", "cc", "codex", "pi", "omp", "path"))
@@ -421,6 +477,8 @@ def main() -> int:
     parser.add_argument("--verify", action="store_true")
     args = parser.parse_args()
     plan = Plan()
+    if not args.remove:
+        check_legacy_memory_stores()
     if not args.remove and (MEGAI / "memory-process.json").exists():
         raise ValueError("legacy daemon receipt remains; verify/stop the owned process and privately archive its receipt before cutover; memory data is preserved")
     if not args.remove:

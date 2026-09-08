@@ -77,12 +77,19 @@ done
 [ -f "$MEGAI_HOME/ux-ui-agent-skills/package.json" ] || die "UX/UI kit missing after installation"
 [ -d "$MEGAI_HOME/mattpocock-skills/skills" ] || die "Matt skill kit missing after installation"
 python3 "$LIB/slim_wiring.py" all --verify
-if command -v pi >/dev/null 2>&1 && bash "$LIB/verify_headroom_activation.sh"; then
-  ok "MEGAI core ready; native Pi Headroom activation verified"
+if ! command -v pi >/dev/null 2>&1; then
+  ok "MEGAI core ready; Pi is not installed, so native activation was not checked"
 else
-  activation_status=$?
-  [ "$activation_status" = 2 ] || [ ! -x "$LIB/verify_headroom_activation.sh" ] || warn "Headroom installed; native Pi activation is inactive or unavailable (resources preserved)"
-  ok "MEGAI core ready; Headroom inactive status reported honestly"
+  if bash "$LIB/verify_headroom_activation.sh"; then
+    ok "MEGAI core ready; native Pi Headroom activation verified"
+  else
+    activation_status=$?
+    if [ "$activation_status" = 2 ]; then
+      warn "Headroom installed; Pi resource selection deliberately excludes the adapter (resources preserved)"
+    else
+      die "Pi Headroom activation verification failed; transaction remains recoverable"
+    fi
+  fi
 fi
 echo
 echo "    Open a new shell (or 'source ~/.zshrc') so PATH picks up megai/bin"

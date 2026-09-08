@@ -65,6 +65,11 @@ cat >"$PI_CODING_AGENT_DIR/mcp.json" <<'JSON'
   }
 }
 JSON
+# Seed real prior CC/OMP documents so restore requires integrity-checked backups,
+# never an invented absence record.
+printf '{}\n' >"$HOME/.claude.json"
+mkdir -p "$HOME/.omp/agent"
+printf '{}\n' >"$HOME/.omp/agent/mcp.json"
 
 run_plane() { bash "$ROOT/bin/megai" plane "$@"; }
 
@@ -159,6 +164,21 @@ cp "$CC_BEFORE" "$HOME/.claude.json"
 OMP_PROFILE=work run_plane setup --workspace brodev --token-file "$TOKEN_FILE" --client omp >/dev/null
 [ -f "$HOME/.omp/profiles/work/agent/mcp.json" ]
 ! grep -Fq "$TOKEN" "$HOME/.omp/profiles/work/agent/mcp.json"
+if OMP_PROFILE="../escape" run_plane setup --workspace brodev --token-file "$TOKEN_FILE" --client omp >/dev/null 2>&1; then exit 1; fi
+mkdir -p "$TMP/omp-external" "$HOME/.omp/profiles"
+ln -s "$TMP/omp-external" "$HOME/.omp/profiles/link"
+if OMP_PROFILE=link run_plane setup --workspace brodev --token-file "$TOKEN_FILE" --client omp >/dev/null 2>&1; then exit 1; fi
+[ ! -e "$TMP/omp-external/agent/mcp.json" ]
+missing_cc="$TMP/missing-cc.json"
+printf '{"keep":true}\n' >"$missing_cc"
+cp "$missing_cc" "$TMP/missing-cc-before"
+if bash -c 'source "$0/lib/plane_mcp.sh"; generic_restore_to "$1" cc "$2"' "$ROOT" "$missing_cc" "$TMP/missing-cc-stage" >/dev/null 2>&1; then exit 1; fi
+cmp "$missing_cc" "$TMP/missing-cc-before"
+# Inject an edit after the outer assertion but inside the publication call.
+cp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/between-render-before"
+if bash -c 'source "$0/lib/plane_mcp.sh"; eval "$(declare -f plane_commit | sed "s/^plane_commit ()/plane_commit_original ()/")"; plane_commit() { printf "{\"concurrent\":true}\\n" >"$PLANE_CONFIG"; plane_commit_original "$@"; }; plane_setup --workspace between-render --token-file "$1" --client pi' "$ROOT" "$TOKEN_FILE" >/dev/null 2>&1; then exit 1; fi
+jq -e '.concurrent == true' "$PI_CODING_AGENT_DIR/mcp.json" >/dev/null
+cp "$TMP/between-render-before" "$PI_CODING_AGENT_DIR/mcp.json"
 mkdir -p "$BRIDGE_ROOT/node_modules/mcp-remote/dist"
 printf 'fixture-lock\n' >"$BRIDGE_ROOT/package-lock.json"
 printf 'fixture-entry\n' >"$BRIDGE_ROOT/node_modules/mcp-remote/dist/proxy.js"

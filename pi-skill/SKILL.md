@@ -15,8 +15,9 @@ effort router.
 
 - Define observable acceptance checks and a stop condition before edits.
 - Use tgrep for literal/regex discovery when ready, `megai-codedb` for structure,
-  and zvec-grep for intent. Use native `rg` and raw diagnostics for freshness,
-  absence, failures and acceptance evidence. Index only on demand.
+  and zvec-grep for intent. A partial index or stale watcher is not authoritative:
+  use native `rg` after edits and for freshness, absence, failures and acceptance
+  evidence. Index only on demand.
 - Headroom supplies concise-output guidance, conservative discovery compression and
   explicit persistent memory. Recall relevant prior decisions; save only when
   persistence is requested. The native Pi adapter is automatic; on Claude Code,

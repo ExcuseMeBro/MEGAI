@@ -8,7 +8,6 @@ import os
 import shutil
 import subprocess
 import sys
-import time
 import tempfile
 import unittest
 from pathlib import Path
@@ -41,9 +40,8 @@ class Slim(unittest.TestCase):
         (self.megai / "state.json").write_text('{"tools":{},"agents":{},"ports":{"agent-memory":3111},"keep":{"value":42}}\n')
         self.project = self.root / "project"
         self.project.mkdir()
-        # The installer owns acquisition; wiring tests provide an installed core
-        # skill so they exercise selection/preservation rather than npm behavior.
-        self.write(self.home / ".agents/skills/caveman/SKILL.md", "core fixture\n")
+        # Shared retired Caveman resources are intentionally absent; ambiguous
+        # legacy content must block adoption rather than become an active default.
         self.legacy = self.project / ".todos"
         self.legacy.mkdir()
         (self.legacy / "sentinel").write_text("historical private board, never touched\n")
@@ -106,7 +104,7 @@ class Slim(unittest.TestCase):
         self.wire()
         for path, content in files.items():
             if path == ".pi/agent/settings.json":
-                continue  # slim owns only the Caveman skill-selection delta
+                continue  # slim owns only the managed Pi selection delta
             self.assertEqual((self.home / path).read_text(), content, path)
         settings = json.loads((self.home / ".pi/agent/settings.json").read_text())
         self.assertEqual(settings["defaultProvider"], "keep")
@@ -126,6 +124,27 @@ class Slim(unittest.TestCase):
         before = self.snapshot()
         self.wire(ok=False)
         self.assertEqual(self.snapshot(), before)
+
+    def test_shared_retired_skill_blocks_and_legacy_pi_boolean_survives(self):
+        shared = self.write(self.home / ".agents/skills/caveman/SKILL.md", "user-owned legacy\n")
+        before = self.snapshot()
+        self.wire(ok=False)
+        self.assertEqual(self.snapshot(), before)
+        shared.unlink()
+        shared.parent.rmdir()
+        settings = self.write(self.home / ".pi/agent/settings.json", json.dumps({
+            "skills": {"customDirectories": ["user-skill"], "enableSkillCommands": False},
+        }))
+        self.wire()
+        updated = json.loads(settings.read_text())
+        self.assertEqual(updated["enableSkillCommands"], False)
+        self.assertIsInstance(updated["skills"], list)
+        self.assertIn("user-skill", updated["skills"])
+        settings.write_text('{"skills":{"customDirectories":[],"enableSkillCommands":"bad"}}')
+        malformed_before = self.snapshot()
+        self.wire(ok=False)
+        self.assertEqual(settings.read_text(), '{"skills":{"customDirectories":[],"enableSkillCommands":"bad"}}')
+        self.assertEqual(malformed_before, self.snapshot())
 
     def test_legacy_hooks_and_skills_require_manual_migration(self):
         paths = [
@@ -186,6 +205,17 @@ class Slim(unittest.TestCase):
         env = dict(self.env, OMP_PROFILE="work")
         self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), "omp", env=env)
         self.assertIn("Headroom", (self.home / ".omp/profiles/work/agent/RULES.md").read_text())
+
+    def test_launch_verifies_only_selected_client_and_forwards_omp_profile(self):
+        self.wire()
+        self.write(self.home / ".claude/settings.json", "{bad JSON")
+        self.write(self.home / ".codex/config.toml", "broken = [\n")
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "pi", "--version")
+        self.write(self.home / ".claude/settings.json", "{}\n")
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "cc", "--version")
+        self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), "omp", env=dict(self.env, OMP_PROFILE="work"))
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "omp", "--profile", "work", "--version")
+        self.assertIn("--profile work --version", (self.home / "calls").read_text())
 
     def test_startup_all_harnesses_and_profile_do_not_prewarm(self):
         self.wire()
@@ -479,48 +509,6 @@ assert first.read_bytes()==b'concurrent after publish'
             path.rename(hidden)
             self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", ok=False, env=env)
             hidden.rename(path)
-
-    @unittest.skip("agent-memory lifecycle is retired; Headroom persistence is covered separately")
-    def test_memory_identity_and_failed_start_cleanup(self):
-        self.stub("curl", 'echo \'{"status":"ok","service":"not-memory"}\'\n')
-        self.stub("lsof", 'exit 0\n')
-        self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
-        self.assertFalse((self.megai / "memory-process.json").exists())
-        self.stub("curl", 'echo \'{"status":"ok","service":"agentmemory"}\'\n')
-        self.run_cmd("bash", str(self.megai / "bin/megai"), "start")
-        self.assertFalse((self.megai / "memory-process.json").exists())
-        self.stub("curl", 'exit 7\n')
-        self.stub("lsof", 'exit 1\n')
-        self.write(self.home / "agentmemory-fixture.py", '''import os,signal,time
-from pathlib import Path
-home=Path(os.environ['HOME'])
-def stop(*args):
-    (home/'child-cleaned').write_text('terminated')
-    raise SystemExit(0)
-signal.signal(signal.SIGTERM,stop)
-(home/'child-started').write_text(str(os.getpid()))
-time.sleep(30)
-''')
-        self.stub("agentmemory", 'exec python3 "$HOME/agentmemory-fixture.py" "$@"\n')
-        for failure in ("ps", "ln"):
-            self.stub(failure, 'exit 7\n')
-            self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
-            self.assertEqual((self.home / "child-cleaned").read_text(), "terminated")
-            self.assertFalse((self.megai / "memory-process.json").exists())
-            (self.home / "child-cleaned").unlink()
-            (self.bin / failure).unlink()
-        self.stub("rm", 'exit 7\n')
-        self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
-        self.assertTrue((self.megai / "memory-process.json").is_file())
-        self.assertFalse((self.home / "child-cleaned").exists())
-        (self.bin / "rm").unlink()
-        self.run_cmd("bash", str(self.megai / "bin/megai"), "stop")
-        for _ in range(100):
-            if (self.home / "child-cleaned").exists():
-                break
-            time.sleep(0.01)
-        self.assertEqual((self.home / "child-cleaned").read_text(), "terminated")
-        self.assertFalse((self.megai / "memory-process.json").exists())
 
     def test_state_values_are_data_and_malformed_state_preserved(self):
         value = json.dumps({"value": 'quote " | error("injected")'})

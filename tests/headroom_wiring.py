@@ -43,19 +43,18 @@ class HeadroomWiring(unittest.TestCase):
         self.wire()
         self.assertEqual(before, self.snapshot())
 
-    def test_retired_mcp_metadata_removed_while_history_and_other_cache_survive(self):
+    def test_nonempty_legacy_memory_store_blocks_without_mutation(self):
         cache = self.write(self.home / ".pi/agent/mcp-cache.json", json.dumps({
             "version": 1, "servers": {name: {"tools": [name]} for name in
                                       ("rtk", "caveman", "agent-memory", "agentmemory", "plane")}}))
         history = self.write(self.home / ".pi/agent/sessions/history.jsonl", "rtk caveman agent-memory history")
         memory = self.write(self.home / ".agentmemory/data/original", "original data")
-        self.wire()
-        self.assertEqual(json.loads(cache.read_text())["servers"], {"plane": {"tools": ["plane"]}})
+        before = self.snapshot()
+        self.wire(ok=False)
+        self.assertEqual(before, self.snapshot())
+        self.assertEqual(json.loads(cache.read_text())["servers"]["caveman"], {"tools": ["caveman"]})
         self.assertEqual(history.read_text(), "rtk caveman agent-memory history")
         self.assertEqual(memory.read_text(), "original data")
-        state = json.loads((self.megai / "state.json").read_text())
-        self.assertNotIn("agent-memory", state["ports"])
-        self.assertEqual(state["keep"], {"value": 42})
 
     def test_retired_daemon_commands_do_not_kill_or_delete(self):
         self.write(self.megai / "memory-process.json", '{"pid":123,"keep":true}')
@@ -99,6 +98,13 @@ class HeadroomWiring(unittest.TestCase):
         before = self.snapshot()
         self.wire(ok=False)
         self.assertEqual(before, self.snapshot())
+
+    def test_unowned_retired_memory_bridge_blocks_cutover(self):
+        path = self.write(self.megai / "pi-skill/extensions/memory.sh", "custom user bridge\n")
+        before = self.snapshot()
+        self.wire(ok=False)
+        self.assertEqual(before, self.snapshot())
+        self.assertEqual(path.read_text(), "custom user bridge\n")
 
     def test_installer_refuses_an_unowned_runtime_before_pip_or_downloads(self):
         self.stub("uv", 'echo unexpected-install >>"$HOME/calls"\nexit 9\n')

@@ -44,8 +44,8 @@ prepare_core() {
 launch_agent() {
   local agent="$1" bin="$2"; shift 2
   command -v "$bin" >/dev/null 2>&1 || die "$bin is not installed; install/authenticate that harness separately"
-  # Validate all owned wiring before every native launch; never alter native args.
-  python3 "$LIB/slim_wiring.py" all --verify
+  # Validate only the selected harness before every native launch; never alter native args.
+  python3 "$LIB/slim_wiring.py" "$agent" --verify
   bash "$LIB/ensure_dev.sh" --launch
   exec "$bin" "$@"
 }
@@ -80,6 +80,20 @@ cmd_doctor() {
   [ -d "$MEGAI_HOME/mattpocock-skills/skills" ] && find "$MEGAI_HOME/mattpocock-skills/skills" -type f -name SKILL.md -print -quit | grep -q . || die "Matt skill kit is incomplete; run megai install"
   local ruff_version; ruff_version="$(ruff --version)" || die "Ruff version check failed"
   [[ "$ruff_version" == ruff\ * ]] || die "Ruff returned invalid version output"
+  if command -v pi >/dev/null 2>&1; then
+    if bash "$LIB/verify_headroom_activation.sh" >/dev/null; then
+      ok "Pi Headroom runtime is locally available"
+    else
+      local activation_status=$?
+      if [ "$activation_status" = 2 ]; then
+        warn "Pi Headroom is installed but deliberately excluded by resource selection"
+      else
+        die "Pi Headroom runtime verification failed"
+      fi
+    fi
+  else
+    warn "Pi is unavailable; native Headroom activation was not checked"
+  fi
   ok "MEGAI wiring preflight passed; not a provider, model-quality, or live Plane check"
 }
 

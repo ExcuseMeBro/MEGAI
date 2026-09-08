@@ -29,15 +29,23 @@ not copied into shared policy.
 
 ## Evidence run in this checkout
 
-- Local Headroom runtime: `tests/headroom_runtime.py`, 11/11 pass using the
-  explicitly selected installed interpreter/assets; raw log: parent-provided
-  `/tmp/megai-headroom-baseline.vJK40b/runtime.log`.
-- Headroom wiring and distribution tests are being adapted from their original
-  slim Pi-only fixtures for the four-harness contract. Their current raw logs are
-  kept outside the repository while implementation proceeds.
-- Shell syntax, Python compilation and `git diff --check` are run after edits.
-- No CC, Codex or OMP process was executed. No host installation, provider call,
-  Plane mutation or main promotion was performed.
+The earlier independent review marked commit `1bad4e8` **REQUEST CHANGES**. Its
+candidate evidence is retained at `/tmp/megai-all-harness-acceptance.JcRvoB/logs`
+(the baseline was SLIM, not this candidate; earlier references to a different
+baseline path were stale). The candidate positives included distribution 27/1
+skipped, Headroom wiring/runtime 11/11, Pi loader/extension, shared CLI,
+performance, Plane lifecycle/cutover, orchestration, task autocreate, Ruff,
+UX/UI and retirement gates. The candidate tgrep suite failed and was not claimed
+as ready.
+
+This correction adds fail-closed restore/retirement and memory-store checks,
+selected-client launch verification, profile/path validation, remote-bridge
+checks, transaction publication guards, tgrep readiness/freshness guidance and
+Pi activation failure handling. Correction raw logs are retained under `/tmp/megai-correction-*`.
+
+No CC, Codex or OMP process was executed. No host installation, provider call,
+Plane mutation or main promotion was performed. Ruff format remains a visible
+check-only baseline difference; this audit does not claim formatting parity.
 
 ## Limits
 

@@ -64,7 +64,9 @@ def main() -> int:
     try:
         subprocess.run([sys.executable, str(source / "lib/install_slim_source.py"), str(source)], env=env, check=True)
         if args.wiring_only:
-            subprocess.run([sys.executable, str(MEGAI / "lib/slim_wiring.py"), "pi"], env=env, check=True)
+            # The source publication is shared; keep every selected harness policy
+            # in the same transaction rather than leaving stale client guidance.
+            subprocess.run([sys.executable, str(MEGAI / "lib/slim_wiring.py"), "all"], env=env, check=True)
             subprocess.run([str(MEGAI / "bin/megai-headroom"), "doctor"], env=env, check=True)
             subprocess.run(["bash", str(MEGAI / "lib/verify_headroom_activation.sh")], env=env, check=True)
         else:
