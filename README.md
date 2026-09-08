@@ -60,6 +60,22 @@ release archive; slim never runs `rtk init -g`. Npm core CLI installs disable
 lifecycle scripts. Reused executable versions and platform dependencies may vary;
 offline integration tests do not prove every fresh upstream install works.
 
+## GPT-only Pi delegation
+
+MEGAI tasks use Pi for the parent, subagents and reviewers. Astra/high is the
+orchestrator; Luna/medium handles discovery, Luna/high handles implementation,
+and Sol/high handles independent review, complex debugging and fallback. The
+[MEGAI skill](pi-skill/SKILL.md#gpt-only-pi-delegation) is the authoritative model-ID
+and dispatch contract. Select the Pi harness, model and thinking explicitly in
+Paseo, then verify the returned identity before sending task context. An
+unavailable or mismatched route blocks delegation; there is no non-GPT or non-Pi
+fallback. Bounded work stays with the parent rather than spawning agents by default.
+
+Wiring installs this policy and its role map; it does not rewrite provider
+catalogs, credentials or user model settings, and it is not a runtime sandbox.
+Other retained launchers or custom extensions do not grant an exception to the
+MEGAI delegation policy. No universal speed or cost advantage is claimed.
+
 ## Plane-only workflow
 
 Configure the secure connector explicitly; no credentials are bundled:

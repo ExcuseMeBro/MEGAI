@@ -109,6 +109,9 @@ class Plan:
             "Use `agent-worktree-lifecycle` for isolated writes and the agreed delivery target. "
             "Verify task acceptance with actual tests and review; security/data-integrity risks require independent review. "
             "Hand off at In Review, never Done. Main promotion requires separate explicit approval.\n"
+            "GPT-only delegation: parents, subagents and reviewers use the Pi harness. "
+            "Load `megai` for the Astra/Luna/Sol role map and explicit Paseo model/thinking selection. "
+            "Verify the returned harness/model/thinking before task context; no non-GPT or non-Pi fallback.\n"
             + END + "\n"
         )
         if BEGIN in text:

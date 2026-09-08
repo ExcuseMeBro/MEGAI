@@ -1,12 +1,33 @@
 ---
 name: megai
-description: MEGAI slim code lookup, explicit persistent memory, task-appropriate skills, and non-mutating Python verification.
+description: MEGAI slim GPT-only Pi delegation, code lookup, explicit persistent memory, task-appropriate skills, and non-mutating Python verification.
 managed-by: megai
 ---
 
 # MEGAI slim
 
 When the retained core `caveman` skill is enabled, default to its full chat style unless the user requests normal mode. Preserve the user's language, technical meaning, uncertainty and safety warnings; persisted artifacts, tests and authorization gates remain unchanged. Caveman companions and workflow bundles are not part of this core policy.
+
+## GPT-only Pi delegation
+
+Parents, subagents and reviewers use the Pi harness with this role map:
+
+| Role | Pi model ID | Thinking |
+| --- | --- | --- |
+| Parent/orchestrator | `openai-codex/gpt-6-astra` | high |
+| Discovery/research | `openai-codex/gpt-5.6-luna` | medium |
+| Scoped implementation | `openai-codex/gpt-5.6-luna` | high |
+| Independent review, complex debugging or fallback | `openai-codex/gpt-5.6-sol` | high |
+
+Use direct parent tools for bounded work; delegate only when isolation or independent evidence earns the overhead. Children never delegate, mutate Plane or integrate branches. Writers use separate managed worktrees under `agent-worktree-lifecycle`; a delegated writer replaces parent writing rather than duplicating it.
+
+Create visible Paseo children explicitly, for example `paseo run --background --provider pi --model openai-codex/gpt-5.6-luna --thinking high`, or `create_agent` with `provider: "pi/openai-codex/gpt-5.6-luna"` and `settings: {thinkingOptionId: "high"}`. Select the role's exact model/thinking, not an inherited default. The `openai-codex/` namespace is a model provider inside Pi, not permission to use the Codex harness.
+
+Use a neutral preflight prompt when creation immediately starts a run. Verify the returned harness is `pi` and the model/thinking match the requested role before sending task context; inspect agent metadata if creation omits these fields. On mismatch, cancel the child and report the blocker. If Pi, the selected GPT model or verifiable identity is unavailable, use direct parent tools only when safe or stop; no non-GPT or non-Pi fallback. Never send secrets or private context to an unverified route.
+
+Give each child only its scope, authority, relevant evidence and acceptance checks. Use completion notifications rather than polling. Allow at most one diagnosed transient retry or one focused correction; if still blocked, escalate once to Sol/high or report the blocker, without a model-switch loop. Security/data-integrity risks require fresh independent Sol/high review. Preserve required tests and authorization gates regardless of model.
+
+This is the delegation policy, not a provider-catalog rewrite or runtime sandbox. Do not change credentials, provider endpoints, user settings or install another harness to satisfy it. These are operational choices, not a universal model-quality or performance claim.
 
 ## Find and change code
 

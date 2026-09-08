@@ -92,6 +92,79 @@ class Slim(unittest.TestCase):
         self.assertNotIn("zvec_grep", json.loads((self.home / ".pi/agent/mcp.json").read_text())["mcpServers"])
         self.assertTrue((self.legacy / "sentinel").exists())
 
+    def test_installed_gpt_only_pi_delegation_contract(self):
+        self.wire()
+        for relative in (".pi/agent/AGENTS.md", ".codex/AGENTS.md", ".claude/CLAUDE.md", ".omp/agent/RULES.md"):
+            policy = (self.home / relative).read_text()
+            self.assertIn("GPT-only", policy, relative)
+            self.assertIn("Pi harness", policy, relative)
+            self.assertIn("`megai`", policy, relative)
+            self.assertIn("no non-GPT or non-Pi fallback", policy, relative)
+        skill = (self.home / ".agents/skills/megai/SKILL.md").read_text()
+        for row in (
+            "| Parent/orchestrator | `openai-codex/gpt-6-astra` | high |",
+            "| Discovery/research | `openai-codex/gpt-5.6-luna` | medium |",
+            "| Scoped implementation | `openai-codex/gpt-5.6-luna` | high |",
+            "| Independent review, complex debugging or fallback | `openai-codex/gpt-5.6-sol` | high |",
+        ):
+            self.assertIn(row, skill)
+        for requirement in (
+            "--provider pi", "--model openai-codex/gpt-5.6-luna", "--thinking high",
+            'provider: "pi/openai-codex/gpt-5.6-luna"',
+            "settings: {thinkingOptionId: \"high\"}",
+            "before sending task context", "neutral preflight prompt",
+            "On mismatch, cancel the child", "no non-GPT or non-Pi fallback",
+        ):
+            self.assertIn(requirement, skill)
+        lifecycle = (self.home / ".agents/skills/agent-worktree-lifecycle/SKILL.md").read_text()
+        self.assertIn("Select Pi explicitly", lifecycle)
+        self.assertIn("`megai`", lifecycle)
+        self.wire("--verify")
+
+    def test_owned_delegation_policy_upgrade_and_custom_edit_refusal(self):
+        self.wire()
+        policy = self.home / ".pi/agent/AGENTS.md"
+        skill = self.home / ".agents/skills/megai/SKILL.md"
+        previous_policy = (
+            "User prefix stays.\n<!-- megai:slim:begin -->\n# MEGAI slim\n"
+            "Before project changes, the parent loads `megai-task-flow` and starts the linked Plane item. "
+            "Plane is the only execution tracker. Reuse the identity through refinements; children never mutate it. "
+            "Use `agent-worktree-lifecycle` for isolated writes and the agreed delivery target. "
+            "Verify task acceptance with actual tests and review; security/data-integrity risks require independent review. "
+            "Hand off at In Review, never Done. Main promotion requires separate explicit approval.\n"
+            "<!-- megai:slim:end -->\nUser suffix stays.\n"
+        )
+        policy.write_text(previous_policy)
+        skill.write_text("# Previous managed MEGAI skill\nCore lookup policy.\n")
+        receipt_path = self.megai / "slim-wiring.json"
+        receipt = json.loads(receipt_path.read_text())
+        for path in (policy, skill):
+            receipt[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+        receipt_path.write_text(json.dumps(receipt))
+        before = self.snapshot()
+        result = self.wire("--verify", ok=False)
+        self.assertIn("missing/stale", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+        self.wire("--check")
+        self.assertEqual(self.snapshot(), before)
+        self.wire()
+        self.assertTrue(policy.read_text().startswith("User prefix stays.\n"))
+        self.assertTrue(policy.read_text().endswith("User suffix stays.\n"))
+        self.assertEqual(policy.read_text().count("<!-- megai:slim:begin -->"), 1)
+        self.assertIn("GPT-only delegation", policy.read_text())
+        self.assertIn("openai-codex/gpt-6-astra", skill.read_text())
+        self.assertIn("openai-codex/gpt-5.6-luna", skill.read_text())
+        self.assertIn("openai-codex/gpt-5.6-sol", skill.read_text())
+        self.wire("--verify")
+        upgraded = self.snapshot()
+        self.wire()
+        self.assertEqual(self.snapshot(), upgraded)
+        policy.write_text(policy.read_text().replace("GPT-only delegation", "Custom routing exception"))
+        custom = self.snapshot()
+        result = self.wire(ok=False)
+        self.assertIn("custom slim policy preserved", result.stderr)
+        self.assertEqual(self.snapshot(), custom)
+
     def test_user_config_and_policy_text_survive(self):
         files = {
             ".pi/agent/settings.json": '{"defaultProvider":"keep","defaultModel":"keep","defaultThinkingLevel":"high","packages":["user-extension"],"skills":["user-skill"]}',
