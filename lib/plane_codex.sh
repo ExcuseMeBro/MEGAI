@@ -81,8 +81,15 @@ stage_setup() {
 }
 
 commit_candidate() {
-  local candidate="$1" backup_current="${2:-1}"
+  local candidate="$1" backup_current="${2:-1}" expected="${PLANE_EXPECTED_ORIGINAL:-}" absent="${PLANE_EXPECTED_ABSENT:-}"
   [ ! -L "$candidate" ] && [ -f "$candidate" ] || die "invalid staged Codex candidate"
+  if [ -n "$expected" ]; then
+    if [ -f "$absent" ]; then
+      [ ! -e "$CONFIG" ] || die "Codex config changed during staging: $CONFIG"
+    else
+      cmp -s "$CONFIG" "$expected" || die "Codex config changed during staging: $CONFIG"
+    fi
+  fi
   python3 "$CONFIG_TOOL" validate --file "$candidate" >/dev/null || die "invalid staged Codex candidate"
   mkdir -p "$CODEX_HOME"
   [ ! -L "$CONFIG" ] || die "refusing symlinked Codex config: $CONFIG"

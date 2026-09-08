@@ -1,34 +1,21 @@
 #!/usr/bin/env bash
+# Legacy agent-memory migration guard: no daemon or port selection remains active.
 set -euo pipefail
-
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
-export HOME="$TMP/home"
-export MEGAI_HOME="$TMP/megai"
-mkdir -p "$MEGAI_HOME/lib" "$TMP/bin"
-cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$ROOT/lib/detect.sh" "$MEGAI_HOME/lib/"
-printf '%s\n' '{"tools":{},"ports":{"agent-memory":3111},"agents":{},"projects":{}}' >"$MEGAI_HOME/state.json"
-
-cat >"$TMP/bin/agentmemory" <<'SH'
-#!/bin/sh
-case "${1:-}" in
-  --version) echo "agentmemory 1.0.0" ;;
-  status) exit 1 ;;
-esac
-SH
-cat >"$TMP/bin/lsof" <<'SH'
-#!/bin/sh
-case "$*" in
-  *-iTCP:3111*) exit 0 ;;
-  *) exit 1 ;;
-esac
-SH
-chmod +x "$TMP/bin/agentmemory" "$TMP/bin/lsof"
-jq_dir="$(dirname "$(command -v jq)")"
-export PATH="$TMP/bin:$jq_dir:/usr/bin:/bin"
-
-bash "$ROOT/lib/install_agent_memory.sh" >/dev/null
-jq -e '.ports["agent-memory"] == 3112 and .tools["agent-memory"].port == 3112' "$MEGAI_HOME/state.json" >/dev/null
-
-echo "agent-memory port recovery: ok"
+TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+export HOME="$TMP/home" MEGAI_HOME="$TMP/megai" MEGAI_SOURCE="$ROOT"
+export PI_CODING_AGENT_DIR="$HOME/.pi/agent" CODEX_HOME="$HOME/.codex" PATH="$TMP/bin:$PATH"
+mkdir -p "$MEGAI_HOME/bin" "$MEGAI_HOME/lib" "$HOME/.pi/agent" "$HOME/.codex" "$TMP/bin"
+cp "$ROOT/bin/megai" "$MEGAI_HOME/bin/megai"
+cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$ROOT/lib/slim_wiring.py" "$MEGAI_HOME/lib/"
+printf '{"tools":{"agent-memory":{"version":"legacy"}},"ports":{"agent-memory":3112},"agents":{}}\n' > "$MEGAI_HOME/state.json"
+printf '{}\n' > "$HOME/.pi/agent/settings.json"
+printf '{}\n' > "$HOME/.pi/agent/mcp.json"
+printf '# empty\n' > "$HOME/.codex/config.toml"
+printf '#!/bin/sh\nexit 0\n' > "$TMP/bin/zg"; chmod +x "$TMP/bin/zg"
+python3 "$ROOT/lib/slim_wiring.py" pi >/dev/null
+jq -e '.tools["agent-memory"] == null and .ports["agent-memory"] == null' "$MEGAI_HOME/state.json" >/dev/null
+[ ! -e "$MEGAI_HOME/bin/megai-memory" ]
+if bash "$ROOT/bin/megai" start >/dev/null 2>&1; then exit 1; fi
+if bash "$ROOT/bin/megai" stop >/dev/null 2>&1; then exit 1; fi
+echo 'agent-memory retirement: port state cleared, daemon lifecycle refused, Headroom remains the active adapter'
