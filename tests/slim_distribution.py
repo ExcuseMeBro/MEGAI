@@ -8,7 +8,6 @@ import os
 import shutil
 import subprocess
 import sys
-import time
 import tempfile
 import unittest
 from pathlib import Path
@@ -38,6 +37,8 @@ class Slim(unittest.TestCase):
         (self.bin / "python3").symlink_to(sys.executable)
         for name in ("codedb", "zg", "rtk", "ruff", "agentmemory", "pi", "omp", "claude", "codex", "npm", "npx", "curl", "node"):
             self.stub(name, 'printf "%s\\n" "$0 $*" >>"$HOME/calls"\nexit 0\n')
+        runtime = self.write(self.megai / "venv/headroom/bin/python", '#!/bin/sh\nprintf "headroom-runtime %s\\n" "$*" >>"$HOME/calls"\n')
+        runtime.chmod(0o700)
         (self.megai / "state.json").write_text('{"tools":{},"agents":{},"ports":{"agent-memory":3111},"keep":{"value":42}}\n')
         self.project = self.root / "project"
         self.project.mkdir()
@@ -82,7 +83,9 @@ class Slim(unittest.TestCase):
         proxy = json.loads((self.home / ".pi/agent/mcp.json").read_text())["mcpServers"]["zvec_grep"]
         self.assertEqual(proxy["lifecycle"], "lazy")
         self.assertTrue((self.home / ".pi/agent/skills/megai-task-flow/SKILL.md").is_file())
-        self.assertTrue(os.access(self.megai / "bin/megai-memory", os.X_OK))
+        self.assertTrue(os.access(self.megai / "bin/megai-headroom", os.X_OK))
+        self.assertFalse((self.megai / "bin/megai-memory").exists())
+        self.assertTrue((self.home / ".pi/agent/extensions/megai-headroom/index.ts").is_file())
         self.assertFalse((self.home / ".claude/hooks").exists())
         self.assertEqual((self.legacy / "sentinel").read_text(), "historical private board, never touched\n")
         self.wire("--remove")
@@ -156,25 +159,23 @@ class Slim(unittest.TestCase):
         for text in ("--provider pi", "openai-codex/", "returned harness", "no non-Pi fallback"):
             self.assertIn(text, core)
 
-    def test_four_defaults_are_wired_without_background_work(self):
+    def test_headroom_defaults_are_wired_without_background_work(self):
         self.wire()
         for root, policy in ((".pi/agent", "AGENTS.md"),):
             text = (self.home / root / policy).read_text()
-            for required in ("caveman", "full", "codedb", "zvec-grep", "RTK", "Ruff", "agent-memory", "Matt Pocock/UI-UX", "megai-task-flow", "agent-worktree-lifecycle", "acceptance", "raw"):
+            for retired in ("caveman", "RTK", "agent-memory"):
+                self.assertNotIn(retired, text)
+            for required in ("Headroom", "codedb", "zvec-grep", "Ruff", "Matt Pocock/UI-UX", "megai-task-flow", "agent-worktree-lifecycle", "acceptance", "raw"):
                 self.assertIn(required, text)
-        for root in (".pi/agent/skills",):
-            skill = self.home / root / "caveman/SKILL.md"
-            self.assertEqual(skill.read_bytes(), (ROOT / "skills/caveman/SKILL.md").read_bytes())
-            self.assertTrue((skill.parent / "LICENSE.md").is_file())
-            self.assertFalse((skill.parent.parent / "cavecrew").exists())
+        extension = self.home / ".pi/agent/extensions/megai-headroom/index.ts"
+        self.assertEqual(extension.read_bytes(), (ROOT / "pi-skill/headroom/index.ts").read_bytes())
         core = (ROOT / "pi-skill/SKILL.md").read_text()
-        for required in ("rtk git status", "rtk git log", "rtk ls", "raw", "exit status", "acceptance", "on demand"):
+        for required in ("headroom_retrieve", "Headroom", "raw", "exit status", "acceptance", "on demand"):
             self.assertIn(required, core)
         for required in ("observable acceptance", "original exit status", "full native", "only when the user requests persistence", "No separate enablement request", "independent review"):
             self.assertIn(required, core)
-        style = (ROOT / "skills/caveman/SKILL.md").read_text()
-        for required in ("uncertainty", "normal mode", "Persisted", "acceptance", "No universal token-saving", "Drop: articles", "Fragments OK", "Short synonyms", "## Intensity", "## Auto-Clarity", "Example —", "Default: **full**"):
-            self.assertIn(required, style)
+        for retired in ("skills/caveman/SKILL.md", "lib/install_rtk.sh", "lib/install_agent_memory.sh"):
+            self.assertFalse((ROOT / retired).exists())
         self.assertFalse((self.home / "calls").exists())
         self.wire("--remove")
         self.assertFalse((self.home / ".pi/agent/skills/caveman/SKILL.md").exists())
@@ -212,7 +213,7 @@ class Slim(unittest.TestCase):
         actual = json.loads(settings.read_text())
         self.assertEqual(actual.pop("skills")[1:], original.pop("skills"))
         self.assertEqual(actual, original)
-        skill = self.home / ".pi/agent/skills/caveman/SKILL.md"
+        skill = self.home / ".pi/agent/extensions/megai-headroom/index.ts"
         skill.write_text(skill.read_text() + "custom change")
         before = self.snapshot()
         self.wire("--remove", ok=False)
@@ -486,7 +487,7 @@ class Slim(unittest.TestCase):
         self.wire()
         self.write(self.megai / "pi-kits/ux-ui-agent-skills/package.json", '{}')
         (self.megai / "pi-kits/mattpocock-skills/skills").mkdir(parents=True)
-        selected = ("agent_memory", "zvec_grep", "codedb", "rtk", "ruff", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
+        selected = ("headroom", "zvec_grep", "codedb", "ruff", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
         for path in (self.megai / "lib").glob("install_*.sh"):
             name = path.stem.removeprefix("install_")
             self.write(path, f'#!/bin/sh\necho install:{name} >>"$HOME/install-calls"\n')
@@ -541,16 +542,14 @@ assert first.read_bytes()==b'concurrent user edit'
 '''
         self.run_cmd(sys.executable, "-c", code)
 
-    def test_memory_bridge_has_bounded_http_and_no_startup(self):
+    def test_headroom_bridge_dispatches_without_proxy_or_old_memory(self):
         self.wire()
-        self.run_cmd(str(self.megai / "bin/megai-memory"), "recall", 'quoted " query')
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "headroom", "recall", 'quoted " query')
         calls = (self.home / "calls").read_text()
-        self.assertIn("--connect-timeout 3 --max-time 15", calls)
-        self.assertIn("smart-search", calls)
-        self.assertNotIn("agentmemory --port", calls)
-        for port in ("3111@remote.invalid", "0", "65536", "not-a-port"):
-            self.run_cmd(str(self.megai / "bin/megai-memory"), "recall", "private-test", ok=False, env=dict(self.env, AGENTMEMORY_PORT=port))
-        self.assertEqual((self.home / "calls").read_text(), calls)
+        self.assertIn("headroom/bridge.py recall", calls)
+        self.assertNotIn("agentmemory", calls)
+        self.assertNotIn("curl", calls)
+        self.assertFalse((self.megai / "bin/megai-memory").exists())
 
     def test_matt_source_and_custom_skill_preservation(self):
         source = self.root / "matt-source"
@@ -613,7 +612,7 @@ assert first.read_bytes()==b'concurrent user edit'
     def test_doctor_requires_every_selected_tool_and_skill_kit(self):
         self.wire()
         self.stub("ruff", 'echo "ruff 0.15.0"\n')
-        for name in ("bash", "jq", "git", "rg", "find", "grep"):
+        for name in ("bash", "jq", "git", "rg", "find", "grep", "env"):
             if not (self.bin / name).exists():
                 (self.bin / name).symlink_to(shutil.which(name))
         env = dict(self.env, PATH=str(self.bin))
@@ -621,51 +620,17 @@ assert first.read_bytes()==b'concurrent user edit'
         self.write(self.megai / "pi-kits/ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md", 'fixture')
         matt = self.write(self.megai / "pi-kits/mattpocock-skills/skills/example/SKILL.md", 'fixture')
         self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", env=env)
-        for path in (self.bin / "codedb", self.bin / "rtk", self.bin / "agentmemory", ui, matt):
+        for path in (self.bin / "codedb", self.megai / "venv/headroom/bin/python", ui, matt):
             hidden = path.with_name(path.name + ".hidden")
             path.rename(hidden)
             self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", ok=False, env=env)
             hidden.rename(path)
 
-    def test_memory_identity_and_failed_start_cleanup(self):
-        self.stub("curl", 'echo \'{"status":"ok","service":"not-memory"}\'\n')
-        self.stub("lsof", 'exit 0\n')
-        self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
-        self.assertFalse((self.megai / "memory-process.json").exists())
-        self.stub("curl", 'echo \'{"status":"ok","service":"agentmemory"}\'\n')
-        self.run_cmd("bash", str(self.megai / "bin/megai"), "start")
-        self.assertFalse((self.megai / "memory-process.json").exists())
-        self.stub("curl", 'exit 7\n')
-        self.stub("lsof", 'exit 1\n')
-        self.write(self.home / "agentmemory-fixture.py", '''import os,signal,time
-from pathlib import Path
-home=Path(os.environ['HOME'])
-def stop(*args):
-    (home/'child-cleaned').write_text('terminated')
-    raise SystemExit(0)
-signal.signal(signal.SIGTERM,stop)
-(home/'child-started').write_text(str(os.getpid()))
-time.sleep(30)
-''')
-        self.stub("agentmemory", 'exec python3 "$HOME/agentmemory-fixture.py" "$@"\n')
-        for failure in ("ps", "ln"):
-            self.stub(failure, 'exit 7\n')
-            self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
-            self.assertEqual((self.home / "child-cleaned").read_text(), "terminated")
-            self.assertFalse((self.megai / "memory-process.json").exists())
-            (self.home / "child-cleaned").unlink()
-            (self.bin / failure).unlink()
-        self.stub("rm", 'exit 7\n')
-        self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
-        self.assertTrue((self.megai / "memory-process.json").is_file())
-        self.assertFalse((self.home / "child-cleaned").exists())
-        (self.bin / "rm").unlink()
-        self.run_cmd("bash", str(self.megai / "bin/megai"), "stop")
-        for _ in range(100):
-            if (self.home / "child-cleaned").exists():
-                break
-            time.sleep(0.01)
-        self.assertEqual((self.home / "child-cleaned").read_text(), "terminated")
+    def test_retired_daemon_commands_do_not_start_services(self):
+        self.wire()
+        for command in ("start", "stop", "logs"):
+            self.run_cmd("bash", str(self.megai / "bin/megai"), command, ok=False)
+        self.assertFalse((self.home / "calls").exists())
         self.assertFalse((self.megai / "memory-process.json").exists())
 
     def test_state_values_are_data_and_malformed_state_preserved(self):

@@ -288,13 +288,13 @@ if grep -F 'ruff format ' "$skill" | grep -v 'ruff format --check' | grep -v '^#
   exit 1
 fi
 
-# ---- 13–15. Slim install/update share one exact-eight pipeline; doctor checks Ruff. ----
+# ---- 13–15. Slim install/update share the transactional pipeline; doctor checks Ruff. ----
 grep -Fq 'ruff --version' "$ROOT/bin/megai"
 grep -Fq 'Ruff returned invalid version output' "$ROOT/bin/megai"
-grep -Fq 'MEGAI_UPDATE=1 bash "$LIB/main.sh"' "$ROOT/bin/megai"
+grep -Fq 'MEGAI_UPDATE=1 python3 "$LIB/install_transaction.py" "$MEGAI_HOME"' "$ROOT/bin/megai"
 ! grep -Eq 'uv tool upgrade ruff|pipx upgrade ruff' "$ROOT/lib/install_ruff.sh"
 grep -Fq 'install_ruff.sh' "$ROOT/lib/main.sh"
-grep -Fq '| [Ruff]' "$ROOT/README.md"
+grep -Fq '[Ruff](https://docs.astral.sh/ruff/)' "$ROOT/README.md"
 grep -Fq 'Non-mutating Python' "$ROOT/README.md"
 
 # ---- 16. Real Ruff fixture: --no-fix alone can mutate under fix-only=true ----

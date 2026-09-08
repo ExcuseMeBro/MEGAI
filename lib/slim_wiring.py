@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shlex
 import shutil
 import tempfile
@@ -90,6 +91,15 @@ class Plan:
             self.stage(path, data, current)
             self.receipt[str(path)] = digest(data)
 
+    def retire(self, path: Path) -> None:
+        """Detach only receipt-proven assets; apply() archives their original bytes."""
+        current = read(path)
+        if current is not None:
+            if not self.owned(path, current):
+                raise ValueError(f"unowned retired asset preserved: {path}; reconcile manually")
+            self.stage(path, None, current)
+        self.receipt.pop(str(path), None)
+
     def policy(self, path: Path, remove: bool) -> None:
         before = read(path)
         current = before or b""
@@ -106,9 +116,9 @@ class Plan:
             "Parents and all delegated agents use Pi only. In Paseo select the Pi harness explicitly with a Pi model and thinking; "
             "verify the returned harness/model before sending task context. No non-Pi fallback or direct Codex/Claude/OMP execution. "
             "Follow the Pi-only delegation contract in `megai`; if Pi is unavailable, stop and report the blocker.\n"
-            "Default workflow: load `megai` for coding tasks and `caveman` once for full terse chat in the user's language. "
-            "Use codedb for structural lookup, zvec-grep for intent search, and RTK for supported discovery output. "
-            "Apply Ruff to changed Python, agent-memory recall to relevant prior decisions, and matching Matt Pocock/UI-UX skills to the task. "
+            "Default workflow: load `megai` for coding tasks. Headroom provides local context compression, concise output and explicit persistent memory. "
+            "Use codedb for structural lookup and zvec-grep for intent search. "
+            "Apply Ruff to changed Python, Headroom recall to relevant prior decisions, and matching Matt Pocock/UI-UX skills to the task. "
             "These are task-appropriate defaults, not mandatory extra calls; index on demand, never at startup. "
             "Keep acceptance tests, exit status and raw review/failure diagnostics authoritative. "
             "Respect explicit resource opt-outs and normal-mode requests; report unavailable tools instead of silently claiming use.\n"
@@ -216,6 +226,22 @@ class Plan:
                 old = root / "skills" / legacy
                 if old.exists() or old.is_symlink():
                     raise ValueError(f"legacy/custom skill preserved: {old}; detach manually before slim adoption")
+        if not remove:
+            settings = load_json(root / "settings.json")
+            retired = re.compile(r"(?:^|[/@:])(?:rtk|caveman|agent[-_]memory|agentmemory|megai-memory)(?:$|[/@.])", re.I)
+            for group in ("skills", "extensions", "packages"):
+                entries = settings.get(group, [])
+                if not isinstance(entries, list):
+                    raise ValueError(f"invalid Pi {group} selections")
+                for entry in entries:
+                    source = entry.get("source", "") if isinstance(entry, dict) else entry
+                    if isinstance(source, str) and not source.startswith(("!", "-")) and retired.search(source):
+                        raise ValueError(f"explicit retired Pi resource preserved: {source}; reconcile manually")
+            old_style = root / "skills/caveman"
+            if old_style.exists():
+                for child in old_style.iterdir():
+                    if child.name not in ("SKILL.md", "LICENSE.md"):
+                        raise ValueError(f"custom retired skill contents preserved: {child}")
         self.policy(root / "AGENTS.md", remove)
         # Pi normally discovers shared skills used by other harnesses. Exclude
         # that directory by default, without touching it. Explicit user filters
@@ -241,17 +267,44 @@ class Plan:
             ("task-flow/skills/megai-task-flow/SKILL.md", "megai-task-flow"),
             ("skills/agent-worktree-lifecycle/SKILL.md", "agent-worktree-lifecycle"),
             ("pi-skill/SKILL.md", "megai"),
-            ("skills/caveman/SKILL.md", "caveman"),
         ):
             skill_root = root / "skills"
             self.asset(skill_root / skill / "SKILL.md", (SOURCE / relative).read_bytes(), remove)
-            if skill == "caveman":
-                self.asset(skill_root / skill / "LICENSE.md", (SOURCE / "skills/caveman/LICENSE.md").read_bytes(), remove)
+        for retired in ("skills/caveman/SKILL.md", "skills/caveman/LICENSE.md"):
+            self.retire(root / retired)
+        for name in ("SKILL.md", "LICENSE.md"):
+            shared = HOME / ".agents/skills/caveman" / name
+            if str(shared) in self.prior_receipt:
+                self.retire(shared)  # Unowned shared resources remain excluded, not deleted.
+        for relative in ("lib/install_rtk.sh", "lib/install_agent_memory.sh", "lib/install_caveman.sh",
+                         "pi-skill/extensions/memory.sh", "skills/caveman/SKILL.md", "skills/caveman/LICENSE.md"):
+            self.retire(MEGAI / relative)
+        self.retire(MEGAI / "bin/megai-memory")
+        self.retire(MEGAI / "bin/rtk")
+        for name in ("index.ts", "bridge.py", "assets.py", "persistence.py"):
+            self.asset(root / "extensions/megai-headroom" / name,
+                       (SOURCE / "pi-skill/headroom" / name).read_bytes(), remove)
+        # Metadata only, never session history or memory databases. Exact retired
+        # server identities are pruned; unknown cache shapes fail before writes.
+        cache_path = root / "mcp-cache.json"
+        cache_before = read(cache_path)
+        if cache_before is not None:
+            cache = load_json(cache_path)
+            cached = cache.get("servers", {})
+            if not isinstance(cached, dict):
+                raise ValueError(f"invalid MCP cache servers: {cache_path}")
+            for name in ("rtk", "caveman", "agent-memory", "agentmemory", "agent_memory"):
+                cached.pop(name, None)
+            if cache != json.loads(cache_before):
+                self.stage(cache_path, encoded(cache), cache_before)
         config_path = root / "mcp.json"
         config_before = read(config_path)
         config = json.loads(config_before) if config_before else {}
         zg = shutil.which("zg")
         servers = config.setdefault("mcpServers", {})
+        for name in ("rtk", "caveman", "agent-memory", "agentmemory", "agent_memory"):
+            if name in servers:
+                raise ValueError(f"retired MCP server preserved: {name}; back up and detach manually")
         key = str(config_path) + "#zvec_grep"
         entry = servers.get("zvec_grep")
         owned = entry is not None and self.prior_receipt.get(key) == digest(encoded(entry))
@@ -283,6 +336,9 @@ class Plan:
         recovery = Path(tempfile.mkdtemp(prefix="slim-wiring-", dir=backup_root))
         originals = {p: self.originals[p] for p in changes}
         manifest = {}
+        modes = {str(path): path.stat().st_mode & 0o777 for path, data in originals.items() if data is not None}
+        (recovery / "modes.json").write_bytes(encoded(modes))
+        (recovery / "modes.json").chmod(0o600)
         for index, (path, data) in enumerate(originals.items()):
             name = str(index)
             if data is not None:
@@ -291,6 +347,18 @@ class Plan:
             manifest[str(path)] = name if data is not None else None
         (recovery / "manifest.json").write_bytes(encoded(manifest))
         (recovery / "manifest.json").chmod(0o600)
+        journal = os.environ.get("MEGAI_TRANSACTION_LOG")
+        if journal:
+            log = Path(journal)
+            safe(log)
+            record = {"recovery": str(recovery), "after": {
+                str(path): digest(data) if data is not None else None for path, data in changes.items()
+            }}
+            fd = os.open(log, os.O_WRONLY | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, "a") as stream:
+                stream.write(json.dumps(record) + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
         applied = []
         try:
             for path, data in changes.items():
@@ -302,6 +370,8 @@ class Plan:
         except BaseException:
             for path in reversed(applied):
                 atomic_write(path, originals[path])
+                if originals[path] is not None:
+                    path.chmod(modes[str(path)])
             raise
         print(f"slim wiring backup: {recovery}")
 
@@ -330,13 +400,28 @@ def main() -> int:
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--verify", action="store_true")
     args = parser.parse_args()
+    if not args.remove and (MEGAI / "memory-process.json").exists():
+        raise ValueError("legacy daemon receipt remains: verify/stop the owned process and privately archive its receipt before cutover; memory data is preserved")
     plan = Plan()
+    if not args.remove:
+        state_path = MEGAI / "state.json"
+        state_before = read(state_path)
+        if state_before is not None:
+            state = load_json(state_path)
+            for group in ("tools", "ports"):
+                entries = state.get(group, {})
+                if not isinstance(entries, dict):
+                    raise ValueError(f"invalid MEGAI state {group}")
+                for retired in ("rtk", "caveman", "agent-memory", "agentmemory", "agent_memory"):
+                    entries.pop(retired, None)
+            if state != json.loads(state_before):
+                plan.stage(state_path, encoded(state), state_before)
     if args.client == "pi":
         plan.client(pi_root(), args.remove)
         plan.paseo(args.remove)
-    bridge = b'#!/usr/bin/env bash\nexec bash "${MEGAI_HOME:-$HOME/.megai}/pi-skill/extensions/memory.sh" "$@"\n'
     if args.client != "path":
-        plan.asset(MEGAI / "bin/megai-memory", bridge, args.remove)
+        bridge = b'#!/usr/bin/env bash\nset -euo pipefail\nroot="${MEGAI_HOME:-$HOME/.megai}"\nexec env -i HOME="$HOME" MEGAI_HOME="$root" PATH="${PATH:-/usr/bin:/bin}" "$root/venv/headroom/bin/python" -I -B "$root/pi-skill/headroom/bridge.py" "$@"\n'
+        plan.asset(MEGAI / "bin/megai-headroom", bridge, args.remove)
         codedb_bridge = b'#!/usr/bin/env bash\nexec bash "${MEGAI_HOME:-$HOME/.megai}/pi-skill/extensions/codedb.sh" "$@"\n'
         plan.asset(MEGAI / "bin/megai-codedb", codedb_bridge, args.remove)
         if not args.check and not args.remove and not shutil.which("codedb"):

@@ -4,8 +4,8 @@
 
 [🚀 Install](#install) · [🧰 Stack](#included-stack) · [🛫 Workflow](#plane-only-workflow) · [⚙️ Defaults](#default-behavior-and-acceptance) · [🛡️ Safety](#adoption-preservation-and-rollback) · [✅ Verification](#verification)
 
-A dedicated, persistent **`slim`** distribution for **Pi coding agent only**. It keeps nine selected tools plus
-bundled Caveman core, Plane-only task boundaries and task-quality gates. Installation and launch do not
+A dedicated, persistent **`slim`** distribution for **Pi coding agent only**. Eight selected tools,
+local Headroom compression/memory, Plane-only task boundaries and task-quality gates. Installation and launch do not
 merge or push Git branches. This branch is not automatically integrated into `main`.
 
 | 🎯 Pi only | 💤 On demand | 🔒 User control |
@@ -18,17 +18,15 @@ merge or push Git branches. This branch is not automatically integrated into `ma
 
 ## 🧰 Included stack
 
-**Nine selected tools + Caveman core.** Activated when the task calls for them.
+**Eight selected tools.** Activated when the task calls for them.
 
 | Tool | Purpose |
 | --- | --- |
 | 🗂️ [codedb](https://github.com/justrach/codedb) | Default core structural lookup via CLI; on-demand indexing |
 | 🔎 [zvec-grep](https://github.com/zvec-ai/zvec-grep) | Local hybrid code search; explicit indexing |
-| 📦 [rtk](https://github.com/rtk-ai/rtk) | Default supported discovery output; raw acceptance diagnostics remain authoritative |
-| 🪨 [Caveman core](https://github.com/JuliusBrussee/caveman) | Default full terse chat; bundled MIT core adaptation, no companion/runtime package |
+| 🧠 [Headroom](https://github.com/headroomlabs-ai/headroom) | Local discovery compression, concise output guidance and explicit persistent semantic memory |
 | 🛫 task-flow | **Plane-only** identity, acceptance and start/handoff boundaries |
 | 🧹 [Ruff](https://docs.astral.sh/ruff/) | Non-mutating Python lint/format checks |
-| 🧠 [agent-memory](https://www.agent-memory.dev/) | Default relevant recall; lazy local service, saving only on user request |
 | 🌿 agent-worktree-lifecycle | Isolated writers and verified, user-agreed branch delivery |
 | 🎨 [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | Task-appropriate UI/UX and accessibility guidance |
 | 🛠️ [Matt Pocock's skills](https://github.com/mattpocock/skills) | Engineering, diagnosis, specifications and verification workflows |
@@ -48,7 +46,9 @@ restore it through slim install/update/launch.
 
 Requires macOS/Linux, Python **3.11+**, Git, ripgrep and curl. The installer
 resolves jq and Node **22+**; Ruff reuses an existing working executable or uses
-uv/pipx. Authenticate your chosen harness separately. Credentials and model/
+uv/pipx. **uv is required for Headroom**, which uses an isolated Python **3.14** runtime
+(resolved by uv), hash-locked binary wheels and install-time public model/tokenizer downloads.
+Authenticate Pi separately. Credentials and model/
 thinking choices are never installed or changed for performance.
 
 ### Quick start
@@ -68,14 +68,46 @@ until you explicitly run it. Existing valid tools are reused, including during
 
 ### Pinned downloads & reuse
 
-Fresh downloads pin agent-memory 0.9.27, zvec-grep 0.2.1, RTK 0.43.0 and both skill
-kit source commits. Codedb fresh installs pin 0.2.56 with embedded SHA-256 hashes
+Fresh downloads pin Headroom **0.37.0**, its dependency hashes, zvec-grep 0.2.1 and both skill
+kit source commits. Headroom uses pinned Qdrant MiniLM ONNX assets (~90 MB) for local
+semantic memory; no PyTorch, proxy, LiteLLM routing, Serena or `headroom wrap` is installed. Codedb fresh installs pin 0.2.56 with embedded SHA-256 hashes
 for macOS ARM64/Linux x86_64; other platforms require a pre-provisioned trusted
 CLI. No upstream codedb installer, hooks, extra services or MCP registrations run.
-Existing codedb MCP settings remain user-owned. RTK's pinned installer is SHA-256 checked and verifies its
-release archive; slim never runs `rtk init -g`. Npm core CLI installs disable
+Existing codedb MCP settings remain user-owned. Npm core CLI installs disable
 lifecycle scripts. Reused executable versions and platform dependencies may vary;
 offline integration tests do not prove every fresh upstream install works.
+
+### Headroom scope and recovery
+
+Headroom replaces RTK, Caveman and agent-memory in the active Pi distribution.
+The integration uses the Python library, not an auth/API proxy. It does not rewrite
+provider headers, model choices, reasoning effort, or saved session history.
+
+- Automatic compression is conservative: successful native discovery (`ls`, `find`,
+  `grep`, simple `rg`, `git status/log/ls-files`) and supported zvec gateway output.
+  Source reads, mutation results, tests/build/lint, full diffs and failures stay raw.
+- Compression uses non-ML Headroom transforms. Semantic memory uses local MiniLM
+  ONNX inference. Public assets download only during installation; runtime is offline.
+  Dependencies are hash-locked; model/tokenizer content hashes are checked before use.
+- `headroom_retrieve` pages through exact originals. The adapter's durable CCR cache
+  expires entries after **7 days**, with a transactional **256-entry / 64 MiB** quota.
+  Live originals are never evicted for capacity: new output stays raw instead.
+  Native Pi session/source remains available. Memories have no CCR expiry.
+- Headroom's SQLite memory adapter commits text and its ONNX embedding in one row.
+  Content-derived IDs make retries after cancellation/lost acknowledgements idempotent;
+  semantic recall ranks those stored embeddings without a separately committed index.
+- Memory/CCR live under `~/.megai/headroom-data/<repository-id>/`, private to the user.
+  Worktrees share their Git repository's store; unrelated repositories remain separate.
+- Telemetry/beacon, remote embeddings, effort routing, auto-learning and session
+  extraction are disabled/not invoked. Explicit memory saves only; no automatic
+  historical memory import or deletion. Reconcile any nonempty legacy store before cutover.
+- The managed old Pi skill/bridge bytes are archived under `~/.megai/backups/`, outside
+  Pi discovery. Exact retired MCP metadata is pruned. Unowned registrations or custom
+  edits block migration rather than being deleted by name.
+
+Start a **new Pi process and new session** after migration. `/reload` cannot erase old
+instructions already in a conversation, and local cleanup cannot purge provider-side
+KV caches. Historical conversations are preserved, not silently rewritten.
 
 <a id="plane-only-workflow"></a>
 
@@ -111,40 +143,37 @@ need no tracked mutation; refinements reuse the active item.
 
 ## ⚙️ Default behavior and acceptance
 
-All ten stack entries are installed/wired by default for Pi.
+All eight stack entries are installed/wired by default for Pi.
 Pi itself must be installed and authenticated separately. Their triggers are:
 
-- **Caveman:** load the bundled core once; full terse chat in the user's language.
-  `normal mode`/`stop caveman` opts out. Artifacts, uncertainty and warnings stay clear.
+- **Headroom:** compress eligible successful discovery output before model calls; native
+  session originals remain unchanged. Apply upstream concise-output guidance without
+  effort routing. Recall relevant decisions locally; save only on explicit user request.
+  `normal mode` or `/headroom-verbosity 0` disables terse guidance;
+  `MEGAI_HEADROOM=0` disables automatic compression and guidance.
 - **codedb:** first choice for relevant structural lookup; existing indexes are reused.
 - **zvec-grep:** first choice for unknown wording/intent; CLI plus lazy Pi MCP.
-- **RTK:** default agent policy for supported discovery commands such as
-  `rtk git status`, `rtk git log -5`, and `rtk ls`. This is not a shell-wide or
-  tool-call rewrite hook; compound commands and scripts remain native.
 - **task-flow:** start/reuse the Plane task before project edits; hand off only
   after verified acceptance in In Review, never Done.
 - **Ruff:** non-mutating checks for changed Python files.
-- **agent-memory:** when prior decisions matter, start the local service and
-  recall relevant context without a separate enablement request. Saving still
-  requires the user's persistence request; no secret or personal-data ingestion.
 - **agent-worktree-lifecycle:** isolated writes and verified agreed branch delivery.
 - **UX/UI kit:** select the matching UI/accessibility skill for UI work.
 - **Matt Pocock kit:** select the matching engineering/diagnosis/verification skill.
 
 > [!IMPORTANT]
-> Defaults are task-appropriate choices, not ten compulsory calls per task.
+> Defaults are task-appropriate choices, not eight compulsory calls per task.
 
 ### Acceptance comes first
 
 Before edits define the observable outcome, acceptance checks and stop condition. Run
 repository tests/build/lint unchanged with raw output and original exit status;
-review full native diffs. RTK summaries alone never prove acceptance. Keep security,
+review full native diffs. Compressed summaries alone never prove acceptance. Keep security,
 accessibility, compatibility and independent-review gates. User resource exclusions
 and model/provider/thinking choices remain untouched. If an exclusion disables a
 default, report that instead of claiming the tool is active.
 
-No daemon or model call is added to harness startup. Start memory only for a
-relevant recall; index only when a task needs it;
+No daemon or model call is added to harness startup. Headroom starts bounded local
+subprocesses only when needed. Recall memory only when relevant; index only when a task needs it;
 missing/stale indexes must be reported rather than silently treated as results.
 Smaller context/output is not a measured speed or quality improvement.
 
@@ -153,15 +182,14 @@ Smaller context/output is not a measured speed or quality improvement.
 ## 💤 On-demand operation
 
 ```bash
-megai start agent-memory
-megai-memory recall "relevant decision"
-megai-memory save "decision to persist"  # only when persistence is requested
+megai headroom doctor
+megai headroom recall "relevant decision"
+megai headroom save "decision to persist"  # only when persistence is requested
 megai-codedb index .                    # codedb indexing only when needed
 megai-codedb symbol MySymbol            # default structural lookup
 megai reindex                           # initializes/rebuilds zvec explicitly
 zg query "where authentication is validated"
 rg -n 'exact_symbol' src/
-megai stop agent-memory
 ```
 
 MEGAI's preparation before Pi launch performs only local wiring/worktree checks:
@@ -242,8 +270,18 @@ Do not delete project boards or indexes to resolve a wiring conflict.
 Successful wiring records exact ownership hashes and private recovery manifests
 under `~/.megai/backups/slim-wiring-*/`. Source replacements and skill-kit updates
 retain prior bytes/trees in backups. On a wiring write failure, already-applied
-changes roll back; failures in a third-party tool installer are reported and are
-not represented as an atomic all-tools rollback. Re-run after resolving the failure.
+changes roll back. Installation first verifies Headroom, then journals publication.
+Any downstream failure restores source and owned Pi wiring, including executable
+permissions; concurrent user edits are preserved for manual reconciliation. Newly
+installed dependencies and their own recovery artifacts can remain inactive: this
+is not an atomic all-tools rollback. Re-run after resolving the failure.
+
+For a scoped Headroom migration without upgrading unrelated tools:
+`python3 lib/install_transaction.py "$PWD" --wiring-only`.
+First export/preserve the legacy store, verify and stop its owned daemon, and archive
+its process receipt privately; preflight refuses an outstanding daemon receipt.
+The actual Pi resource loader verifies activation. Explicit exclusions stay intact
+and report **inactive**, never a false claim of active Headroom.
 
 ```bash
 megai update
@@ -266,7 +304,9 @@ indexes or historical project data. Main promotion remains a separate decision.
 ```bash
 bash tests/slim-distribution.sh  # isolated offline install/update/wiring/runtime contracts
 bash tests/pi-performance.sh    # adapter selection and user-package preservation
-bash tests/agent-memory-port.sh
+python3 tests/headroom_wiring.py
+# Explicit real-runtime checks (no provider calls); see docs/audits/headroom-migration.md
+# HEADROOM_TEST_PYTHON=... HEADROOM_TEST_ASSETS=... python3 tests/headroom_runtime.py
 bash tests/ruff-integration.sh
 bash tests/ux-ui-agent-skills.sh
 bash tests/orchestration-policy.sh

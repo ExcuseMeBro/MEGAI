@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Slim installer: nine tool entries plus bundled Caveman core; no startup services.
+# Slim installer: Pi-only with local Headroom; no proxy or startup services.
 set -euo pipefail
 
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
@@ -31,20 +31,22 @@ ok "$MEGAI_OS/$MEGAI_ARCH (node=$MEGAI_HAS_NODE py=$MEGAI_HAS_PY jq=$MEGAI_HAS_J
 state_init
 ok "state initialized -> $MEGAI_HOME/state.json"
 
-step 2 7 "Installing agent-memory (daemon starts only on request)"
-bash "$LIB/install_agent_memory.sh" || die "agent-memory install failed"
+step 2 7 "Installing isolated Headroom runtime"
+if [ "${MEGAI_HEADROOM_PREPARED:-0}" != 1 ]; then
+  bash "$LIB/install_headroom.sh" || die "Headroom install failed"
+fi
+state_set '.tools.headroom' '{"installed":true,"version":"0.37.0","mode":"local-library"}'
 
 step 3 7 "Installing core search (indexing starts only on request)"
 bash "$LIB/install_zvec_grep.sh" || die "zvec-grep install failed"
 bash "$LIB/install_codedb.sh" || die "codedb install failed"
 
-step 4 7 "Installing rtk, Ruff, and requested skill kits"
-bash "$LIB/install_rtk.sh" || die "rtk install failed"
+step 4 7 "Installing Ruff and requested skill kits"
 bash "$LIB/install_ruff.sh" || die "Ruff install failed"
 bash "$LIB/install_ux_ui_agent_skills.sh" || die "ux-ui-agent-skills install failed"
 bash "$LIB/install_mattpocock_skills.sh" || die "Matt Pocock skills install failed"
 
-step 5 7 "Installing Plane-only task flow, worktree safety, and Caveman core"
+step 5 7 "Installing Plane-only task flow and worktree safety"
 bash "$LIB/install_taskflow.sh" || die "Plane-only task-flow install failed; inspect the reported migration conflict"
 bash "$LIB/install_worktree_lifecycle.sh" || die "worktree safety install failed; inspect the reported migration conflict"
 
@@ -56,18 +58,24 @@ step 7 7 "Wiring Pi-only policies"
 bash "$LIB/wire_pi.sh"    || die "Pi wiring failed"
 bash "$LIB/wire_path.sh"  || warn "PATH wiring skipped"
 
-for tool in agentmemory zg codedb rtk ruff; do
+for tool in zg codedb ruff; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after installation; slim is not ready"
 done
 [ -f "$MEGAI_HOME/pi-kits/ux-ui-agent-skills/package.json" ] || die "UX/UI kit missing after installation"
 [ -d "$MEGAI_HOME/pi-kits/mattpocock-skills/skills" ] || die "Matt skill kit missing after installation"
 python3 "$LIB/slim_wiring.py" pi --verify
-ok "MEGAI slim core ready"
+if bash "$LIB/verify_headroom_activation.sh"; then
+  ok "MEGAI slim core ready; Headroom activation verified"
+else
+  activation_status=$?
+  [ "$activation_status" = 2 ] || die "Pi activation verification failed"
+  warn "MEGAI slim installed; Headroom inactive by preserved Pi resource selection"
+fi
 echo
 echo "    Open a new shell (or 'source ~/.zshrc') so PATH picks up megai/bin"
 echo "    megai           # verify the current Git worktree and Plane wiring"
 echo "    megai pi  # launch Pi without service/index warmup"
-echo "    megai start agent-memory  # start memory explicitly when needed"
+echo "    megai headroom doctor    # verify local compression and memory runtime"
 echo "    megai reindex            # rebuild zvec explicitly when needed"
 echo "    Existing user config, project data, indexes, and credentials are preserved."
 echo

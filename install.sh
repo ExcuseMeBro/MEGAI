@@ -47,8 +47,8 @@ ok "source extracted -> $tmp"
 export MEGAI_HOME PYTHONDONTWRITEBYTECODE=1
 python3 -c 'import tomllib' || die "Python 3.11+ required"
 MEGAI_SOURCE="$tmp" python3 "$tmp/lib/slim_wiring.py" pi --check
-python3 "$tmp/lib/install_slim_source.py" "$tmp"
+python3 "$tmp/lib/install_transaction.py" "$tmp"
 ok "source installed with private recovery manifest"
 
 # 3. run main pipeline; retaining the shell ensures the temporary source is cleaned.
-bash "$MEGAI_HOME/lib/main.sh"
+# The transaction runner publishes source, runs main, and restores owned wiring on failure.
