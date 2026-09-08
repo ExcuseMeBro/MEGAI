@@ -23,9 +23,10 @@ megai slim
   uninstall                     Detach owned slim wiring; retain tools/data
   version | help
 
-Stack: codedb, zvec-grep, Headroom, Plane-only task-flow, Ruff,
+Stack: tgrep, codedb, zvec-grep, Headroom, Plane-only task-flow, Ruff,
        agent-worktree-lifecycle, ux-ui-agent-skills, Matt Pocock's skills.
 Headroom: local compression, concise output, explicit persistent memory.
+Search: tgrep text discovery (rg fallback), codedb structure, zvec intent.
 Acceptance: original test commands, raw diagnostics, full native diff review.
 Infrastructure: native tools, rg/Git, lazy Pi MCP adapter. No auth proxy.
 EOF
@@ -54,7 +55,7 @@ launch_agent() {
 
 cmd_status() {
   local tool
-  for tool in codedb zg ruff git rg; do
+  for tool in tgrep codedb zg ruff git rg; do
     if command -v "$tool" >/dev/null 2>&1; then ok "$tool -> $(command -v "$tool")"; else warn "$tool missing"; fi
   done
   if [ -x "$MEGAI_HOME/venv/headroom/bin/python" ]; then ok "Headroom isolated runtime installed"; else warn "Headroom missing"; fi
@@ -65,7 +66,7 @@ cmd_doctor() {
   cmd_status
   python3 "$LIB/slim_wiring.py" pi --verify
   local tool
-  for tool in python3 node jq git rg codedb zg ruff; do command -v "$tool" >/dev/null 2>&1 || die "$tool required"; done
+  for tool in python3 node jq git rg tgrep codedb zg ruff; do command -v "$tool" >/dev/null 2>&1 || die "$tool required"; done
   [ -f "$MEGAI_HOME/pi-kits/ux-ui-agent-skills/package.json" ] && [ -f "$MEGAI_HOME/pi-kits/ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md" ] || die "UX/UI kit is incomplete; run megai install"
   [ -d "$MEGAI_HOME/pi-kits/mattpocock-skills/skills" ] && find "$MEGAI_HOME/pi-kits/mattpocock-skills/skills" -type f -name SKILL.md -print -quit | grep -q . || die "Matt skill kit is incomplete; run megai install"
   local ruff_version

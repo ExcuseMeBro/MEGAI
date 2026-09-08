@@ -38,6 +38,7 @@ fi
 state_set '.tools.headroom' '{"installed":true,"version":"0.37.0","mode":"local-library"}'
 
 step 3 7 "Installing core search (indexing starts only on request)"
+bash "$LIB/install_tgrep.sh" || die "tgrep install failed"
 bash "$LIB/install_zvec_grep.sh" || die "zvec-grep install failed"
 bash "$LIB/install_codedb.sh" || die "codedb install failed"
 
@@ -58,7 +59,7 @@ step 7 7 "Wiring Pi-only policies"
 bash "$LIB/wire_pi.sh"    || die "Pi wiring failed"
 bash "$LIB/wire_path.sh"  || warn "PATH wiring skipped"
 
-for tool in zg codedb ruff; do
+for tool in tgrep zg codedb ruff; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after installation; slim is not ready"
 done
 [ -f "$MEGAI_HOME/pi-kits/ux-ui-agent-skills/package.json" ] || die "UX/UI kit missing after installation"

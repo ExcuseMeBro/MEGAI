@@ -4,7 +4,7 @@
 
 [🚀 Install](#install) · [🧰 Stack](#included-stack) · [🛫 Workflow](#plane-only-workflow) · [⚙️ Defaults](#default-behavior-and-acceptance) · [🛡️ Safety](#adoption-preservation-and-rollback) · [✅ Verification](#verification)
 
-A dedicated, persistent **`slim`** distribution for **Pi coding agent only**. Eight selected tools,
+A dedicated, persistent **`slim`** distribution for **Pi coding agent only**. Task-appropriate tools,
 local Headroom compression/memory, Plane-only task boundaries and task-quality gates. Installation and launch do not
 merge or push Git branches. This branch is not automatically integrated into `main`.
 
@@ -18,10 +18,11 @@ merge or push Git branches. This branch is not automatically integrated into `ma
 
 ## 🧰 Included stack
 
-**Eight selected tools.** Activated when the task calls for them.
+**Task-appropriate tools.** Activated when the task calls for them.
 
 | Tool | Purpose |
 | --- | --- |
+| ⚡ [tgrep](https://github.com/microsoft/tgrep) | Default indexed literal/regex discovery; native `rg` readiness/freshness fallback |
 | 🗂️ [codedb](https://github.com/justrach/codedb) | Default core structural lookup via CLI; on-demand indexing |
 | 🔎 [zvec-grep](https://github.com/zvec-ai/zvec-grep) | Local hybrid code search; explicit indexing |
 | 🧠 [Headroom](https://github.com/headroomlabs-ai/headroom) | Local discovery compression, concise output guidance and explicit persistent semantic memory |
@@ -69,7 +70,10 @@ until you explicitly run it. Existing valid tools are reused, including during
 ### Pinned downloads & reuse
 
 Fresh downloads pin Headroom **0.37.0**, its dependency hashes, zvec-grep 0.2.1 and both skill
-kit source commits. Headroom uses pinned Qdrant MiniLM ONNX assets (~90 MB) for local
+kit source commits. Tgrep pins **1.0.4**, with SHA-256-checked macOS/Linux ARM64/x86_64
+archives, exact version validation and atomic no-overwrite publication. Other versions
+or ambiguous destinations are preserved for reconciliation. No upstream agent installer,
+hooks or index/server startup runs. Headroom uses pinned Qdrant MiniLM ONNX assets (~90 MB) for local
 semantic memory; no PyTorch, proxy, LiteLLM routing, Serena or `headroom wrap` is installed. Codedb fresh installs pin 0.2.56 with embedded SHA-256 hashes
 for macOS ARM64/Linux x86_64; other platforms require a pre-provisioned trusted
 CLI. No upstream codedb installer, hooks, extra services or MCP registrations run.
@@ -143,7 +147,7 @@ need no tracked mutation; refinements reuse the active item.
 
 ## ⚙️ Default behavior and acceptance
 
-All eight stack entries are installed/wired by default for Pi.
+All listed stack entries are installed/wired by default for Pi.
 Pi itself must be installed and authenticated separately. Their triggers are:
 
 - **Headroom:** compress eligible successful discovery output before model calls; native
@@ -151,6 +155,10 @@ Pi itself must be installed and authenticated separately. Their triggers are:
   effort routing. Recall relevant decisions locally; save only on explicit user request.
   `normal mode` or `/headroom-verbosity 0` disables terse guidance;
   `MEGAI_HEADROOM=0` disables automatic compression and guidance.
+- **tgrep:** first choice for literal/regex discovery on a ready index. Native `rg`
+  is the fallback for unavailable/partial/stale indexes and required rg semantics.
+  Read [the query/readiness/freshness contract](pi-skill/tgrep.md) before text search.
+  This is Pi parent/child policy, not a tool interceptor or a shell-wide alias.
 - **codedb:** first choice for relevant structural lookup; existing indexes are reused.
 - **zvec-grep:** first choice for unknown wording/intent; CLI plus lazy Pi MCP.
 - **task-flow:** start/reuse the Plane task before project edits; hand off only
@@ -161,7 +169,7 @@ Pi itself must be installed and authenticated separately. Their triggers are:
 - **Matt Pocock kit:** select the matching engineering/diagnosis/verification skill.
 
 > [!IMPORTANT]
-> Defaults are task-appropriate choices, not eight compulsory calls per task.
+> Defaults are task-appropriate choices, not compulsory calls to every tool per task.
 
 ### Acceptance comes first
 
@@ -189,7 +197,9 @@ megai-codedb index .                    # codedb indexing only when needed
 megai-codedb symbol MySymbol            # default structural lookup
 megai reindex                           # initializes/rebuilds zvec explicitly
 zg query "where authentication is validated"
-rg -n 'exact_symbol' src/
+tgrep status .                          # readiness hint, never starts a server
+tgrep -nH -F 'exact_symbol' src/         # default discovery on a ready index
+rg -nH -F 'exact_symbol' src/            # freshness/absence/acceptance fallback
 ```
 
 MEGAI's preparation before Pi launch performs only local wiring/worktree checks:
