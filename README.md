@@ -113,6 +113,22 @@ Start a **new Pi process and new session** after migration. `/reload` cannot era
 instructions already in a conversation, and local cleanup cannot purge provider-side
 KV caches. Historical conversations are preserved, not silently rewritten.
 
+## GPT-only Pi delegation
+
+MEGAI tasks use Pi for the parent, subagents and reviewers. Astra/high is the
+orchestrator; Luna/medium handles discovery, Luna/high handles implementation,
+and Sol/high handles independent review, complex debugging and fallback. The
+[MEGAI skill](pi-skill/SKILL.md#gpt-only-pi-delegation) is the authoritative model-ID
+and dispatch contract. Select the Pi harness, model and thinking explicitly in
+Paseo, then verify the returned identity before sending task context. An
+unavailable or mismatched route blocks delegation; there is no non-GPT or non-Pi
+fallback. Bounded work stays with the parent rather than spawning agents by default.
+
+Wiring installs this policy and its role map; it does not rewrite provider
+catalogs, credentials or user model settings, and it is not a runtime sandbox.
+Custom extensions do not grant an exception to the MEGAI delegation policy.
+Non-Pi launchers remain disabled. No universal speed or cost advantage is claimed.
+
 <a id="plane-only-workflow"></a>
 
 ## 🛫 Plane-only workflow

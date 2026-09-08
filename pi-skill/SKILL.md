@@ -1,6 +1,6 @@
 ---
 name: megai
-description: Default Pi-only coding workflow with local Headroom compression and memory, tgrep text discovery, codedb structural lookup, zvec intent search, and acceptance-first verification.
+description: Default GPT-only Pi delegation with local Headroom compression and memory, tgrep text discovery, codedb structural lookup, zvec intent search, and acceptance-first verification.
 managed-by: megai
 ---
 
@@ -12,13 +12,26 @@ Before edits, state the requested outcome, observable acceptance checks and stop
 
 Use the defaults below when their purpose matches the task. Do not run all tools on every task, repeat known lookups or build indexes merely to prove activation. Task acceptance and code quality outrank compression: keep security, accessibility, compatibility, error handling, required tests and independent review. Preserve provider/model/thinking choices. Report a missing tool or stale index honestly and use a stated native fallback.
 
-## Pi-only delegation
+## GPT-only Pi delegation
 
-Parents, reviewers, scouts and workers all run through the **Pi harness**. This overrides any task skill's generic harness examples. Use direct tools for bounded work; if delegation is necessary, use visible Paseo agents. Create isolated writer workspaces first; read-only children may share the caller workspace.
+Parents, subagents and reviewers use the Pi harness with this role map. This overrides any task skill's generic harness examples:
 
-Select the harness explicitly: CLI `paseo run --background --provider pi --model openai-codex/<model> --thinking <medium-or-high>`, or Paseo `create_agent` with `provider: "pi/openai-codex/<model>"` and explicit thinking. Keep the approved task-appropriate model. Confirm the returned harness is `pi` and the model/thinking match before sending proprietary task context. On mismatch, interrupt the new child and report it; do not continue or relabel it. There is no non-Pi fallback: if Pi cannot run, use direct parent tools when safe or stop with a blocker.
+| Role | Pi model ID | Thinking |
+| --- | --- | --- |
+| Parent/orchestrator | `openai-codex/gpt-6-astra` | high |
+| Discovery/research | `openai-codex/gpt-5.6-luna` | medium |
+| Scoped implementation | `openai-codex/gpt-5.6-luna` | high |
+| Independent review, complex debugging or fallback | `openai-codex/gpt-5.6-sol` | high |
 
-`openai-codex/...` is a model-provider namespace **inside Pi**, not permission to select Paseo's `codex` harness or spawn the Codex CLI. Do not launch other harnesses through bash, native subagents, scripts or skill examples. Children never delegate, mutate Plane or integrate branches. Use `agent-worktree-lifecycle` for checkout and delivery rules.
+Use direct parent tools for bounded work; delegate only when isolation or independent evidence earns the overhead. Children never delegate, mutate Plane or integrate branches. Writers use separate managed worktrees under `agent-worktree-lifecycle`; a delegated writer replaces parent writing rather than duplicating it. Read-only children may share the caller workspace.
+
+Create visible Paseo children explicitly, for example `paseo run --background --provider pi --model openai-codex/gpt-5.6-luna --thinking high`, or `create_agent` with `provider: "pi/openai-codex/gpt-5.6-luna"` and `settings: {thinkingOptionId: "high"}`. Select the role's exact model/thinking, not an inherited default. The `openai-codex/` namespace is a model provider inside Pi, not permission to use the Codex harness. Do not launch other harnesses through bash, native subagents, scripts or skill examples.
+
+Use a neutral preflight prompt when creation immediately starts a run. Verify the returned harness is `pi` and the model/thinking match the requested role before sending task context; inspect agent metadata if creation omits these fields. On mismatch, cancel the child and report the blocker. If Pi, the selected GPT model or verifiable identity is unavailable, use direct parent tools only when safe or stop; no non-GPT or non-Pi fallback. Never send secrets or private context to an unverified route.
+
+Give each child only its scope, authority, relevant evidence and acceptance checks. Use completion notifications rather than polling. Allow at most one diagnosed transient retry or one focused correction; if still blocked, escalate once to Sol/high or report the blocker, without a model-switch loop. Security/data-integrity risks require fresh independent Sol/high review. Preserve required tests and authorization gates regardless of model.
+
+This is the delegation policy, not a provider-catalog rewrite or runtime sandbox. Do not change credentials, provider endpoints, user settings or install another harness to satisfy it. These are operational choices, not a universal model-quality or performance claim.
 
 ## Find and change code
 
