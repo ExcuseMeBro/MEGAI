@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MEGAI slim: task-appropriate tools, explicit services, Plane-only policies.
+# MEGAI launcher: harness-neutral policies and local Headroom.
 set -euo pipefail
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 LIB="$MEGAI_HOME/lib"
@@ -8,26 +8,23 @@ LIB="$MEGAI_HOME/lib"
 
 usage() {
   cat <<'EOF'
-megai slim
+megai
   megai                         Check installed policy and worktree safety
-  cc | codex | pi | omp [args]   Launch without daemon/index preparation
-  install | update              Install/reuse the slim tool entries
+  cc | codex | pi | omp [args]  Launch with native argument forwarding
+  install | update              Install/reuse the shared tool entries
   status | doctor               Report core availability (no service startup)
-  wire cc|codex|pi|omp|path      Repair managed wiring; conflicts fail safely
-  start | stop [agent-memory]   Explicit memory daemon lifecycle
-  logs [agent-memory]           Follow memory log
+  wire cc|codex|pi|omp|path     Repair managed wiring; conflicts fail safely
+  headroom doctor|compress|retrieve|recall|save [args]
+                                Local compression, retrieval and memory CLI
   reindex                       Explicit local zvec index/rebuild
   plane [args]                  Secure Plane connector setup/status/removal
-  dev                           Switch a clean primary main/master to dev
-  finish [args]                 Default verified dev delivery (not retained branches)
-  promote --approved            User-approved main promotion only
-  uninstall                     Detach owned slim wiring; retain tools/data
+  dev | finish | promote       Explicit branch lifecycle commands
+  uninstall                     Detach owned wiring; retain tools and data
   version | help
 
-Stack: tgrep, codedb, zvec-grep, rtk, Plane-only task-flow, Ruff, agent-memory,
+Stack: tgrep, codedb, zvec-grep, local Headroom, Plane-only task-flow, Ruff,
        agent-worktree-lifecycle, ux-ui-agent-skills, Matt Pocock's skills.
 Defaults: tgrep text (rg fallback), codedb structure, zvec intent.
-Infrastructure: native tools, rg/Git, lazy Pi MCP adapter.
 EOF
 }
 
@@ -39,17 +36,16 @@ cmd_wire() {
 }
 
 prepare_core() {
-  # Check rather than rewriting global config on every launch. No Plane API call:
-  # the parent agent owns its task boundary, not this shell launcher.
   python3 "$LIB/slim_wiring.py" all --verify
   bash "$LIB/ensure_dev.sh" --launch
-  ok "slim ready — memory/indexing start only on explicit request"
+  ok "MEGAI ready — Headroom/search run only when requested"
 }
 
 launch_agent() {
   local agent="$1" bin="$2"; shift 2
   command -v "$bin" >/dev/null 2>&1 || die "$bin is not installed; install/authenticate that harness separately"
-  python3 "$LIB/slim_wiring.py" "$agent" --verify
+  # Validate all owned wiring before every native launch; never alter native args.
+  python3 "$LIB/slim_wiring.py" all --verify
   bash "$LIB/ensure_dev.sh" --launch
   exec "$bin" "$@"
 }
@@ -67,100 +63,61 @@ cmd_omp() {
 
 cmd_status() {
   local tool
-  for tool in tgrep codedb zg rtk ruff agentmemory git rg; do
+  for tool in tgrep codedb zg ruff git rg; do
     if command -v "$tool" >/dev/null 2>&1; then ok "$tool -> $(command -v "$tool")"; else warn "$tool missing"; fi
   done
-  echo "Memory, tgrep server/index and zvec indexes are explicit/on demand. Plane: megai plane status --client all"
+  if [ -x "$MEGAI_HOME/bin/megai-headroom" ]; then ok "headroom -> $MEGAI_HOME/bin/megai-headroom"; else warn "headroom wiring missing"; fi
+  echo "Headroom, tgrep server/index and zvec indexes are explicit/on demand. Plane: megai plane status --client all"
 }
 
 cmd_doctor() {
   cmd_status
   python3 "$LIB/slim_wiring.py" all --verify
   local tool
-  for tool in python3 node jq git rg tgrep codedb zg rtk ruff agentmemory; do command -v "$tool" >/dev/null 2>&1 || die "$tool required"; done
+  for tool in python3 node jq git rg tgrep codedb zg ruff; do command -v "$tool" >/dev/null 2>&1 || die "$tool required"; done
+  [ -x "$MEGAI_HOME/bin/megai-headroom" ] || die "Headroom CLI missing; run megai install"
   [ -f "$MEGAI_HOME/ux-ui-agent-skills/package.json" ] && [ -f "$MEGAI_HOME/ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md" ] || die "UX/UI kit is incomplete; run megai install"
   [ -d "$MEGAI_HOME/mattpocock-skills/skills" ] && find "$MEGAI_HOME/mattpocock-skills/skills" -type f -name SKILL.md -print -quit | grep -q . || die "Matt skill kit is incomplete; run megai install"
-  local ruff_version
-  ruff_version="$(ruff --version)" || die "Ruff version check failed"
+  local ruff_version; ruff_version="$(ruff --version)" || die "Ruff version check failed"
   [[ "$ruff_version" == ruff\ * ]] || die "Ruff returned invalid version output"
-  ok "slim wiring preflight passed; not a provider, model-quality, or live Plane check"
+  ok "MEGAI wiring preflight passed; not a provider, model-quality, or live Plane check"
 }
 
-cmd_start() (
-  [ "${1:-agent-memory}" = agent-memory ] || die "only agent-memory is daemonized"
-  command -v agentmemory >/dev/null 2>&1 || die "agent-memory missing; run megai install"
-  local port
-  port="$(state_get '.ports["agent-memory"]')"; port="${port:-3111}"
-  [[ "$port" =~ ^[0-9]{1,5}$ ]] && (( 10#$port >= 1 && 10#$port <= 65535 )) || die "invalid local memory port"
-  if curl -fsS --connect-timeout 3 --max-time 5 "http://127.0.0.1:$port/agentmemory/livez" | jq -e '.service == "agentmemory" and .status == "ok"' >/dev/null 2>&1; then
-    ok "agent-memory service already available on :$port"; return
-  fi
-  if lsof -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then die "port $port occupied; reconcile before starting memory"; fi
-  local record="$MEGAI_HOME/memory-process.json"
-  [ ! -e "$record" ] && [ ! -L "$record" ] && [ ! -e "$MEGAI_HOME/agent-memory.pid" ] || die "existing memory process record preserved; reconcile before starting another daemon"
-  mkdir -p "$MEGAI_HOME/logs"
-  local pid="" registered_pid args started tmp=""
-  # Until the record is published, this invocation owns cleanup of its child.
-  trap 'rc=$?; trap - EXIT; if [ -n "$pid" ] && ! { [ ! -L "$record" ] && [ "$tmp" -ef "$record" ]; }; then kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi; [ -z "$tmp" ] || rm -f "$tmp"; exit "$rc"' EXIT
-  trap 'exit 130' INT
-  trap 'exit 143' TERM
-  nohup agentmemory --port "$port" >"$MEGAI_HOME/logs/agent-memory.log" 2>&1 &
-  pid=$!
-  sleep 1
-  kill -0 "$pid" 2>/dev/null || die "memory exited; see megai logs"
-  args="$(ps -p "$pid" -o command=)"
-  started="$(ps -p "$pid" -o lstart=)"
-  tmp="$(mktemp "$record.XXXXXX")"
-  jq -cn --argjson pid "$pid" --arg args "$args" --arg started "$started" '{pid:$pid,args:$args,started:$started}' >"$tmp"
-  # Hard-link publication is atomic and refuses a concurrent process record.
-  ln "$tmp" "$record"
-  registered_pid="$pid"; pid="" # publication transfers ownership to the record
-  rm -f "$tmp"
-  trap - EXIT INT TERM
-  ok "memory started (pid=$registered_pid, port=$port); megai-memory uses bounded HTTP calls"
-)
-
-cmd_stop() {
-  [ "${1:-agent-memory}" = agent-memory ] || die "only agent-memory is daemonized"
-  local pid file="$MEGAI_HOME/memory-process.json" args started
-  [ -f "$file" ] || { skip "no slim-owned process record; legacy/untracked processes are preserved"; return; }
-  [ ! -L "$file" ] && [ -O "$file" ] || die "unsafe process record; reconcile manually"
-  pid="$(jq -r '.pid' "$file")"
-  [[ "$pid" =~ ^[0-9]+$ ]] && [ "$pid" -gt 1 ] || die "invalid PID; reconcile manually"
-  args="$(ps -p "$pid" -o command= 2>/dev/null || true)"
-  started="$(ps -p "$pid" -o lstart= 2>/dev/null || true)"
-  [ -n "$args" ] && [ "$args" = "$(jq -r '.args' "$file")" ] && [ "$started" = "$(jq -r '.started' "$file")" ] || die "PID identity changed or process exited; record preserved for reconciliation"
-  case "$args" in *agentmemory*'--port '*) kill "$pid"; rm -f "$file" ;; *) die "memory PID ownership uncertain; process preserved" ;; esac
+cmd_headroom() {
+  [ "$#" -gt 0 ] || die "headroom expects doctor, compress, retrieve, recall, or save"
+  case "$1" in doctor|compress|retrieve|recall|save) ;; *) die "unknown Headroom action: $1" ;; esac
+  exec "$MEGAI_HOME/bin/megai-headroom" "$@"
 }
+
+cmd_start() { die "agent-memory is retired; use megai headroom recall/save"; }
+cmd_stop() { die "agent-memory is retired; use megai headroom recall/save"; }
+cmd_logs() { die "agent-memory is retired; use megai headroom doctor"; }
 
 cmd_reindex() {
   command -v zg >/dev/null 2>&1 || die "zvec-grep missing; run megai install"
-  local root embedding
-  root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-  if [ -f "$root/.zvec-grep/manifest.json" ]; then
-    zg index "$root" --rebuild
+  local root embedding; root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  if [ -f "$root/.zvec-grep/manifest.json" ]; then zg index "$root" --rebuild
   else
     embedding="${MEGAI_ZVEC_EMBEDDING:-local/potion-code-16m-v2}"
-    case "$embedding" in local/*) ;; *) die "slim does not authorize remote embedding; configure it separately after explicit review" ;; esac
+    case "$embedding" in local/*) ;; *) die "remote embedding requires explicit separate authorization" ;; esac
     zg index "$root" --embedding "$embedding"
   fi
 }
 
 cmd_uninstall() {
   local answer
-  warn "Detach owned slim policies/proxy? Tools, credentials, indexes and MEGAI data remain. [y/N]"
-  read -r answer
-  [ "$answer" = y ] || return 0
-  # Refuse skill, policy and shell-rc conflicts before changing the connector.
+  warn "Detach owned MEGAI wiring? Tools, credentials, indexes and data remain. [y/N]"
+  read -r answer; [ "$answer" = y ] || return 0
   python3 "$LIB/slim_wiring.py" all --remove --check
   python3 "$LIB/retire_legacy_sources.py" --check
+  # Detach connectors before any asset retirement; a failure preserves every asset.
+  bash "$LIB/plane_mcp.sh" remove --client all || die "Plane removal failed; assets preserved"
   bash "$LIB/retire_argent.sh"
   bash "$LIB/retire_numasec.sh"
   bash "$LIB/retire_openspec.sh"
   python3 "$LIB/retire_legacy_sources.py"
-  bash "$LIB/plane_mcp.sh" remove --client all || die "Plane removal failed; assets preserved"
-  python3 "$LIB/slim_wiring.py" all --remove || die "Slim removal failed; recovery manifests and Plane restore backups retained. Reconcile, then use megai plane restore --client all if needed."
-  ok "slim wiring detached; tools, skill kits, backups and project data retained"
+  python3 "$LIB/slim_wiring.py" all --remove || die "Wiring removal failed; recovery manifests retained"
+  ok "MEGAI wiring detached; tools, skill kits, backups and project data retained"
 }
 
 case "${1:-__project__}" in
@@ -173,9 +130,10 @@ case "${1:-__project__}" in
   wire) shift; cmd_wire "$@" ;;
   status) cmd_status ;;
   doctor) cmd_doctor ;;
+  headroom) shift; cmd_headroom "$@" ;;
   start) shift; cmd_start "$@" ;;
   stop) shift; cmd_stop "$@" ;;
-  logs) [ "${2:-agent-memory}" = agent-memory ] || die "only agent-memory logs are in slim"; tail -f "$MEGAI_HOME/logs/agent-memory.log" ;;
+  logs) shift; cmd_logs "$@" ;;
   reindex) cmd_reindex ;;
   plane) shift; bash "$LIB/plane_mcp.sh" "$@" ;;
   dev) bash "$LIB/ensure_dev.sh" ;;

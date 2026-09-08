@@ -139,6 +139,26 @@ grep -q 'megai-plane-managed' "$CODEX_HOME/config.toml"
 grep -q 'command = "keep-me"' "$CODEX_HOME/config.toml"
 python3 -c 'import sys,tomllib; tomllib.load(open(sys.argv[1], "rb"))' "$CODEX_HOME/config.toml"
 [ "$(find "$MEGAI_HOME/backups" -type f -name 'codex-plane-mcp.config.bak.*' | wc -l | tr -d ' ')" = 1 ]
+# CC and OMP use the verified stdio bridge shape; config contains a token path,
+# never the token. OMP profiles remain target-specific.
+jq -e --arg helper "$MEGAI_HOME/lib/plane_mcp_remote.py" \
+  '.mcpServers.plane.command == "python3" and .mcpServers.plane.args == [$helper,"--token-file",$token,"--workspace","brodev"]' \
+  --arg token "$TOKEN_FILE" "$HOME/.claude.json" >/dev/null
+jq -e --arg helper "$MEGAI_HOME/lib/plane_mcp_remote.py" \
+  '.mcpServers.plane.command == "python3" and .mcpServers.plane.args[0] == $helper and .mcpServers.plane.args[1] == "--token-file"' \
+  "$HOME/.omp/agent/mcp.json" >/dev/null
+! grep -Fq "$TOKEN" "$HOME/.claude.json" "$HOME/.omp/agent/mcp.json"
+CC_BEFORE="$TMP/cc-before"; cp "$HOME/.claude.json" "$CC_BEFORE"
+cp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/pi-before-all"
+cp "$HOME/.omp/agent/mcp.json" "$TMP/omp-before-all"
+printf '{"mcpServers":{"plane":{"command":"custom"}}}\n' >"$HOME/.claude.json"
+if run_plane setup --workspace brodev --token-file "$TOKEN_FILE" --client all >/dev/null 2>&1; then exit 1; fi
+cmp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/pi-before-all"
+cmp "$HOME/.omp/agent/mcp.json" "$TMP/omp-before-all"
+cp "$CC_BEFORE" "$HOME/.claude.json"
+OMP_PROFILE=work run_plane setup --workspace brodev --token-file "$TOKEN_FILE" --client omp >/dev/null
+[ -f "$HOME/.omp/profiles/work/agent/mcp.json" ]
+! grep -Fq "$TOKEN" "$HOME/.omp/profiles/work/agent/mcp.json"
 mkdir -p "$BRIDGE_ROOT/node_modules/mcp-remote/dist"
 printf 'fixture-lock\n' >"$BRIDGE_ROOT/package-lock.json"
 printf 'fixture-entry\n' >"$BRIDGE_ROOT/node_modules/mcp-remote/dist/proxy.js"
@@ -199,6 +219,30 @@ cp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/repeat-before"
 run_plane setup --workspace brodev --token-file "$TOKEN_FILE" >/dev/null
 cmp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/repeat-before"
 [ "$(find "$MEGAI_HOME/backups" -type f -name 'pi-plane-mcp.config.bak.*' | wc -l | tr -d ' ')" = 3 ]
+# Late OMP commit failure rolls back already-published Pi/Codex/CC targets.
+[ -f "$HOME/.claude.json" ] || printf '{}\n' >"$HOME/.claude.json"
+[ -f "$HOME/.omp/agent/mcp.json" ] || { mkdir -p "$HOME/.omp/agent"; printf '{}\n' >"$HOME/.omp/agent/mcp.json"; }
+cp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/late-pi-before"
+cp "$CODEX_HOME/config.toml" "$TMP/late-codex-before"
+cp "$HOME/.claude.json" "$TMP/late-cc-before"
+cp "$HOME/.omp/agent/mcp.json" "$TMP/late-omp-before"
+if HOME="$HOME" MEGAI_HOME="$MEGAI_HOME" CODEX_HOME="$CODEX_HOME" PI_CODING_AGENT_DIR="$PI_CODING_AGENT_DIR" \
+  bash -c 'source "$0/lib/plane_mcp.sh"; eval "$(declare -f generic_commit | sed "s/^generic_commit ()/generic_commit_original ()/")"; generic_commit() { [ "$3" = omp ] && return 17; generic_commit_original "$@"; }; plane_setup --workspace late-rollback --token-file "$1" --client all' "$ROOT" "$TOKEN_FILE" >/dev/null 2>&1; then
+  exit 1
+fi
+cmp "$PI_CODING_AGENT_DIR/mcp.json" "$TMP/late-pi-before"
+cmp "$CODEX_HOME/config.toml" "$TMP/late-codex-before"
+cmp "$HOME/.claude.json" "$TMP/late-cc-before"
+cmp "$HOME/.omp/agent/mcp.json" "$TMP/late-omp-before"
+# A concurrent Pi edit is preserved rather than overwritten during rollback.
+if HOME="$HOME" MEGAI_HOME="$MEGAI_HOME" CODEX_HOME="$CODEX_HOME" PI_CODING_AGENT_DIR="$PI_CODING_AGENT_DIR" \
+  bash -c 'source "$0/lib/plane_mcp.sh"; eval "$(declare -f generic_commit | sed "s/^generic_commit ()/generic_commit_original ()/")"; generic_commit() { if [ "$3" = omp ]; then printf "{\"concurrent\":true}\\n" >"$PI_CODING_AGENT_DIR/mcp.json"; return 17; fi; generic_commit_original "$@"; }; plane_setup --workspace concurrent-rollback --token-file "$1" --client all' "$ROOT" "$TOKEN_FILE" >/dev/null 2>&1; then
+  exit 1
+fi
+jq -e '.concurrent == true' "$PI_CODING_AGENT_DIR/mcp.json" >/dev/null
+cmp "$CODEX_HOME/config.toml" "$TMP/late-codex-before"
+cp "$TMP/late-pi-before" "$PI_CODING_AGENT_DIR/mcp.json"
+cmp "$HOME/.claude.json" "$TMP/late-cc-before"
 
 # Owned-entry customizations, including disabled state, survive setup refresh.
 jq '.mcpServers.plane.disabled = true | .mcpServers.plane.directTools = false | .mcpServers.plane.lifecycle = "keep-alive"' \

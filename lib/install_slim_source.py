@@ -10,6 +10,10 @@ from retire_legacy_sources import RETIRED_PATHS, stage_retirements
 source = Path(sys.argv[1]).resolve()
 plan = Plan()
 stage_retirements(plan)
+# These legacy entrypoints are intentionally absent from the active source
+# publication; their receipt-owned bytes are archived by the same plan.
+for relative in ("lib/install_agent_memory.sh", "lib/install_rtk.sh", "lib/install_caveman.sh", "pi-skill/extensions/memory.sh"):
+    plan.retire(MEGAI / relative)
 executables = []
 for folder in ("bin", "lib", "pi-skill", "omp-skill", "task-flow", "skills"):
     for path in sorted((source / folder).rglob("*")):
@@ -18,8 +22,10 @@ for folder in ("bin", "lib", "pi-skill", "omp-skill", "task-flow", "skills"):
         if not path.is_file() or "__pycache__" in path.parts:
             continue
         relative = path.relative_to(source)
-        if relative.as_posix() in RETIRED_PATHS:
-            raise SystemExit(f"unexpected retired source: {relative}")
+        if relative.as_posix() in RETIRED_PATHS or relative.as_posix() in {
+            "lib/install_agent_memory.sh", "lib/install_rtk.sh", "lib/install_caveman.sh", "pi-skill/extensions/memory.sh"
+        }:
+            continue
         target = MEGAI / relative
         if relative.as_posix() == "bin/megai" or (relative.parent == Path("lib") and relative.suffix == ".sh"):
             executables.append(target)

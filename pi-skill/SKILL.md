@@ -1,31 +1,62 @@
 ---
 name: megai
-description: MEGAI slim tgrep text discovery, codedb structure, zvec intent, explicit persistent memory, task-appropriate skills, and non-mutating Python verification.
+description: MEGAI shared discovery, local Headroom compression and explicit memory, Plane-only task boundaries, task-appropriate skills and non-mutating Python verification.
 managed-by: megai
 ---
 
-# MEGAI slim
+# MEGAI shared policy
 
-When the retained core `caveman` skill is enabled, default to its full chat style unless the user requests normal mode. Preserve the user's language, technical meaning, uncertainty and safety warnings; persisted artifacts, tests and authorization gates remain unchanged. Caveman companions and workflow bundles are not part of this core policy.
+Use this policy on Pi, Claude Code, Codex and OMP without changing the chosen
+provider, model or thinking level. Load only matching skills and respect explicit
+resource opt-outs. Headroom is local infrastructure, not a provider proxy or an
+effort router.
 
-## Find and change code
+## Defaults
 
-Tgrep is the default for literal/regex discovery. Before text search, read [tgrep.md](tgrep.md) for on-demand indexing, readiness and freshness rules. Use `rg` when the index is partial, freshness is uncertain, or native semantics are required. This is agent policy, not a shell alias or interception of tests/tools.
+- Define observable acceptance checks and a stop condition before edits.
+- Use tgrep for literal/regex discovery when ready, `megai-codedb` for structure,
+  and zvec-grep for intent. Use native `rg` and raw diagnostics for freshness,
+  absence, failures and acceptance evidence. Index only on demand.
+- Headroom supplies concise-output guidance, conservative discovery compression and
+  explicit persistent memory. Recall relevant prior decisions; save only when
+  persistence is requested. The native Pi adapter is automatic; on Claude Code,
+  Codex and OMP use the explicit local CLI documented below. If unavailable,
+  report it and retain raw context.
+- Apply Ruff non-mutating checks to changed Python with `ruff check --no-fix --no-fix-only --force-exclude --no-cache`, and use `ruff format --check --force-exclude --no-cache` when configured.
+  never write `pyproject.toml` for this check. Never pass `--fix`, and protect
+  projects with `fix-only = true`. Use matching engineering and UI/accessibility
+  skills only when the task calls for them.
+- Plane is the only execution tracker. Parents start/reuse the linked item and
+  hand off verified work in In Review; children do not mutate Plane or delegate.
 
-Codedb is default core structural lookup: use `megai-codedb symbol NAME`, `megai-codedb outline FILE`, and `megai-codedb tree PATH` when relevant. Index only when the task needs it (`megai-codedb index PATH`); never prewarm on startup. Preserve existing index data. Use tgrep for text discovery and native reads/edits; use the documented `rg` fallback when needed. When location or wording is unknown, use local `zg query "intent"` or `zg query --fts "symbol"`, then read the relevant ranges. Ground impact claims in code/references, not search snippets alone. Review the diff and verify observable task acceptance; fewer tools do not justify weaker tests, thinking, trust or review.
+## Headroom matrix
 
-`megai reindex` explicitly initializes/rebuilds the local zvec index. Startup never prewarms it. Remote embedding requires separate explicit authorization; preserve existing index configuration/data.
+| Harness | Compression and retrieval | Memory |
+| --- | --- | --- |
+| Pi | Automatic native extension for eligible successful discovery; `headroom_retrieve` tool for exact pages | `headroom_memory` tool |
+| Claude Code | Explicit `megai headroom compress/retrieve` CLI; no interception hook | `megai headroom recall/save` |
+| Codex | Explicit `megai headroom compress/retrieve` CLI; no API rewrite | `megai headroom recall/save` |
+| OMP | Explicit `megai headroom compress/retrieve` CLI; native `--profile` remains intact | `megai headroom recall/save` |
 
-## Persistent memory
+The shared CLI accepts bounded JSON on stdin for multi-field operations:
 
-Start only when needed: `megai start agent-memory`. Use `megai-memory recall "decision"` for relevant prior decisions and `megai-memory save "decision"` only when persistence is requested. Keep secrets and personal data out of memory. HTTP calls have bounded connection/total timeouts; unavailable memory is not authority to invent context.
+```bash
+printf '%s' '{"action":"compress","text":"..."}' | megai-headroom json
+megai headroom retrieve ID
+megai headroom recall "relevant decision"
+megai headroom save "decision to persist"
+megai headroom doctor
+```
 
-## Task-specific skills and verification
+`headroom_retrieve` returns exact originals in pages and never licenses inference
+from a missing original. Native session/source remains authoritative. `MEGAI_HEADROOM=0`
+disables Pi automation; `/headroom-verbosity 0` or normal mode disables guidance.
 
-Use the requested Matt Pocock engineering skill or plugin87 UI/UX skill only when the task matches; load the body on demand, not entire kits or review chains. UX work retains accessibility semantics and task-relevant tests. For security/data-integrity risks or consequential cross-module changes, get fresh independent review. Visual/app testing is explicit-only.
+## Safety and delivery
 
-For task-changed Python files, run `ruff check --no-fix --no-fix-only --force-exclude --no-cache -- <files>`. When repository formatting matches Ruff, also run `ruff format --check --force-exclude --no-cache -- <files>`. Keep project configuration and unrelated files untouched; never write `pyproject.toml` for this check. Never pass `--fix`; `--no-fix-only` also protects projects with `fix-only = true`. No automatic fixes or broad cleanup.
-
-`rtk` is a command-output helper, not a quality gate. Use raw output for failing diagnostics or whenever compression might hide acceptance evidence. Follow repository test commands and preserve their exit status.
-
-The parent uses `megai-task-flow` for Plane-only boundaries and `agent-worktree-lifecycle` for isolated writes and agreed branch delivery. Preserve provider/model/thinking/auth, user configuration and existing data. Report measured evidence and gaps; resource counts alone do not prove speed or quality.
+Do not rewrite provider requests, auth, models, thinking, session history or user
+resources. Do not start daemons or indexes at harness startup. Preserve ambiguity,
+custom registrations, credentials, hooks and data; migration refuses conflicts and
+keeps private backups. Tests, full diffs and raw failure diagnostics outrank any
+compressed summary. Use `agent-worktree-lifecycle` for isolated writes and the
+agreed branch. Main promotion requires explicit user approval.

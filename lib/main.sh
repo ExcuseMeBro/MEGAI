@@ -19,8 +19,9 @@ detect_runtimes
 [ "$MEGAI_HAS_CURL" = "1" ] || die "curl required"
 [ "$MEGAI_HAS_PY" = "1" ] || die "Python 3.11+ required for safe policy/config validation"
 python3 -c 'import tomllib' || die "Python 3.11+ required"
-# Validate migration before any third-party installer or config mutation.
-python3 "$LIB/slim_wiring.py" all --check --install-preflight
+# Validate every selected client and every retirement manifest before any
+# third-party installer, source publication, or config mutation.
+python3 "$LIB/slim_wiring.py" all --check
 python3 "$LIB/retire_legacy_sources.py" --check
 command -v git >/dev/null 2>&1 || die "Git required"
 command -v rg >/dev/null 2>&1 || die "ripgrep required; install rg before retrying"
@@ -32,24 +33,26 @@ ok "$MEGAI_OS/$MEGAI_ARCH (node=$MEGAI_HAS_NODE py=$MEGAI_HAS_PY jq=$MEGAI_HAS_J
 state_init
 ok "state initialized -> $MEGAI_HOME/state.json"
 
-# Retire only verified MEGAI-owned legacy registrations and source files.
+step 2 7 "Installing isolated Headroom runtime"
+if [ "${MEGAI_HEADROOM_PREPARED:-0}" != 1 ]; then
+  bash "$LIB/install_headroom.sh" || die "Headroom install failed"
+fi
+state_set '.tools.headroom' '{"installed":true,"version":"0.37.0","mode":"local-library"}'
+
+# Retire only verified MEGAI-owned legacy registrations and source files,
+# after Headroom is ready and before publication/wiring cleanup.
 bash "$LIB/retire_argent.sh"
 bash "$LIB/retire_numasec.sh"
 bash "$LIB/retire_openspec.sh"
 python3 "$LIB/retire_legacy_sources.py"
-
-step 2 7 "Installing agent-memory (daemon starts only on request)"
-bash "$LIB/install_agent_memory.sh" || die "agent-memory install failed"
 
 step 3 7 "Installing core search (indexing starts only on request)"
 bash "$LIB/install_tgrep.sh" || die "tgrep install failed"
 bash "$LIB/install_zvec_grep.sh" || die "zvec-grep install failed"
 bash "$LIB/install_codedb.sh" || die "codedb install failed"
 
-step 4 7 "Installing rtk, Ruff, and requested skill kits"
-bash "$LIB/install_rtk.sh" || die "rtk install failed"
+step 4 7 "Installing Ruff and requested skill kits"
 bash "$LIB/install_ruff.sh" || die "Ruff install failed"
-bash "$LIB/install_caveman.sh" || die "Caveman core install failed"
 bash "$LIB/install_ux_ui_agent_skills.sh" || die "ux-ui-agent-skills install failed"
 bash "$LIB/install_mattpocock_skills.sh" || die "Matt Pocock skills install failed"
 
@@ -68,19 +71,26 @@ bash "$LIB/wire_pi.sh"    || die "Pi wiring failed"
 bash "$LIB/wire_omp.sh"   || die "OMP wiring failed"
 bash "$LIB/wire_path.sh"  || warn "PATH wiring skipped"
 
-for tool in agentmemory tgrep zg codedb rtk ruff; do
+for tool in tgrep zg codedb ruff; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after installation; slim is not ready"
 done
 [ -f "$MEGAI_HOME/ux-ui-agent-skills/package.json" ] || die "UX/UI kit missing after installation"
 [ -d "$MEGAI_HOME/mattpocock-skills/skills" ] || die "Matt skill kit missing after installation"
 python3 "$LIB/slim_wiring.py" all --verify
-ok "MEGAI slim core ready"
+if command -v pi >/dev/null 2>&1 && bash "$LIB/verify_headroom_activation.sh"; then
+  ok "MEGAI core ready; native Pi Headroom activation verified"
+else
+  activation_status=$?
+  [ "$activation_status" = 2 ] || [ ! -x "$LIB/verify_headroom_activation.sh" ] || warn "Headroom installed; native Pi activation is inactive or unavailable (resources preserved)"
+  ok "MEGAI core ready; Headroom inactive status reported honestly"
+fi
 echo
 echo "    Open a new shell (or 'source ~/.zshrc') so PATH picks up megai/bin"
 echo "    megai           # verify the current Git worktree and Plane wiring"
 echo "    megai cc|codex|pi|omp  # launch without service/index warmup"
-echo "    megai start agent-memory  # start memory explicitly when needed"
+echo "    megai headroom doctor   # verify local compression and memory runtime"
+echo "    megai headroom recall 'query'      # explicit local memory"
+echo "    megai headroom save 'text'         # only when persistence is requested"
 echo "    megai reindex            # rebuild zvec explicitly when needed"
-echo "    tgrep status .           # check text index readiness without starting it"
 echo "    Existing user config, project data, indexes, and credentials are preserved."
 echo

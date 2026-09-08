@@ -36,7 +36,7 @@ class Slim(unittest.TestCase):
         for key in ("HOME", "MEGAI_HOME", "PI_CODING_AGENT_DIR", "CODEX_HOME"):
             self.assertTrue(Path(self.env[key]).is_relative_to(self.root))
         (self.bin / "python3").symlink_to(sys.executable)
-        for name in ("tgrep", "codedb", "zg", "rtk", "ruff", "agentmemory", "pi", "omp", "claude", "codex", "npm", "npx", "curl", "node"):
+        for name in ("tgrep", "codedb", "zg", "ruff", "pi", "omp", "claude", "codex", "npm", "npx", "curl", "node"):
             self.stub(name, 'printf "%s\\n" "$0 $*" >>"$HOME/calls"\nexit 0\n')
         (self.megai / "state.json").write_text('{"tools":{},"agents":{},"ports":{"agent-memory":3111},"keep":{"value":42}}\n')
         self.project = self.root / "project"
@@ -85,7 +85,7 @@ class Slim(unittest.TestCase):
         proxy = json.loads((self.home / ".pi/agent/mcp.json").read_text())["mcpServers"]["zvec_grep"]
         self.assertEqual(proxy["lifecycle"], "lazy")
         self.assertTrue((self.home / ".agents/skills/megai-task-flow/SKILL.md").is_file())
-        self.assertTrue(os.access(self.megai / "bin/megai-memory", os.X_OK))
+        self.assertTrue(os.access(self.megai / "bin/megai-headroom", os.X_OK))
         self.assertFalse((self.home / ".claude/hooks").exists())
         self.assertEqual((self.legacy / "sentinel").read_text(), "historical private board, never touched\n")
         self.wire("--remove")
@@ -114,9 +114,8 @@ class Slim(unittest.TestCase):
         self.assertEqual(settings["defaultThinkingLevel"], "high")
         self.assertEqual(settings["packages"], ["user-extension"])
         self.assertIn("user-skill", settings["skills"])
-        self.assertIn("!caveman*", settings["skills"])
-        self.assertIn("!cavecrew", settings["skills"])
-        self.assertEqual(sum(item.endswith("/.agents/skills/caveman/SKILL.md") for item in settings["skills"]), 1)
+        self.assertTrue(any(item.endswith("/.agents/skills/**") and item.startswith("!") for item in settings["skills"]))
+        self.assertTrue((self.home / ".pi/agent/skills/megai/SKILL.md").is_file())
         self.assertTrue((self.home / ".pi/agent/AGENTS.md").read_text().startswith("User policy stays exactly.\n"))
         before = self.snapshot()
         self.wire()
@@ -170,6 +169,24 @@ class Slim(unittest.TestCase):
         self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), "all", ok=False, env=env)
         self.assertFalse((self.megai / "slim-wiring.json").exists())
 
+    def test_all_harnesses_share_policy_and_pi_uses_native_headroom(self):
+        self.wire()
+        for path in (
+            self.home / ".claude/CLAUDE.md",
+            self.home / ".codex/AGENTS.md",
+            self.home / ".pi/agent/AGENTS.md",
+            self.home / ".omp/agent/RULES.md",
+        ):
+            self.assertIn("Headroom", path.read_text())
+            self.assertNotIn("GPT-only", path.read_text())
+        for name in ("index.ts", "bridge.py", "assets.py", "persistence.py"):
+            self.assertTrue((self.home / ".pi/agent/extensions/megai-headroom" / name).is_file())
+        settings = json.loads((self.home / ".pi/agent/settings.json").read_text())
+        self.assertTrue(any(value.startswith("!") and ".agents/skills/**" in value for value in settings["skills"]))
+        env = dict(self.env, OMP_PROFILE="work")
+        self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), "omp", env=env)
+        self.assertIn("Headroom", (self.home / ".omp/profiles/work/agent/RULES.md").read_text())
+
     def test_startup_all_harnesses_and_profile_do_not_prewarm(self):
         self.wire()
         before = self.snapshot()
@@ -177,7 +194,7 @@ class Slim(unittest.TestCase):
             self.run_cmd("bash", str(self.megai / "bin/megai"), client, "--version")
         self.run_cmd("bash", str(self.megai / "bin/megai"))
         calls = (self.home / "calls").read_text()
-        for name in ("zg", "agentmemory", "npm", "npx", "curl", "node", "rtk"):
+        for name in ("zg", "npm", "npx", "curl", "node"):
             self.assertNotIn(str(self.bin / name), calls)
         self.assertEqual(calls.count("branch-check"), 5)
         after = self.snapshot()
@@ -264,7 +281,7 @@ class Slim(unittest.TestCase):
         self.wire()
         self.write(self.megai / "ux-ui-agent-skills/package.json", '{}')
         (self.megai / "mattpocock-skills/skills").mkdir(parents=True)
-        selected = ("agent_memory", "tgrep", "zvec_grep", "codedb", "rtk", "ruff", "caveman", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
+        selected = ("headroom", "tgrep", "zvec_grep", "codedb", "ruff", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
         for path in (self.megai / "lib").glob("install_*.sh"):
             name = path.stem.removeprefix("install_")
             self.write(path, f'#!/bin/sh\necho install:{name} >>"$HOME/install-calls"\n')
@@ -318,19 +335,30 @@ try:p.apply(False)
 except ValueError:pass
 else:raise AssertionError('concurrent edit overwritten')
 assert first.read_bytes()==b'concurrent user edit'
+# A concurrent edit after one publication must also survive rollback.
+first.write_bytes(b'original')
+p=w.Plan();p.stage(first,b'new',b'original');p.stage(second,b'new',None)
+real=w.atomic_write; count=0
+def injected_after_publish(path,data):
+ global count
+ count+=1
+ if count==2:
+  first.write_bytes(b'concurrent after publish')
+  raise OSError('injected late write failure')
+ real(path,data)
+w.atomic_write=injected_after_publish
+try:p.apply(False)
+except OSError:pass
+else:raise AssertionError('late write failure swallowed')
+assert first.read_bytes()==b'concurrent after publish'
 '''
         self.run_cmd(sys.executable, "-c", code)
 
-    def test_memory_bridge_has_bounded_http_and_no_startup(self):
+    def test_headroom_cli_is_shared_and_no_legacy_daemon_startup(self):
         self.wire()
-        self.run_cmd(str(self.megai / "bin/megai-memory"), "recall", 'quoted " query')
-        calls = (self.home / "calls").read_text()
-        self.assertIn("--connect-timeout 3 --max-time 15", calls)
-        self.assertIn("smart-search", calls)
-        self.assertNotIn("agentmemory --port", calls)
-        for port in ("3111@remote.invalid", "0", "65536", "not-a-port"):
-            self.run_cmd(str(self.megai / "bin/megai-memory"), "recall", "private-test", ok=False, env=dict(self.env, AGENTMEMORY_PORT=port))
-        self.assertEqual((self.home / "calls").read_text(), calls)
+        self.assertTrue((self.megai / "bin/megai-headroom").is_file())
+        self.run_cmd("bash", str(self.megai / "bin/megai"), "start", ok=False)
+        self.assertFalse((self.home / "calls").exists())
 
     def test_matt_source_and_custom_skill_preservation(self):
         source = self.root / "matt-source"
@@ -373,11 +401,17 @@ assert first.read_bytes()==b'concurrent user edit'
         retired_bytes = (ROOT / "tests/fixtures/retired-source/install_graphify.sh").read_bytes()
         retired.write_bytes(retired_bytes)
         previous = (self.megai / "bin/megai").read_bytes()
+        receipt = {str(path): hashlib.sha256(path.read_bytes()).hexdigest()
+                   for path in (self.megai / "lib/install_agent_memory.sh",
+                                self.megai / "lib/install_rtk.sh",
+                                self.megai / "lib/install_caveman.sh",
+                                self.megai / "pi-skill/extensions/memory.sh") if path.exists()}
+        (self.megai / "slim-wiring.json").write_text(json.dumps(receipt))
         self.run_cmd(sys.executable, str(self.megai / "lib/install_slim_source.py"), str(source))
         self.assertEqual((self.megai / "bin/user-tool").read_text(), "retain")
         self.assertEqual(foreign.stat().st_mode & 0o777, 0o600)
         self.assertFalse(retired.exists())
-        self.assertEqual((self.megai / "lib/install_caveman.sh").read_text(), "#!/bin/sh\necho caveman-helper\n")
+        self.assertFalse((self.megai / "lib/install_caveman.sh").exists())
         manifests = list((self.megai / "backups").glob("slim-wiring-*/manifest.json"))
         manifest = json.loads(manifests[0].read_text())
         self.assertEqual((manifests[0].parent / manifest[str(self.megai / "bin/megai")]).read_bytes(), previous)
@@ -440,12 +474,13 @@ assert first.read_bytes()==b'concurrent user edit'
         self.write(self.megai / "ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md", 'fixture')
         matt = self.write(self.megai / "mattpocock-skills/skills/example/SKILL.md", 'fixture')
         self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", env=env)
-        for path in (self.bin / "codedb", self.bin / "rtk", self.bin / "agentmemory", ui, matt):
+        for path in (self.bin / "codedb", ui, matt):
             hidden = path.with_name(path.name + ".hidden")
             path.rename(hidden)
             self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", ok=False, env=env)
             hidden.rename(path)
 
+    @unittest.skip("agent-memory lifecycle is retired; Headroom persistence is covered separately")
     def test_memory_identity_and_failed_start_cleanup(self):
         self.stub("curl", 'echo \'{"status":"ok","service":"not-memory"}\'\n')
         self.stub("lsof", 'exit 0\n')

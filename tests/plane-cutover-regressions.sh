@@ -101,7 +101,7 @@ PY
 
 # Uninstall must remove both connectors before asset removal and abort on error.
 mkdir -p "$TMP/home" "$TMP/install/lib"
-cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$ROOT/lib/detect.sh" "$ROOT/lib/banner.sh" "$ROOT/lib/slim_wiring.py" "$TMP/install/lib/"
+cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$ROOT/lib/detect.sh" "$ROOT/lib/banner.sh" "$ROOT/lib/slim_wiring.py" "$ROOT/lib/retire_legacy_sources.py" "$ROOT/lib/retired-source-hashes.json" "$TMP/install/lib/"
 cp -R "$ROOT/pi-skill" "$ROOT/task-flow" "$ROOT/skills" "$TMP/install/"
 printf '{"tools":{}}\n' >"$TMP/install/state.json"
 cat >"$TMP/install/lib/plane_mcp.sh" <<'SH'
