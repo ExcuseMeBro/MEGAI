@@ -15,12 +15,14 @@ class ModelPolicy(Slim):
         for model in ("gpt-6-astra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-5.6-terra"):
             self.assertIn("openai-codex/" + model, policy)
         self.assertTrue((agent / "extensions/megai-model-guard/index.ts").is_file())
+        self.assertTrue((agent / "extensions/megai-provider-guard/index.ts").is_file())
         before = self.snapshot()
         self.wire()
         self.assertEqual(self.snapshot(), before)
         self.wire("--remove")
         self.assertNotIn("megai:subagent-models:begin", (agent / "AGENTS.md").read_text())
         self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
+        self.assertFalse((agent / "extensions/megai-provider-guard/index.ts").exists())
 
     def test_timebox_and_escalation_policy_reaches_both_entrypoints(self):
         self.wire()
@@ -60,6 +62,13 @@ class ModelPolicy(Slim):
         self.assertEqual(self.snapshot(), after)
         self.run_cmd(*command, "--remove")
         self.assertEqual((agent / "AGENTS.md").read_text(), "Local Pi-only instructions stay.\n")
+
+    def test_custom_provider_guard_fails_without_writes(self):
+        agent = self.home / ".pi/agent"
+        self.write(agent / "extensions/megai-provider-guard/index.ts", "user code")
+        before = self.snapshot()
+        self.wire(ok=False)
+        self.assertEqual(self.snapshot(), before)
 
     def test_custom_guard_or_policy_fails_without_writes(self):
         agent = self.home / ".pi/agent"
