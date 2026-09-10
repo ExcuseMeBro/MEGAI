@@ -48,6 +48,25 @@ request, model selection, Plane mutation or startup daemon call.
 - Native harness configurations remain the source of provider/auth/model/thinking
   choices. RTK, Caveman and agent-memory are retired from the active defaults.
 
+## Pi provider stall protection
+
+Pi installs `megai-provider-guard`: a **180-second wall-time budget for a model
+request and its automatic retries**, not a task deadline. It aborts the provider
+wait with native Pi cancellation, preserves session/tool results, and records a
+metadata-only `megai-provider-timeout` entry. Successful responses disarm it;
+tool execution is never timed out by this extension, including nested model work
+inside a tool. No provider, model, thinking, credentials or retry settings change.
+
+`MEGAI_PROVIDER_TIMEOUT_MS` selects a different budget; `0` explicitly opts out.
+Existing extension filters still win. Reload/reopen Pi after installation;
+already-running processes do not acquire new extensions automatically. Do not
+restart a writer mid-mutation. This bounds waiting rather than making providers
+faster; after a timeout, reconcile saved evidence before resuming/escalating.
+
+Native `retry.provider.timeoutMs` alone is insufficient for this incident: the
+installed Codex SSE implementation times out headers, not the full response body.
+See `docs/audits/pi-provider-stalls.md` for evidence and offline verification.
+
 ## Headroom use and compatibility
 
 Pi has an automatic native extension. It compresses only eligible successful
