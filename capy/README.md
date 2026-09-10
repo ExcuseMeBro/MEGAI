@@ -14,6 +14,8 @@ verified in Capy. Existing MEGAI launchers and installers remain unchanged;
 
 - [instructions.md](instructions.md): portable acceptance-first workflow, Plane
   boundaries, isolated writes, verification and review handoff.
+- [benchmark/README.md](benchmark/README.md): proposed isolated Astra/high
+  comparison protocol; approve its public interfaces before implementing tests.
 - Add future Capy-specific documents and adapters under this directory. Keep
   shared runtime changes separate until their compatibility is tested and their
   delivery explicitly approved. Execution status stays in Plane, not a local board.
