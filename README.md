@@ -5,6 +5,12 @@ OMP**. It keeps the selected provider, model, thinking level, credentials, nativ
 arguments and user-owned resources unchanged. This branch is prepared for parent
 review; it does not promote itself to `main`.
 
+## Capy adaptation
+
+The persistent `capy` branch contains an experimental, manually supplied
+[Capy instructions pack](capy/README.md). It does not add a Capy launcher or
+installer, and does not imply native Pi-extension compatibility.
+
 ## Install
 
 The public installer defaults to the integrated distribution and preserves an
