@@ -1,0 +1,40 @@
+{
+  "task": "bugfix",
+  "arm": "pi-megai",
+  "baseline": "04c0bf4105d1734fecff2884446e227fd918fb0d",
+  "model": "openai-codex/gpt-6-astra",
+  "thinking": "high",
+  "verdict": "pass",
+  "acceptance_passed": 10,
+  "acceptance_total": 10,
+  "acceptance_exit_status": 0,
+  "participant_test_methods": 1,
+  "participant_exit_status": 0,
+  "task_submitted_utc": "2026-09-10T15:26:00.691Z",
+  "final_response_utc": "2026-09-10T15:27:30.337Z",
+  "task_seconds": 89.646,
+  "clock_source": "native Pi user-entry to final assistant-entry timestamps; setup excluded",
+  "evaluation_seconds": 0.049418,
+  "usage": {
+    "input": 25941,
+    "output": 1625,
+    "cacheRead": 145792,
+    "cacheWrite": 0,
+    "totalTokens": 173358
+  },
+  "model_requests": 13,
+  "runtime_estimated_cost_usd": 0.486452,
+  "actual_billed_cost": null,
+  "cost_basis": "sum of native Pi usage.cost.total after task submission; runtime pricing estimate, not invoice",
+  "human_interventions": 0,
+  "frozen_prompt_exact_match": true,
+  "scope_and_immutable_hashes": "pass",
+  "review": "parent inspected candidate diff and regression test; no findings; non-blind review",
+  "limitations": [
+    "One small task, no Capy result yet.",
+    "Local macOS/Python 3.14.6; Capy environment not yet verified.",
+    "Child skipped Ruff; evaluator checks it separately."
+  ],
+  "evaluator_ruff_lint_exit_status": 0,
+  "evaluator_ruff_format_exit_status": 0
+}
