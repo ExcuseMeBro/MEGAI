@@ -1,9 +1,10 @@
 # Capy vs Pi + MEGAI: isolated benchmark
 
-Protocol draft only: no fixtures, tests or measured runs exist yet. Approve the
-three public interfaces in [tasks.md](tasks.md) before tests are written. This is
-a small Python coding smoke benchmark, not evidence about large-repository work,
-UI quality, security work or general model superiority.
+The user approved the three public interfaces in [tasks.md](tasks.md). Starters,
+32 acceptance test methods and [per-task prompts](RUN.md) are now available.
+No participant trial results are claimed by this preparation pack. This is a small
+Python coding smoke benchmark, not evidence about large-repository work, UI
+quality, security work or general model superiority.
 
 ## Comparison arms
 

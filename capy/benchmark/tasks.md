@@ -1,8 +1,8 @@
 # Proposed benchmark interfaces
 
-Approval gate: these are proposed public seams, not implemented fixtures or test
-results. Confirm them before writing acceptance tests. Each task will have its
-own independent module; Python standard library only. Tests observe the public
+The user approved these public seams before acceptance tests were written.
+Each task has its own independent module under `cases/`; Python standard library
+only. These contracts define requirements, not participant results. Tests observe the public
 interface, including specified errors and input consumption, not private helpers.
 Inputs outside the domains stated below are out of scope.
 
