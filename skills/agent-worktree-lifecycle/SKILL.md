@@ -8,6 +8,15 @@ managed-by: megai
 
 The parent owns integration. Use one writer per registered managed worktree; readers may share that worktree read-only. Select Pi explicitly and verify the returned harness/model/thinking before task context; follow `megai`'s Pi-only delegation contract. Children never create agents, mutate trackers or integrate branches.
 
+## Existing projects only
+
+Work inside the user's existing Paseo project: project → task workspace → agent
+tabs. "Canonical" means resolving that existing identity, not creating a project
+named canonical or regrouping/renaming the user's projects. This applies to every
+project, not only MEGAI. Missing or ambiguous identity is BLOCKED: ask the user to
+select/reconcile the existing project, rather than registering a replacement.
+Project creation or reorganization needs a separate explicit user request.
+
 ## One primary workspace at rest
 
 Before creating a task workspace, run `megai workspace --root CURRENT_CHECKOUT`.
@@ -23,8 +32,8 @@ Missing/ambiguous registration is BLOCKED; do not create another project to bypa
 2. Check the returned project ID, workspace ID and Git primary/common directory.
    Never pass a sibling checkout path as a new local project. Do not clone or run
    direct `git worktree add ../PROJECT-task` for agent work.
-3. Pass that explicit `workspaceId` to `create_agent`; never rely on implicit
-   top-level workspace creation. Writers use non-overlapping scopes. Readers share
+3. Open agent tabs with `create_agent` and that explicit `workspaceId`; never rely
+   on implicit top-level workspace creation. Writers use non-overlapping scopes. Readers share
    a managed workspace read-only, not a second project registration.
 4. Keep one primary workspace at rest. Additional workspaces represent unfinished
    isolated tasks, not permanent copies of the project. A separately approved

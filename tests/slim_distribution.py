@@ -97,8 +97,15 @@ class Slim(unittest.TestCase):
         for name in ("index.ts", "identity.mjs"):
             self.assertEqual((target / name).read_bytes(),
                              (ROOT / "pi-skill/workspace-guard" / name).read_bytes())
-        self.assertIn("canonical Git primary/Paseo project",
-                      (self.home / ".pi/agent/AGENTS.md").read_text())
+        policy = (self.home / ".pi/agent/AGENTS.md").read_text()
+        for clause in ("Use only existing Paseo projects", "resolve projectId",
+                       "verified workspaceId", "not a new project to create or rename",
+                       "Missing or ambiguous identity is BLOCKED", "every project"):
+            self.assertIn(clause, policy)
+        lifecycle = (self.home / ".pi/agent/skills/agent-worktree-lifecycle/SKILL.md").read_text()
+        self.assertIn("## Existing projects only", lifecycle)
+        self.assertIn("Project creation or reorganization needs a separate explicit user request", lifecycle)
+        self.assertIn("Open agent tabs with `create_agent`", lifecycle)
         before = self.snapshot()
         self.wire("--verify")
         self.wire()

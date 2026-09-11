@@ -54,6 +54,12 @@ try {
     cases++;
   };
   const valid = { isolation: 'worktree', projectId: 'prj-main', worktreeSlug: 'new-task', baseBranch: 'pi' };
+  // Project registration stays blocked even outside a Git checkout.
+  for (const toolName of ['paseo_create_project', 'paseo/create_project', 'create_project']) {
+    await check(toolName, { path: root, name: 'canonical' }, true, '/missing');
+  }
+  await check('mcp', { server: 'paseo', tool: 'create_project', args: { path: root } }, true);
+  await check('mcp__paseo', { tool: 'create-project', args: { path: root } }, true);
   // This exact accidental route created the real duplicate project.
   await check('mcp', { tool: 'paseo_create_workspace', args: { isolation: 'local', path: sibling } }, true);
   for (const cwd of [root, sibling, managed]) {

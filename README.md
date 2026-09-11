@@ -160,8 +160,13 @@ missing/stale evidence returns BLOCKED (2). `collect` produces a BLOCKED draft,
 never an automatic approval. Schema-2 bug fixes require captured red → green
 regression evidence. See the [CLI and trust limits](pi-skill/acceptance/reference.md).
 
-Each new task uses its own branch and managed Paseo worktree workspace under the
-canonical project, resolved by `megai workspace --root CHECKOUT`. After tests and
+Use only existing Paseo projects: project → task workspace → agent tabs. Resolve
+`projectId` with `megai workspace --root CHECKOUT`, create the managed task worktree
+under that ID, then pass its verified `workspaceId` to `create_agent`. "Canonical"
+means that existing project identity, not a new project or a rename. Missing or
+ambiguous identity blocks creation; ask the user rather than register a replacement.
+
+Each new task uses its own branch and managed worktree workspace. After tests and
 review, integrate to `dev`, verify delivery, archive the released task workspace
 and delete safely merged task branches. Keep one primary workspace at rest;
 concurrent unfinished tasks remain isolated until safely delivered. Preserve dirty
