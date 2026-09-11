@@ -1,0 +1,79 @@
+modelRoles:
+  # MiniMax-only: all write paths use MiniMax-M3 high thinking
+  default: minimax-code/MiniMax-M3:high
+  task: minimax-code/MiniMax-M3:high
+  smol: minimax-code/MiniMax-M2.7-highspeed:medium
+  tiny: minimax-code/MiniMax-M2.5-lightning:low
+  commit: minimax-code/MiniMax-M2.5-lightning:low
+  repo: minimax-code/MiniMax-M2.1-lightning:low
+  worker-fast: minimax-code/MiniMax-M2.7-highspeed:medium
+  worker-quality: minimax-code/MiniMax-M3:high
+  tests: minimax-code/MiniMax-M2.7-highspeed:medium
+  docker: minimax-code/MiniMax-M2.5-lightning:low
+  migration: minimax-code/MiniMax-M2.5:medium
+  worker-stable: minimax-code/MiniMax-M2.1:medium
+  worker-legacy: minimax-code/MiniMax-M2:low
+
+  # MiniMax review roles
+  plan: minimax-code/MiniMax-M3:high
+  slow: minimax-code/MiniMax-M3:high
+  advisor: minimax-code/MiniMax-M3:high
+  final: minimax-code/MiniMax-M3:high
+  vision: minimax-code/MiniMax-M2.7:medium
+  architecture: minimax-code/MiniMax-M3:high
+  terra: minimax-code/MiniMax-M2.7:medium
+  review: minimax-code/MiniMax-M3:high
+  luna: minimax-code/MiniMax-M2.1-lightning:low
+  scout: minimax-code/MiniMax-M2.1-lightning:low
+  debug: minimax-code/MiniMax-M3:high
+  long-context: minimax-code/MiniMax-M2.7:medium
+  review-fast: minimax-code/MiniMax-M2.7-highspeed:medium
+  trusted-fast: minimax-code/MiniMax-M2.5-lightning:low
+
+defaultThinkingLevel: high
+
+advisor:
+  enabled: false
+  syncBacklog: off
+
+task:
+  agentAdvisor: {}
+  agentModelOverrides:
+    task: minimax-code/MiniMax-M3:high
+    sonic: minimax-code/MiniMax-M2.5-lightning:low
+    scout: minimax-code/MiniMax-M2.1-lightning:low
+    cavecrew-investigator: minimax-code/MiniMax-M2.1-lightning:low
+    cavecrew-builder: minimax-code/MiniMax-M2.7-highspeed:medium
+    smart-router: minimax-code/MiniMax-M2.1-lightning:low
+    gpt-core-worker: minimax-code/MiniMax-M3:high
+    gpt-fast-worker: minimax-code/MiniMax-M2.7-highspeed:medium
+    reviewer: minimax-code/MiniMax-M3:high
+    cavecrew-reviewer: minimax-code/MiniMax-M2.7-highspeed:medium
+    security-reviewer: minimax-code/MiniMax-M3:high
+    librarian: minimax-code/MiniMax-M2.7:medium
+    designer: minimax-code/MiniMax-M2.7:medium
+    sol-gate: minimax-code/MiniMax-M3:high
+    gpt-debugger: minimax-code/MiniMax-M3:high
+    gpt-long-context: minimax-code/MiniMax-M2.7:medium
+    gpt-fast-reviewer: minimax-code/MiniMax-M2.7-highspeed:medium
+    gpt-trusted-fast: minimax-code/MiniMax-M2.5-lightning:low
+
+retry:
+  fallbackChains:
+    "minimax-code/MiniMax-M3":
+      - minimax-code/MiniMax-M2.7:high
+    "minimax-code/MiniMax-M2.7-highspeed":
+      - minimax-code/MiniMax-M2.5-highspeed:medium
+    "minimax-code/MiniMax-M2.7":
+      - minimax-code/MiniMax-M2.5:medium
+    "minimax-code/MiniMax-M2.5-highspeed":
+      - minimax-code/MiniMax-M2.1:medium
+    "minimax-code/MiniMax-M2.5-lightning":
+      - minimax-code/MiniMax-M2.1-lightning:low
+    "minimax-code/MiniMax-M2.5":
+      - minimax-code/MiniMax-M2.1:medium
+    "minimax-code/MiniMax-M2.1":
+      - minimax-code/MiniMax-M2:low
+    "minimax-code/MiniMax-M2.1-lightning":
+      - minimax-code/MiniMax-M2:low
+    "minimax-code/MiniMax-M2": []
