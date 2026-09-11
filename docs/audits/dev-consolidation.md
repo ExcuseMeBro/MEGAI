@@ -13,6 +13,13 @@ source/index-bound acceptance, schema-2 regression and collection flow, canonica
 identity guard, receipt-owned Pi-only resource wiring and corresponding tests.
 Existing CC/Codex/OMP behavior and newer Pi guards remain intact.
 
+Old task refs `1b5fe0c` (GPT-only delegation) and `bb94008` (tgrep default) are
+semantically superseded by the exact model guard/delegation policy and integrated
+pinned tgrep installer/freshness contract. Retain their ancestry in a history-only
+merge; do not reapply older policy or replace the corrected candidate tree.
+The separately released Appllama addition `2669943..da5214c` is also integrated,
+retaining its nine reviewed upstream/wrapper files and Pi-only receipt ownership.
+
 Merge Capy `1cbf148` as the workflow/benchmark pack, retaining frozen starter files
 and trial results. The unfinished acceptance-core files are superseded drafts;
 retain their exact bytes privately, not over the hardened implementation. Preserve

@@ -255,6 +255,13 @@ class Plan:
         for relative in ("SKILL.md", "reference.md", "contract.example.json"):
             self.asset(root / "skills/megai-acceptance" / relative,
                        (SOURCE / "pi-skill/acceptance" / relative).read_bytes(), remove)
+        skill = "appllama-app-design-skill"
+        for relative in ("SKILL.md", "PROVENANCE.md", "upstream/SKILL.md", "upstream/LICENSE",
+                         "upstream/references/image-assets.md", "upstream/references/motion.md",
+                         "upstream/references/native-controls.md", "upstream/references/performance.md",
+                         "upstream/references/simulator-loop.md"):
+            self.asset(root / "skills" / skill / relative,
+                       (SOURCE / "skills" / skill / relative).read_bytes(), remove)
 
     def retire_legacy_pi_assets(self, root: Path, remove: bool) -> None:
         """Retire only receipt-owned legacy Pi bridges and extension resources."""

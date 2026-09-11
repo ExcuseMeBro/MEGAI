@@ -141,6 +141,16 @@ are installed, preventing duplicate MEGAI skill resolution. Codex/CC/OMP retain
 their native/shared destinations and explicit filters. User opt-outs remain in
 force and inactive resources are reported honestly.
 
+## Appllama mobile design
+
+Pi bundles the pinned [Appllama design skill](skills/appllama-app-design-skill/SKILL.md)
+for Expo / React Native UI, with reviewed upstream references, MIT license and a
+permission-aware Pi wrapper. MCP, paid services, simulators and research skills do
+not start automatically. Existing filters and other harnesses remain unchanged.
+[Provenance](skills/appllama-app-design-skill/PROVENANCE.md) records the retained
+standalone bytes. Identical manual installs can be adopted; MEGAI update/removal
+uses receipt-owned wiring without fetching upstream or overwriting custom edits.
+
 ## Acceptance and task delivery
 
 Pi's [acceptance gate](pi-skill/acceptance/SKILL.md) freezes criteria, captures
@@ -164,6 +174,7 @@ Focused, non-live checks use disposable HOME/config roots and do not execute
 non-Pi harnesses or send provider calls:
 
 ```bash
+python3 -B tests/slim_distribution.py -k appllama
 python3 -B tests/acceptance_gate.py
 python3 -B tests/acceptance_flow.py
 bash tests/slim-distribution.sh

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -137,6 +138,105 @@ class Slim(unittest.TestCase):
         self.wire("--remove")
         for name in ("SKILL.md", "reference.md", "contract.example.json"):
             self.assertFalse((target / name).exists())
+
+    def test_appllama_install_verify_idempotence_and_owned_removal(self):
+        self.wire()
+        target = self.home / ".pi/agent/skills/appllama-app-design-skill"
+        names = {"SKILL.md", "PROVENANCE.md", "upstream/SKILL.md", "upstream/LICENSE",
+                 "upstream/references/image-assets.md", "upstream/references/motion.md",
+                 "upstream/references/native-controls.md", "upstream/references/performance.md",
+                 "upstream/references/simulator-loop.md"}
+        self.assertEqual({str(p.relative_to(target)) for p in target.rglob("*") if p.is_file()}, names)
+        receipt = json.loads((self.megai / "slim-wiring.json").read_text())
+        for name in names:
+            data = (target / name).read_bytes()
+            self.assertEqual(data, (ROOT / "skills/appllama-app-design-skill" / name).read_bytes())
+            self.assertEqual(receipt[str(target / name)], hashlib.sha256(data).hexdigest())
+        self.assertFalse((self.home / ".pi/agent/skills/appllama-usage").exists())
+        self.assertNotIn("appllama", (self.home / ".pi/agent/mcp.json").read_text())
+        before = self.snapshot()
+        self.wire("--verify")
+        self.wire()
+        self.assertEqual(self.snapshot(), before)
+        note = self.write(target / "user-note.md", "preserve unrelated local notes")
+        self.wire("--remove")
+        for name in names:
+            self.assertFalse((target / name).exists())
+        self.assertEqual(note.read_text(), "preserve unrelated local notes")
+
+    def test_appllama_identical_manual_adoption_preserves_filters_and_other_harnesses(self):
+        source = ROOT / "skills/appllama-app-design-skill"
+        target = self.home / ".pi/agent/skills/appllama-app-design-skill"
+        shutil.copytree(source, target)
+        opt_out = "!**/appllama-app-design-skill/**"
+        settings = self.write(self.home / ".pi/agent/settings.json",
+                              json.dumps({"skills": [opt_out], "defaultModel": "keep-model"}))
+        foreign = [self.write(self.home / folder / "settings.json", "user-owned bytes")
+                   for folder in (".claude", ".codex", ".omp/agent")]
+        # The feature belongs to Pi; selecting Pi must not parse other harnesses.
+        command = (sys.executable, str(self.megai / "lib/slim_wiring.py"), "pi")
+        self.run_cmd(*command)
+        actual = json.loads(settings.read_text())
+        self.assertIn(opt_out, actual["skills"])
+        self.assertEqual(actual["defaultModel"], "keep-model")
+        for path in foreign:
+            self.assertEqual(path.read_text(), "user-owned bytes")
+        self.run_cmd(*command, "--verify")
+        self.run_cmd(*command, "--remove")
+        self.assertFalse((target / "SKILL.md").exists())
+        self.assertEqual(json.loads(settings.read_text())["skills"], [opt_out])
+
+    def test_appllama_custom_files_and_symlinks_block_before_any_write(self):
+        target = self.home / ".pi/agent/skills/appllama-app-design-skill"
+        for name in ("SKILL.md", "upstream/references/simulator-loop.md"):
+            with self.subTest(name=name):
+                custom = self.write(target / name, "custom user guidance")
+                before = self.snapshot()
+                result = self.wire(ok=False)
+                self.assertIn("custom/legacy asset preserved", result.stderr)
+                self.assertEqual(self.snapshot(), before)
+                custom.unlink()
+        foreign = self.write(self.root / "foreign-skill.md", "external skill")
+        link = target / "SKILL.md"
+        link.symlink_to(foreign)
+        before = self.snapshot()
+        self.assertIn("symlinked path", self.wire(ok=False).stderr)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(link.readlink(), foreign)
+
+    def test_appllama_edited_owned_reference_blocks_update_and_removal(self):
+        self.wire()
+        target = self.home / ".pi/agent/skills/appllama-app-design-skill/upstream/references/motion.md"
+        target.write_text("user-edited motion policy")
+        before = self.snapshot()
+        for flags in ((), ("--remove",)):
+            with self.subTest(flags=flags):
+                self.assertIn("custom/legacy asset preserved", self.wire(*flags, ok=False).stderr)
+                self.assertEqual(self.snapshot(), before)
+
+    def test_appllama_pinned_upstream_links_and_permission_aware_wrapper(self):
+        source = ROOT / "skills/appllama-app-design-skill"
+        hashes = {
+            "SKILL.md": "be47c957ad097be96916a088a803281c933513fd98a71aedca7cef25a967d7a5",
+            "LICENSE": "14cffee850f5c761273dfc49798cddc96786b4520c23f3ed1da727c334f07476",
+            "references/image-assets.md": "0ad789823718da7410f42a5c4ed3ff14ad4e0af7014f18181e7d5da0349908b8",
+            "references/motion.md": "2b611d67fa3afdf3aa61c259bcb4a604ac099af285eb0057fa9959ca14ab8cc5",
+            "references/native-controls.md": "9d6fd934738e86aba29411511b8e5b20b0ff928d717e9b67245586c7ba2aa302",
+            "references/performance.md": "c6591482adb86e059742a595dafab0f2833da89c0f3e7e16d7ae1c17d16a784b",
+            "references/simulator-loop.md": "65962c40204c946924137c8c4c7cc41f519cccc333ac9413ea926a21750f8f9c",
+        }
+        for name, expected in hashes.items():
+            self.assertEqual(hashlib.sha256((source / "upstream" / name).read_bytes()).hexdigest(), expected)
+        for path in source.rglob("*.md"):
+            for link in re.findall(r"\]\(([^)]+)\)", path.read_text()):
+                if not link.startswith(("https://", "http://", "#")):
+                    self.assertTrue((path.parent / link).is_file(), f"{path}: {link}")
+        skill = (source / "SKILL.md").read_text()
+        for required in ("Expo / React Native", "not for generic web UI", "explicit authorization",
+                         "MCP is optional", "five-minute", "Pi-only", "BLOCKED", "installed versions",
+                         "VoiceOver/TalkBack", "payments", "Reduce Motion"):
+            self.assertIn(required, skill)
+        self.assertIn("dd5caaec3d5d50ad7fc0324da238119c6b7c3707", (source / "PROVENANCE.md").read_text())
 
     def test_custom_acceptance_asset_blocks_without_overwriting(self):
         target = self.home / ".pi/agent/skills/megai-acceptance/reference.md"
