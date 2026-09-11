@@ -30,6 +30,7 @@ merge or push Git branches. This branch is not automatically integrated into `ma
 | 🧹 [Ruff](https://docs.astral.sh/ruff/) | Non-mutating Python lint/format checks |
 | 🌿 agent-worktree-lifecycle | Isolated writers and verified, user-agreed branch delivery |
 | 🎨 [ux-ui-agent-skills](https://github.com/plugin87/ux-ui-agent-skills) | Task-appropriate UI/UX and accessibility guidance |
+| 📱 [Appllama mobile design](skills/appllama-app-design-skill/SKILL.md) | Pi-adapted Expo / React Native screens, navigation and motion; optional MCP |
 | 🛠️ [Matt Pocock's skills](https://github.com/mattpocock/skills) | Engineering, diagnosis, specifications and verification workflows |
 
 Native read/edit/bash, Git, `rg`, Plane connector configuration and Pi's lazy MCP
@@ -182,6 +183,15 @@ Pi itself must be installed and authenticated separately. Their triggers are:
 - **Ruff:** non-mutating checks for changed Python files.
 - **agent-worktree-lifecycle:** isolated writes and verified agreed branch delivery.
 - **UX/UI kit:** select the matching UI/accessibility skill for UI work.
+- **Appllama mobile design:** bundled pinned design skill, loaded for Expo / React
+  Native UI only. Includes original references and MIT license with a Pi-specific
+  permission/compatibility wrapper. No Appllama MCP, research skill, paid service
+  or simulator starts automatically. Existing resource filters still win. See
+  [original standalone provenance](skills/appllama-app-design-skill/PROVENANCE.md).
+  The bundle retains those reviewed bytes so identical manual installs can be
+  adopted safely. MEGAI installation/update uses receipt-owned wiring, without
+  fetching Appllama upstream; removal uses `megai uninstall` rather than the
+  standalone removal instructions. Conflicting or edited files are preserved.
 - **Matt Pocock kit:** select the matching engineering/diagnosis/verification skill.
 
 > [!IMPORTANT]
@@ -343,6 +353,7 @@ indexes or historical project data. Main promotion remains a separate decision.
 ## ✅ Verification
 
 ```bash
+python3 -B tests/slim_distribution.py -k appllama  # offline skill wiring/preservation
 python3 -B tests/acceptance_gate.py  # existing evidence and source-integrity gates
 python3 -B tests/acceptance_flow.py  # real red/green and contract-driven collection
 bash tests/slim-distribution.sh  # isolated offline install/update/wiring/runtime contracts

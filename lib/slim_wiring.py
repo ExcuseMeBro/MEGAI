@@ -274,6 +274,7 @@ class Plan:
             ("skills/agent-worktree-lifecycle/SKILL.md", "agent-worktree-lifecycle"),
             ("pi-skill/SKILL.md", "megai"),
             ("pi-skill/acceptance/SKILL.md", "megai-acceptance"),
+            ("skills/appllama-app-design-skill/SKILL.md", "appllama-app-design-skill"),
         ):
             skill_root = root / "skills"
             self.asset(skill_root / skill / "SKILL.md", (SOURCE / relative).read_bytes(), remove)
@@ -282,6 +283,13 @@ class Plan:
             if skill == "megai-acceptance":
                 for name in ("reference.md", "contract.example.json"):
                     self.asset(skill_root / skill / name, (SOURCE / "pi-skill/acceptance" / name).read_bytes(), remove)
+            if skill == "appllama-app-design-skill":
+                for name in ("PROVENANCE.md", "upstream/SKILL.md", "upstream/LICENSE",
+                             "upstream/references/image-assets.md", "upstream/references/motion.md",
+                             "upstream/references/native-controls.md", "upstream/references/performance.md",
+                             "upstream/references/simulator-loop.md"):
+                    self.asset(skill_root / skill / name,
+                               (SOURCE / "skills" / skill / name).read_bytes(), remove)
         for retired in ("skills/caveman/SKILL.md", "skills/caveman/LICENSE.md"):
             self.retire(root / retired)
         for name in ("SKILL.md", "LICENSE.md"):
