@@ -189,11 +189,16 @@ Pi itself must be installed and authenticated separately. Their triggers are:
 
 ### Acceptance comes first
 
-Pi now loads [megai-acceptance](pi-skill/acceptance/SKILL.md) before implementation
-and verification. `megai acceptance snapshot|run|check` supplies a local,
-source-bound evidence gate: PASS (0), FAIL (1), or BLOCKED (2). The parent freezes
-criteria in Plane, runs existing bounded test/runtime commands, and obtains fresh
-independent Pi review. Missing/stale evidence never becomes a green handoff.
+Pi loads [megai-acceptance](pi-skill/acceptance/SKILL.md) once per implementation
+task and reuses it at handoff. The flow is **freeze → reproduce → fix → collect →
+independent review → check → In Review**. New schema-2 bugfix contracts require a
+hashed red receipt, the expected assertion failure and unchanged regression tests
+passing on the candidate; schema-1 contracts remain compatible. `megai acceptance
+collect` runs frozen commands into private receipts and an explicitly BLOCKED
+evidence draft, stopping on failure or source change. Fill actual observations
+and verified review metadata, then use `megai acceptance check`: PASS (0), FAIL (1),
+or BLOCKED (2). Collection alone never grants acceptance. Any source/index/commit
+change invalidates earlier evidence; missing/stale evidence never becomes green.
 [CLI/schema and trust limits](pi-skill/acceptance/reference.md) explain the private
 artifact directory, contract hash, explicit local/staging authorization and CI use.
 This adds no startup agents, browser install, production permission, automatic
@@ -338,7 +343,8 @@ indexes or historical project data. Main promotion remains a separate decision.
 ## ✅ Verification
 
 ```bash
-python3 -B tests/acceptance_gate.py  # real disposable Git/command evidence gates
+python3 -B tests/acceptance_gate.py  # existing evidence and source-integrity gates
+python3 -B tests/acceptance_flow.py  # real red/green and contract-driven collection
 bash tests/slim-distribution.sh  # isolated offline install/update/wiring/runtime contracts
 bash tests/pi-performance.sh    # adapter selection and user-package preservation
 python3 tests/headroom_wiring.py

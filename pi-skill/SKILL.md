@@ -49,14 +49,13 @@ Use `headroom_memory` with action `save`, or `megai headroom save "decision"`, o
 
 ## Task-specific skills and verification
 
-Before implementation and again before handoff, load `megai-acceptance`. The parent
-freezes task criteria and their SHA256 in the same Plane item, then requires raw
-source-bound test/runtime receipts and a fresh independent Pi verifier. Use
-`megai acceptance check` with the externally approved contract hash; only a current
-PASS permits verified handoff. Missing evidence, tools, authorization or an
-independent reviewer is BLOCKED. Leaf workers inherit criteria without mutating
-Plane. Follow the skill's scoped local/staging authorization and artifact rules;
-this does not enable live testing globally or authorize production changes.
+Load `megai-acceptance` once before implementation; reuse its frozen criteria at
+handoff. Bug fixes require captured red → green regression evidence. The parent
+records the contract hash in the same Plane item, uses `megai acceptance collect`
+for raw source-bound receipts, and obtains one fresh independent Pi verifier.
+Only `megai acceptance check` PASS permits handoff; an incomplete collection,
+missing evidence/reviewer or unauthorized runtime is BLOCKED. Follow that skill's
+artifact and local/staging authorization rules; no global live-testing permission.
 
 Select and load the matching Matt Pocock engineering skill by default for implementation, diagnosis, design or verification. For UI work, select the matching plugin87 UI/UX skill, including accessibility guidance. No separate enablement request is needed; load only the matching bodies on demand, not entire kits or review chains. UX work retains accessibility semantics and task-relevant tests. For security/data-integrity risks or consequential cross-module changes, get fresh independent review. Visual/app testing is explicit-only.
 

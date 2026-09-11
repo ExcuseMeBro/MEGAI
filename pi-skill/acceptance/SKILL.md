@@ -1,75 +1,68 @@
 ---
 name: megai-acceptance
-description: Freeze acceptance before Pi implementation; after changes require source-current test/runtime evidence and fresh independent Pi verification before handoff. Use for implementation, acceptance review, and blocked or stale verification.
+description: Freeze task acceptance, reproduce bugs, collect source-current evidence and obtain independent Pi review before handoff. Use for implementation, bug fixes, review findings and blocked or stale verification.
 managed-by: megai
 ---
 
 # Pi acceptance gate
 
-Parent-owned workflow; leaves inherit the frozen criteria and never mutate Plane,
-delegate or integrate. Follow repository rules and user resource exclusions.
-Read [reference.md](reference.md) when preparing a contract, capturing commands,
-assembling evidence, or invoking the checker. This is an evidence gate, not a
-security sandbox or a replacement execution tracker.
+Parent owns the contract and Plane identity; leaves inherit both, never delegate,
+mutate Plane or integrate. Load this workflow once per task; reuse it at handoff.
+Read [reference.md](reference.md) when preparing contracts, recording a regression,
+collecting evidence or assembling review. This gate is not a sandbox or tracker.
 
-## Before implementation
+## 1. Freeze the task
 
-1. Start/reuse the linked Plane item. Define observable outcomes, error cases and
-   regression boundaries with the user. Map every required outcome to a named
-   criterion and a bounded test or runtime command. Load relevant engineering or
-   UI/a11y guidance; avoid unrelated full-suite work.
-2. The parent prepares a task-specific contract outside the source checkout,
-   records its exact SHA256 and acceptance in the same Plane item, and gives the
-   implementer only that approved contract. A changed requirement requires parent
-   reconciliation and a newly approved hash; implementers cannot silently waive it.
-3. Product behavior changes require a relevant real runtime check: an existing
-   browser/E2E flow, API with isolated test data, CLI invocation or equivalent.
-   A documentation/static-only task may declare runtime unnecessary with an
-   explicit rationale. Missing prerequisites are BLOCKED, not an excuse to waive
-   a required check. Test count/coverage or an LLM score alone is not acceptance.
-4. Live tests need explicit user-approved local/staging scope, targets and test
-   identities. Record authorization in the contract before execution. A request
-   to install this workflow is not blanket permission for future live tests.
-   Never run production mutations, real payments/messages or destructive cleanup.
+Start/reuse the linked Plane item. Name observable outcomes, error cases and
+regression boundaries; bind each to a bounded command that asserts the outcome.
+Use schema 2: classify `bugfix`, `change` or `docs`. Product behavior requires a
+real CLI/API/browser check; static-only work needs an explicit runtime rationale.
+Live tests require user-approved local/staging targets and isolated identities.
+Missing prerequisites mean BLOCKED; production mutations, real payments/messages
+and destructive cleanup remain outside scope.
 
-## After implementation
+For **bugfix**, first reproduce the reported failure and capture the regression
+command with `run --test-file`. Inspect its actual assertion failure, not a missing
+dependency, timeout or unrelated error. Bind that red receipt, exact expected exit
+and failure signature into a regression criterion. The same test files and command
+must pass after the fix. Freeze the parent-approved contract bytes outside source;
+record SHA256 and criteria in the same Plane item before implementation. Changes
+to criteria/tests require parent reconciliation and fresh red evidence, not a waiver.
 
-5. Freeze the candidate source snapshot, including uncommitted/nonignored files.
-   Keep evidence outside the checkout. Run original bounded test commands through
-   `megai acceptance run`; preserve raw logs, actual exits and before/after source
-   hashes. Do not soften failed tests or replace runtime behavior with mocks.
-   For browser flows, run the repository's existing E2E command (for example an
-   already-installed Playwright suite); Paseo browser observations/screenshots may
-   supplement receipts. No browser capability is installed or invented here.
-6. Verify the running build is from that same snapshot and record environment,
-   target, actions, expected result and observed result. Check the actual outcome
-   (for example save then reload), not just that a button was clicked. Include
-   relevant error/loading/empty, permission, mobile and keyboard scenarios when
-   required by the task. A screenshot without an observed outcome is insufficient.
-7. Obtain a fresh independent Pi verifier through the approved delegation path.
-   First send neutral READY, verify Pi harness/exact model/effective high thinking,
-   then send frozen contract/hash, candidate snapshot/diff and raw evidence, not
-   the implementer's reasoning transcript. Prefer Sol/high per MEGAI review policy.
-   The verifier has read-only source authority, may perform authorized bounded
-   checks in isolation, and reports each criterion plus reproducible findings.
-   Preserve actual status metadata and the review as a hashed artifact. If the
-   approved route or reviewer is unavailable, report BLOCKED; no self-review label.
+## 2. Fix and collect
 
-## Decide and stop
+Use the narrowest root-cause fix and task-relevant checks. One writer, no mandatory
+scout or duplicate reviewer. Commit the candidate before final capture when a later
+commit would invalidate its snapshot. Keep artifacts outside the source checkout.
 
-8. Assemble evidence and run `megai acceptance check` with the hash retrieved from
-   Plane, not a newly computed replacement. All criteria must have observations,
-   matching command receipts and a source-current independent review. PASS allows
-   verified delivery to the agreed branch and Plane In Review, never Done.
-   FAIL requires fixes; BLOCKED requires the named missing evidence or prerequisite.
-   Report the criterion → command/action → outcome → artifact mapping to the user.
-9. Changes after verification invalidate affected evidence; the checker is
-   deliberately conservative and invalidates the whole source snapshot. Re-run
-   checks/review after fixes, rather than copying a previous PASS. Work in slices
-   targeting at most five minutes; checkpoint at the deadline and replan. Preserve
-   in-flight non-interruptible writes. Avoid unbounded repair/review loops.
+Run `megai acceptance collect` with the frozen contract and hash retrieved from
+Plane. It captures commands once, in order, into a new private directory; a failure
+or source change stops later commands. The generated evidence is a **BLOCKED draft**,
+not acceptance. Inspect raw logs and fill each observation with the actual outcome.
+For runtime checks, bind the running build/environment to the candidate and verify
+the result (e.g. save then reload), including required error/permission/a11y cases.
+Existing E2E commands and authorized browser observations may supply evidence;
+screenshots, coverage, exit zero or LLM scores alone do not prove behavior.
 
-Keep credentials and private data out of commands and public artifacts. Raw logs
-stay private; review/redact exports and bind any sanitized copies to their own
-hashes. Missing or excluded resources remain visible blockers. Native Pi settings,
-provider/model catalog and user opt-outs remain unchanged.
+## 3. Review, decide, stop
+
+Use one fresh independent Pi verifier through the approved route: neutral READY,
+verify Pi/exact model/effective high thinking, then send the frozen contract/hash,
+candidate diff/snapshot and raw evidence, not the implementer's reasoning transcript.
+Prefer Sol/high. Give read-only authority and a bounded deadline. Reviewer checks
+every criterion, root cause, red/green validity, regressions and runtime provenance;
+reports severity, `path:line`, impact and reproduction for actionable findings.
+Hash the actual review/status artifact. Unavailable verifier means BLOCKED.
+
+Resolve blocking findings; rerun affected diagnostics and obtain source-current
+review. Any source/index/commit change invalidates the entire prior snapshot: final
+capture and review must match the delivered candidate. Reuse the healthy reviewer
+for bounded corrections, with no unbounded repair loop or repeated discovery.
+
+Run `megai acceptance check` with the Plane-approved hash. Only PASS permits agreed
+branch delivery and Plane **In Review**, never Done or unapproved main promotion.
+Report criterion → command/action → observed result → artifact. FAIL needs a fix;
+BLOCKED needs the named evidence/prerequisite. Stop at acceptance. Keep five-minute
+slice checkpoints, user resource exclusions and native provider settings intact.
+Credentials/private data stay out of argv and public artifacts; raw logs remain
+private, and sanitized exports need their own hashes.

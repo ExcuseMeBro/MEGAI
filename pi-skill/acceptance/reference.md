@@ -30,11 +30,15 @@ Replace paths and commands with the task's actual approved values.
 
 ```bash
 megai acceptance snapshot --root /path/to/repo
-megai acceptance run --root /path/to/repo --out /private/evidence/unit -- python3 -m unittest discover
+megai acceptance run --root /path/to/repo --out /private/evidence/red \
+  --test-file tests/test_reported_bug.py -- python3 -m unittest tests.test_reported_bug
+megai acceptance collect --root /path/to/repo \
+  --contract /private/evidence/contract.json \
+  --contract-sha256 HASH_RETRIEVED_FROM_PLANE --out /private/evidence/candidate
 megai acceptance check --root /path/to/repo \
   --contract /private/evidence/contract.json \
   --contract-sha256 HASH_RETRIEVED_FROM_PLANE \
-  --evidence /private/evidence/evidence.json
+  --evidence /private/evidence/candidate/evidence.json
 ```
 
 `run` requires a **new** private output directory outside the checkout, with an
@@ -44,6 +48,20 @@ syntax here. If a repository requires a shell script, pass its trusted script as
 an explicit argument. Never put credentials in argv. Raw combined stdout/stderr
 is retained in `output.txt`, with `receipt.json` beside it. Inspect raw failures;
 a summary is not a replacement for the original output.
+
+`collect` validates the approved contract and regression baselines before executing
+anything. It runs the frozen argv lists once in criterion order, using numbered
+subdirectories (criterion IDs never become filesystem paths). It stops at the
+first failure, missing executable or source change; remaining criteria stay BLOCKED.
+The new private `evidence.json` already contains receipt paths, candidate/hash and
+an empty review template. Fill observations only after inspecting raw results, and
+fill review metadata/artifact only from a verified independent Pi session. Keep
+review artifacts inside the collection directory and hash their actual bytes.
+No contract is auto-approved, no failed command is auto-retried, and no observation
+or reviewer identity is invented. A completed collection returns **BLOCKED/2** until
+those human/agent attestations exist; an executed command failure returns **FAIL/1**.
+Always use `check` for the final verdict. `collect` never returns acceptance PASS.
+A new collection uses a new directory; retain old failures rather than overwrite.
 
 The runner does not kill commands at a deadline: killing a live mutation can harm
 data integrity. Choose bounded checks (configure timeouts in the test tools), not
@@ -64,10 +82,18 @@ BLOCKED; reconcile their outcome before retrying.
 its receipt. A runner PASS proves command completion/source stability, not full
 task acceptance: always perform final `check` with the independent review.
 
-## Contract (schema 1)
+## Contract (schema 2; schema 1 remains readable)
 
 Start from [contract.example.json](contract.example.json); it is only an example,
-not a pre-approved task or live-testing authorization. Required fields:
+not a pre-approved task or live-testing authorization. New tasks use schema 2.
+Schema 1 remains supported for existing frozen contracts; it cannot represent a
+mandatory bugfix regression. Never downgrade a bugfix to bypass the new gate.
+Required fields:
+
+- `schema`: `2`; `task_type`: `bugfix`, `change` or `docs`. A `bugfix` requires at
+  least one criterion with `regression`. The parent/reviewer validates classification;
+  the CLI cannot infer whether a diff actually fixes a bug. All types retain an
+  independent review; scope its work instead of silently weakening the gate.
 
 - `plane`: `project_id` and `work_item_id` UUIDs of the existing task.
 - `implementer_session_id`: the real implementer's session identity.
@@ -87,6 +113,43 @@ commands that return zero without asserting the requirement are inadequate.
 Freeze the raw contract bytes: whitespace changes also change SHA256. Store the
 approved hash with the task's acceptance in Plane before edits. Do not calculate
 a fresh replacement hash at handoff merely to make a changed contract pass.
+
+### Bugfix red → green
+
+Before changing product code, write the relevant regression test and run its exact
+command with repeated `--test-file relative/path` flags covering the test and its
+assertion helpers. Paths are repository-relative regular files. The runner binds
+their content hashes to its receipt while capturing the source-stable red run.
+A meaningful baseline fails on the reported bug; an import error, missing service,
+timeout or printed marker followed by an arbitrary exit is not a valid reproduction.
+Inspect the raw failure, then freeze this addition on a criterion:
+
+```json
+"regression": {
+  "receipt": {"path": "red/receipt.json", "sha256": "SHA256_OF_RED_RECEIPT_BYTES"},
+  "exit_code": 1,
+  "failure_contains": "AssertionError: reported bug persists"
+}
+```
+
+The receipt path is relative to the **contract directory**, not the candidate
+collection. Its hash freezes the command, baseline snapshot, raw-log hash and
+captured test hashes together. Expected exit must be 1–125, with a nonblank,
+assertion-specific failure signature. The checker requires a distinct stable
+baseline snapshot, matching command/cwd, exact exit/signature, intact raw log and
+unchanged captured test files in the current candidate. Current green evidence
+must still pass its command, observations and independent review. The command may
+be a test or an authorized runtime criterion. Keep baseline and candidate runs in
+the same receipt-bound checkout; moving it invalidates cwd evidence.
+
+The checker cannot infer which files contain the real assertions, whether the
+failure is causally correct or whether an external service matches its observation.
+The independent reviewer must verify those facts. Do not list a dummy unchanged
+file while weakening a different assertion helper. If the test itself must change,
+reproduce the new test on the unfixed behavior in isolation and have the parent
+reconcile the new contract/baseline before continuing; never weaken a frozen test
+merely to get PASS. Baseline receipt hashes and source snapshots are evidence
+consistency checks, not cryptographic third-party attestations.
 
 ## Evidence (schema 1)
 
@@ -109,6 +172,8 @@ Store browser screenshots, traces or API observations here when required.
 
 Each runner receipt binds `argv`, `cwd`, `snapshot_before`, `snapshot_after`,
 `exit_code`, `duration_seconds` and `log: {path, sha256}` under `schema: 1`.
+`run --test-file` additionally records `test_files: [{path, sha256}]`; a regression
+baseline requires a nonempty list, whereas existing receipts remain compatible.
 The checker compares argv with the frozen criterion and verifies raw log bytes.
 Missing commands and source changes cannot masquerade as successful execution.
 
@@ -123,7 +188,13 @@ The review contains:
 
 Save the review together with observed Paseo status metadata after neutral READY
 verification; a made-up session/model string is not independent review. Review
-artifacts should identify findings and affected criteria. The parent is responsible
+artifacts must include per-criterion verdicts and the actual commands/results inspected.
+For findings record severity, `path:line`, impact, reproduction and affected criterion;
+distinguish blockers from nonblocking suggestions. Verify root cause, red/green
+causality, unchanged assertions, relevant regressions and runtime build provenance.
+An unsupported concern is not a confirmed bug; request the smallest reproduction.
+After fixes, bind the closure review to the new candidate; do not copy an old PASS.
+The parent is responsible
 for authenticity and adequate observations, including correct running-build
 provenance. The checker cannot infer UI correctness from pixels or log prose.
 

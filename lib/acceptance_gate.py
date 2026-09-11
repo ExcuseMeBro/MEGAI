@@ -10,7 +10,9 @@ checks and this helper never kills an in-flight command.
 from __future__ import annotations
 
 import argparse
+from contextlib import redirect_stdout
 import hashlib
+import io
 import json
 import math
 import os
@@ -265,12 +267,15 @@ def _artifact(base: Path, value: object) -> None:
 
 def _contract(value: object) -> dict[str, object]:
     keys = {"schema", "plane", "implementer_session_id", "runtime", "criteria"}
-    if (
-        not isinstance(value, dict)
-        or set(value) != keys
-        or not _is_schema_one(value["schema"])
-    ):
+    if not isinstance(value, dict) or not _is_int(value.get("schema")):
         raise GateError("Unsupported contract schema")
+    version = value["schema"]
+    if version == 2:
+        keys.add("task_type")
+    if version not in {1, 2} or set(value) != keys:
+        raise GateError("Unsupported contract schema")
+    if version == 2 and value["task_type"] not in ("bugfix", "change", "docs"):
+        raise GateError("Invalid task type")
     plane = value["plane"]
     if not isinstance(plane, dict) or set(plane) != {"project_id", "work_item_id"}:
         raise GateError("Malformed contract plane")
@@ -311,8 +316,11 @@ def _contract(value: object) -> dict[str, object]:
         raise GateError("Missing criteria")
     ids: set[str] = set()
     runtime_count = 0
+    regression_count = 0
     for criterion in criteria:
         allowed = {"id", "kind", "expected", "command", "target"}
+        if version == 2:
+            allowed.add("regression")
         required = {"id", "kind", "expected", "command"}
         if (
             not isinstance(criterion, dict)
@@ -336,6 +344,18 @@ def _contract(value: object) -> dict[str, object]:
         ):
             raise GateError("Invalid criterion")
         ids.add(identifier)
+        if "regression" in criterion:
+            regression_count += 1
+            regression = criterion["regression"]
+            if (
+                not isinstance(regression, dict)
+                or set(regression) != {"receipt", "exit_code", "failure_contains"}
+                or not _is_int(regression["exit_code"])
+                or not 0 < regression["exit_code"] < 126
+                or not isinstance(regression["failure_contains"], str)
+                or not regression["failure_contains"].strip()
+            ):
+                raise GateError("Malformed regression requirement")
         if kind == "runtime":
             runtime_count += 1
             if criterion.get("target") not in runtime["targets"]:
@@ -344,6 +364,8 @@ def _contract(value: object) -> dict[str, object]:
             raise GateError("Test criterion target forbidden")
     if bool(runtime_count) != runtime["required"]:
         raise GateError("Runtime criteria mismatch")
+    if version == 2 and value["task_type"] == "bugfix" and not regression_count:
+        raise GateError("Bugfix requires a regression criterion")
     return value
 
 
@@ -360,7 +382,8 @@ def _receipt(value: object, command: object, snapshot_value: str, root: Path) ->
     }
     if (
         not isinstance(value, dict)
-        or set(value) != keys
+        or not keys <= set(value)
+        or set(value) - keys - {"test_files"}
         or not _is_schema_one(value["schema"])
     ):
         raise GateError("Malformed receipt")
@@ -385,6 +408,35 @@ def _receipt(value: object, command: object, snapshot_value: str, root: Path) ->
     if not _is_int(code):
         raise GateError("Invalid receipt exit code")
     return code
+
+
+def _regression(root: Path, base: Path, criterion: dict, current: str) -> None:
+    requirement = criterion["regression"]
+    _artifact(base, requirement["receipt"])
+    receipt = _json_file(_relative(base, requirement["receipt"]["path"]))
+    if not isinstance(receipt, dict):
+        raise GateError("Malformed regression receipt")
+    baseline = receipt.get("snapshot_before")
+    if not _is_hash(baseline) or baseline == current:
+        raise GateError("Regression requires a distinct baseline snapshot")
+    code = _receipt(receipt, criterion["command"], baseline, root)
+    if code != requirement["exit_code"]:
+        raise GateError("Regression baseline exit mismatch")
+    receipt_base = _relative(base, requirement["receipt"]["path"]).parent
+    _artifact(receipt_base, receipt["log"])
+    log = _relative(receipt_base, receipt["log"]["path"])
+    if requirement["failure_contains"].encode() not in log.read_bytes():
+        raise GateError("Regression failure signature missing")
+    files = receipt.get("test_files")
+    if not isinstance(files, list) or not files:
+        raise GateError("Regression baseline needs captured test files")
+    seen = set()
+    for artifact in files:
+        _artifact(root, artifact)
+        path = artifact["path"]
+        if path in seen:
+            raise GateError("Duplicate regression test file")
+        seen.add(path)
 
 
 def check(
@@ -440,6 +492,8 @@ def check(
             if not isinstance(item["artifacts"], list):
                 raise GateError("Malformed check artifacts")
             seen.add(identifier)
+            if "regression" in criteria[identifier]:
+                _regression(root, contract_path.parent, criteria[identifier], current)
             receipt_path = _relative(base, item["receipt"])
             receipt = _json_file(receipt_path)
             code = _receipt(receipt, criteria[identifier]["command"], current, root)
@@ -526,10 +580,27 @@ def _write_receipt(path: Path, value: dict[str, object]) -> None:
         json.dump(value, handle, sort_keys=True, allow_nan=False)
 
 
-def run(root_arg: Path, output: Path, argv: list[str]) -> tuple[str, int]:
+def run(
+    root_arg: Path, output: Path, argv: list[str], test_files: list[str] | None = None
+) -> tuple[str, int]:
     try:
         root = _repo_root(root_arg)
         before = snapshot(root)
+        captured_tests = []
+        if test_files:
+            inventory = set(_parts(_git(root, "ls-files", "-z"))) | set(
+                _parts(_git(root, "ls-files", "--others", "--exclude-standard", "-z"))
+            )
+            seen = set()
+            for relative in test_files:
+                path = _relative(root, relative)
+                normalized = path.relative_to(root).as_posix()
+                if normalized not in inventory or normalized in seen:
+                    raise GateError("Test files must be unique source-snapshot members")
+                seen.add(normalized)
+                captured_tests.append({"path": normalized, "sha256": _file_sha256(path)[0]})
+        if captured_tests and snapshot(root) != before:
+            raise GateError("Source changed during test capture")
         output = _safe_out(root, output)
         os.mkdir(output, 0o700)
     except (GateError, OSError) as exc:
@@ -565,6 +636,8 @@ def run(root_arg: Path, output: Path, argv: list[str]) -> tuple[str, int]:
         "duration_seconds": time.monotonic() - started,
         "log": {"path": "output.txt", "sha256": _file_sha256(log_path)[0]},
     }
+    if captured_tests:
+        receipt["test_files"] = captured_tests
     try:
         _write_receipt(output / "receipt.json", receipt)
     except OSError as exc:
@@ -590,6 +663,59 @@ def run(root_arg: Path, output: Path, argv: list[str]) -> tuple[str, int]:
     return status, exit_code
 
 
+def collect(root_arg: Path, contract_file: Path, approved: str, output: Path) -> int:
+    """Capture frozen commands once; leave observations/review explicitly incomplete."""
+    root = _repo_root(root_arg)
+    contract_path = _external_regular(contract_file, root)
+    if not _is_hash(approved) or _file_sha256(contract_path)[0] != approved:
+        raise GateError("Contract hash mismatch")
+    contract = _contract(_json_file(contract_path))
+    candidate = snapshot(root)
+    for criterion in contract["criteria"]:
+        if "regression" in criterion:
+            _regression(root, contract_path.parent, criterion, candidate)
+    output = _safe_out(root, output)
+    os.mkdir(output, 0o700)
+    checks = [
+        {"id": criterion["id"], "status": "BLOCKED", "observation": "",
+         "receipt": f"{index:03d}/receipt.json", "artifacts": []}
+        for index, criterion in enumerate(contract["criteria"])
+    ]
+    draft = {
+        "schema": 1, "contract_sha256": approved, "snapshot": candidate,
+        "checks": checks,
+        "review": {"session_id": "", "harness": "pi", "model": "", "thinking": "high",
+                   "verdict": "BLOCKED", "snapshot": candidate, "contract_sha256": approved,
+                   "criteria": [item["id"] for item in checks],
+                   "artifact": {"path": "", "sha256": ""}},
+    }
+    result = "BLOCKED"
+    reasons = ["Draft only: actual observations and independent review are required"]
+    try:
+        for index, criterion in enumerate(contract["criteria"]):
+            if snapshot(root) != candidate or _file_sha256(contract_path)[0] != approved:
+                reasons.append("Source or contract changed; remaining commands not run")
+                break
+            summary = io.StringIO()
+            with redirect_stdout(summary):
+                status, _ = run(root, output / f"{index:03d}", criterion["command"])
+            checks[index]["status"] = status
+            if status != "PASS":
+                result = status
+                reasons.append(f"Stopped at {criterion['id']}: {summary.getvalue().strip()}")
+                break
+        if snapshot(root) != candidate or _file_sha256(contract_path)[0] != approved:
+            result = "BLOCKED"
+            reasons.append("Source or contract changed; evidence is stale")
+    except (GateError, OSError) as exc:
+        result = "BLOCKED"
+        reasons.append(str(exc))
+    _write_receipt(output / "evidence.json", draft)
+    print(json.dumps({"status": result, "reasons": reasons,
+                      "evidence": str(output / "evidence.json")}))
+    return {"FAIL": 1, "BLOCKED": 2}[result]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="action", required=True)
@@ -598,12 +724,18 @@ def main() -> int:
     run_parser = subparsers.add_parser("run")
     run_parser.add_argument("--root", required=True)
     run_parser.add_argument("--out", required=True)
+    run_parser.add_argument("--test-file", action="append", default=[])
     run_parser.add_argument("argv", nargs=argparse.REMAINDER)
     check_parser = subparsers.add_parser("check")
     check_parser.add_argument("--root", required=True)
     check_parser.add_argument("--contract", required=True)
     check_parser.add_argument("--contract-sha256", required=True)
     check_parser.add_argument("--evidence", required=True)
+    collect_parser = subparsers.add_parser("collect")
+    collect_parser.add_argument("--root", required=True)
+    collect_parser.add_argument("--contract", required=True)
+    collect_parser.add_argument("--contract-sha256", required=True)
+    collect_parser.add_argument("--out", required=True)
     args = parser.parse_args()
     root = Path(args.root)
     if args.action == "snapshot":
@@ -618,7 +750,9 @@ def main() -> int:
         if not argv:
             print(json.dumps({"status": "BLOCKED", "reasons": ["Missing command"]}))
             return 2
-        return run(root, Path(args.out), argv)[1]
+        return run(root, Path(args.out), argv, args.test_file)[1]
+    if args.action == "collect":
+        return collect(root, Path(args.contract), args.contract_sha256, Path(args.out))
     status, reasons = check(
         Path(args.contract), args.contract_sha256, Path(args.evidence), root
     )
