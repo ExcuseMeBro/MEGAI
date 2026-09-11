@@ -92,6 +92,38 @@ class Slim(unittest.TestCase):
         self.assertNotIn("zvec_grep", json.loads((self.home / ".pi/agent/mcp.json").read_text())["mcpServers"])
         self.assertTrue((self.legacy / "sentinel").exists())
 
+    def test_acceptance_assets_install_idempotently_and_remove(self):
+        self.wire()
+        target = self.home / ".pi/agent/skills/megai-acceptance"
+        for name in ("SKILL.md", "reference.md", "contract.example.json"):
+            self.assertEqual((target / name).read_bytes(),
+                             (ROOT / "pi-skill/acceptance" / name).read_bytes())
+        self.assertIn("source-current PASS", (self.home / ".pi/agent/AGENTS.md").read_text())
+        before = self.snapshot()
+        self.wire()
+        self.assertEqual(self.snapshot(), before)
+        self.wire("--remove")
+        self.assertFalse((target / "SKILL.md").exists())
+        self.assertFalse((target / "reference.md").exists())
+        self.assertFalse((target / "contract.example.json").exists())
+
+    def test_custom_acceptance_asset_blocks_without_overwriting(self):
+        target = self.home / ".pi/agent/skills/megai-acceptance/reference.md"
+        self.write(target, "user-owned acceptance policy")
+        before = self.snapshot()
+        result = self.wire(ok=False)
+        self.assertIn("custom/legacy asset preserved", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_acceptance_cli_routing_preserves_argv(self):
+        self.write(self.megai / "lib/acceptance_gate.py",
+                   "import json, sys\nprint(json.dumps(sys.argv[1:]))\n")
+        result = self.run_cmd("bash", str(self.megai / "bin/megai"),
+                              "acceptance", "snapshot", "--root", "path with spaces")
+        self.assertEqual(json.loads(result.stdout),
+                         ["snapshot", "--root", "path with spaces"])
+        self.assertFalse((self.home / "calls").exists())
+
     def test_paseo_allows_only_pi_preserving_other_settings(self):
         original = {"version": 1, "daemon": {"listen": "127.0.0.1:6767", "appendSystemPrompt": "keep"},
                     "agents": {"providers": {"codex": {"enabled": True, "model": "keep"},

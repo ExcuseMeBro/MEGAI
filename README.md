@@ -189,6 +189,16 @@ Pi itself must be installed and authenticated separately. Their triggers are:
 
 ### Acceptance comes first
 
+Pi now loads [megai-acceptance](pi-skill/acceptance/SKILL.md) before implementation
+and verification. `megai acceptance snapshot|run|check` supplies a local,
+source-bound evidence gate: PASS (0), FAIL (1), or BLOCKED (2). The parent freezes
+criteria in Plane, runs existing bounded test/runtime commands, and obtains fresh
+independent Pi review. Missing/stale evidence never becomes a green handoff.
+[CLI/schema and trust limits](pi-skill/acceptance/reference.md) explain the private
+artifact directory, contract hash, explicit local/staging authorization and CI use.
+This adds no startup agents, browser install, production permission, automatic
+merge or host-model change. Existing projects supply their own meaningful tests.
+
 Before edits define the observable outcome, acceptance checks and stop condition. Run
 repository tests/build/lint unchanged with raw output and original exit status;
 review full native diffs. Compressed summaries alone never prove acceptance. Keep security,
@@ -328,6 +338,7 @@ indexes or historical project data. Main promotion remains a separate decision.
 ## ✅ Verification
 
 ```bash
+python3 -B tests/acceptance_gate.py  # real disposable Git/command evidence gates
 bash tests/slim-distribution.sh  # isolated offline install/update/wiring/runtime contracts
 bash tests/pi-performance.sh    # adapter selection and user-package preservation
 python3 tests/headroom_wiring.py

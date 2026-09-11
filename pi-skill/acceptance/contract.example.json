@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "plane": {
+    "project_id": "00000000-0000-4000-8000-000000000001",
+    "work_item_id": "00000000-0000-4000-8000-000000000002"
+  },
+  "implementer_session_id": "replace-with-real-implementer-session",
+  "runtime": {
+    "required": false,
+    "authorized": false,
+    "environment": "none",
+    "targets": [],
+    "reason": "EXAMPLE ONLY: replace with the task-specific runtime requirement; this is not a waiver or authorization."
+  },
+  "criteria": [
+    {
+      "id": "acceptance-tests",
+      "kind": "test",
+      "expected": "Replace with the observable task outcome and the test command that actually asserts it.",
+      "command": ["python3", "-m", "unittest", "discover"]
+    }
+  ]
+}

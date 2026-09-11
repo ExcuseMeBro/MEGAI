@@ -111,7 +111,10 @@ class Plan:
             "Before project changes, the parent loads `megai-task-flow` and starts the linked Plane item. "
             "Plane is the only execution tracker. Reuse the identity through refinements; children never mutate it. "
             "Use `agent-worktree-lifecycle` for isolated writes and the agreed delivery target. "
-            "Verify task acceptance with actual tests and review; security/data-integrity risks require independent review. "
+            "Load `megai-acceptance` before implementation and at verification: freeze criteria, capture actual tests/runtime evidence, "
+            "require fresh independent Pi review and a source-current PASS before verified handoff. "
+            "Missing tools, authorization or evidence are BLOCKED, not PASS. "
+            "Security/data-integrity risks require independent review. "
             "Hand off at In Review, never Done. Main promotion requires separate explicit approval.\n"
             "Parents and all delegated agents use Pi only. GPT-only delegation: subagents and reviewers use the Pi harness. "
             "Load `megai` for the Astra/Luna/Sol role map and explicit Paseo model/thinking selection. "
@@ -269,11 +272,15 @@ class Plan:
             ("task-flow/skills/megai-task-flow/SKILL.md", "megai-task-flow"),
             ("skills/agent-worktree-lifecycle/SKILL.md", "agent-worktree-lifecycle"),
             ("pi-skill/SKILL.md", "megai"),
+            ("pi-skill/acceptance/SKILL.md", "megai-acceptance"),
         ):
             skill_root = root / "skills"
             self.asset(skill_root / skill / "SKILL.md", (SOURCE / relative).read_bytes(), remove)
             if skill == "megai":
                 self.asset(skill_root / skill / "tgrep.md", (SOURCE / "pi-skill/tgrep.md").read_bytes(), remove)
+            if skill == "megai-acceptance":
+                for name in ("reference.md", "contract.example.json"):
+                    self.asset(skill_root / skill / name, (SOURCE / "pi-skill/acceptance" / name).read_bytes(), remove)
         for retired in ("skills/caveman/SKILL.md", "skills/caveman/LICENSE.md"):
             self.retire(root / retired)
         for name in ("SKILL.md", "LICENSE.md"):

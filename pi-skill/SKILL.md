@@ -49,6 +49,15 @@ Use `headroom_memory` with action `save`, or `megai headroom save "decision"`, o
 
 ## Task-specific skills and verification
 
+Before implementation and again before handoff, load `megai-acceptance`. The parent
+freezes task criteria and their SHA256 in the same Plane item, then requires raw
+source-bound test/runtime receipts and a fresh independent Pi verifier. Use
+`megai acceptance check` with the externally approved contract hash; only a current
+PASS permits verified handoff. Missing evidence, tools, authorization or an
+independent reviewer is BLOCKED. Leaf workers inherit criteria without mutating
+Plane. Follow the skill's scoped local/staging authorization and artifact rules;
+this does not enable live testing globally or authorize production changes.
+
 Select and load the matching Matt Pocock engineering skill by default for implementation, diagnosis, design or verification. For UI work, select the matching plugin87 UI/UX skill, including accessibility guidance. No separate enablement request is needed; load only the matching bodies on demand, not entire kits or review chains. UX work retains accessibility semantics and task-relevant tests. For security/data-integrity risks or consequential cross-module changes, get fresh independent review. Visual/app testing is explicit-only.
 
 For task-changed Python files, run Ruff by default: `ruff check --no-fix --no-fix-only --force-exclude --no-cache -- <files>`. When repository formatting matches Ruff, also run `ruff format --check --force-exclude --no-cache -- <files>`. Keep project configuration and unrelated files untouched; never write `pyproject.toml` for this check. Never pass `--fix`; `--no-fix-only` also protects projects with `fix-only = true`. No automatic fixes or broad cleanup.
