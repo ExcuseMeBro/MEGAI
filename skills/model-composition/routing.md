@@ -1,4 +1,4 @@
-# Lean GPT execution
+# Lean execution
 
 Parent-only reference. System/developer instructions and repository restrictions win. Leaves follow their assigned scope and never create agents.
 
@@ -6,14 +6,9 @@ Parent-only reference. System/developer instructions and repository restrictions
 
 Use direct parent tools for bounded work. Define acceptance, locate the responsible seam, patch, self-review, run focused tests, then stop. Do not delegate merely to select another model. Do not repeat a child's successful exploration or implementation.
 
-| Work requiring delegation | Pi model ID | Thinking |
-| --- | --- | --- |
-| User-facing parent | `openai-codex/gpt-6-astra` | high |
-| Bounded discovery/research | `openai-codex/gpt-5.6-luna` | medium |
-| Scoped implementation, including high-risk work | `openai-codex/gpt-5.6-luna` | high |
-| Complex debugging, independent review or security advice | `openai-codex/gpt-5.6-sol` | high |
-
-GPT-only: no MiniMax routing or fallback. Use only medium or high thinking. These are operational defaults, not a benchmark-proven ranking. Never change credentials, provider endpoints, permissions or test requirements for speed.
+Select the user's configured provider/model and supported thinking for the task.
+MEGAI imposes no GPT-only model scope or provider allowlist. Never silently change
+credentials, provider endpoints, permissions or test requirements for speed.
 
 ## Five-minute slices
 
@@ -24,15 +19,16 @@ Split tasks over 5 minutes. Checkpoint at 5 minutes; no open-ended loops. Keep r
 - Known seam: parent is the sole writer. Unknown seam: one scout only when isolated discovery saves work. A scoped worker replaces parent implementation, not duplicates it.
 - Exactly one writer per checkout. Use a managed worktree; serialize integration with other parents. Children never mutate trackers, merge, promote or drain queues.
 - Give fresh context: acceptance, relevant paths, authority and focused verification only. No full parent transcript. Return verdict, changed paths, commands/results and risks in at most ten bullets.
-- Use one fresh Sol review for security/data-integrity risks, consequential cross-module changes or an explicit independent-review request. Otherwise parent diff review suffices. Keep existing tests, accessibility, compatibility and data-integrity gates.
-- Permit one diagnosed transient retry or one focused correction. If acceptance still fails, preserve evidence and stop/escalate once to Sol; no model ping-pong or repeated repair chain.
+- Use one fresh independent review for security/data-integrity risks, consequential cross-module changes or an explicit independent-review request. Otherwise parent diff review suffices. Keep existing tests, accessibility, compatibility and data-integrity gates.
+- Permit one diagnosed transient retry or one focused correction. If acceptance still fails, preserve evidence and stop/escalate once to a suitable configured alternative; no model ping-pong or repeated repair chain.
 - Use async completion notifications; do not poll running agents. Report actual blockers promptly. User-owned decisions remain with the user.
 
 ## Dispatch and trust
 
-Inside Paseo, use visible Paseo children with an explicit model and thinking, e.g. `pi/openai-codex/gpt-5.6-luna` / high for a necessary writer. Check the returned model identity. The lean Pi profile does not load native pi-subagents; do not reinstall it just to delegate. If no authorized delegation mechanism is available, work directly when safe or report the blocker.
+Inside Paseo, use visible Paseo children with an explicit model and thinking, using a configured model suitable for the task. Check the returned model identity. The lean Pi profile does not load native pi-subagents; do not reinstall it just to delegate. If no authorized delegation mechanism is available, work directly when safe or report the blocker.
 
-A user who explicitly enables native delegation retains Luna default/scout/researcher/delegate/worker, Sol reviewer/debugger/oracle, strict GPT-only model scopes, medium default thinking and a high ceiling. Project/per-run restrictions still win.
+A user who explicitly enables native delegation controls its model defaults and
+scopes. Preserve those settings; MEGAI adds no model restrictions.
 
 Use only approved providers and scope-relevant data. Never expose credentials, personal/production data or private transcripts to unauthorized tools or providers. Resource pruning does not authorize weaker security or task-tracker boundaries. Finish at In Review; main promotion needs separate explicit user approval.
 

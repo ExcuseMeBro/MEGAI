@@ -12,9 +12,8 @@ class ModelPolicy(Slim):
         self.wire()
         agent = self.home / ".pi/agent"
         policy = (agent / "AGENTS.md").read_text()
-        for model in ("gpt-6-astra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-5.6-terra"):
-            self.assertIn("openai-codex/" + model, policy)
-        self.assertTrue((agent / "extensions/megai-model-guard/index.ts").is_file())
+        self.assertIn("no model allowlist", policy)
+        self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
         self.assertTrue((agent / "extensions/megai-provider-guard/index.ts").is_file())
         before = self.snapshot()
         self.wire()
@@ -23,6 +22,43 @@ class ModelPolicy(Slim):
         self.assertNotIn("megai:subagent-models:begin", (agent / "AGENTS.md").read_text())
         self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-provider-guard/index.ts").exists())
+
+    def test_owned_legacy_guard_retired_on_upgrade(self):
+        import hashlib
+
+        self.wire()
+        agent = self.home / ".pi/agent"
+        guard = agent / "extensions/megai-model-guard/index.ts"
+        self.write(guard, "legacy model guard")
+        receipt_path = self.megai / "slim-wiring.json"
+        receipt = json.loads(receipt_path.read_text())
+        receipt[str(guard)] = hashlib.sha256(guard.read_bytes()).hexdigest()
+        receipt_path.write_text(json.dumps(receipt))
+        command = (sys.executable, str(self.megai / "lib/pi_model_policy.py"))
+        before = self.snapshot()
+        self.run_cmd(*command, "--check")
+        self.assertEqual(self.snapshot(), before)
+        self.run_cmd(*command)
+        self.assertFalse(guard.exists())
+        self.assertNotIn(str(guard), json.loads(receipt_path.read_text()))
+        self.assertTrue((agent / "extensions/megai-provider-guard/index.ts").is_file())
+        after = self.snapshot()
+        self.run_cmd(*command)
+        self.assertEqual(self.snapshot(), after)
+
+    def test_source_publication_retires_owned_guard_source(self):
+        import hashlib
+        from slim_distribution import ROOT
+
+        guard = self.megai / "pi-skill/model-guard/index.ts"
+        self.write(guard, "legacy source guard")
+        receipt_path = self.megai / "slim-wiring.json"
+        receipt_path.write_text(json.dumps({str(guard): hashlib.sha256(guard.read_bytes()).hexdigest()}))
+        self.run_cmd(sys.executable, str(self.megai / "lib/install_slim_source.py"), str(ROOT))
+        self.assertFalse(guard.exists())
+        self.assertNotIn(str(guard), json.loads(receipt_path.read_text()))
+        backups = self.megai / "backups"
+        self.assertTrue(any(p.is_file() and p.read_bytes() == b"legacy source guard" for p in backups.rglob("*")))
 
     def test_timebox_and_escalation_policy_reaches_both_entrypoints(self):
         self.wire()
@@ -35,7 +71,7 @@ class ModelPolicy(Slim):
             "5 minutes (300 seconds)",
             "including model/tool waits",
             "same-model retry loop",
-            "Luna -> Terra -> Sol -> Astra",
+            "suitable, available alternative",
             "at most two escalation transitions per slice",
             "Confirm the old writer has stopped",
             "not a runtime watchdog",

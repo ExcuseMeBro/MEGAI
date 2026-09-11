@@ -180,7 +180,7 @@ Missing commands and source changes cannot masquerade as successful execution.
 The review contains:
 
 - `session_id`: distinct from `implementer_session_id`.
-- `harness`: `pi`; `model`: an exact approved GPT model; `thinking`: `high`.
+- `harness`: `pi`; `model`: the exact configured provider/model ID; `thinking`: `high`.
 - `verdict`: `PASS`, `FAIL` or `BLOCKED`.
 - `snapshot` and `contract_sha256`: the same frozen candidate and contract.
 - `criteria`: every criterion ID exactly once.

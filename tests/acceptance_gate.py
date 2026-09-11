@@ -234,11 +234,24 @@ class AcceptanceGateTest(unittest.TestCase):
         save(directory / "contract.json", contract)
         self.check(directory, 2)
 
+    def test_review_accepts_configured_non_gpt_models(self):
+        for model in ("anthropic/claude-sonnet-4-6", "minimax/MiniMax-M2.5", "local/custom-model"):
+            with self.subTest(model=model):
+                directory, _, evidence = self.fixture()
+                evidence["review"]["model"] = model
+                save(directory / "evidence.json", evidence)
+                self.check(directory)
+
     def test_independent_review_identity_and_verdict(self):
         for key, value in (
             ("session_id", "implementer"),
             ("harness", "codex"),
             ("model", "unknown"),
+            ("model", ""),
+            ("model", "provider/"),
+            ("model", "/model"),
+            ("model", "provider/*"),
+            ("model", "provider/model name"),
             ("thinking", "low"),
             ("verdict", "UNKNOWN"),
             ("criteria", []),

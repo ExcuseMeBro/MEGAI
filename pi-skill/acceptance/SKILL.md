@@ -49,7 +49,8 @@ screenshots, coverage, exit zero or LLM scores alone do not prove behavior.
 Use one fresh independent Pi verifier through the approved route: neutral READY,
 verify Pi/exact model/effective high thinking, then send the frozen contract/hash,
 candidate diff/snapshot and raw evidence, not the implementer's reasoning transcript.
-Prefer Sol/high. Give read-only authority and a bounded deadline. Reviewer checks
+Use a configured model suitable for independent review. Give read-only authority
+and a bounded deadline. Reviewer checks
 every criterion, root cause, red/green validity, regressions and runtime provenance;
 reports severity, `path:line`, impact and reproduction for actionable findings.
 Hash the actual review/status artifact. Unavailable verifier means BLOCKED.

@@ -22,12 +22,6 @@ import subprocess
 import time
 import uuid
 
-APPROVED_MODELS = {
-    "openai-codex/gpt-5.6-luna",
-    "openai-codex/gpt-5.6-terra",
-    "openai-codex/gpt-5.6-sol",
-    "openai-codex/gpt-6-astra",
-}
 SHA256_LENGTH = 64
 
 
@@ -526,7 +520,9 @@ def check(
             or review["session_id"] == contract["implementer_session_id"]
             or review["harness"] != "pi"
             or not isinstance(review["model"], str)
-            or review["model"] not in APPROVED_MODELS
+            or len(review["model"].split("/", 1)) != 2
+            or not all(review["model"].split("/", 1))
+            or any(char.isspace() or char in "*?" for char in review["model"])
             or review["thinking"] != "high"
             or review["snapshot"] != current
             or review["contract_sha256"] != approved

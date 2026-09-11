@@ -35,11 +35,9 @@ effort router.
 At task start, read [delegation.md](delegation.md) for the mandatory five-minute
 checkpoint and immediate model-error escalation, including direct parent work.
 Use its verified-launch procedure before creating or reusing a subagent.
-Delegate only through Pi with the exact Astra/Luna/Terra/Sol allowlist and explicit
-medium/high thinking; verify the returned identity before task context. This rule
-restricts children, not the user's current parent model. Local Pi installs the
-`megai-model-guard` tool-call guard; preserve explicit resource opt-outs and report
-when it is inactive.
+Use the user's configured providers, models and thinking preferences; MEGAI adds
+no model allowlist. Verify the selected identity before sending task context and
+preserve explicit resource opt-outs.
 
 ## Pi acceptance gate
 

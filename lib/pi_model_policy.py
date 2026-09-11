@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install only the Pi delegation policy/guard, without changing model or auth settings."""
+"""Install Pi delegation policy and retire the model guard without changing user settings."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -44,8 +44,7 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
     # unowned user instructions merely because this installer appended a block.
     if plan.receipt.get(str(path)) == digest(current):
         plan.receipt[str(path)] = digest(updated.encode())
-    plan.asset(root / "extensions/megai-model-guard/index.ts",
-               (source / "pi-skill/model-guard/index.ts").read_bytes(), remove)
+    plan.retire(root / "extensions/megai-model-guard/index.ts")
     plan.asset(root / "extensions/megai-provider-guard/index.ts",
                (source / "pi-skill/provider-guard/index.ts").read_bytes(), remove)
     plan.asset(root / "skills/megai/delegation.md", policy, remove)
