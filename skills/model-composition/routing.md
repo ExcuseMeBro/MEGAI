@@ -10,6 +10,10 @@ Select the user's configured provider/model and supported thinking for the task.
 MEGAI imposes no GPT-only model scope or provider allowlist. Never silently change
 credentials, provider endpoints, permissions or test requirements for speed.
 
+Pi users may explicitly select the [mixed preset](../../pi-skill/presets/README.md).
+Its role mapping is parent-consumed configuration, not an automatic four-agent
+pipeline. Existing user/task choices win; ordinary installation stays model-neutral.
+
 ## Five-minute slices
 
 Split tasks over 5 minutes. Checkpoint at 5 minutes; no open-ended loops. Keep required gates.

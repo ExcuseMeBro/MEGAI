@@ -28,6 +28,16 @@ no model allowlist. Select an available model suitable for
 the task; verify its exact identity and supported thinking before sending context.
 Never silently change the parent's model, credentials or provider catalog.
 
+Before selecting a delegated role, read `megai-roles.json` in the Pi agent directory
+(`PI_CODING_AGENT_DIR`, otherwise `~/.pi/agent`) when present. Its roles are the
+user-selected model/thinking defaults; explicit task choices override them. Missing
+role configuration retains normal model choice, not an implicit preset. This is
+parent-consumed policy data, not automatic dispatch or an allowlist; it is not a sandbox.
+Use direct parent tools for bounded work; never require all four roles. Scout,
+planner and reviewer are read-only; a worker gets only its assigned managed paths.
+Read-only checks use `python3 -B` and Ruff with
+`--no-fix --no-fix-only --force-exclude --no-cache`; avoid cache-producing checks.
+
 ## Immediate escalation — model failure or stalled progress
 
 A model-specific error, timeout or reasoning dead-end returns immediately to the
@@ -53,7 +63,11 @@ approval boundaries; never trade data integrity or claim unmeasured speed gains.
 Use structured Paseo `create_agent` with the selected provider/model and supported
 thinking settings. First send only a neutral READY prompt; verify the returned
 harness, exact model and effective thinking via agent status before sending task
-context. On mismatch cancel the child and report the blocker. Re-check restored
+context. Also confirm native Pi model/thinking: inspect the session's model and
+thinking-level entries, or request only `PI_PROVIDER`, `PI_MODEL` and
+`PI_REASONING_LEVEL` through a second neutral runtime-check prompt. Paseo labels
+alone can misreport a clamped thinking level. If native evidence is unavailable,
+stop as BLOCKED; on mismatch cancel the child and report the blocker. Re-check restored
 agents before reuse. Children never delegate or mutate Plane. Writers use managed
 isolated worktrees; direct parent tools suffice for bounded work. Main promotion
 still needs separate explicit approval.

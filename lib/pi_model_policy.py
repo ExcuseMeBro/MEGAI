@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install Pi delegation policy and retire the model guard without changing user settings."""
+"""Install Pi policy; change native model defaults only with an explicit --preset."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -48,6 +48,47 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
     plan.asset(root / "extensions/megai-provider-guard/index.ts",
                (source / "pi-skill/provider-guard/index.ts").read_bytes(), remove)
     plan.asset(root / "skills/megai/delegation.md", policy, remove)
+    if remove:
+        # Removing policy does not undo the user's native model preferences.
+        plan.retire(root / "megai-roles.json")
+
+
+def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
+    from slim_wiring import encoded, load_json, read
+
+    if preset != "mixed":
+        raise ValueError(f"unknown Pi preset: {preset}")
+    config = load_json(source / "pi-skill/presets/mixed.json")
+    roles = config.get("roles")
+    if (config.get("schema") != 1 or config.get("preset") != preset
+            or not isinstance(roles, dict)
+            or set(roles) != {"planner", "scout", "worker", "reviewer"}):
+        raise ValueError("invalid mixed role preset")
+    levels = {}
+    for role in roles.values():
+        if (not isinstance(role, dict)
+                or any(not isinstance(role.get(key), str) or not role[key].strip()
+                       for key in ("provider", "model", "thinking"))
+                or role["thinking"] not in ("off", "minimal", "low", "medium", "high", "xhigh", "max")):
+            raise ValueError("invalid mixed role identity/thinking")
+        identity = role["provider"] + "/" + role["model"]
+        if identity in levels and levels[identity] != role["thinking"]:
+            raise ValueError("conflicting per-model thinking in preset")
+        levels[identity] = role["thinking"]
+    plan.asset(root / "megai-roles.json", encoded(config), False)
+    path = root / "settings.json"
+    before = read(path)
+    settings = load_json(path)
+    current_levels = settings.get("modelThinkingLevels", {})
+    if not isinstance(current_levels, dict):
+        raise ValueError("modelThinkingLevels must be an object")
+    planner = roles["planner"]
+    settings.update(defaultProvider=planner["provider"], defaultModel=planner["model"],
+                    defaultThinkingLevel=planner["thinking"],
+                    modelThinkingLevels={**current_levels, **levels})
+    # Explicit opt-in owns this edit, not the rest of the settings file.
+    # Plan preflights, backs up and rolls back the combined policy/config writes.
+    plan.stage(path, encoded(settings), before)
 
 
 def main() -> None:
@@ -57,11 +98,16 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("--remove", action="store_true")
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--remove", action="store_true")
+    selection.add_argument("--preset", choices=("mixed",),
+                           help="explicitly apply role and native startup model preferences")
     args = parser.parse_args()
     plan = Plan()
     root = Path(os.environ.get("PI_CODING_AGENT_DIR", Path.home() / ".pi/agent"))
     stage_model_policy(plan, root, SOURCE, args.remove)
+    if args.preset:
+        stage_preset(plan, root, SOURCE, args.preset)
     plan.apply(args.check)
 
 
