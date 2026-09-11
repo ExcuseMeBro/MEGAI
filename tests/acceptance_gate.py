@@ -210,6 +210,19 @@ class AcceptanceGateTest(unittest.TestCase):
         (self.root / "new.py").write_text("changed")
         self.check(directory, 2, "snapshot")
 
+    def test_index_only_content_invalidates_evidence(self):
+        directory, _, _ = self.fixture()
+        source = self.root / "source.txt"
+        source.write_text("staged but not the tested worktree")
+        git(self.root, "add", "source.txt")
+        source.write_text("source")
+        self.check(directory, 2, "snapshot")
+
+    def test_index_only_mode_changes_snapshot(self):
+        before = self.snapshot()
+        git(self.root, "update-index", "--chmod=+x", "source.txt")
+        self.assertNotEqual(self.snapshot(), before)
+
     def test_deleted_source_changes_snapshot(self):
         before = self.snapshot()
         (self.root / "source.txt").unlink()

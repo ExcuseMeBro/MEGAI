@@ -16,8 +16,8 @@ hash independently from Plane. A repository can require this command in CI and
 protect that CI check, but this package does not modify branch protection or
 intercept arbitrary Git pushes. Do not equate a prompt with enforced merge policy.
 
-Source fingerprints cover Git HEAD and tracked/nonignored untracked content,
-including deletions/modes. Ignored build outputs, dependencies, databases and
+Source fingerprints cover Git HEAD, index blob IDs/modes and tracked/nonignored
+untracked content, including deletions/modes. Ignored build outputs, dependencies, databases and
 external services are not proven by a source hash. Record their versions and
 runtime provenance in observations/review. Unsupported source states must be
 resolved rather than silently excluded. Commit before final capture if committing

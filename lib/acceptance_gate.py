@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fail-closed local acceptance evidence gate.
 
-Snapshots cover Git HEAD and all tracked plus nonignored untracked regular files;
+Snapshots cover Git HEAD, index entries and all tracked/nonignored regular files;
 ignored build outputs are intentionally excluded.  ``run`` executes an argv
 without a shell and is neither a watchdog nor a sandbox: callers choose bounded
 checks and this helper never kills an in-flight command.
@@ -101,7 +101,8 @@ def snapshot(root: Path) -> str:
     root = _repo_root(root)
     if _git(root, "ls-files", "-u", "-z"):
         raise GateError("Unresolved Git conflicts")
-    for entry in _parts(_git(root, "ls-files", "-s", "-z")):
+    index = _git(root, "ls-files", "-s", "-z")
+    for entry in _parts(index):
         if entry.startswith("160000 "):
             raise GateError("Submodule rejected")
     tracked = set(_parts(_git(root, "ls-files", "-z")))
@@ -111,6 +112,7 @@ def snapshot(root: Path) -> str:
     digest = hashlib.sha256()
     head = _git(root, "rev-parse", "HEAD").strip()
     _frame(digest, b"head", head)
+    _frame(digest, b"index", index)
     observed = {}
     for relative in sorted(tracked | untracked):
         path = _source_path(root, relative)
@@ -134,6 +136,7 @@ def snapshot(root: Path) -> str:
         _frame(digest, b"sha256", content_hash.encode())
     if (
         _git(root, "rev-parse", "HEAD").strip() != head
+        or _git(root, "ls-files", "-s", "-z") != index
         or set(_parts(_git(root, "ls-files", "-z"))) != tracked
         or set(_parts(_git(root, "ls-files", "--others", "--exclude-standard", "-z")))
         != untracked
