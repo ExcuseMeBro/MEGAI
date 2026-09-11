@@ -1,0 +1,6 @@
+test_nested_interval_preserves_outer_endpoint (test_participant.IntervalRegression.test_nested_interval_preserves_outer_endpoint) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK

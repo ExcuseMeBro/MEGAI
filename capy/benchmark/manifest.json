@@ -1,0 +1,13 @@
+{
+  "capy/benchmark/cases/bugfix/intervals.py": "bfc34c8c53372d28af4c01a6d903241e16638336f75d3d532bdc6ae36723383e",
+  "capy/benchmark/cases/bugfix/test_acceptance.py": "d108b6655fb0c7fa7703c7cf206ab2e3454883e87a76689b9b0e0d4b7b1800b7",
+  "capy/benchmark/cases/feature/batching.py": "e7afaafab6e7fc507e51df4a3cce649a4f29f186f94d16f37f0631e98efc35ad",
+  "capy/benchmark/cases/feature/test_acceptance.py": "853badbcf5b4ca95b98e3d65d7ae9b6716b31969c662e0c770da5a1a427bb3ef",
+  "capy/benchmark/cases/refactor/reporting.py": "b7b48eecc0a6d78ea5bfd39024399cce3bcac544adcedb17c35341a588e918aa",
+  "capy/benchmark/cases/refactor/test_acceptance.py": "120f18bfffed314eb990c5b75d39baaaa96e642435054af3a40234ff2a43f5b6",
+  "capy/benchmark/prompts/bugfix.md": "a62b782e7b0e5388cb337bbafbbc6b2334ef93209d8aa533d3acf7313ef4aef8",
+  "capy/benchmark/prompts/feature.md": "641e345c3d5820aebac1588f26765922388246b7065d1ea08f3139681d0cbabd",
+  "capy/benchmark/prompts/refactor.md": "13b0edcb56f8679397790d69b1fcad90e49f215e209908939ad9985aea1ae5a4",
+  "capy/benchmark/tasks.md": "18066f13167a9626324cbfac5d34d8920a9213b01d9a096e6ff7e0ec4fcd0542",
+  "capy/instructions.md": "8f329763b120d4486b68aa672cdbca79a86a2e3d8bd62af4cf901222e2ffbf00"
+}

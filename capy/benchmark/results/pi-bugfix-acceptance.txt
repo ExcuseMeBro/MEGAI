@@ -1,0 +1,15 @@
+test_disjoint_consecutive_ranges_remain_separate (test_acceptance.IntervalAcceptance.test_disjoint_consecutive_ranges_remain_separate) ... ok
+test_duplicate_and_zero_width (test_acceptance.IntervalAcceptance.test_duplicate_and_zero_width) ... ok
+test_empty_returns_fresh_list (test_acceptance.IntervalAcceptance.test_empty_returns_fresh_list) ... ok
+test_negative_endpoints (test_acceptance.IntervalAcceptance.test_negative_endpoints) ... ok
+test_nested_interval_does_not_shrink_outer (test_acceptance.IntervalAcceptance.test_nested_interval_does_not_shrink_outer) ... ok
+test_nesting_keeps_later_overlap_connected (test_acceptance.IntervalAcceptance.test_nesting_keeps_later_overlap_connected) ... ok
+test_nonmutation (test_acceptance.IntervalAcceptance.test_nonmutation) ... ok
+test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok
+test_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok
+test_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.000s
+
+OK
