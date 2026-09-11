@@ -92,6 +92,38 @@ class Slim(unittest.TestCase):
         self.assertNotIn("zvec_grep", json.loads((self.home / ".pi/agent/mcp.json").read_text())["mcpServers"])
         self.assertTrue((self.legacy / "sentinel").exists())
 
+    def test_workspace_guard_assets_install_verify_and_remove(self):
+        self.wire()
+        target = self.home / ".pi/agent/extensions/megai-workspace-guard"
+        for name in ("index.ts", "identity.mjs"):
+            self.assertEqual((target / name).read_bytes(),
+                             (ROOT / "pi-skill/workspace-guard" / name).read_bytes())
+        self.assertIn("canonical Git primary/Paseo project",
+                      (self.home / ".pi/agent/AGENTS.md").read_text())
+        before = self.snapshot()
+        self.wire("--verify")
+        self.wire()
+        self.assertEqual(self.snapshot(), before)
+        self.wire("--remove")
+        self.assertFalse((target / "index.ts").exists())
+        self.assertFalse((target / "identity.mjs").exists())
+
+    def test_custom_workspace_guard_preserved_before_any_write(self):
+        self.write(self.home / ".pi/agent/extensions/megai-workspace-guard/index.ts",
+                   "user-owned workspace guard")
+        before = self.snapshot()
+        self.assertIn("custom/legacy asset preserved", self.wire(ok=False).stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_workspace_cli_preserves_arguments_without_startup(self):
+        self.stub("node", "exec python3 -c 'import json,sys; print(json.dumps(sys.argv[1:]))' \"$@\"\n")
+        result = self.run_cmd("bash", str(self.megai / "bin/megai"),
+                              "workspace", "--root", "path with spaces")
+        self.assertEqual(json.loads(result.stdout),
+                         [str(self.megai / "pi-skill/workspace-guard/identity.mjs"),
+                          "--root", "path with spaces"])
+        self.assertFalse((self.home / "calls").exists())
+
     def test_acceptance_assets_install_idempotently_and_remove(self):
         self.wire()
         target = self.home / ".pi/agent/skills/megai-acceptance"

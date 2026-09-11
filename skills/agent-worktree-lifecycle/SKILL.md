@@ -6,7 +6,41 @@ managed-by: megai
 
 # Agent worktree lifecycle
 
-The parent owns integration. Use one writer per registered worktree; read-only children may share the parent workspace. Inside Paseo create writers through `create_workspace` with worktree isolation and then `create_agent` with that workspace ID. Select Pi explicitly for every child and verify its returned harness/model/thinking; follow `megai`'s GPT-only Pi delegation contract. Children never create agents, mutate trackers or integrate branches. Independent slices may use separate worktrees only with non-overlapping ownership.
+The parent owns integration. Use one writer per registered managed worktree; readers may share that worktree read-only. Select Pi explicitly and verify the returned harness/model/thinking before task context; follow `megai`'s Pi-only delegation contract. Children never create agents, mutate trackers or integrate branches.
+
+## One project, multiple worktree workspaces
+
+Before creating a task workspace, run `megai workspace --root CURRENT_CHECKOUT`.
+It resolves the Git **primary** checkout and its unique existing Paseo project ID,
+even when called from a linked worktree. Same remote URL alone is not identity.
+Missing/ambiguous registration is BLOCKED; do not create another project to bypass it.
+
+1. Reuse a suitable existing managed workspace when its writer is idle and ownership
+   is agreed; otherwise use structured Paseo `create_workspace` with
+   `isolation: "worktree"`, the resolved **canonical `projectId`**, and explicit
+   branch/base/title. Omit `path`. The daemon chooses its managed worktree location.
+2. Check the returned project ID, workspace ID and Git primary/common directory.
+   Never pass a sibling checkout path as a new local project. Do not clone or run
+   direct `git worktree add ../PROJECT-task` for agent work.
+3. Pass that explicit `workspaceId` to `create_agent`; never rely on implicit
+   top-level workspace creation. Writers use non-overlapping scopes. Readers share
+   a managed workspace read-only, not a second project registration.
+4. A retained delivery branch changes **branch retention**, not project identity
+   or worktree placement. Keep `pi`, `capy`, or another agreed branch in a managed
+   workspace under the same canonical project; no `PROJECT-pi`/`PROJECT-capy` siblings.
+
+The receipt-owned `megai-workspace-guard` enforces these creation preconditions in
+Pi tool calls, using read-only/on-demand Git and Paseo registry lookup. It leaves
+models, auth, settings and input arguments unchanged. It is not an OS sandbox:
+external clients, arbitrary scripts and disabled/excluded extensions are outside
+its boundary. Report unavailable identity/guard rather than claim enforcement.
+
+For existing duplicates, inventory branches, dirty/untracked data, agents and
+terminals first. Obtain writer release before moving anything. Use supported Paseo
+operations; never rewrite a running daemon's registry. Archive only completed,
+safely delivered workspaces with retained history; never archive an active/dirty
+workspace merely to hide duplication. If lossless reparenting is unavailable,
+report that blocker and agree the archive/recreation or maintenance boundary.
 
 ## Delivery contract
 

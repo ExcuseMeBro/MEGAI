@@ -16,6 +16,7 @@ megai slim
   wire pi|path                  Repair Pi wiring; conflicts fail safely
   headroom [args]               Local compression, retrieve, memory, doctor
   acceptance [args]             Capture/check source-bound acceptance evidence
+  workspace --root CHECKOUT     Resolve canonical Git/Paseo project (read-only)
   reindex                       Explicit local zvec index/rebuild
   plane [args]                  Secure Plane connector setup/status/removal
   dev                           Switch a clean primary main/master to dev
@@ -112,6 +113,7 @@ case "${1:-__project__}" in
   doctor) cmd_doctor ;;
   headroom) shift; exec "$MEGAI_HOME/bin/megai-headroom" "$@" ;;
   acceptance) shift; exec python3 "$LIB/acceptance_gate.py" "$@" ;;
+  workspace) shift; exec node "$MEGAI_HOME/pi-skill/workspace-guard/identity.mjs" "$@" ;;
   start|stop|logs) die "daemon commands are retired; use megai headroom (local, on demand)" ;;
   reindex) cmd_reindex ;;
   plane) shift; bash "$LIB/plane_mcp.sh" "$@" ;;

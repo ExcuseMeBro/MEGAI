@@ -111,6 +111,7 @@ class Plan:
             "Before project changes, the parent loads `megai-task-flow` and starts the linked Plane item. "
             "Plane is the only execution tracker. Reuse the identity through refinements; children never mutate it. "
             "Use `agent-worktree-lifecycle` for isolated writes and the agreed delivery target. "
+            "Keep one canonical Git primary/Paseo project; create managed worktree workspaces with its explicit projectId, never sibling project copies. "
             "Load `megai-acceptance` before implementation and at verification: freeze criteria, capture actual tests/runtime evidence, "
             "require fresh independent Pi review and a source-current PASS before verified handoff. "
             "Missing tools, authorization or evidence are BLOCKED, not PASS. "
@@ -295,6 +296,9 @@ class Plan:
         for name in ("index.ts", "bridge.py", "assets.py", "persistence.py"):
             self.asset(root / "extensions/megai-headroom" / name,
                        (SOURCE / "pi-skill/headroom" / name).read_bytes(), remove)
+        for name in ("index.ts", "identity.mjs"):
+            self.asset(root / "extensions/megai-workspace-guard" / name,
+                       (SOURCE / "pi-skill/workspace-guard" / name).read_bytes(), remove)
         # Metadata only, never session history or memory databases. Exact retired
         # server identities are pruned; unknown cache shapes fail before writes.
         cache_path = root / "mcp-cache.json"
