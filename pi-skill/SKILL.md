@@ -41,6 +41,16 @@ restricts children, not the user's current parent model. Local Pi installs the
 `megai-model-guard` tool-call guard; preserve explicit resource opt-outs and report
 when it is inactive.
 
+## Pi acceptance gate
+
+On Pi, load `megai-acceptance` once before implementation and reuse its frozen
+criteria at handoff. Record the contract hash in the same Plane item. Bug fixes
+require captured red → green evidence. Collect real tests/runtime receipts with
+`megai acceptance collect`, obtain fresh independent Pi review, and require a
+source-current `megai acceptance check` PASS before delivery. Missing prerequisites,
+observations or review are BLOCKED, not PASS; live targets need explicit approval.
+Other harnesses retain their existing verification and resource-selection behavior.
+
 ## Headroom matrix
 
 | Harness | Compression and retrieval | Memory |

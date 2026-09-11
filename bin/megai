@@ -16,6 +16,8 @@ megai
   wire cc|codex|pi|omp|path     Repair managed wiring; conflicts fail safely
   headroom doctor|compress|retrieve|recall|save [args]
                                 Local compression, retrieval and memory CLI
+  acceptance [args]             Capture/check source-bound acceptance evidence
+  workspace --root CHECKOUT     Resolve canonical Git/Paseo project (read-only)
   reindex                       Explicit local zvec index/rebuild
   plane [args]                  Secure Plane connector setup/status/removal
   dev | finish | promote       Explicit branch lifecycle commands
@@ -149,6 +151,8 @@ case "${1:-__project__}" in
   status) cmd_status ;;
   doctor) cmd_doctor ;;
   headroom) shift; cmd_headroom "$@" ;;
+  acceptance) shift; exec python3 "$LIB/acceptance_gate.py" "$@" ;;
+  workspace) shift; exec node "$MEGAI_HOME/pi-skill/workspace-guard/identity.mjs" "$@" ;;
   start) shift; cmd_start "$@" ;;
   stop) shift; cmd_stop "$@" ;;
   logs) shift; cmd_logs "$@" ;;

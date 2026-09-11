@@ -135,12 +135,31 @@ are installed, preventing duplicate MEGAI skill resolution. Codex/CC/OMP retain
 their native/shared destinations and explicit filters. User opt-outs remain in
 force and inactive resources are reported honestly.
 
+## Acceptance and task delivery
+
+Pi's [acceptance gate](pi-skill/acceptance/SKILL.md) freezes criteria, captures
+source-bound command/runtime evidence and requires independent Pi review before
+`megai acceptance check` can return PASS (0). Failed checks return FAIL (1);
+missing/stale evidence returns BLOCKED (2). `collect` produces a BLOCKED draft,
+never an automatic approval. Schema-2 bug fixes require captured red → green
+regression evidence. See the [CLI and trust limits](pi-skill/acceptance/reference.md).
+
+Each new task uses its own branch and managed Paseo worktree workspace under the
+canonical project, resolved by `megai workspace --root CHECKOUT`. After tests and
+review, integrate to `dev`, verify delivery, archive the released task workspace
+and delete safely merged task branches. Keep one primary workspace at rest;
+concurrent unfinished tasks remain isolated until safely delivered. Preserve dirty
+work and history before cleanup. `main` promotion remains separately approved.
+The [lifecycle skill](skills/agent-worktree-lifecycle/SKILL.md) owns the procedure.
+
 ## Verification
 
 Focused, non-live checks use disposable HOME/config roots and do not execute
 non-Pi harnesses or send provider calls:
 
 ```bash
+python3 -B tests/acceptance_gate.py
+python3 -B tests/acceptance_flow.py
 bash tests/slim-distribution.sh
 python3 tests/headroom_wiring.py
 HEADROOM_TEST_PYTHON="$HOME/.megai/venv/headroom/bin/python" \

@@ -90,6 +90,80 @@ class Slim(unittest.TestCase):
         self.assertNotIn("zvec_grep", json.loads((self.home / ".pi/agent/mcp.json").read_text())["mcpServers"])
         self.assertTrue((self.legacy / "sentinel").exists())
 
+    def test_workspace_guard_assets_install_verify_and_remove(self):
+        self.wire()
+        target = self.home / ".pi/agent/extensions/megai-workspace-guard"
+        for name in ("index.ts", "identity.mjs"):
+            self.assertEqual((target / name).read_bytes(),
+                             (ROOT / "pi-skill/workspace-guard" / name).read_bytes())
+        self.assertIn("canonical Git primary/Paseo project",
+                      (self.home / ".pi/agent/AGENTS.md").read_text())
+        before = self.snapshot()
+        self.wire("--verify")
+        self.wire()
+        self.assertEqual(self.snapshot(), before)
+        self.wire("--remove")
+        self.assertFalse((target / "index.ts").exists())
+        self.assertFalse((target / "identity.mjs").exists())
+
+    def test_custom_workspace_guard_preserved_before_any_write(self):
+        self.write(self.home / ".pi/agent/extensions/megai-workspace-guard/index.ts",
+                   "user-owned workspace guard")
+        before = self.snapshot()
+        self.assertIn("custom/legacy asset preserved", self.wire(ok=False).stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_workspace_cli_preserves_arguments_without_startup(self):
+        self.stub("node", "exec python3 -c 'import json,sys; print(json.dumps(sys.argv[1:]))' \"$@\"\n")
+        result = self.run_cmd("bash", str(self.megai / "bin/megai"),
+                              "workspace", "--root", "path with spaces")
+        self.assertEqual(json.loads(result.stdout),
+                         [str(self.megai / "pi-skill/workspace-guard/identity.mjs"),
+                          "--root", "path with spaces"])
+        self.assertFalse((self.home / "calls").exists())
+
+    def test_acceptance_assets_install_idempotently_and_remove(self):
+        self.wire()
+        target = self.home / ".pi/agent/skills/megai-acceptance"
+        for name in ("SKILL.md", "reference.md", "contract.example.json"):
+            self.assertEqual((target / name).read_bytes(),
+                             (ROOT / "pi-skill/acceptance" / name).read_bytes())
+        for root in (".agents", ".claude", ".omp/agent"):
+            self.assertFalse((self.home / root / "skills/megai-acceptance").exists())
+        self.assertIn("source-current PASS", (self.home / ".pi/agent/AGENTS.md").read_text())
+        before = self.snapshot()
+        self.wire()
+        self.assertEqual(self.snapshot(), before)
+        self.wire("--remove")
+        for name in ("SKILL.md", "reference.md", "contract.example.json"):
+            self.assertFalse((target / name).exists())
+
+    def test_custom_acceptance_asset_blocks_without_overwriting(self):
+        target = self.home / ".pi/agent/skills/megai-acceptance/reference.md"
+        self.write(target, "user-owned acceptance policy")
+        before = self.snapshot()
+        result = self.wire(ok=False)
+        self.assertIn("custom/legacy asset preserved", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_acceptance_cli_routing_preserves_argv(self):
+        self.write(self.megai / "lib/acceptance_gate.py",
+                   "import json, sys\nprint(json.dumps(sys.argv[1:]))\n")
+        result = self.run_cmd("bash", str(self.megai / "bin/megai"),
+                              "acceptance", "snapshot", "--root", "path with spaces")
+        self.assertEqual(json.loads(result.stdout),
+                         ["snapshot", "--root", "path with spaces"])
+        self.assertFalse((self.home / "calls").exists())
+
+    def test_task_workspaces_return_to_primary_after_delivery(self):
+        policy = (ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text()
+        for clause in ("Each new task", "one primary workspace at rest",
+                       "same task", "safely merged", "read-only reviewers"):
+            self.assertIn(clause, policy)
+        self.wire()
+        self.assertIn("one primary workspace after verified delivery",
+                      (self.home / ".pi/agent/AGENTS.md").read_text())
+
     def test_user_config_and_policy_text_survive(self):
         files = {
             ".pi/agent/settings.json": '{"defaultProvider":"keep","defaultModel":"keep","defaultThinkingLevel":"high","packages":["user-extension"],"skills":["user-skill"]}',

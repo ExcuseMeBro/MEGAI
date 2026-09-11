@@ -118,7 +118,11 @@ class Plan:
             "Before project changes, the parent loads `megai-task-flow` and starts the linked Plane item. "
             "Plane is the only execution tracker. Reuse the identity through refinements; children never mutate it. "
             "Use `agent-worktree-lifecycle` for isolated writes and the agreed delivery target. "
-            "Verify task acceptance with actual tests and review; security/data-integrity risks require independent review. "
+            "Keep one canonical Git primary/Paseo project; use distinct managed task workspaces and return to one primary workspace after verified delivery. "
+            "On Pi, load `megai-acceptance` before implementation: freeze criteria, capture actual tests/runtime evidence, "
+            "require fresh independent Pi review and a source-current PASS before verified handoff. "
+            "Missing tools, authorization or evidence are BLOCKED, not PASS. "
+            "Security/data-integrity risks require independent review. "
             "Hand off at In Review, never Done. Main promotion requires separate explicit approval.\n"
             "Headroom provides local context compression, concise output and explicit persistent memory. "
             "Use tgrep for literal/regex discovery first, and only when a task-owned index is ready; its status is a readiness hint, not a freshness certificate. "
@@ -245,6 +249,12 @@ class Plan:
         for relative in ("index.ts", "bridge.py", "assets.py", "persistence.py"):
             self.asset(root / "extensions/megai-headroom" / relative,
                        (SOURCE / "pi-skill/headroom" / relative).read_bytes(), remove)
+        for relative in ("index.ts", "identity.mjs"):
+            self.asset(root / "extensions/megai-workspace-guard" / relative,
+                       (SOURCE / "pi-skill/workspace-guard" / relative).read_bytes(), remove)
+        for relative in ("SKILL.md", "reference.md", "contract.example.json"):
+            self.asset(root / "skills/megai-acceptance" / relative,
+                       (SOURCE / "pi-skill/acceptance" / relative).read_bytes(), remove)
 
     def retire_legacy_pi_assets(self, root: Path, remove: bool) -> None:
         """Retire only receipt-owned legacy Pi bridges and extension resources."""
