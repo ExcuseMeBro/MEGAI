@@ -160,6 +160,10 @@ class Slim(unittest.TestCase):
         for clause in ("Each new task", "one primary workspace at rest",
                        "same task", "safely merged", "read-only reviewers"):
             self.assertIn(clause, policy)
+        self.assertNotIn("megai finish --verified", policy)
+        self.assertLess(policy.index("Release all task writers"),
+                        policy.index("git -C PRIMARY merge --ff-only"))
+        self.assertIn("does not enforce branch/base/title", policy)
         self.wire()
         self.assertIn("one primary workspace after verified delivery",
                       (self.home / ".pi/agent/AGENTS.md").read_text())

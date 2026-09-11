@@ -34,11 +34,12 @@ Missing/ambiguous registration is BLOCKED; do not create another project to bypa
    for independent evidence. Readers share the task workspace; simultaneous writers
    each own a distinct managed worktree. Child workspaces close with the parent task.
 
-The receipt-owned `megai-workspace-guard` enforces these creation preconditions in
-Pi tool calls, using read-only/on-demand Git and Paseo registry lookup. It leaves
-models, auth, settings and input arguments unchanged. It is not an OS sandbox:
-external clients, arbitrary scripts and disabled/excluded extensions are outside
-its boundary. Report unavailable identity/guard rather than claim enforcement.
+The receipt-owned `megai-workspace-guard` enforces canonical project identity and
+managed worktree isolation in Pi creation calls. It does not enforce branch/base/title
+policy or task uniqueness; the parent verifies those separately. Lookup is read-only
+and on demand; models, auth, settings and input arguments remain unchanged. This is
+not an OS sandbox: external clients, arbitrary scripts and excluded extensions are
+outside its boundary. Report an unavailable guard rather than claim enforcement.
 
 For existing duplicates, inventory branches, dirty/untracked data, agents and
 terminals first. Obtain writer release before moving anything. Use supported Paseo
@@ -53,30 +54,42 @@ Resolve the target before edits. Default: task branch from `dev`, then verified 
 
 Before delivery, inspect the diff and prove task acceptance with relevant tests; use independent review for security/data-integrity risks or consequential cross-module changes. Commit only task-owned changes. Stop on dirty/ambiguous target ownership, conflicts, failed checks, authentication failures or uncertain push results; never force-push or force-delete work.
 
-For normal dev delivery:
+For Paseo-managed dev delivery, separate integration from destructive cleanup.
+The legacy `finish` helper removes the checkout itself; use the ordered primary-dev
+sequence below so it cannot delete ignored artifacts or a reviewer's active cwd.
 
-```bash
-megai finish --dry-run --target dev
-megai finish --verified --target dev
-```
+1. Release all task writers and owned terminals. Reserve the clean primary `dev`
+   checkout; verify its local/remote head is the reviewed base. Inventory tracked,
+   untracked and ignored files in every retiring workspace. Reconcile dirty work,
+   preserve required drafts, refs and session/evidence bytes in verified private
+   backups, and stop on an unknown owner or unresolved data. Read-only verification
+   may continue only while its checkout remains retained.
+2. Commit and verify the candidate against the current dev base in its task
+   workspace, including tests and independent review. With a source-current PASS,
+   use integration-only commands from the parent (replace placeholders):
 
-This merges/pushes verified dev, reuses one open dev-to-main request and cleans only
-its safely merged task worktree/branch. Verify the remote dev head before cleanup.
-Coordinate the helper's Git cleanup with supported Paseo archival; never edit the
-live registry. Confirm all task writers/reviewers and terminals are released,
-inspect tracked/untracked/ignored data, and preserve required evidence externally.
-Archive each completed child workspace, verify its worktree is gone, then delete
-only safely merged redundant task branches (including published task refs when
-retirement is authorized). Never force-delete an unmerged branch or discard dirty
-work; stop and reconcile it. Verify no completed child workspace remains active
-and only the primary remains when no unfinished task or explicit retention
-exception exists. Do not archive another parent's active task to reach that count.
+   ```bash
+   git -C PRIMARY merge --ff-only TASK_BRANCH
+   git -C PRIMARY push origin dev
+   ```
 
-Before archival, relocate final source-bound verification to the delivered primary
-with freshly captured receipts/review; changing receipt cwd does not transfer old
-evidence. Preserve historical raw evidence and session history. Hand off the same
-Plane item at started `In Review` only after verified delivery and cleanup; only the
-user marks `Done`.
+   The primary must still be clean, on `dev`, and at the reserved base before the
+   fast-forward. Stop on divergence or an uncertain push; verify the exact remote
+   dev head. These commands leave task worktrees and branches intact.
+3. Capture fresh source-bound verification at the delivered primary and obtain
+   source-current independent review before retiring its task checkout. Old receipt
+   cwd values cannot be rewritten to transfer evidence. Keep historical raw logs.
+4. Release every remaining reviewer. Recheck each retiring workspace's data and
+   merged ancestry immediately before supported Paseo archival; never edit the live
+   registry. Archive only a released, clean, safely delivered child and verify its
+   worktree is gone. Delete only safely merged redundant task branches, including
+   published task refs when retirement is authorized. Never force-delete unmerged
+   work. An external read-only parent may verify the final live layout without
+   resurrecting an archived task workspace.
+5. Verify no completed child workspace remains active and only the primary remains
+   when no unfinished task or explicit retention exception exists. Another parent's
+   active task is not a cleanup target. Hand off the same Plane item at started
+   `In Review` only after verified delivery and cleanup; only the user marks `Done`.
 
 Main stays unchanged until the user explicitly approves promotion of the reviewed dev head:
 
