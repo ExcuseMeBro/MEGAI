@@ -110,7 +110,7 @@ The parent verifies current acceptance, agreed target and other agents/terminals
 then uses the existing approved Git delivery procedure. The queue does not execute
 it. Keep a lease alive with `heartbeat --id --owner --token --lease-seconds`; choose
 bounded operations and renew before expiry. Never interrupt a live mutation merely
-because a lease or five-minute checkpoint elapsed.
+because a lease or task-specific deadline elapsed.
 
 `finish --id --owner --token --outcome completed` releases resources only when
 **every** target ref is at its exact candidate commit and each primary checkout is

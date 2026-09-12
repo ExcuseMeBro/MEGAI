@@ -76,7 +76,7 @@ Run `megai acceptance check` with the Plane-approved hash. Only a source-current
 permits agreed delivery (Git branch or non-Git configuration files) and Plane
 **In Review**, never Done or unapproved main promotion.
 Report criterion → command/action → observed result → artifact. FAIL needs a fix;
-BLOCKED needs the named evidence/prerequisite. Stop at acceptance. Keep five-minute
-slice checkpoints, user resource exclusions and native provider settings intact.
+BLOCKED needs the named evidence/prerequisite. Stop at acceptance. Keep user
+resource exclusions and native provider settings intact.
 Credentials/private data stay out of argv and public artifacts; raw logs remain
 private, and sanitized exports need their own hashes.

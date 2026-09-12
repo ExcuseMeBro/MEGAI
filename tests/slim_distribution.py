@@ -308,7 +308,7 @@ class Slim(unittest.TestCase):
                     self.assertTrue((path.parent / link).is_file(), f"{path}: {link}")
         skill = (source / "SKILL.md").read_text()
         for required in ("Expo / React Native", "not for generic web UI", "explicit authorization",
-                         "MCP is optional", "five-minute", "Pi-only", "BLOCKED", "installed versions",
+                         "MCP is optional", "independently verifiable outcomes", "Pi-only", "BLOCKED", "installed versions",
                          "VoiceOver/TalkBack", "payments", "Reduce Motion"):
             self.assertIn(required, skill)
         self.assertIn("dd5caaec3d5d50ad7fc0324da238119c6b7c3707", (source / "PROVENANCE.md").read_text())

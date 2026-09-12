@@ -60,7 +60,7 @@ class ModelPolicy(Slim):
         backups = self.megai / "backups"
         self.assertTrue(any(p.is_file() and p.read_bytes() == b"legacy source guard" for p in backups.rglob("*")))
 
-    def test_timebox_and_escalation_policy_reaches_both_entrypoints(self):
+    def test_execution_and_escalation_policy_reaches_both_entrypoints(self):
         self.wire()
         agent = self.home / ".pi/agent"
         source = (self.megai / "pi-skill/delegation.md").read_text()
@@ -68,16 +68,40 @@ class ModelPolicy(Slim):
         self.assertEqual(installed, source)
         self.assertIn(source.rstrip(), (agent / "AGENTS.md").read_text())
         for rule in (
-            "5 minutes (300 seconds)",
-            "including model/tool waits",
+            "not according to a fixed duration",
+            "Continue while making progress toward acceptance",
             "same-model retry loop",
             "suitable, available alternative",
-            "at most two escalation transitions per slice",
+            "at most two escalation transitions per blocker",
             "Confirm the old writer has stopped",
-            "not a runtime watchdog",
+            "rather than killing or replaying a mutation",
         ):
             with self.subTest(rule=rule):
                 self.assertIn(rule, installed)
+
+    def test_no_fixed_duration_in_reachable_policies(self):
+        from slim_distribution import ROOT
+
+        self.wire()
+        relative_paths = (
+            "pi-skill/SKILL.md", "pi-skill/delegation.md",
+            "pi-skill/acceptance/SKILL.md", "pi-skill/acceptance/reference.md",
+            "pi-skill/integration-queue.md", "skills/model-composition/routing.md",
+            "skills/appllama-app-design-skill/SKILL.md",
+        )
+        paths = [ROOT / name for name in relative_paths]
+        paths += [self.megai / name for name in relative_paths]
+        agent = self.home / ".pi/agent"
+        paths += [agent / "AGENTS.md"]
+        for name in ("megai/SKILL.md", "megai/delegation.md", "megai-acceptance/SKILL.md",
+                     "megai-acceptance/reference.md", "appllama-app-design-skill/SKILL.md"):
+            paths.append(agent / "skills" / name)
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertNotRegex(path.read_text().lower(),
+                                    r"five[ -]minute|5 minutes|300 seconds|slice clock|slice budget")
+        self.assertIn("five-minute hard runtime", (ROOT / "skills/smart-development-orchestrator/SKILL.md").read_text())
+        self.assertIn("Keep a lease alive", (ROOT / "pi-skill/integration-queue.md").read_text())
 
     def test_standalone_preserves_local_resources(self):
         agent = self.home / ".pi/agent"

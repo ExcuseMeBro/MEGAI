@@ -14,10 +14,6 @@ Pi users may explicitly select the [mixed preset](../../pi-skill/presets/README.
 Its role mapping is parent-consumed configuration, not an automatic four-agent
 pipeline. Existing user/task choices win; ordinary installation stays model-neutral.
 
-## Five-minute slices
-
-Split tasks over 5 minutes. Checkpoint at 5 minutes; no open-ended loops. Keep required gates.
-
 ## Delegate only when necessary
 
 - Known seam: parent is the sole writer. Unknown seam: one scout only when isolated discovery saves work. A scoped worker replaces parent implementation, not duplicates it.

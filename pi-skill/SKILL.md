@@ -32,8 +32,8 @@ effort router.
 
 ## Delegation
 
-At task start, read [delegation.md](delegation.md) for the mandatory five-minute
-checkpoint and immediate model-error escalation, including direct parent work.
+At task start, read [delegation.md](delegation.md) for task scoping and immediate
+model-error escalation, including direct parent work.
 Use its verified-launch procedure before creating or reusing a subagent.
 Use the user's configured providers, models and thinking preferences; MEGAI adds
 no model allowlist. Verify the selected identity before sending task context and

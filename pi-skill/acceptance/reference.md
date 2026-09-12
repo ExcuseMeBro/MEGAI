@@ -90,8 +90,7 @@ A new collection uses a new directory; retain old failures rather than overwrite
 The runner does not kill commands at a deadline: killing a live mutation can harm
 data integrity. Choose bounded checks (configure timeouts in the test tools), not
 an indefinitely running dev server. Start/stop application services separately
-under the project's authorized lifecycle. A five-minute agent checkpoint is not
-a subprocess watchdog. Interrupted/unfinished runs without complete receipts are
+under the project's authorized lifecycle. Interrupted/unfinished runs without complete receipts are
 BLOCKED; reconcile their outcome before retrying.
 
 `check` is read-only. Machine JSON and process status distinguish:

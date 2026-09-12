@@ -30,8 +30,8 @@ The boundaries below govern their use, including any conflicting “mandatory”
   keep credentials and private product data out of unapproved services.
 - **Bound execution.** Freeze task-specific acceptance and a research budget;
   use enough relevant examples to identify a pattern, not a mandatory 10–30
-  screen quota. Split work into five-minute verifiable slices. Checkpoint gaps
-  at the deadline; stop at agreed acceptance rather than chasing flawlessness,
+  screen quota. Split work by independently verifiable outcomes. Report gaps
+  and stop at agreed acceptance rather than chasing flawlessness,
   waiting until tomorrow, or repeating unbounded simulator passes.
 - **Runtime is explicit-only.** Launching apps, simulators, recording flows and
   device profiling require explicit authorization for local/staging targets.
