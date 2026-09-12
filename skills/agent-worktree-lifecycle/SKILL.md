@@ -6,7 +6,7 @@ managed-by: megai
 
 # Agent worktree lifecycle
 
-The parent owns integration. Use one writer per registered managed worktree; readers may share that worktree read-only. Registered non-Git directory projects have the read-only exception below. Select Pi explicitly and verify the returned harness/model/thinking before task context; follow `megai`'s Pi-only delegation contract. Children never create agents, mutate trackers or integrate branches.
+The parent owns integration. Use one writer per registered managed worktree; readers may share that worktree read-only. Registered non-Git directory projects use the scoped local-workspace exception below. Select Pi explicitly and verify the returned harness/model/thinking before task context; follow `megai`'s Pi-only delegation contract. Children never create agents, mutate trackers or integrate branches.
 
 ## Existing projects only
 
@@ -17,40 +17,53 @@ project, not only MEGAI. Missing or ambiguous identity is BLOCKED: ask the user 
 select/reconcile the existing project, rather than registering a replacement.
 Project creation or reorganization needs a separate explicit user request.
 
-## Non-Git directory review
+## Non-Git local work
 
-A workspace/umbrella folder (e.g. ADAM with separate component repositories) need
-not become a Git repo just to open a reviewer. Run `megai workspace --root DIRECTORY`:
-`kind: "directory"` means the exact real path has one active existing `non_git`
-Paseo project. Use that returned `projectId`; no new infra repo, `git init`, clone,
-project registration or user location question is needed for read-only work.
-Missing/ambiguous identity, malformed registry, inaccessible paths and broken Git
-metadata still block; a Git failure is not a blanket permission to use local mode.
+A registered workspace/umbrella folder (e.g. ADAM) supports both readers and scoped
+configuration writers without a Git repository. Run `megai workspace --root DIRECTORY`:
+`kind: "directory"` identifies one active existing `non_git` project at the exact
+real path. Use its returned `projectId`; no new infra repo, `git init`, clone or
+project registration is needed. Absence of Git alone never blocks configuration
+work or triggers an infra-repo question. Unknown/ambiguous identity, inaccessible
+paths and broken Git metadata still require reconciliation, not blind fallback.
 
 1. Reuse the current task's verified directory `workspaceId` on refinement. For a
-   new read-only task, create a workspace under that existing project using
-   `create_workspace` with `isolation: "local"`, `projectId`, and a task title. If
-   `path` is supplied, it must resolve to the exact registered root; omit all Git
-   branch/worktree/PR fields. Multiple workspaces are normal: choose the known task
-   ID, not the first workspace at that path. Reconcile uncertain creation by lookup.
-2. Verify the returned project/workspace IDs, `kind: "directory"` and exact cwd.
-   Open agent tabs with `create_agent`, an explicit Pi provider/model, supported
-   thinking, and `labels: {"megai.access": "read-only"}`. Use the neutral READY and
-   native model/thinking verification from `megai` before sending task context.
-3. Scope the reader to named files/snapshots and read-only commands. The label is a
-   parent authority declaration, **not a filesystem sandbox**; it does not prevent
-   arbitrary shell writes or authorize a later promotion to writer. No edits, task
-   mutation, delegation or live migration/deploy actions. Preserve independent
-   security review and source-current evidence; never replace review with self-PASS.
-4. A writer still needs the matching existing component/infra Git repository and
-   a managed isolated worktree. An umbrella's child Git repo keeps its own Git/Paseo
-   identity, not the directory exception. Reuse the originating Plane identity and
-   documented mapping (ADAM workspace/components use `ADAM full`). If the write
-   location is genuinely unresolved, continue safe read-only review/planning and
-   report only that write-location decision; never invent a repo or fake acceptance.
-5. Release readers and task-owned terminals before supported archival of a completed
-   task workspace. Local workspace archival is bookkeeping, not permission to delete
-   the directory or its files. Preserve other active workspaces and user data.
+   new task, create a workspace under that existing project with `isolation: "local"`,
+   `projectId`, and a title. An optional `path` must resolve to the exact registered
+   root; omit Git branch/worktree/PR fields. Multiple workspaces are normal: select
+   the known task ID, not the first matching path. Reconcile uncertain creation by lookup.
+2. Verify returned project/workspace IDs, `kind: "directory"` and cwd. Open agent tabs
+   with `create_agent`, explicit Pi provider/model and supported thinking. Readers use
+   `labels: {"megai.access": "read-only"}`. Configuration writers use
+   `labels: {"megai.access": "write", "megai.writeScope": "infra/service-config"}`,
+   naming an existing, relative, non-symlink configuration subdirectory of this project.
+   Parent derives a suitable scope from the task/current layout and may create the
+   needed configuration directory; it does not ask for a separate repo merely to proceed.
+   Use neutral READY/native model/thinking verification before sending task context.
+3. Local workspaces share files: they are **not isolated filesystem copies**. Before
+   either parent or child writes, inspect agents/terminals across all workspace IDs at
+   that project root and reserve one writer for the configuration scope. Record exact
+   owned files, acceptance, backup/rollback location and deadline in the same Plane
+   task. Back up existing files privately before replacement, retain their permissions,
+   and preserve unrelated files. Stop on an overlapping/unknown writer or uncertain write.
+   A `megai.writeScope` label is a scope declaration, **not a filesystem sandbox**;
+   the parent must enforce ownership and scope. Never promote a reader by prompt alone.
+4. Run `megai acceptance` with `--root` set to the complete owned configuration
+   subdirectory, not the whole multi-repo umbrella. Directory snapshots include every
+   file and subdirectory (including hidden files); no ignore rules silently omit source.
+   Keep contracts, raw logs, backups and generated test outputs outside that source root.
+   Include all task-relevant configuration/test inputs; do not narrow scope to hide a
+   change. Preserve independent security review, real tests, red→green for bug fixes
+   and a source-current PASS. Production deployment, secrets and destructive migration
+   still need their normal explicit authorization; local write access grants none of these.
+5. A writer still needs a managed isolated worktree when changing Git repository
+   sources, including child component repos inside the umbrella. Local config work
+   outside Git instead delivers verified files plus private backup/evidence: no invented
+   commit, branch, push or merge step. Reuse the originating Plane identity and documented
+   mapping (ADAM workspace/components use `ADAM full`); hand off In Review, never Done.
+6. Release all task writers, readers and terminals before supported workspace archival.
+   Local archival is bookkeeping, not permission to delete the directory or its files.
+   Keep delivered configuration, backups/evidence and other active workspaces intact.
 
 ## One primary workspace at rest
 
@@ -80,7 +93,7 @@ Missing/ambiguous registration is BLOCKED; do not create another project to bypa
 
 The receipt-owned `megai-workspace-guard` enforces canonical project identity and
 managed worktree isolation in Pi creation calls, with the explicit registered-directory
-read-only launch exception above. It does not enforce post-launch read-only behavior or branch/base/title
+scoped local-workspace exception above. It does not enforce post-launch filesystem access or branch/base/title
 policy or task uniqueness; the parent verifies those separately. Lookup is read-only
 and on demand; models, auth, settings and input arguments remain unchanged. This is
 not an OS sandbox: external clients, arbitrary scripts and excluded extensions are

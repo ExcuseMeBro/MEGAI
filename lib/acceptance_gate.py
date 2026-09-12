@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Fail-closed local acceptance evidence gate.
 
-Snapshots cover Git HEAD, index entries and all tracked/nonignored regular files;
-ignored build outputs are intentionally excluded.  ``run`` executes an argv
+Git snapshots cover HEAD, index and tracked/nonignored regular files. Non-Git
+configuration directories include every entry with bounded inventory/content;
+there are no ignore rules or implicit exclusions in directory mode.  ``run`` executes an argv
 without a shell and is neither a watchdog nor a sandbox: callers choose bounded
 checks and this helper never kills an in-flight command.
 """
@@ -23,6 +24,8 @@ import time
 import uuid
 
 SHA256_LENGTH = 64
+DIRECTORY_MAX_ENTRIES = 10_000
+DIRECTORY_MAX_BYTES = 64 * 1024 * 1024
 
 
 class GateError(Exception):
@@ -31,21 +34,43 @@ class GateError(Exception):
 
 def _git(root: Path, *args: str) -> bytes:
     try:
+        env = dict(os.environ, LC_ALL="C")
+        for key in ("GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_INDEX_FILE"):
+            env.pop(key, None)
         return subprocess.check_output(
-            ["git", "-C", str(root), *args], stderr=subprocess.PIPE
+            ["git", "-C", str(root), *args], stderr=subprocess.PIPE,
+            env=env, timeout=5,
         )
-    except (OSError, subprocess.CalledProcessError) as exc:
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         raise GateError("Git operation unavailable") from exc
+
+
+def _git_top(root: Path) -> Path | None:
+    try:
+        return Path(_git(root, "rev-parse", "--show-toplevel").strip().decode()).resolve(strict=True)
+    except GateError as error:
+        cause = error.__cause__
+        if not (isinstance(cause, subprocess.CalledProcessError)
+                and cause.returncode == 128
+                and (cause.stderr or b"").startswith(b"fatal: not a git repository")):
+            raise
+        for parent in (root, *root.parents):
+            if os.path.lexists(parent / ".git"):
+                raise GateError("Broken Git metadata; directory fallback rejected") from error
+        return None
 
 
 def _repo_root(root: Path) -> Path:
     try:
         supplied = root.resolve(strict=True)
-        top = Path(
-            _git(supplied, "rev-parse", "--show-toplevel").strip().decode()
-        ).resolve(strict=True)
+        if not supplied.is_dir():
+            raise GateError("Source root must be a directory")
+        top = _git_top(supplied)
     except (OSError, UnicodeDecodeError) as exc:
-        raise GateError("Repository root unavailable") from exc
+        raise GateError("Source root unavailable") from exc
+    if top is None:
+        _no_symlink_ancestors(root)
+        return supplied
     if supplied != top:
         raise GateError("Root must be the Git top-level directory")
     return top
@@ -79,22 +104,78 @@ def _source_path(root: Path, relative: str) -> Path:
     return path
 
 
-def _file_sha256(path: Path) -> tuple[str, int]:
+def _file_sha256(path: Path, max_bytes: int | None = None) -> tuple[str, int]:
     digest = hashlib.sha256()
     size = 0
     try:
         with path.open("rb") as handle:
             for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-                digest.update(chunk)
                 size += len(chunk)
+                if max_bytes is not None and size > max_bytes:
+                    raise GateError("Directory source exceeds 64 MiB; use a bounded configuration scope")
+                digest.update(chunk)
     except OSError as exc:
         raise GateError("File unreadable") from exc
     return digest.hexdigest(), size
 
 
+def _directory_inventory(root: Path) -> dict[str, os.stat_result]:
+    """No ignores: refuse unsupported entries instead of silently dropping source."""
+    inventory = {"": os.lstat(root)}
+    pending = [root]
+    total_bytes = 0
+    try:
+        while pending:
+            current = pending.pop()
+            _source_path(root, current.relative_to(root).as_posix())
+            with os.scandir(current) as entries:
+                for entry in entries:
+                    if entry.name == ".git":
+                        raise GateError("Nested Git metadata; select its Git root or a non-Git configuration scope")
+                    info = entry.stat(follow_symlinks=False)
+                    relative = Path(entry.path).relative_to(root).as_posix()
+                    if stat.S_ISDIR(info.st_mode):
+                        pending.append(Path(entry.path))
+                    elif stat.S_ISREG(info.st_mode):
+                        total_bytes += info.st_size
+                    else:
+                        raise GateError("Nonregular or symlink directory source rejected")
+                    inventory[relative] = info
+                    if len(inventory) > DIRECTORY_MAX_ENTRIES or total_bytes > DIRECTORY_MAX_BYTES:
+                        raise GateError("Directory source exceeds 10000 entries/64 MiB; use a bounded configuration scope")
+    except OSError as error:
+        raise GateError("Directory source unreadable") from error
+    return inventory
+
+
+def _directory_snapshot(root: Path) -> str:
+    before = _directory_inventory(root)
+    digest = hashlib.sha256()
+    _frame(digest, b"source-kind", b"directory-v1")
+    remaining = DIRECTORY_MAX_BYTES
+    for relative, info in sorted(before.items()):
+        _frame(digest, b"path", relative.encode("utf-8", "surrogateescape"))
+        _frame(digest, b"mode", str(info.st_mode).encode())
+        if stat.S_ISREG(info.st_mode):
+            content_hash, size = _file_sha256(_source_path(root, relative), remaining)
+            remaining -= size
+            _frame(digest, b"size", str(size).encode())
+            _frame(digest, b"sha256", content_hash.encode())
+    after = _directory_inventory(root)
+    fields = ("st_mode", "st_size", "st_mtime_ns", "st_ctime_ns", "st_dev", "st_ino")
+    if before.keys() != after.keys() or any(
+        any(getattr(info, field) != getattr(after[path], field) for field in fields)
+        for path, info in before.items()
+    ):
+        raise GateError("Source changed during directory snapshot")
+    return digest.hexdigest()
+
+
 def snapshot(root: Path) -> str:
-    """Return a framed, deterministic fingerprint of the complete repository."""
+    """Return a framed fingerprint of a Git root or complete config directory."""
     root = _repo_root(root)
+    if _git_top(root) is None:
+        return _directory_snapshot(root)
     if _git(root, "ls-files", "-u", "-z"):
         raise GateError("Unresolved Git conflicts")
     index = _git(root, "ls-files", "-s", "-z")
@@ -584,9 +665,13 @@ def run(
         before = snapshot(root)
         captured_tests = []
         if test_files:
-            inventory = set(_parts(_git(root, "ls-files", "-z"))) | set(
-                _parts(_git(root, "ls-files", "--others", "--exclude-standard", "-z"))
-            )
+            if _git_top(root) is None:
+                inventory = {path for path, info in _directory_inventory(root).items()
+                             if stat.S_ISREG(info.st_mode)}
+            else:
+                inventory = set(_parts(_git(root, "ls-files", "-z"))) | set(
+                    _parts(_git(root, "ls-files", "--others", "--exclude-standard", "-z"))
+                )
             seen = set()
             for relative in test_files:
                 path = _relative(root, relative)

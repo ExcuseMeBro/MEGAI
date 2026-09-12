@@ -2,7 +2,8 @@
 
 ## Scope and trust
 
-`megai acceptance` uses Python's standard library and Git; it does not launch an
+`megai acceptance` uses Python's standard library and Git discovery; it supports
+Git roots and bounded non-Git configuration directories. It does not launch an
 agent, install a browser, call Plane, start a server, or grant new permissions.
 Pi's installed workflow selects existing project commands and coordinates the
 independent verifier. Only a trusted parent or CI job should assemble final
@@ -22,6 +23,29 @@ external services are not proven by a source hash. Record their versions and
 runtime provenance in observations/review. Unsupported source states must be
 resolved rather than silently excluded. Commit before final capture if committing
 would otherwise invalidate the snapshot. Keep artifacts outside the source tree.
+
+## Non-Git configuration sources
+
+Use the same `snapshot`, `run`, `collect` and `check` commands with `--root` set to
+the complete owned configuration subdirectory. A genuine non-repository result
+selects directory mode automatically; missing Git, timeouts, permission errors or
+broken `.git` metadata do not trigger fallback. Git repos/subdirectories retain
+existing top-level/index/conflict/submodule validation.
+
+Directory mode hashes every regular file, hidden file, directory (including empty
+ones), relative path and mode, with a distinct source-kind prefix. No `.gitignore`
+or other exclusion rules apply. Symlinks, special files and nested `.git` metadata
+are rejected. Inventory/content is bounded to 10,000 entries and 64 MiB; exceeding
+that limit is BLOCKED, never silently truncated. Select the real configuration
+scope instead of scanning an umbrella's component repos/dependencies; never exclude
+a task-relevant input to manufacture PASS. Inventories/stat metadata are rechecked
+for changes during capture. This is consistency checking, not an adversarial sandbox.
+
+Keep contracts, receipts, logs, backups and generated outputs outside that source
+root. No `git init`, staging, commit or push is required for non-Git delivery.
+Schema-2 regression test capture, independent Pi review and all evidence/authorization
+checks remain unchanged. Receipts still bind their exact cwd; they cannot be rewritten
+to relocate evidence. Git and directory snapshots cannot be interchanged.
 
 ## Commands
 

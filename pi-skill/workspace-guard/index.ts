@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import { projectIdentity, validateWorkspace } from './identity.mjs';
+import { projectIdentity, validateWorkspace, validateWriteScope } from './identity.mjs';
 import { realpath } from 'node:fs/promises';
 
 const record = (value: unknown): Record<string, unknown> | undefined =>
@@ -7,7 +7,7 @@ const record = (value: unknown): Record<string, unknown> | undefined =>
     ? value as Record<string, unknown> : undefined;
 const mutations = new Set(['create_workspace', 'create_agent', 'create_project']);
 const prefix = 'MEGAI workspace guard: ';
-const route = 'Resolve identity with megai workspace --root CHECKOUT_OR_DIRECTORY. Git projects use structured Paseo create_workspace with isolation=worktree and the canonical projectId. Existing non-Git directory projects use isolation=local for read-only review, then create_agent with the verified workspaceId, Pi provider and labels {"megai.access":"read-only"}. No new sibling project or clone.';
+const route = 'Resolve identity with megai workspace --root CHECKOUT_OR_DIRECTORY. Git projects use structured Paseo create_workspace with isolation=worktree and the canonical projectId. Existing non-Git directory projects use isolation=local, then create_agent with the verified workspaceId and Pi provider. Set labels {"megai.access":"read-only"} for readers, or {"megai.access":"write","megai.writeScope":"relative/config-dir"} for an explicitly owned configuration scope. No new sibling project or clone.';
 
 /** Preflight only: never rewrite a call, create a project, or touch registries. */
 export async function blocked(toolName: string, value: unknown, cwd: string): Promise<string | undefined> {
@@ -59,10 +59,13 @@ export async function blocked(toolName: string, value: unknown, cwd: string): Pr
           return `${route} Expected directory projectId=${identity.projectId}, root=${identity.root}.`;
         }
       } else {
-        if (record(input.labels)?.['megai.access'] !== 'read-only'
+        const labels = record(input.labels);
+        const access = labels?.['megai.access'];
+        if ((access !== 'read-only' && access !== 'write')
             || typeof input.provider !== 'string' || !/^pi\/\S+$/.test(input.provider)
             || typeof input.workspaceId !== 'string' || !input.workspaceId) return route;
         await validateWorkspace(input.workspaceId, identity);
+        if (access === 'write') await validateWriteScope(labels?.['megai.writeScope'], identity);
       }
     } else if (name === 'paseo_create_workspace') {
       if (input.isolation !== 'worktree' || input.projectId !== identity.projectId || 'path' in input

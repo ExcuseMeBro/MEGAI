@@ -53,6 +53,24 @@ async function directoryIdentity(cwd, error) {
   return { root, checkout: root, commonDir: null, kind: 'directory' };
 }
 
+export async function validateWriteScope(scope, identity) {
+  if (typeof scope !== 'string' || !scope || isAbsolute(scope) || scope.includes('\\')
+      || scope.split('/').some(part => !part || part === '.' || part === '..')) {
+    throw new Error('Directory writer needs a relative owned configuration subdirectory');
+  }
+  let target = identity.root;
+  for (const part of scope.split('/')) {
+    target = join(target, part);
+    const info = await lstat(target);
+    if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('Write scope must be an existing non-symlink directory');
+  }
+  let error;
+  try { await gitIdentity(target); }
+  catch (cause) { error = cause; }
+  if (!error) throw new Error('Git source writers require a managed isolated worktree');
+  await directoryIdentity(target, error);
+}
+
 export async function projectIdentity(cwd, home = paseoHome()) {
   let identity;
   try { identity = await gitIdentity(cwd); }

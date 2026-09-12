@@ -122,7 +122,7 @@ class Plan:
             "Canonical means the existing project identity, not a new project to create or rename. "
             "Missing or ambiguous identity is BLOCKED; ask the user instead of registering another project. "
             "Apply this to every project; use distinct managed task workspaces and return to one primary workspace after verified delivery. "
-            "For uniquely registered non-Git directory projects, use the read-only local-workspace exception in `agent-worktree-lifecycle`; Git writers still require managed isolated worktrees. "
+            "For uniquely registered non-Git directory projects, use local workspaces for readers and explicitly scoped configuration writers via `agent-worktree-lifecycle`; absence of Git alone is not a blocker or a reason to request another infra repo. Git repository writers still require managed isolated worktrees. "
             "On Pi, load `megai-acceptance` before implementation: freeze criteria, capture actual tests/runtime evidence, "
             "require fresh independent Pi review and a source-current PASS before verified handoff. "
             "Missing tools, authorization or evidence are BLOCKED, not PASS. "

@@ -118,7 +118,7 @@ class Slim(unittest.TestCase):
         self.wire()
         pi = self.home / ".pi/agent"
         lifecycle = (pi / "skills/agent-worktree-lifecycle/SKILL.md").read_text()
-        for clause in ("## Non-Git directory review", '`isolation: "local"`',
+        for clause in ("## Non-Git local work", '`isolation: "local"`',
                        '`labels: {"megai.access": "read-only"}`', "not a filesystem sandbox",
                        "A writer still needs", "managed isolated worktree", "ADAM full",
                        "Preserve independent", "Multiple workspaces are normal",
@@ -127,7 +127,7 @@ class Slim(unittest.TestCase):
         self.assertEqual(lifecycle, (ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text())
         policy = (pi / "AGENTS.md").read_text()
         self.assertIn("non-Git directory projects", policy)
-        self.assertIn("Git writers still require managed isolated worktrees", policy)
+        self.assertIn("Git repository writers still require managed isolated worktrees", policy)
         task = (pi / "skills/megai-task-flow/SKILL.md").read_text()
         self.assertIn("registered non-Git directory root", task)
         self.assertIn("explicit documented Plane project mapping", task)
@@ -135,6 +135,29 @@ class Slim(unittest.TestCase):
         self.assertIn("missing states or ambiguity block edits", task)
         self.assertIn("unavailable", task.lower())
         self.assertIn("In Review", task)
+        before = self.snapshot()
+        self.wire()
+        self.assertEqual(self.snapshot(), before)
+
+    def test_directory_writer_policy(self):
+        self.wire()
+        pi = self.home / ".pi/agent"
+        lifecycle = (pi / "skills/agent-worktree-lifecycle/SKILL.md").read_text()
+        for clause in ('"megai.access": "write"', '"megai.writeScope"',
+                       "one writer", "Back up existing files privately", "not isolated filesystem copies",
+                       "not a filesystem sandbox", "no invented", "absence of Git alone",
+                       "Production deployment", "complete owned configuration"):
+            self.assertIn(clause.lower(), lifecycle.lower())
+        acceptance = (pi / "skills/megai-acceptance/SKILL.md").read_text()
+        self.assertIn("Non-Git configuration has no commit step", acceptance)
+        self.assertIn("source-current PASS", acceptance)
+        reference = (pi / "skills/megai-acceptance/reference.md").read_text()
+        self.assertIn("10,000 entries and 64 MiB", reference)
+        self.assertIn("No `.gitignore`", reference)
+        result = self.run_cmd(sys.executable, "-B", str(self.megai / "lib/acceptance_gate.py"),
+                              "snapshot", "--root", str(self.project))
+        self.assertRegex(json.loads(result.stdout)["snapshot"], r"^[a-f0-9]{64}$")
+        self.assertFalse((self.project / ".git").exists())
         before = self.snapshot()
         self.wire()
         self.assertEqual(self.snapshot(), before)

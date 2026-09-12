@@ -180,13 +180,18 @@ means that existing project identity, not a new project or a rename. Missing or
 ambiguous identity blocks creation; ask the user rather than register a replacement.
 
 For a registered non-Git directory/umbrella project, `megai workspace --root DIR`
-returns `kind: "directory"` and its existing project ID. Read-only review can use a
-local task workspace under that project and a Pi agent labeled
-`{"megai.access":"read-only"}`; no infra repo creation or Git initialization is
-needed. This declares read-only scope, not a filesystem sandbox. Git writers still
-require a managed worktree in the actual component/infra repo; independent review,
-identity checks and acceptance gates remain required. See the
-[directory review procedure](skills/agent-worktree-lifecycle/SKILL.md#non-git-directory-review).
+returns `kind: "directory"` and its existing project ID. Readers and configuration
+writers use local task workspaces under that project—no separate infra repo or
+Git initialization is needed. Readers declare `{"megai.access":"read-only"}`;
+writers declare `{"megai.access":"write","megai.writeScope":"infra/service-config"}`
+for an existing relative configuration subdirectory. Local workspaces share files:
+reserve one writer, back up existing files, and keep unrelated data untouched.
+These labels declare scope, not a filesystem sandbox. Git repository writers still
+require managed worktrees. Independent review and acceptance remain required:
+`megai acceptance --help` lists commands; pass the complete configuration directory
+as `--root` to snapshot/run/collect/check without Git (all entries included; bounded
+to 10,000 entries/64 MiB; unsupported/symlink/nested Git source is rejected).
+See the [local-work procedure](skills/agent-worktree-lifecycle/SKILL.md#non-git-local-work).
 Reload Pi after installing the guard/policy update; an already-running session keeps
 its previously loaded extension until reload.
 

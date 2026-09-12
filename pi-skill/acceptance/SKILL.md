@@ -13,6 +13,12 @@ collecting evidence or assembling review. This gate is not a sandbox or tracker.
 
 ## 1. Freeze the task
 
+For non-Git configuration work, use the complete owned configuration directory as
+`--root`; the CLI fingerprints all entries without Git or ignore rules. Follow the
+scoped local-workspace/backup/one-writer procedure in `agent-worktree-lifecycle`.
+Contracts, evidence and backups stay outside that source root. Git absence alone
+is not BLOCKED; unreadable/unsupported source, missing tests or review still are.
+
 Start/reuse the linked Plane item. Name observable outcomes, error cases and
 regression boundaries; bind each to a bounded command that asserts the outcome.
 Use schema 2: classify `bugfix`, `change` or `docs`. Product behavior requires a
@@ -32,8 +38,10 @@ to criteria/tests require parent reconciliation and fresh red evidence, not a wa
 ## 2. Fix and collect
 
 Use the narrowest root-cause fix and task-relevant checks. One writer, no mandatory
-scout or duplicate reviewer. Commit the candidate before final capture when a later
-commit would invalidate its snapshot. Keep artifacts outside the source checkout.
+scout or duplicate reviewer. For Git work, commit the candidate before final capture
+when a later commit would invalidate its snapshot. Non-Git configuration has no commit step;
+finish writes and freeze the directory fingerprint before final capture. Keep artifacts
+outside the source root.
 
 Run `megai acceptance collect` with the frozen contract and hash retrieved from
 Plane. It captures commands once, in order, into a new private directory; a failure
@@ -60,8 +68,9 @@ review. Any source/index/commit change invalidates the entire prior snapshot: fi
 capture and review must match the delivered candidate. Reuse the healthy reviewer
 for bounded corrections, with no unbounded repair loop or repeated discovery.
 
-Run `megai acceptance check` with the Plane-approved hash. Only PASS permits agreed
-branch delivery and Plane **In Review**, never Done or unapproved main promotion.
+Run `megai acceptance check` with the Plane-approved hash. Only a source-current PASS
+permits agreed delivery (Git branch or non-Git configuration files) and Plane
+**In Review**, never Done or unapproved main promotion.
 Report criterion → command/action → observed result → artifact. FAIL needs a fix;
 BLOCKED needs the named evidence/prerequisite. Stop at acceptance. Keep five-minute
 slice checkpoints, user resource exclusions and native provider settings intact.
