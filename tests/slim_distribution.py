@@ -340,8 +340,10 @@ class Slim(unittest.TestCase):
                         policy.index("git -C DEV_CHECKOUT merge --ff-only"))
         self.assertIn("branch/base/title policy", policy)
         self.wire()
-        self.assertIn("one primary workspace after verified delivery",
+        self.assertIn("agent-worktree-lifecycle",
                       (self.home / ".pi/agent/AGENTS.md").read_text())
+        self.assertIn("one primary workspace at rest",
+                      " ".join((self.home / ".pi/agent/skills/agent-worktree-lifecycle/SKILL.md").read_text().split()))
 
     def test_user_config_and_policy_text_survive(self):
         files = {
@@ -845,7 +847,7 @@ assert first.read_bytes()==b'concurrent after publish'
 
     def test_policy_guards_and_public_branch(self):
         policy = (ROOT / "task-flow/skills/megai-task-flow/SKILL.md").read_text()
-        for required in ("every Plane project page", "every workflow-state page", "group=started", "automatically create exactly one item without asking for approval", "In Progress", "In Review", "Only the user", "independent review", "persistent branch", "unavailable", "before retrying"):
+        for required in ("every Plane project page", "every workflow-state page", "group=started", "automatically create exactly one item without asking for approval", "In Progress", "In Review", "Only the user", "independent review", "same task branch/slug", "unavailable", "before retrying"):
             self.assertIn(required.lower(), policy.lower())
         for active in (ROOT / "pi-skill/SKILL.md", ROOT / "skills/agent-worktree-lifecycle/SKILL.md", ROOT / "task-flow/skills/megai-task-flow/SKILL.md"):
             self.assertNotIn(".todos", active.read_text())

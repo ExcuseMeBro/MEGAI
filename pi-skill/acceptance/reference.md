@@ -2,6 +2,10 @@
 
 ## Scope and trust
 
+The adaptive Pi workflow invokes this formal gate only for guarded work or explicit
+assurance. An already frozen contract still requires every check below. Routine
+verification does not call this CLI or claim its PASS; the CLI semantics are unchanged.
+
 `megai acceptance` uses Python's standard library and Git discovery; it supports
 Git roots and bounded non-Git configuration directories. It does not launch an
 agent, install a browser, call Plane, start a server, or grant new permissions.

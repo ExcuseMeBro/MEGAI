@@ -66,7 +66,9 @@ class ModelPolicy(Slim):
         source = (self.megai / "pi-skill/delegation.md").read_text()
         installed = (agent / "skills/megai/delegation.md").read_text()
         self.assertEqual(installed, source)
-        self.assertIn(source.rstrip(), (agent / "AGENTS.md").read_text())
+        bootstrap = (agent / "AGENTS.md").read_text()
+        self.assertNotIn(source.rstrip(), bootstrap)
+        self.assertIn("megai/delegation.md", bootstrap)
         for rule in (
             "not according to a fixed duration",
             "Continue while making progress toward acceptance",
@@ -162,16 +164,23 @@ class ModelPolicy(Slim):
         self.wire()
         source = self.megai / "pi-skill/delegation.md"
         source.write_text(source.read_text() + "\nTest updated routing.\n")
-        wiring = self.megai / "lib/slim_wiring.py"
-        wiring.write_text(wiring.read_text().replace("Raw acceptance tests", "Updated raw acceptance tests"))
+        bootstrap = self.megai / "pi-skill/bootstrap.md"
+        bootstrap.write_text(bootstrap.read_text().replace("Raw acceptance tests", "Updated raw acceptance tests"))
         self.wire()
         instructions = (self.home / ".pi/agent/AGENTS.md").read_text()
         self.assertIn("Updated raw acceptance tests", instructions)
-        self.assertIn("Test updated routing.", instructions)
+        self.assertNotIn("Test updated routing.", instructions)
+        self.assertIn("Test updated routing.",
+                      (self.home / ".pi/agent/skills/megai/delegation.md").read_text())
         self.assertEqual(instructions.count("megai:subagent-models:begin"), 1)
         receipt = json.loads((self.megai / "slim-wiring.json").read_text())
         self.assertIn(str(self.home / ".pi/agent/AGENTS.md") + "#subagent-models", receipt)
         self.wire("--verify")
+
+
+def load_tests(loader, tests, pattern):
+    # ModelPolicy inherits the distribution cases; do not run imported Slim twice.
+    return loader.loadTestsFromTestCase(ModelPolicy)
 
 
 if __name__ == "__main__":

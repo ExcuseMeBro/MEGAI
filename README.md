@@ -160,9 +160,18 @@ not start automatically. Existing filters and other harnesses remain unchanged.
 standalone bytes. Identical manual installs can be adopted; MEGAI update/removal
 uses receipt-owned wiring without fetching upstream or overwriting custom edits.
 
+## Adaptive Pi and MiniMax-first execution
+
+Pi defaults to one parent, focused verification and self-review for routine work.
+Guarded risks retain independent formal acceptance. Detailed delegation is loaded
+on demand, not duplicated in the always-loaded bootstrap. The explicit `economy`
+preset selects MiniMax M3 for next-session planning/implementation and reserves GPT
+for guarded review or a concrete failure. Ordinary wiring preserves model settings.
+See [adaptive workflow, installation and verification](docs/pi-adaptive.md).
+
 ## Acceptance and task delivery
 
-Pi's [acceptance gate](pi-skill/acceptance/SKILL.md) freezes criteria, captures
+For guarded work or explicit formal assurance, Pi's [acceptance gate](pi-skill/acceptance/SKILL.md) freezes criteria, captures
 source-bound command/runtime evidence and requires independent Pi review before
 `megai acceptance check` can return PASS (0). Failed checks return FAIL (1);
 missing/stale evidence returns BLOCKED (2). `collect` produces a BLOCKED draft,
@@ -183,8 +192,8 @@ Do not register child repos as projects. Writers run in their verified workspace
 Local workspaces remain for coordination/readers and Git-free configuration scopes
 with one writer/private backups; local Git writer scopes and broad scopes containing
 nested Git are rejected. Local labels declare scope, not a filesystem sandbox/lock.
-Independent review and acceptance remain required:
-`megai acceptance --help` lists commands; pass the complete configuration directory
+Guarded work requires independent review and formal acceptance; routine work retains
+actual tests and self-review. For the formal gate, `megai acceptance --help` lists commands; pass the complete configuration directory
 as `--root` to snapshot/run/collect/check without Git (all entries included; bounded
 to 10,000 entries/64 MiB; unsupported/symlink/nested Git source is rejected).
 See the [local-work procedure](skills/agent-worktree-lifecycle/SKILL.md#non-git-local-work).

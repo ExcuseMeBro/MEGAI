@@ -1,10 +1,15 @@
 ---
 name: megai-acceptance
-description: Freeze task acceptance, reproduce bugs, collect source-current evidence and obtain independent Pi review before handoff. Use for implementation, bug fixes, review findings and blocked or stale verification.
+description: Formal Pi acceptance for guarded risks or explicitly requested assurance; freeze criteria, collect evidence and obtain independent review.
 managed-by: megai
 ---
 
 # Pi acceptance gate
+
+Use for **guarded** work selected by `megai`, explicit formal assurance, or an
+existing frozen contract. Routine Pi tasks use focused verification and self-review
+without loading this workflow. Once selected, this gate is mandatory: urgency or a
+failed check cannot downgrade it. Safety/acceptance/installer policy changes are guarded.
 
 Parent owns the contract and Plane identity; leaves inherit both, never delegate,
 mutate Plane or integrate. Load this workflow once per task; reuse it at handoff.

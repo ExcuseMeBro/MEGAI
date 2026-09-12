@@ -11,6 +11,15 @@ source writers use separate managed worktrees; non-Git configuration uses a loca
 owned scope. Workspaces do not imply new project/repository registration. Parents
 own integration; children never delegate, mutate Plane, merge or promote.
 
+## Pi verification mode
+
+For Pi, `megai` selects routine or guarded verification before edits. Below,
+independent review and formal acceptance apply to guarded work or stricter project
+rules; routine work uses actual focused tests and parent self-review. Multi-repo
+delivery and concurrency/shared-state changes are guarded. Workspace isolation,
+backups, target reservations and approval boundaries apply in both modes. Load this
+workflow for workspace/delivery operations, not on every implementation step.
+
 ## Existing projects only
 
 Run `megai workspace --root FOLDER` to resolve the existing projectId. Unregistered

@@ -1,5 +1,12 @@
 # MEGAI execution and subagent policy
 
+Load only for actual delegation or model-error escalation. Routine Pi work follows
+`megai` with one parent and self-review; delegation is not a required stage.
+With an explicitly selected `economy` preset, use MiniMax planning/implementation
+roles first and reserve GPT for guarded review or a concrete model-specific failure.
+Role preferences do not require launching agents: a healthy MiniMax parent does its
+own routine work. Keep GPT review bounded to the diff, criteria and test evidence.
+
 ## Task scope and progress
 
 Define acceptance and the smallest observable result before execution. Split work
@@ -66,7 +73,9 @@ agents before reuse. Children never delegate or mutate Plane. Follow the hybrid
 `agent-worktree-lifecycle`: Git writers use one managed worktree per affected repo
 with the same task branch/slug under the existing umbrella project; non-Git configuration
 writers use scoped local workspaces and private backups. All affected repos require
-acceptance before dev integration; reserve target resources through `megai queue`.
+mode-appropriate acceptance before dev integration; guarded Pi tasks require the
+formal gate, routine tasks retain actual tests and self-review. Reserve target
+resources through `megai queue`.
 Main promotion still needs separate explicit approval of the exact commit vector.
 
 MEGAI does not install a model-selection tool-call guard. User permissions,

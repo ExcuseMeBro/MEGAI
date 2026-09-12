@@ -107,7 +107,7 @@ class Plan:
         self.stage(path, None, current)
         self.receipt.pop(str(path), None)
 
-    def policy(self, path: Path, remove: bool) -> None:
+    def policy(self, path: Path, remove: bool, *, adaptive: bool = False) -> None:
         before = read(path)
         current = before or b""
         text = current.decode()
@@ -139,6 +139,8 @@ class Plan:
             "Raw acceptance tests and diagnostics remain authoritative.\n"
             + END + "\n"
         )
+        if adaptive:
+            block = BEGIN + "\n" + (SOURCE / "pi-skill/bootstrap.md").read_text().rstrip() + "\n" + END + "\n"
         if BEGIN in text:
             start = text.index(BEGIN)
             finish = text.index(END) + len(END)
@@ -333,11 +335,12 @@ class Plan:
                 agents = root / "agents"
                 if agents.exists() and any("minimax" in p.name or p.name == "smart-router.md" for p in agents.iterdir()):
                     raise ValueError(f"legacy routing agents preserved: {agents}; detach manually")
-        self.policy(root / ("CLAUDE.md" if name == "cc" else "RULES.md" if name == "omp" else "AGENTS.md"), remove)
+        self.policy(root / ("CLAUDE.md" if name == "cc" else "RULES.md" if name == "omp" else "AGENTS.md"),
+                    remove, adaptive=name == "pi")
         for relative, skill in (
             ("task-flow/skills/megai-task-flow/SKILL.md", "megai-task-flow"),
             ("skills/agent-worktree-lifecycle/SKILL.md", "agent-worktree-lifecycle"),
-            ("pi-skill/SKILL.md", "megai"),
+            ("pi-skill/ADAPTIVE.md" if name == "pi" else "pi-skill/SKILL.md", "megai"),
         ):
             skill_root = root / "skills" if name == "pi" else HOME / ".agents/skills" if name == "codex" else root / "skills"
             self.asset(skill_root / skill / "SKILL.md", (SOURCE / relative).read_bytes(), remove)

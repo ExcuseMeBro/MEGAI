@@ -14,8 +14,10 @@ share an explicitly named runtime resource. Installed copy:
   registration. Queue planning resolves linked worktrees to their primary repo.
 - The queue NEVER merges, rebases, switches branches, pushes, starts an agent or
   daemon, installs hooks, calls Plane, or approves deployment. A grant does not
-  prove acceptance or authorize main promotion. Complete the independent,
-  source-current acceptance gate before the separately agreed integration.
+  prove acceptance or authorize main promotion. Complete the mode-appropriate
+  verification selected by `megai` before the separately agreed integration:
+  independent source-current formal acceptance for guarded tasks, actual focused
+  tests and self-review for routine tasks. Reservations are required in both modes.
 - Reservations are cooperative, not a filesystem sandbox. All integrating parents
   on this machine must use the same queue and respect ownership. Unmanaged Git
   commands, other machines, running apps and ignored build outputs are not fenced

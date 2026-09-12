@@ -8,6 +8,15 @@ managed-by: megai
 
 Plane owns task identity, acceptance, execution notes and status. The parent loads this skill once at task start/resume; children inherit the `(project UUID, work item UUID)` pair and never mutate Plane or launch agents.
 
+## Pi fast path
+
+For Pi, choose verification mode in `megai` once. Routine tasks record a concise
+outcome, actual tests and self-review; no formal contract/hash or mandatory reviewer.
+Guarded tasks retain `megai-acceptance`. Use this skill only at task start/resume and
+handoff; reuse known project/item/state/label IDs while scope is unchanged. Discovery
+pages are required when resolving unknown identity, not routine status polling.
+Workspace safety and integration reservations remain unchanged in both modes.
+
 ## Start boundary
 
 1. Reuse the active identity for refinements. Otherwise resolve the existing registered folder with `megai workspace --root FOLDER` (including its unregistered child Git repositories) and consume every Plane project page. Use an explicit documented Plane project mapping first (ADAM workspace/components use `ADAM full`); absent a mapping, require exactly one exact root folder-name match. Local task workspaces inherit the registered folder's identity; child repositories need no separate Paseo project. Zero/multiple matches require the user; never create a project implicitly.

@@ -73,8 +73,10 @@ class MixedPreset(unittest.TestCase):
         for path, data in protected.items():
             self.assertEqual(path.read_bytes(), data)
         policy = (self.agent / "AGENTS.md").read_text()
+        self.assertIn("megai/delegation.md", policy)
+        delegation = (self.agent / "skills/megai/delegation.md").read_text()
         for clause in ("megai-roles.json", "PI_REASONING_LEVEL", "not a sandbox", "--no-cache"):
-            self.assertIn(clause, policy)
+            self.assertIn(clause, delegation)
         after = self.snapshot()
         self.run_cli("--preset", "mixed")
         self.assertEqual(self.snapshot(), after)
