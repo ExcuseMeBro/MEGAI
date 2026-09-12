@@ -68,11 +68,12 @@ thinking-level entries, or request only `PI_PROVIDER`, `PI_MODEL` and
 `PI_REASONING_LEVEL` through a second neutral runtime-check prompt. Paseo labels
 alone can misreport a clamped thinking level. If native evidence is unavailable,
 stop as BLOCKED; on mismatch cancel the child and report the blocker. Re-check restored
-agents before reuse. Children never delegate or mutate Plane. Writers use scoped
-local workspaces for Git and non-Git configuration/source folders alike, following
-`agent-worktree-lifecycle`: one writer per shared scope with private backups. A
-worktree or task branch is explicit opt-in, not a prerequisite. Direct parent tools
-suffice for bounded work. Main promotion still needs separate explicit approval.
+agents before reuse. Children never delegate or mutate Plane. Follow the hybrid
+`agent-worktree-lifecycle`: Git writers use one managed worktree per affected repo
+with the same task branch/slug under the existing umbrella project; non-Git configuration
+writers use scoped local workspaces and private backups. All affected repos require
+acceptance before dev integration; reserve target resources through `megai queue`.
+Main promotion still needs separate explicit approval of the exact commit vector.
 
 MEGAI does not install a model-selection tool-call guard. User permissions,
 provider availability and project rules still apply to agent launches.

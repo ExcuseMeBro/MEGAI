@@ -174,19 +174,19 @@ never an automatic approval. Schema-2 bug fixes require captured red → green
 regression evidence. See the [CLI and trust limits](pi-skill/acceptance/reference.md).
 
 Use only existing Paseo projects: project → task workspace → agent tabs. Resolve
-`projectId` with `megai workspace --root FOLDER`, create a local task workspace
+`projectId` with `megai workspace --root FOLDER`, create the appropriate task workspace
 under that ID, then pass its verified `workspaceId` to `create_agent`. "Canonical"
 means that existing project identity, not a new project or a rename. Missing or
 ambiguous identity blocks creation; ask the user rather than register a replacement.
 
-Git and non-Git folders use `isolation: "local"` by default, without task branches
-or worktrees. A child Git repository resolves to its nearest registered containing
-folder; do not register each component as another Paseo project. Readers declare
-`{"megai.access":"read-only"}`; writers declare
-`{"megai.access":"write","megai.writeScope":"relative/dir"}` or use `"."` to reserve
-the whole folder. Local workspaces share files: reserve one writer per shared scope,
-back up existing files, and preserve unrelated changes. These labels are not a
-filesystem sandbox or lock. Worktree isolation is explicit opt-in only.
+A task spanning backend/frontend/mobile Git repos uses one umbrella project/task
+and one managed worktree per affected repo, all named with the same task slug/branch
+from each repo's `dev`. Native Paseo accepts `isolation: "worktree"`, the existing
+umbrella `projectId`, and `path` pointing to each absolute primary repository.
+Do not register child repos as projects. Writers run in their verified workspaces.
+Local workspaces remain for coordination/readers and Git-free configuration scopes
+with one writer/private backups; local Git writer scopes and broad scopes containing
+nested Git are rejected. Local labels declare scope, not a filesystem sandbox/lock.
 Independent review and acceptance remain required:
 `megai acceptance --help` lists commands; pass the complete configuration directory
 as `--root` to snapshot/run/collect/check without Git (all entries included; bounded
@@ -195,11 +195,13 @@ See the [local-work procedure](skills/agent-worktree-lifecycle/SKILL.md#non-git-
 Reload Pi after installing the guard/policy update; an already-running session keeps
 its previously loaded extension until reload.
 
-Deliver verified local files by default. Git commit/push uses only an explicitly
-agreed existing branch; never switch another session's branch or stage unrelated
-work. After delivery, close released task workspaces without deleting their shared
-folder. Keep one primary workspace at rest; preserve unfinished work, private backups
-and history. `main` promotion remains separately approved.
+Require every affected repository's acceptance and cross-repo checks before the
+first dev mutation. Reserve all integration targets atomically with `megai queue`
+(the separately delivered queue component), then integrate into each repo's dev.
+Preserve queue order and partial-delivery evidence; multi-repo merges are not atomic.
+Main requires separate user approval of the exact reviewed repo/commit vector;
+queue acquisition grants no push/main authorization. Close only released, safely
+delivered workspaces/branches; retain dirty work and one primary workspace at rest.
 The [lifecycle skill](skills/agent-worktree-lifecycle/SKILL.md) owns the procedure.
 
 ## Verification

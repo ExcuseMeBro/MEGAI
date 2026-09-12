@@ -120,14 +120,21 @@ class Slim(unittest.TestCase):
         lifecycle = (pi / "skills/agent-worktree-lifecycle/SKILL.md").read_text()
         for clause in ("## Non-Git local work", '`isolation: "local"`',
                        '`labels: {"megai.access": "read-only"}`', "not a filesystem sandbox",
-                       "Workspaces are the default", "explicitly requests", "ADAM full",
+                       "Git source isolation", "same task name", "ADAM full",
                        "Preserve independent", "Multiple workspaces are normal",
                        "not permission to delete", "no new infra repo"):
             self.assertIn(clause.lower(), lifecycle.lower())
         self.assertEqual(lifecycle, (ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text())
+        normalized = " ".join(lifecycle.split())
+        for clause in ("same task name", "all affected repos", "megai queue",
+                       "queue position", "stale owners", "integration is BLOCKED",
+                       "not atomic", "separate explicit user approval", "commit vector"):
+            self.assertIn(clause, normalized)
+        self.assertLess(normalized.index("all affected repos"),
+                        normalized.index("git -C DEV_CHECKOUT merge --ff-only"))
         policy = (pi / "AGENTS.md").read_text()
-        self.assertIn("Git and non-Git configuration/source folders", policy)
-        self.assertIn("no child repository registration or automatic task branch/worktree", policy)
+        self.assertIn("isolated worktrees for each affected Git repo", policy)
+        self.assertIn("No child repository registration", policy)
         task = (pi / "skills/megai-task-flow/SKILL.md").read_text()
         self.assertIn("existing registered folder", task)
         self.assertIn("explicit documented Plane project mapping", task)
@@ -162,8 +169,9 @@ class Slim(unittest.TestCase):
             self.assertIn("non-Git configuration", text)
             self.assertIn("scoped", text)
             self.assertIn("agent-worktree-lifecycle", text)
-            self.assertIn("explicit opt-in", text)
-            self.assertIn("local workspaces", text)
+            self.assertIn("hybrid", text)
+            self.assertIn("worktree", text)
+            self.assertIn("megai queue", text)
             self.assertNotIn("writers still require managed isolated worktrees", " ".join(text.split()))
             self.assertNotIn("Writers use managed isolated worktrees", " ".join(text.split()))
         result = self.run_cmd(sys.executable, "-B", str(self.megai / "lib/acceptance_gate.py"),
@@ -323,14 +331,14 @@ class Slim(unittest.TestCase):
         self.assertFalse((self.home / "calls").exists())
 
     def test_task_workspaces_return_to_primary_after_delivery(self):
-        policy = (ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text()
+        policy = " ".join((ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text().split())
         for clause in ("Each new task", "one primary workspace at rest",
                        "same task", "safely merged", "read-only reviewers"):
             self.assertIn(clause, policy)
         self.assertNotIn("megai finish --verified", policy)
         self.assertLess(policy.index("Release all task writers"),
-                        policy.index("git -C PRIMARY merge --ff-only"))
-        self.assertIn("does not enforce branch/base/title", policy)
+                        policy.index("git -C DEV_CHECKOUT merge --ff-only"))
+        self.assertIn("branch/base/title policy", policy)
         self.wire()
         self.assertIn("one primary workspace after verified delivery",
                       (self.home / ".pi/agent/AGENTS.md").read_text())

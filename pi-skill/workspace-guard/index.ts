@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import { projectIdentity, validateWorkspace, validateWriteScope } from './identity.mjs';
+import { projectIdentity, validateWorkspace, validateWriteScope, validateWorktreeSource } from './identity.mjs';
 import { realpath } from 'node:fs/promises';
 
 const record = (value: unknown): Record<string, unknown> | undefined =>
@@ -7,7 +7,7 @@ const record = (value: unknown): Record<string, unknown> | undefined =>
     ? value as Record<string, unknown> : undefined;
 const mutations = new Set(['create_workspace', 'create_agent', 'create_project']);
 const prefix = 'MEGAI workspace guard: ';
-const route = 'Resolve the existing folder with megai workspace --root FOLDER. Use structured Paseo create_workspace with isolation=local and its projectId, without branch/worktree fields; Git presence does not change this default. Then create_agent with the verified workspaceId and Pi provider. Readers set labels {"megai.access":"read-only"}; writers set {"megai.access":"write","megai.writeScope":"relative/dir"} or scope "." for the folder. Reserve one writer per shared scope and private backups; labels are not a sandbox or lock. No child repository registration, sibling project or clone. Managed worktrees remain explicit opt-in only.';
+const route = 'Resolve the existing folder with megai workspace --root FOLDER. Use one umbrella project/task identity. Git writers use structured Paseo create_workspace with isolation=worktree, that projectId and an absolute path to each primary component repository; use the same task branch/slug from dev in every affected repo. Local workspaces are for coordination/readers and scoped non-Git configuration writers. Pass the verified workspaceId and Pi provider to create_agent; local labels declare read-only or write with a relative megai.writeScope. No child project registration or clone. Follow agent-worktree-lifecycle for all-repo acceptance, dev delivery and separately approved main promotion; labels are not a sandbox or lock.';
 
 /** Preflight only: never rewrite a call, create a project, or touch registries. */
 export async function blocked(toolName: string, value: unknown, cwd: string): Promise<string | undefined> {
@@ -58,10 +58,10 @@ export async function blocked(toolName: string, value: unknown, cwd: string): Pr
             || ('path' in input && (typeof input.path !== 'string' || await realpath(input.path) !== identity.root))) {
           return `${route} Expected projectId=${identity.projectId}, folder=${identity.root}.`;
         }
-      } else if (identity.kind === 'directory' || input.isolation !== 'worktree'
-          || input.projectId !== identity.projectId || 'path' in input
-          || ('worktreeSlug' in input && (typeof input.worktreeSlug !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.worktreeSlug)))) {
-        return route;
+      } else {
+        if (input.isolation !== 'worktree' || input.projectId !== identity.projectId
+            || ('worktreeSlug' in input && (typeof input.worktreeSlug !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.worktreeSlug)))) return route;
+        await validateWorktreeSource(input.path ?? identity.root, identity);
       }
     } else {
       if (typeof input.workspaceId !== 'string' || !input.workspaceId

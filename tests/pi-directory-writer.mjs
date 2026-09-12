@@ -39,7 +39,7 @@ try {
   symlinkSync(scope, join(root,'alias'));
   await check({...agent, labels:{...agent.labels,'megai.writeScope':'alias'}}, true);
   writeFileSync(join(scope,'.git'), 'gitdir: /missing/broken\n'); await check(agent,true); rmSync(join(scope,'.git'));
-  execFileSync('git',['-C',scope,'init','-q']); await check(agent,false);
+  execFileSync('git',['-C',scope,'init','-q']); await check(agent,true);
   rmSync(join(scope,'.git'),{recursive:true});
   await check(agent,false);
   await check({...agent, labels:{'megai.access':'read-only'}}, false);

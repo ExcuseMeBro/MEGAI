@@ -1,92 +1,142 @@
 ---
 name: agent-worktree-lifecycle
-description: Use folder-first local task workspaces, single-writer ownership and verified delivery; worktrees are explicit opt-in.
+description: Coordinate one folder/task across isolated Git-repo worktrees, verified dev delivery and separately approved main promotion.
 managed-by: megai
 ---
 
-# Folder-first workspace lifecycle
+# Hybrid task workspace lifecycle
 
-The parent owns delivery and reserves one writer per shared file scope. Local
-workspaces are the default for Git and non-Git folders alike. A workspace is task
-bookkeeping, not a reason to create a branch, worktree, repository or project.
-Children never delegate, mutate Plane or integrate. Follow `megai`'s verified Pi
-launch procedure and keep the user's provider/model/thinking preferences intact.
+One existing Paseo folder/project and one Plane task coordinate the work. Git
+source writers use separate managed worktrees; non-Git configuration uses a local
+owned scope. Workspaces do not imply new project/repository registration. Parents
+own integration; children never delegate, mutate Plane, merge or promote.
 
 ## Existing projects only
 
-Use the folder already added to Paseo: project → task workspace → agent tabs.
-Run `megai workspace --root FOLDER` to resolve its existing projectId. From a child
-repository, the nearest registered containing folder supplies the identity; do not
-register each child Git repository. Existing linked worktrees retain their primary
-identity. Equal-root duplicates, missing identity, unreadable paths and broken Git
-metadata require reconciliation, not a new project. Project creation or reorganization needs a separate explicit user request.
+Run `megai workspace --root FOLDER` to resolve the existing projectId. Unregistered
+child repositories inherit the nearest registered containing folder. Linked Git
+worktrees retain their primary identity. Missing/ambiguous identity, overlapping
+registered projects, unreadable paths or broken metadata require reconciliation.
+Project creation or reorganization needs a separate explicit user request.
 
-## Local work — default for every folder
+## Plan the complete task
 
-1. Each new task uses `create_workspace` with `isolation: "local"`, the resolved
-   `projectId` and a title. Omit branch/worktree/PR fields. An optional `path` must
-   resolve to the registered folder exactly; omit it when projectId is sufficient.
-   Reuse the same task workspace on refinement. Multiple workspaces are normal:
-   use the known workspaceId, not the first matching cwd. Verify the returned
-   projectId/workspaceId/cwd. Git presence does not change this local default.
-2. Local workspaces share files: they are **not isolated filesystem copies**.
-   Inspect agents and terminals across all workspace IDs sharing the folder.
-   Reserve one writer per overlapping file scope; parallel readers are allowed.
-   Record exact owned paths, acceptance, deadline and rollback location in Plane.
-   Back up existing files privately before replacement, preserving permissions;
-   protect unrelated changes. An unknown or overlapping writer blocks writes.
-3. Open agent tabs with `create_agent`, explicit verified `workspaceId`, Pi model
-   and supported thinking. Readers use `labels: {"megai.access": "read-only"}`.
-   Writers use `labels: {"megai.access": "write", "megai.writeScope": "relative/dir"}`;
-   use `"."` when reserving the whole project folder. Scope directories must already
-   exist and contain no symlink path components. A child Git repository is a valid
-   local write scope; no separate Paseo registration or task branch is required.
-   Labels are **not a filesystem sandbox** or lock: the parent enforces ownership,
-   backups and scope. Never promote a reader just by changing its prompt.
-4. Follow documented Plane mapping (ADAM workspace/components use `ADAM full`).
-   Preserve independent review, actual tests and a source-current acceptance PASS.
-   Use each changed Git repository as its acceptance root; for non-Git configuration
-   use the complete owned configuration directory, not a multi-repo umbrella.
-   Keep contracts, receipts and backups outside those source roots. Multiple changed
-   repositories require evidence for each; do not narrow source to hide changes.
-5. Deliver verified local files by default, with backup/evidence and no invented
-   commit, branch, merge or push requirement. If Git delivery was explicitly agreed,
-   use the agreed existing branch, inspect all staged/unstaged changes and commit
-   only owned paths after acceptance preparation. Never switch branches underneath
-   another session. Main promotion and Production deployment, secrets or destructive
-   migrations need their normal separate approval; local write access grants none.
-6. Release all task writers, read-only reviewers and owned terminals before closing
-   a completed workspace. Local archival is bookkeeping, not permission to delete
-   the folder or files. Keep delivered files, private backups, historical receipt
-   cwd values and other active workspaces intact. Hand off In Review, never Done.
+Each new task records its affected repositories and non-Git configuration scopes
+in the same Plane item. Use documented mapping (ADAM workspace/components use
+`ADAM full`), not one new Plane/Paseo project per repository. Pick one lowercase
+task slug, e.g. `adam-123`, and use `task/adam-123` in every affected Git repo.
+One repo in a monorepo means one worktree; three independent backend/frontend/mobile
+repos mean three worktrees with the same task name under their own repository roots.
+Do not scan/copy unrelated repos or create an umbrella Git repo.
+
+Record the repo primary/common-directory identity, base dev commit, task branch,
+workspaceId/path, owned files, dependencies and acceptance per repo. This is a
+technical delivery manifest/evidence in Plane, not another execution tracker.
+Re-use it and the same task workspaces for refinements. Multiple workspaces are normal.
+Reserve distinct ports, containers and test databases where runtime work needs them;
+worktrees isolate files/indexes, not shared Git refs, services, secrets or an OS process.
+
+## Git source isolation
+
+1. Resolve every affected primary repo and its current `dev` base. Fetch an agreed
+   remote when remote delivery is in scope; reconcile stale/diverged refs safely,
+   without switching or resetting another session's checkout. Missing dev is BLOCKED,
+   not permission to branch from main. An explicit delivery/base exception such as
+   MEGAI's retained `pi` takes precedence and must be recorded.
+2. Create each workspace through native Paseo, with the **same umbrella projectId**:
+
+   ```json
+   {"isolation":"worktree","projectId":"EXISTING_UMBRELLA_ID",
+    "path":"/absolute/umbrella/backend","baseBranch":"dev",
+    "branchName":"task/adam-123","worktreeSlug":"adam-123"}
+   ```
+
+   Repeat for frontend/mobile only if affected. `path` is that repo's primary
+   checkout, not a subdirectory, clone or another worktree. Paseo manages placement;
+   no child project registration or direct unmanaged `git worktree add` is needed.
+   Verify returned projectId/workspaceId, real Git primary/common directory, branch,
+   base HEAD and owned worktree path before writing. Same-name collisions or uncertain
+   creation are reconciled by lookup; never delete or adopt an unknown owner's work.
+3. Open agent tabs with `create_agent`, each repo's verified workspaceId, explicit
+   Pi model and supported thinking; perform neutral/native launch verification.
+   One writer per worktree; read-only reviewers may share it. Parallel task writers
+   get different task branches/worktrees even within one repo. Cross-repo tasks can
+   implement independently, while integration reserves shared target resources.
 
 ## Non-Git local work
 
-The same local workflow applies: absence of Git alone is not a blocker; no new infra repo,
-`git init` or clone is needed. Directory acceptance includes every hidden/regular
-file and empty directory, bounded to 10,000 entries and 64 MiB. It rejects symlinks,
-special files and nested Git metadata. Use the complete owned configuration scope;
-Git components instead get their own Git acceptance evidence, not another Paseo project.
+Use `create_workspace` with `isolation: "local"`, the existing folder projectId and
+optional exact folder path, without branch/worktree fields. Coordination/readers
+may also use this local workspace when the folder itself is Git. Writers use
+`labels: {"megai.access": "write", "megai.writeScope": "infra/service-config"}`;
+readers use `labels: {"megai.access": "read-only"}`. Local Git writers are rejected.
 
-## Explicit isolation and one primary workspace at rest
+Local workspaces are **not isolated filesystem copies**. Inspect agents/terminals
+across matching folders and reserve one writer per overlapping scope. Back up existing files privately,
+preserving permissions and unrelated data. Scope must be an existing non-symlink
+configuration directory containing no Git metadata/symlinks (bounded to 10,000
+entries); `"."` is valid only for such a complete Git-free folder, not a multi-repo
+umbrella. Labels are **not a filesystem sandbox** or lock. Absence of Git alone
+needs no new infra repo or `git init`. Keep complete owned configuration acceptance
+and private backups outside source; no invented commit/branch/push for these files.
+Production deployment, secrets and destructive migrations retain separate approval.
 
-Create a managed worktree/task branch only when the user explicitly requests
-isolation. Resolve the existing Git project and use structured Paseo creation with
-`isolation: "worktree"`; preserve canonical/common-directory validation. Do not
-clone or register another project. A directory umbrella does not acquire a new
-repository just to satisfy an optional isolation request; reconcile that boundary.
-Readers may share a managed checkout; each isolated writer owns its own scope.
-The guard validates identities and local scope paths, not user approval or an OS
-sandbox. It does not enforce branch/base/title or post-launch filesystem writes.
+## All-repo readiness and dev delivery
 
-After verified delivery, keep one primary workspace at rest. Archive only completed,
-released workspaces. Inventory tracked, untracked and ignored content before removing
-an explicitly created worktree; preserve dirty/unmerged data, drafts and history.
-Delete only safely merged task branches when retirement is authorized. Preserve
-unfinished tasks and explicit retention exceptions; another parent's active work
-is not a cleanup target. Use supported Paseo archival, never rewrite its registry.
+1. Preserve independent review and actual acceptance for **all affected repos and
+   configuration scopes before the first dev mutation**. Commit only owned changes
+   when Git delivery is agreed, then capture source-current evidence per worktree.
+   Include cross-repo/API compatibility tests and runtime resource ownership when
+   relevant; one green repository does not make the multi-repo task ready.
+2. Release all task writers before integration. Reserve **all target repo resources
+   atomically** through `megai queue`. Read the separately delivered contract at
+   `$MEGAI_HOME/pi-skill/integration-queue.md` (`MEGAI_HOME` defaults to `~/.megai`;
+   repository source: `pi-skill/integration-queue.md`). Use `plan` with the same Plane
+   identity and repeated `--repo PRIMARY_PATH CANDIDATE_REF`, then `enqueue` the private
+   request. `claim` with a unique executor checks the target base vector; keep its token
+   private and maintain its lease with `heartbeat`. Keep queue position while waiting;
+   `refresh` with new evidence retains FIFO after revalidation; stale owners need
+   explicit `reconcile` with owner-stopped evidence, not timeout-based lock stealing.
+   The shared queue journal is coordination, not a Plane replacement or main/push
+   approval. If queue support is unavailable, integration is BLOCKED; isolated
+   implementation may continue.
+3. Under the reservation, preflight every source/destination commit, clean target
+   checkout and remote policy before mutating any repo. Record the exact source/dev
+   commit vector. Integrate each ready task into its own existing dev checkout:
+   `git -C DEV_CHECKOUT merge --ff-only task/adam-123`. Do not switch a shared checkout.
+   A moved dev requires integrating that new base into the owned task worktree and
+   fresh tests/review; conflicts stay isolated, never force/reset another task.
+4. Push only if explicitly included in delivery scope, using normal non-force pushes
+   and exact remote-head verification. Recheck source/target vectors between steps.
+   Multi-repo delivery is **not atomic**: journal each completed repo; on conflict,
+   test/push failure or uncertain result stop the remaining integrations, preserve
+   every worktree/ref/evidence and reconcile actual refs before resuming. Never
+   blindly replay a merge/push, automatically roll back published commits, or report
+   whole-task success for partial delivery. Use `hold` for uncertain/partial outcomes;
+   reconcile evidence before retry/resume. `reconcile --outcome resume` requires
+   stopped-owner evidence and a new executor; every head must be the recorded base
+   or candidate, all resources stay reserved, the token rotates, and only returned
+   remaining repositories may proceed. Never replay already-delivered repositories.
+   Only `finish --outcome completed` after
+   actual delivery checks the candidate vector; it never substitutes for independent
+   current acceptance. Queue release/recovery follows its contract.
+5. Verify the delivered dev vector and task-wide behavior before handoff In Review,
+   never Done. Capture actual evidence; historical receipt cwd values stay unchanged.
 
-For explicitly agreed Git integration, release writers and reserve the clean target
-before `git -C PRIMARY merge --ff-only TASK_BRANCH` and the agreed push. Never force
-push/delete, use a cleanup helper that can remove an active cwd, or infer main
-promotion approval. Verify the delivered head and release reviewers before archival.
+## Main promotion and cleanup
+
+Main promotion is a **separate explicit user approval** of the exact reviewed repo
+list and dev/main commit vector. Reacquire target reservations, recheck all approved
+refs and tests, then promote those dev commits to their own main branches. A moved
+ref, extra repo or changed scope invalidates approval: show the new vector and ask
+again. Neither task creation, dev delivery, queue acquisition nor a previous approval
+silently authorizes main, push or production deployment. Partial promotion follows
+the same journal/stop/reconcile rules; no automatic rollback across repositories.
+
+After verified delivery and reviewer release, inventory tracked/untracked/ignored
+files and retain required private artifacts. Archive only released, clean, safely
+delivered workspaces through Paseo; delete only safely merged task branches. Local
+archival is bookkeeping, not permission to delete shared folders/files. Preserve
+unfinished/dirty work and explicit retention exceptions; keep one primary workspace
+at rest. The guard validates paths/provenance, not task-wide readiness, queue locking,
+branch/base/title policy, user approval or post-launch filesystem writes.

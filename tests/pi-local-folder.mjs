@@ -35,16 +35,17 @@ try {
   const agent = {workspaceId:'local-git',provider:'pi/existing-model',labels:{'megai.access':'write','megai.writeScope':'.'}};
   await check('paseo_create_workspace',create,false,repo);
   await check('paseo_create_workspace',{isolation:'local',projectId:'repo'},false,repo);
-  await check('paseo_create_agent',agent,false,repo);
-  await check('mcp',{tool:'paseo_create_agent',args:JSON.stringify(agent)},false,repo);
+  // Hybrid refinement: local Git coordination/readers remain; writers isolate.
+  await check('paseo_create_agent',agent,true,repo);
+  await check('mcp',{tool:'paseo_create_agent',args:JSON.stringify(agent)},true,repo);
   await check('paseo_create_agent',{...agent,labels:{'megai.access':'read-only'}},false,repo);
   for (const patch of [{branchName:'task'}, {baseBranch:'main'}, {mode:'branch-off'}, {worktreeSlug:'task'}, {branch:'main'}, {prNumber:1}, {forge:'github'}, {path:root}, {projectId:'umbrella'}]) await check('paseo_create_workspace',{...create,...patch},true,repo);
   for (const patch of [{workspaceId:'local-dir'}, {provider:'codex/model'}, {labels:{}}, {labels:{'megai.access':'write'}}, {labels:{'megai.access':'write','megai.writeScope':'../umbrella'}}, {workspaceId:'missing'}]) await check('paseo_create_agent',{...agent,...patch},true,repo);
   const dirAgent={...agent,workspaceId:'local-dir',labels:{'megai.access':'write','megai.writeScope':'component'}};
-  await check('paseo_create_agent',dirAgent,false);
-  await check('paseo_create_agent',dirAgent,false,child);
+  await check('paseo_create_agent',dirAgent,true);
+  await check('paseo_create_agent',dirAgent,true,child);
   await check('paseo_create_workspace',{isolation:'local',projectId:'umbrella'},false,child);
-  await check('paseo_create_agent',{...dirAgent,labels:{'megai.access':'write','megai.writeScope':'.'}},false);
+  await check('paseo_create_agent',{...dirAgent,labels:{'megai.access':'write','megai.writeScope':'.'}},true);
   symlinkSync(repo,join(root,'escape'));
   await check('paseo_create_agent',{...dirAgent,labels:{'megai.access':'write','megai.writeScope':'escape'}},true);
   await check('paseo_create_workspace',{isolation:'local',projectId:'umbrella',path:join(root,'escape')},true);
