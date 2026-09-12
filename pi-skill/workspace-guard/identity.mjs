@@ -107,8 +107,9 @@ export async function validateWorkspace(workspaceId, identity, home = paseoHome(
   const row = rows[0];
   if (row.kind === 'directory' || row.kind === 'local_checkout') {
     if (row.projectId !== identity.projectId || row.isPaseoOwnedWorktree !== false
-        || row.worktreeRoot != null || typeof row.cwd !== 'string'
-        || await realpath(row.cwd) !== identity.root) {
+        || typeof row.cwd !== 'string' || await realpath(row.cwd) !== identity.root
+        || (row.worktreeRoot != null && (row.kind !== 'local_checkout'
+          || typeof row.worktreeRoot !== 'string' || await realpath(row.worktreeRoot) !== identity.root))) {
       throw new Error('Local workspace must belong to the exact registered project folder');
     }
     const actual = await projectIdentity(row.cwd, home);

@@ -17,7 +17,7 @@ try {
   const projects = [{projectId:'umbrella',rootPath:root,kind:'non_git'}, {projectId:'repo',rootPath:repo,kind:'git'}];
   const workspaces = [
     {workspaceId:'local-dir',projectId:'umbrella',cwd:root,kind:'directory',isPaseoOwnedWorktree:false,worktreeRoot:null},
-    {workspaceId:'local-git',projectId:'repo',cwd:repo,kind:'local_checkout',isPaseoOwnedWorktree:false,worktreeRoot:null},
+    {workspaceId:'local-git',projectId:'repo',cwd:repo,kind:'local_checkout',isPaseoOwnedWorktree:false,worktreeRoot:repo},
   ];
   const save = (name, rows) => writeFileSync(join(home, 'projects', name+'.json'), JSON.stringify(rows));
   save('projects', projects); save('workspaces', workspaces);
@@ -48,7 +48,7 @@ try {
   symlinkSync(repo,join(root,'escape'));
   await check('paseo_create_agent',{...dirAgent,labels:{'megai.access':'write','megai.writeScope':'escape'}},true);
   await check('paseo_create_workspace',{isolation:'local',projectId:'umbrella',path:join(root,'escape')},true);
-  for (const patch of [{archivedAt:'2026-01-01'}, {cwd:root}, {isPaseoOwnedWorktree:true}, {worktreeRoot:repo}, {kind:'unknown'}]) {
+  for (const patch of [{archivedAt:'2026-01-01'}, {cwd:root}, {isPaseoOwnedWorktree:true}, {worktreeRoot:root}, {kind:'unknown'}]) {
     save('workspaces',[workspaces[0],{...workspaces[1],...patch}]); await check('paseo_create_agent',agent,true,repo);
   }
   save('workspaces',workspaces);
