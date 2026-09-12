@@ -2,9 +2,9 @@
 
 Load only for actual delegation or model-error escalation. Routine Pi work follows
 `megai` with one parent and self-review; delegation is not a required stage.
-With an explicitly selected `economy` preset, use MiniMax planning/implementation
+With an explicitly selected `economy` preset, use DeepSeek planning/implementation
 roles first and reserve GPT for guarded review or a concrete model-specific failure.
-Role preferences do not require launching agents: a healthy MiniMax parent does its
+Role preferences do not require launching agents: a healthy DeepSeek parent does its
 own routine work. Keep GPT review bounded to the diff, criteria and test evidence.
 
 ## Task scope and progress
@@ -67,8 +67,8 @@ harness, exact model and effective thinking via agent status before sending task
 context. Verify the Paseo harness is `pi` separately from the model provider.
 The status-provided session handle must identify the same current native session ID.
 Match the provider-qualified status model to native `model_change.provider` and
-`model_change.modelId`: `minimax/MiniMax-M3` means `minimax` + `MiniMax-M3`, not `pi`
-+ `MiniMax-M3`. Match native `thinking_level_change.thinkingLevel` to the effective
+`model_change.modelId`: `deepseek/deepseek-flash` means `deepseek` + `deepseek-flash`, not `pi`
++ `deepseek-flash`. Match native `thinking_level_change.thinkingLevel` to the effective
 thinking reported in status. When these current records agree, prefer those records
 and do not run a second neutral runtime-check model prompt; identity is already proven. If
 those native records are missing, stale, ambiguous, or come from a restored

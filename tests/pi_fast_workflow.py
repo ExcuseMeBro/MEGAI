@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Fast-workflow routing/fallback contracts and retrospective dataset integrity.
 
-Covers three concerns from the MEGAI-60 r2 contract:
+Covers current routing and the preserved MEGAI-60 retrospective evidence:
 
 1. The shipped policy text preserves the routing clauses that close the economy
-   gap (healthy MiniMax parent does routine work directly; inherited GPT/Paseo
+   gap (healthy DeepSeek parent does routine work directly; inherited GPT/Paseo
    parent with the ``economy`` preset routes substantial bounded coding to ONE
-   MiniMax worker; the parent owns scope, validation and guarded review or
+   DeepSeek worker; the parent owns scope, validation and guarded review or
    integration; explicit user/task model choices always override; an agent
    team or every role is never required).
 2. ``delegation.md`` keeps the verified-launch clause that prefers native
@@ -100,10 +100,10 @@ class FastWorkflow(unittest.TestCase):
         delegation_section = _section(text, "Delegation and cost")
         for fragment in (
             "Direct parent tools are the default",
-            "healthy MiniMax parent performs its own routine work directly",
+            "healthy DeepSeek parent performs its own routine work directly",
             "does not launch a child just to use the same model",
             "inherited GPT/Paseo parent",
-            "ONE MiniMax worker",
+            "ONE DeepSeek worker",
             "trivial read-only or single edit may remain direct",
             "parent still owns scope",
             "guarded review or integration",
@@ -152,8 +152,8 @@ class FastWorkflow(unittest.TestCase):
             with self.subTest(phrase=forbidden):
                 self.assertNotIn(forbidden, section)
         # Required positive clause: substantial GPT-parent work routes to one
-        # MiniMax worker when the preset is economy.
-        _clause(section, "substantial bounded implementation to ONE MiniMax worker")
+        # DeepSeek worker when the preset is economy.
+        _clause(section, "substantial bounded implementation to ONE DeepSeek worker")
         _clause(section, "instead of duplicating it in GPT")
 
     def test_bootstrap_remains_unchanged(self):
@@ -175,7 +175,7 @@ class FastWorkflow(unittest.TestCase):
             "provider-qualified status model",
             "model_change.provider",
             "model_change.modelId",
-            "`minimax/MiniMax-M3` means `minimax` + `MiniMax-M3`, not `pi`",
+            "`deepseek/deepseek-flash` means `deepseek` + `deepseek-flash`, not `pi`",
             "thinking_level_change.thinkingLevel",
             "effective thinking reported in status",
             "do not run a second neutral runtime-check model prompt",

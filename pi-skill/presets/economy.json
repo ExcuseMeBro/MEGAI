@@ -2,9 +2,9 @@
   "schema": 1,
   "preset": "economy",
   "roles": {
-    "planner": {"provider": "minimax", "model": "MiniMax-M3", "thinking": "high"},
-    "scout": {"provider": "minimax", "model": "MiniMax-M2.7-highspeed", "thinking": "medium"},
-    "worker": {"provider": "minimax", "model": "MiniMax-M3", "thinking": "high"},
+    "planner": {"provider": "deepseek", "model": "deepseek-flash", "thinking": "high"},
+    "scout": {"provider": "deepseek", "model": "deepseek-flash", "thinking": "high"},
+    "worker": {"provider": "deepseek", "model": "deepseek-flash", "thinking": "high"},
     "reviewer": {"provider": "openai-codex", "model": "gpt-5.6-sol", "thinking": "high"}
   }
 }

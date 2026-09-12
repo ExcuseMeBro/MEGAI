@@ -160,12 +160,12 @@ not start automatically. Existing filters and other harnesses remain unchanged.
 standalone bytes. Identical manual installs can be adopted; MEGAI update/removal
 uses receipt-owned wiring without fetching upstream or overwriting custom edits.
 
-## Adaptive Pi and MiniMax-first execution
+## Adaptive Pi and DeepSeek-first execution
 
 Pi defaults to one parent, focused verification and self-review for routine work.
 Guarded risks retain independent formal acceptance. Detailed delegation is loaded
 on demand, not duplicated in the always-loaded bootstrap. The explicit `economy`
-preset selects MiniMax M3 for next-session planning/implementation and reserves GPT
+preset selects DeepSeek V4.1-Flash for next-session planning/implementation and reserves GPT
 for guarded review or a concrete failure. Ordinary wiring preserves model settings.
 See [adaptive workflow, installation and verification](docs/pi-adaptive.md).
 

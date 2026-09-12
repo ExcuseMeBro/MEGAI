@@ -12,8 +12,8 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = {
     "planner": {"provider": "openai-codex", "model": "gpt-6-astra", "thinking": "high"},
-    "scout": {"provider": "minimax", "model": "MiniMax-M2.7-highspeed", "thinking": "medium"},
-    "worker": {"provider": "minimax", "model": "MiniMax-M3", "thinking": "high"},
+    "scout": {"provider": "deepseek", "model": "deepseek-flash", "thinking": "high"},
+    "worker": {"provider": "deepseek", "model": "deepseek-flash", "thinking": "high"},
     "reviewer": {"provider": "openai-codex", "model": "gpt-5.6-sol", "thinking": "high"},
 }
 

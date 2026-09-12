@@ -82,8 +82,8 @@ class Adaptive(Slim):
         self.assertEqual(before, self.snapshot())
         self.run_cmd(*command)
         selected = json.loads((agent / "settings.json").read_text())
-        self.assertEqual(selected["defaultProvider"], "minimax")
-        self.assertEqual(selected["defaultModel"], "MiniMax-M3")
+        self.assertEqual(selected["defaultProvider"], "deepseek")
+        self.assertEqual(selected["defaultModel"], "deepseek-flash")
         self.assertEqual(selected["defaultThinkingLevel"], "high")
         self.assertEqual(selected["modelThinkingLevels"]["custom/model"], "low")
         for key in ("packages", "extensions"):
@@ -91,7 +91,9 @@ class Adaptive(Slim):
         self.assertEqual((agent / "auth.json").read_text(), '{"synthetic":"preserve"}')
         roles = json.loads((agent / "megai-roles.json").read_text())
         for role in ("planner", "scout", "worker"):
-            self.assertEqual(roles["roles"][role]["provider"], "minimax")
+            self.assertEqual(roles["roles"][role], {
+                "provider": "deepseek", "model": "deepseek-flash", "thinking": "high",
+            })
         self.assertEqual(roles["roles"]["reviewer"]["provider"], "openai-codex")
         before = self.snapshot()
         self.run_cmd(*command)

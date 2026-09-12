@@ -44,16 +44,16 @@ Direct parent tools are the default. Load [delegation.md](delegation.md) only be
 creating/reusing a child or handling a model failure. Choose one task-appropriate
 engineering skill, not an entire workflow stack. A worker replaces parent writing;
 a reviewer receives a bounded diff and evidence, not the full conversation. A
-healthy MiniMax parent performs its own routine work directly; it does not launch
+healthy DeepSeek parent performs its own routine work directly; it does not launch
 a child just to use the same model. With the explicit `economy` preset and an
 inherited GPT/Paseo parent, route substantial bounded implementation to ONE
-MiniMax worker instead of duplicating it in GPT; a trivial read-only or single
+DeepSeek worker instead of duplicating it in GPT; a trivial read-only or single
 edit may remain direct when launching a worker is disproportionate. The parent
 still owns scope, validation, and guarded review or integration.
 
 Respect `megai-roles.json` and native preferences. With the explicit `economy` preset,
-MiniMax handles planning and implementation; GPT is reserved for guarded independent
-review or a concrete MiniMax failure requiring escalation. Routine tasks do not spend
+DeepSeek handles planning and implementation; GPT is reserved for guarded independent
+review or a concrete DeepSeek failure requiring escalation. Routine tasks do not spend
 GPT on automatic scouting, planning or review. Explicit user/task model choices
 always override this default; never silently switch the parent's model or lower
 its thinking. Auth/shared quota failures require reconciliation, not model hopping;

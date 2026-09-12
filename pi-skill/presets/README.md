@@ -1,10 +1,17 @@
 # Optional mixed Pi preset
 
-Use after explicitly choosing mixed GPT/MiniMax routing. The authoritative model
+Use after explicitly choosing mixed GPT/DeepSeek routing. The authoritative model
 and thinking values are in [mixed.json](mixed.json): planner, scout, worker and
 reviewer. This is a user-selected default, not a model allowlist or a guarantee
 that mixed routing wins on other tasks. The three-task pilot found scope and
 reporting errors even when functional tests passed.
+
+Both presets use `deepseek/deepseek-flash` (V4.1-Flash) with high thinking for
+scout and worker; `economy` also uses it for the planner. Shared model roles use
+one consistent startup thinking level. Existing GPT role selections are retained.
+To upgrade an owned older preset, explicitly reapply the same preset; ordinary
+wiring preserves it. Historical model-specific settings remain user-owned and
+are not active role routing. No credentials or provider registrations are removed.
 
 From the reviewed `pi` checkout, preview then apply:
 
