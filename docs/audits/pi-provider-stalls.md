@@ -24,7 +24,26 @@ processes. Another running project had just received a new user message, not a
 two-hour stall. No blanket kill, archive, daemon restart or config reset occurred.
 ADAM resumed code/test activity and its saved work was not interrupted.
 
-## Reproduction and remedy
+## Progress-aware refinement — 2026-09-12
+
+Task58 reproduces a separate false abort through the actual Pi loader/full
+AgentSession and native Codex SSE: thinking updates arrive, yet the original
+request-start deadline aborts active generation. This does not establish that
+all historical production waits had continuous token activity.
+
+The current guard uses inactivity instead: nonempty text, thinking and streamed
+tool-argument deltas renew the deadline. Empty deltas, transport keepalives and
+retry/backoff without content do not. Tools remain excluded, cancellation never
+replays work, and diagnostics retain total elapsed time plus idle time. A real
+stall still aborts; a progressing response may exceed the configured interval.
+`tests/pi-provider-progress.mjs` locks down active thinking/text, stopped progress
+and empty deltas using synthetic HTTP only. Existing silence/retry/disposal and
+parallel/nested-tool tests remain required. Settings and timeout opt-out are unchanged.
+
+The sections below preserve the original incident, absolute-budget remedy and
+its historical verification; they are not the current inactivity specification.
+
+## Original reproduction and remedy
 
 Installed Pi native Codex SSE transport accepts `timeoutMs`, but uses it for
 response headers. The body reader waits until completion or explicit abort.

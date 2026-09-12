@@ -56,14 +56,16 @@ request, model selection, Plane mutation or startup daemon call.
 
 ## Pi provider stall protection
 
-Pi installs `megai-provider-guard`: a **180-second wall-time budget for a model
-request and its automatic retries**, not a task deadline. It aborts the provider
-wait with native Pi cancellation, preserves session/tool results, and records a
-metadata-only `megai-provider-timeout` entry. Successful responses disarm it;
+Pi installs `megai-provider-guard`: a **180-second provider inactivity deadline**,
+not a limit on active generation or task duration. Nonempty streamed text, thinking
+and tool-argument deltas renew it. Keepalives, empty deltas and automatic retry/backoff
+without content do not. Genuine silence is aborted with native Pi cancellation,
+preserving session/tool results and recording metadata-only `megai-provider-timeout`
+evidence (total request elapsed time and idle time). Successful responses disarm it;
 tool execution is never timed out by this extension, including nested model work
 inside a tool. No provider, model, thinking, credentials or retry settings change.
 
-`MEGAI_PROVIDER_TIMEOUT_MS` selects a different budget; `0` explicitly opts out.
+`MEGAI_PROVIDER_TIMEOUT_MS` selects a different inactivity interval; `0` explicitly opts out.
 Existing extension filters still win. Reload/reopen Pi after installation;
 already-running processes do not acquire new extensions automatically. Do not
 restart a writer mid-mutation. This bounds waiting rather than making providers

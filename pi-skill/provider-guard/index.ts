@@ -1,6 +1,6 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
-/** Bound provider waits, not task duration. Never interrupt an executing tool. */
+/** Bound provider inactivity, not active generation. Never interrupt an executing tool. */
 export default function providerGuard(pi: ExtensionAPI) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let active = false;
@@ -25,11 +25,9 @@ export default function providerGuard(pi: ExtensionAPI) {
     }
   });
   pi.on("agent_start", () => { active = true; });
-  pi.on("before_provider_request", (_event, ctx) => {
-    // Nested provider work inside tools belongs to the tool's own cancellation
-    // contract. Retry agent_start events must not reset an existing deadline.
-    if (!active || tools.size || timer !== undefined || timeoutMs === 0) return;
-    startedAt = Date.now();
+  const arm = (ctx: ExtensionContext) => {
+    clear();
+    const idleStartedAt = Date.now();
     timer = setTimeout(() => {
       timer = undefined;
       try {
@@ -44,13 +42,13 @@ export default function providerGuard(pi: ExtensionAPI) {
       }
       const elapsedMs = Date.now() - startedAt;
       try {
-        pi.appendEntry("megai-provider-timeout", { timeoutMs, elapsedMs });
+        pi.appendEntry("megai-provider-timeout", { timeoutMs, elapsedMs, idleMs: Date.now() - idleStartedAt });
       } catch {
         console.error("MEGAI: provider wait aborted; timeout diagnostic could not be saved.");
       }
       try {
         if (ctx.hasUI) ctx.ui.notify(
-          `MEGAI: provider wait exceeded ${timeoutMs}ms; aborted without replaying tools. Resume from saved evidence or escalate; do not blame the last tool.`,
+          `MEGAI: provider inactivity exceeded ${timeoutMs}ms; aborted without replaying tools. Resume from saved evidence or escalate; do not blame the last tool.`,
           "error",
         );
       } catch {
@@ -58,9 +56,22 @@ export default function providerGuard(pi: ExtensionAPI) {
       }
     }, timeoutMs);
     timer.unref();
+  };
+  pi.on("before_provider_request", (_event, ctx) => {
+    // Nested provider work belongs to the tool's own cancellation contract.
+    // Retrying without content must not renew an existing inactivity deadline.
+    if (!active || tools.size || timer !== undefined || timeoutMs === 0) return;
+    startedAt = Date.now();
+    arm(ctx);
+  });
+  pi.on("message_update", (event, ctx) => {
+    if (!active || tools.size || timer === undefined) return;
+    const update = event.assistantMessageEvent;
+    if ((update.type === "text_delta" || update.type === "thinking_delta" || update.type === "toolcall_delta")
+        && update.delta.length > 0) arm(ctx);
   });
   pi.on("message_end", event => {
-    // Keep the same budget during native automatic retries and their backoff.
+    // Keep the inactivity deadline during native automatic retries and backoff.
     if (event.message.role === "assistant" && event.message.stopReason !== "error") clear();
   });
   pi.on("tool_execution_start", event => { tools.add(event.toolCallId); clear(); });

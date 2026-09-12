@@ -69,6 +69,7 @@ try {
   await emit('before_provider_request');
   await emit('tool_execution_start', { toolCallId: 'write' });
   await emit('before_provider_request');
+  await emit('message_update', { assistantMessageEvent: { type: 'thinking_delta', delta: 'nested tool progress' } });
   await wait(60);
   assert.equal(aborts, 1, 'Never abort in-flight writes/tools');
   await emit('tool_execution_end', { toolCallId: 'write' });
@@ -136,7 +137,22 @@ try {
     assert.equal(diagnosticErrors.length, 2, 'Storage and UI diagnostics fail independently');
   } finally { console.error = originalError; }
   await emit('session_shutdown');
-  console.log('PASS: actual loader/native SSE cancellation, parallel/nested tool safety, retry budget, cleanup, opt-out, disposed context and diagnostic failures');
+  // Native tool-argument streaming is provider progress, not tool execution.
+  ctx.hasUI = false;
+  const beforeProgress = aborts;
+  await emit('session_start');
+  await emit('agent_start');
+  await emit('before_provider_request');
+  for (let i = 0; i < 6; i++) {
+    await wait(10);
+    await emit('message_update', { assistantMessageEvent: { type: 'toolcall_delta', delta: 'x' } });
+  }
+  assert.equal(aborts, beforeProgress, 'Tool argument progress must renew inactivity deadline');
+  await emit('message_end', { message: { role: 'assistant', stopReason: 'toolUse' } });
+  await wait(60);
+  assert.equal(aborts, beforeProgress, 'Completed streamed tool arguments must disarm timer');
+  await emit('session_shutdown');
+  console.log('PASS: actual loader/native SSE cancellation, parallel/nested tool safety, tool argument progress, retry budget, cleanup, opt-out, disposed context and diagnostic failures');
 } finally {
   if (original === undefined) delete process.env.MEGAI_PROVIDER_TIMEOUT_MS;
   else process.env.MEGAI_PROVIDER_TIMEOUT_MS = original;
