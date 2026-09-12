@@ -29,7 +29,7 @@ try {
     { projectId: 'prj-duplicate', rootPath: sibling, archivedAt: null },
   ];
   const workspaces = [
-    { workspaceId: 'wks-managed', projectId: 'prj-main', cwd: managed, worktreeRoot: managed, kind: 'worktree', isPaseoOwnedWorktree: true, archivedAt: null },
+    { workspaceId: 'wks-managed', projectId: 'prj-main', cwd: managed, worktreeRoot: managed, mainRepoRoot: root, kind: 'worktree', isPaseoOwnedWorktree: true, archivedAt: null },
     { workspaceId: 'wks-primary', projectId: 'prj-main', cwd: root, kind: 'local_checkout', isPaseoOwnedWorktree: false, archivedAt: null },
     { workspaceId: 'wks-duplicate', projectId: 'prj-duplicate', cwd: sibling, kind: 'worktree', isPaseoOwnedWorktree: false, archivedAt: null },
   ];

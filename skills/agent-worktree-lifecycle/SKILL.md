@@ -113,7 +113,11 @@ Production deployment, secrets and destructive migrations retain separate approv
    every worktree/ref/evidence and reconcile actual refs before resuming. Never
    blindly replay a merge/push, automatically roll back published commits, or report
    whole-task success for partial delivery. Use `hold` for uncertain/partial outcomes;
-   reconcile evidence before retry/resume. Only `finish --outcome completed` after
+   reconcile evidence before retry/resume. `reconcile --outcome resume` requires
+   stopped-owner evidence and a new executor; every head must be the recorded base
+   or candidate, all resources stay reserved, the token rotates, and only returned
+   remaining repositories may proceed. Never replay already-delivered repositories.
+   Only `finish --outcome completed` after
    actual delivery checks the candidate vector; it never substitutes for independent
    current acceptance. Queue release/recovery follows its contract.
 5. Verify the delivered dev vector and task-wide behavior before handoff In Review,

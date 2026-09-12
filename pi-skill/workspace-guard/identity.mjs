@@ -152,8 +152,7 @@ export async function validateWorkspace(workspaceId, identity, home = paseoHome(
       || owner.root !== identity.root || owner.projectId !== identity.projectId
       || actual.commonDir !== primary.commonDir || actual.checkout === actual.root
       || await realpath(row.worktreeRoot) !== actual.checkout
-      || (row.mainRepoRoot != null && (typeof row.mainRepoRoot !== 'string'
-        || await realpath(row.mainRepoRoot) !== actual.root))) {
+      || typeof row.mainRepoRoot !== 'string' || await realpath(row.mainRepoRoot) !== actual.root) {
     throw new Error('Workspace filesystem/Git identity does not match its managed canonical registration');
   }
 }
