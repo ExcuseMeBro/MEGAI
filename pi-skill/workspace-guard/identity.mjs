@@ -1,6 +1,6 @@
 // Read-only identity lookup. No daemon/config writes, network or startup work.
 import { execFile } from 'node:child_process';
-import { readFile, realpath, lstat } from 'node:fs/promises';
+import { readFile, realpath, lstat, readdir } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, relative, isAbsolute, resolve, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -67,7 +67,19 @@ export async function validateWriteScope(scope, identity) {
   let error;
   try { await gitIdentity(target); }
   catch (cause) { error = cause; }
-  if (error) await directoryIdentity(target, error);
+  if (!error) throw new Error('Git source writers use a managed task worktree, not a shared local checkout');
+  await directoryIdentity(target, error);
+  // A broad umbrella scope must not smuggle child Git repos into a local writer.
+  const pending = [target];
+  let entries = 0;
+  while (pending.length) {
+    const directory = pending.pop();
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      if (++entries > 10000) throw new Error('Local configuration scope exceeds 10,000 entries');
+      if (entry.name === '.git' || entry.isSymbolicLink()) throw new Error('Local configuration scope contains Git metadata or symlinks; narrow the scope');
+      if (entry.isDirectory()) pending.push(join(directory, entry.name));
+    }
+  }
 }
 
 export async function projectIdentity(cwd, home = paseoHome()) {
@@ -101,6 +113,16 @@ export async function projectIdentity(cwd, home = paseoHome()) {
   return { ...identity, projectId: selected.projectId };
 }
 
+export async function validateWorktreeSource(path, identity, home = paseoHome()) {
+  if (typeof path !== 'string' || !isAbsolute(path)) throw new Error('Worktree source must be an absolute primary repository path');
+  const source = await gitIdentity(path);
+  const owner = await projectIdentity(source.root, home);
+  if (source.checkout !== source.root || await realpath(path) !== source.root
+      || owner.projectId !== identity.projectId || owner.root !== identity.root) {
+    throw new Error('Worktree source must be a primary Git repository inside the existing project folder');
+  }
+}
+
 export async function validateWorkspace(workspaceId, identity, home = paseoHome()) {
   const rows = (await registry('workspaces', home)).filter(row => row.workspaceId === workspaceId && !row.archivedAt);
   if (rows.length !== 1) throw new Error('Explicit active workspaceId is missing or ambiguous');
@@ -122,11 +144,16 @@ export async function validateWorkspace(workspaceId, identity, home = paseoHome(
     throw new Error('Delegate workspace must be a Paseo-managed worktree of the canonical project');
   }
   const actual = await gitIdentity(row.cwd);
+  const owner = await projectIdentity(actual.root, home);
+  const primary = await gitIdentity(actual.root);
   const managedRoot = await realpath(join(home, 'worktrees'));
   const location = relative(managedRoot, actual.checkout);
   if (!location || location === '..' || location.startsWith('../') || isAbsolute(location)
-      || actual.root !== identity.root || actual.commonDir !== identity.commonDir
-      || actual.checkout === identity.root || await realpath(row.worktreeRoot) !== actual.checkout) {
+      || owner.root !== identity.root || owner.projectId !== identity.projectId
+      || actual.commonDir !== primary.commonDir || actual.checkout === actual.root
+      || await realpath(row.worktreeRoot) !== actual.checkout
+      || (row.mainRepoRoot != null && (typeof row.mainRepoRoot !== 'string'
+        || await realpath(row.mainRepoRoot) !== actual.root))) {
     throw new Error('Workspace filesystem/Git identity does not match its managed canonical registration');
   }
 }

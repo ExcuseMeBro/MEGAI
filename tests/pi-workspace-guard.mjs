@@ -68,7 +68,7 @@ try {
     await check('mcp__paseo', { tool: 'create-workspace', args: JSON.stringify(valid) }, false, cwd);
     await check('paseo_create_workspace', { ...valid, projectId: 'prj-duplicate' }, true, cwd);
   }
-  for (const args of [{}, { isolation: 'worktree' }, { ...valid, path: root }, { ...valid, worktreeSlug: '../escape' }, { ...valid, worktreeSlug: '/tmp/escape' }]) {
+  for (const args of [{}, { isolation: 'worktree' }, { ...valid, path: sibling }, { ...valid, worktreeSlug: '../escape' }, { ...valid, worktreeSlug: '/tmp/escape' }]) {
     await check('paseo_create_workspace', args, true);
     await check('mcp', { server: 'paseo', tool: 'create_workspace', args: JSON.stringify(args) }, true);
   }
