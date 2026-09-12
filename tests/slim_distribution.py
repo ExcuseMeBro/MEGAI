@@ -120,16 +120,16 @@ class Slim(unittest.TestCase):
         lifecycle = (pi / "skills/agent-worktree-lifecycle/SKILL.md").read_text()
         for clause in ("## Non-Git local work", '`isolation: "local"`',
                        '`labels: {"megai.access": "read-only"}`', "not a filesystem sandbox",
-                       "A writer still needs", "managed isolated worktree", "ADAM full",
+                       "Workspaces are the default", "explicitly requests", "ADAM full",
                        "Preserve independent", "Multiple workspaces are normal",
                        "not permission to delete", "no new infra repo"):
             self.assertIn(clause.lower(), lifecycle.lower())
         self.assertEqual(lifecycle, (ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text())
         policy = (pi / "AGENTS.md").read_text()
-        self.assertIn("non-Git directory projects", policy)
-        self.assertIn("Git repository writers still require managed isolated worktrees", policy)
+        self.assertIn("Git and non-Git configuration/source folders", policy)
+        self.assertIn("no child repository registration or automatic task branch/worktree", policy)
         task = (pi / "skills/megai-task-flow/SKILL.md").read_text()
-        self.assertIn("registered non-Git directory root", task)
+        self.assertIn("existing registered folder", task)
         self.assertIn("explicit documented Plane project mapping", task)
         self.assertIn("ADAM full", task)
         self.assertIn("missing states or ambiguity block edits", task)
@@ -162,6 +162,9 @@ class Slim(unittest.TestCase):
             self.assertIn("non-Git configuration", text)
             self.assertIn("scoped", text)
             self.assertIn("agent-worktree-lifecycle", text)
+            self.assertIn("explicit opt-in", text)
+            self.assertIn("local workspaces", text)
+            self.assertNotIn("writers still require managed isolated worktrees", " ".join(text.split()))
             self.assertNotIn("Writers use managed isolated worktrees", " ".join(text.split()))
         result = self.run_cmd(sys.executable, "-B", str(self.megai / "lib/acceptance_gate.py"),
                               "snapshot", "--root", str(self.project))

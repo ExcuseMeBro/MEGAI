@@ -68,12 +68,12 @@ try {
   const alias = join(temp, 'alias'); symlinkSync(root, alias);
   await check('paseo_create_agent', agent, false, alias);
   for (const patch of [{ archivedAt: '2026-01-01' }, { projectId: 'other' }, { cwd: temp },
-    { kind: 'local_checkout' }, { isPaseoOwnedWorktree: true }, { worktreeRoot: root }]) {
+    { kind: 'unknown' }, { isPaseoOwnedWorktree: true }, { worktreeRoot: root }]) {
     save('workspaces', [{ ...rows[0], ...patch }]); await check('paseo_create_agent', agent, true);
   }
   save('workspaces', rows);
   for (const invalid of [[], {}, [...projects, { ...projects[0], projectId: 'duplicate' }],
-    [{ ...projects[0], kind: 'git' }], [{ ...projects[0], archivedAt: '2026-01-01' }]]) {
+    [{ ...projects[0], archivedAt: '2026-01-01' }]]) {
     save('projects', invalid); await check('paseo_create_agent', agent, true);
   }
   save('projects', projects);
@@ -83,10 +83,10 @@ try {
   mkdirSync(join(root, '.git')); // Corrupt Git cannot become a directory exception.
   await check('paseo_create_agent', agent, true);
   rmSync(join(root, '.git'), { recursive: true });
-  // Nested real Git retains its own identity; never inherit umbrella access.
+  // The registered umbrella owns local task identity; no child Git registration.
   const component = join(root, 'main-be'); mkdirSync(component);
   execFileSync('git', ['-C', component, 'init', '-q']);
-  await check('paseo_create_agent', agent, true, component);
+  await check('paseo_create_agent', agent, false, component);
   // A true directory still works after the negative fixtures, without mutations.
   await check('paseo_create_agent', agent, false);
   assert.equal(readFileSync(sentinel, 'utf8'), 'review-only data; no migration execution\n');

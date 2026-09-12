@@ -7,7 +7,7 @@ const record = (value: unknown): Record<string, unknown> | undefined =>
     ? value as Record<string, unknown> : undefined;
 const mutations = new Set(['create_workspace', 'create_agent', 'create_project']);
 const prefix = 'MEGAI workspace guard: ';
-const route = 'Resolve identity with megai workspace --root CHECKOUT_OR_DIRECTORY. Git projects use structured Paseo create_workspace with isolation=worktree and the canonical projectId. Existing non-Git directory projects use isolation=local, then create_agent with the verified workspaceId and Pi provider. Set labels {"megai.access":"read-only"} for readers, or {"megai.access":"write","megai.writeScope":"relative/config-dir"} for an explicitly owned configuration scope. No new sibling project or clone.';
+const route = 'Resolve the existing folder with megai workspace --root FOLDER. Use structured Paseo create_workspace with isolation=local and its projectId, without branch/worktree fields; Git presence does not change this default. Then create_agent with the verified workspaceId and Pi provider. Readers set labels {"megai.access":"read-only"}; writers set {"megai.access":"write","megai.writeScope":"relative/dir"} or scope "." for the folder. Reserve one writer per shared scope and private backups; labels are not a sandbox or lock. No child repository registration, sibling project or clone. Managed worktrees remain explicit opt-in only.';
 
 /** Preflight only: never rewrite a call, create a project, or touch registries. */
 export async function blocked(toolName: string, value: unknown, cwd: string): Promise<string | undefined> {
@@ -51,30 +51,28 @@ export async function blocked(toolName: string, value: unknown, cwd: string): Pr
   if (name === 'paseo_create_project') return route;
   try {
     const identity = await projectIdentity(cwd);
-    if (identity.kind === 'directory') {
-      if (name === 'paseo_create_workspace') {
-        if (input.isolation !== 'local' || input.projectId !== identity.projectId
+    if (name === 'paseo_create_workspace') {
+      if (input.isolation === 'local') {
+        if (input.projectId !== identity.projectId
             || ['mode', 'worktreeSlug', 'branchName', 'baseBranch', 'branch', 'prNumber', 'forge'].some(key => key in input)
             || ('path' in input && (typeof input.path !== 'string' || await realpath(input.path) !== identity.root))) {
-          return `${route} Expected directory projectId=${identity.projectId}, root=${identity.root}.`;
+          return `${route} Expected projectId=${identity.projectId}, folder=${identity.root}.`;
         }
-      } else {
-        const labels = record(input.labels);
-        const access = labels?.['megai.access'];
-        if ((access !== 'read-only' && access !== 'write')
-            || typeof input.provider !== 'string' || !/^pi\/\S+$/.test(input.provider)
-            || typeof input.workspaceId !== 'string' || !input.workspaceId) return route;
-        await validateWorkspace(input.workspaceId, identity);
-        if (access === 'write') await validateWriteScope(labels?.['megai.writeScope'], identity);
-      }
-    } else if (name === 'paseo_create_workspace') {
-      if (input.isolation !== 'worktree' || input.projectId !== identity.projectId || 'path' in input
+      } else if (identity.kind === 'directory' || input.isolation !== 'worktree'
+          || input.projectId !== identity.projectId || 'path' in input
           || ('worktreeSlug' in input && (typeof input.worktreeSlug !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(input.worktreeSlug)))) {
-        return `${route} Expected projectId=${identity.projectId}, primary=${identity.root}.`;
+        return route;
       }
     } else {
-      if (typeof input.workspaceId !== 'string' || !input.workspaceId) return route;
-      await validateWorkspace(input.workspaceId, identity);
+      if (typeof input.workspaceId !== 'string' || !input.workspaceId
+          || typeof input.provider !== 'string' || !/^pi\/\S+$/.test(input.provider)) return route;
+      const mode = await validateWorkspace(input.workspaceId, identity);
+      if (mode === 'local') {
+        const labels = record(input.labels);
+        const access = labels?.['megai.access'];
+        if (access !== 'read-only' && access !== 'write') return route;
+        if (access === 'write') await validateWriteScope(labels?.['megai.writeScope'], identity);
+      }
     }
   } catch (error) {
     return `${error instanceof Error ? error.message : 'Identity lookup failed'}. ${route}`;

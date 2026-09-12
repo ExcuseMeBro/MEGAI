@@ -78,5 +78,5 @@ Do not rewrite provider requests, auth, models, thinking, session history or use
 resources. Do not start daemons or indexes at harness startup. Preserve ambiguity,
 custom registrations, credentials, hooks and data; migration refuses conflicts and
 keeps private backups. Tests, full diffs and raw failure diagnostics outrank any
-compressed summary. Use `agent-worktree-lifecycle` for isolated writes and the
-agreed branch. Main promotion requires explicit user approval.
+compressed summary. Use `agent-worktree-lifecycle` for folder-first local writes,
+single-writer ownership and the agreed delivery; worktrees are explicit opt-in. Main promotion requires explicit user approval.

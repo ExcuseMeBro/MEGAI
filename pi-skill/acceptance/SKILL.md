@@ -38,8 +38,10 @@ to criteria/tests require parent reconciliation and fresh red evidence, not a wa
 ## 2. Fix and collect
 
 Use the narrowest root-cause fix and task-relevant checks. One writer, no mandatory
-scout or duplicate reviewer. For Git work, commit the candidate before final capture
-when a later commit would invalidate its snapshot. Non-Git configuration has no commit step;
+scout or duplicate reviewer. Local Git delivery can use an uncommitted source snapshot;
+no task branch or commit is required. If commit/push delivery was explicitly agreed,
+commit before final capture so it does not invalidate the snapshot later.
+Non-Git configuration has no commit step;
 finish writes and freeze the directory fingerprint before final capture. Keep artifacts
 outside the source root.
 

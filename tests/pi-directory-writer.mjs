@@ -28,7 +28,8 @@ try {
     assert.deepEqual(input, original); cases++;
   };
   await check(agent, false);
-  for (const value of ['', '.', '..', '../outside', '/tmp', 'infra/../infra', 'missing', 3]) {
+  await check({...agent, labels:{...agent.labels,'megai.writeScope':'.'}}, false);
+  for (const value of ['', '..', '../outside', '/tmp', 'infra/../infra', 'missing', 3]) {
     await check({...agent, labels:{...agent.labels,'megai.writeScope':value}}, true);
   }
   await check({...agent, labels:{'megai.access':'write'}}, true);
@@ -38,7 +39,7 @@ try {
   symlinkSync(scope, join(root,'alias'));
   await check({...agent, labels:{...agent.labels,'megai.writeScope':'alias'}}, true);
   writeFileSync(join(scope,'.git'), 'gitdir: /missing/broken\n'); await check(agent,true); rmSync(join(scope,'.git'));
-  execFileSync('git',['-C',scope,'init','-q']); await check(agent,true);
+  execFileSync('git',['-C',scope,'init','-q']); await check(agent,false);
   rmSync(join(scope,'.git'),{recursive:true});
   await check(agent,false);
   await check({...agent, labels:{'megai.access':'read-only'}}, false);
