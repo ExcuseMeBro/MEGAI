@@ -249,9 +249,9 @@ class Queue:
                 for row in self.db.execute("SELECT * FROM requests ORDER BY seq")]
 
     def row(self, request_id):
-        rows = [r for r in self.rows() if r["id"] == request_id]
-        require(len(rows) == 1, "Unknown queue request")
-        return rows[0]
+        row = self.db.execute("SELECT * FROM requests WHERE id=?", (request_id,)).fetchone()
+        require(row is not None, "Unknown queue request")
+        return dict(row) | {"request": json.loads(row["request"])}
 
     def dependency_reason(self, row, rows):
         by_id = {r["id"]: r for r in rows}
@@ -281,7 +281,10 @@ class Queue:
 
     def public(self, row, rows=None):
         result = {k: v for k, v in row.items() if k != "token"}
-        result["wait_reason"] = self.wait_reason(row, rows or self.rows())
+        # Active/terminal entries do not need the retained journal to explain state.
+        if rows is None:
+            rows = self.rows() if row["state"] == "queued" else []
+        result["wait_reason"] = self.wait_reason(row, rows)
         result["needs_reconcile"] = row["state"] == "held" or (
             row["state"] == "active" and row["expires"] <= time.time())
         return result
@@ -343,6 +346,9 @@ class Queue:
             if reason:
                 return self.public(row)
             vector_matches(row["request"], "expected_head")
+            # Preflight may perform many slow Git checks. The usable lease starts
+            # at publication, not before those checks consume its entire budget.
+            now = time.time()
             self.db.execute("UPDATE requests SET state='active',owner=?,token=?,expires=?,updated=? WHERE id=?",
                             (args.owner, secrets.token_hex(24), now + args.lease_seconds, now, args.id))
             row = self.row(args.id)
@@ -450,8 +456,11 @@ def main():
         queue = Queue(args.home)
         try:
             if args.action == "status":
-                rows = queue.rows()
-                value = queue.public(queue.row(args.id), rows) if args.id else [queue.public(r, rows) for r in rows]
+                if args.id:
+                    value = queue.public(queue.row(args.id))
+                else:
+                    rows = queue.rows()
+                    value = [queue.public(r, rows) for r in rows]
             else:
                 deadline = time.monotonic() + getattr(args, "wait_seconds", 0)
                 while True:
