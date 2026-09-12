@@ -64,10 +64,13 @@ approval boundaries; never trade data integrity or claim unmeasured speed gains.
 Use structured Paseo `create_agent` with the selected provider/model and supported
 thinking settings. First send only a neutral READY prompt; verify the returned
 harness, exact model and effective thinking via agent status before sending task
-context. When the status-provided session handle already carries native
-`model_change` and `thinking_level_change` records that match the exact current
-Paseo provider, model and thinking, prefer those records and do not run a second
-neutral runtime-check model prompt; the native identity is already proven. If
+context. Verify the Paseo harness is `pi` separately from the model provider.
+The status-provided session handle must identify the same current native session ID.
+Match the provider-qualified status model to native `model_change.provider` and
+`model_change.modelId`: `minimax/MiniMax-M3` means `minimax` + `MiniMax-M3`, not `pi`
++ `MiniMax-M3`. Match native `thinking_level_change.thinkingLevel` to the effective
+thinking reported in status. When these current records agree, prefer those records
+and do not run a second neutral runtime-check model prompt; identity is already proven. If
 those native records are missing, stale, ambiguous, or come from a restored
 session on a different branch, fall back to the second neutral runtime-check
 prompt that requests only `PI_PROVIDER`, `PI_MODEL` and `PI_REASONING_LEVEL`. Do

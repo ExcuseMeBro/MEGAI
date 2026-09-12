@@ -39,10 +39,13 @@ guarded review or integration. Explicit user/task model choices always
 override this default; the parent's model is never silently switched and an
 agent team or every role is never required.
 
-A fresh child launch prefers the status-provided session handle's native
-`model_change` and `thinking_level_change` records when they match the exact
-current Paseo provider, model and thinking; the existing neutral
-runtime-check prompt remains the fallback when those records are missing,
+A fresh child launch verifies the Paseo harness `pi` separately, then uses the
+status-provided handle for the same current native session ID. Match the qualified
+status model `minimax/MiniMax-M3` to native `model_change.provider=minimax` and
+`model_change.modelId=MiniMax-M3`; do not compare harness `pi` with model provider
+`minimax`. Native `thinking_level_change.thinkingLevel` must match effective status
+thinking. Prefer these proven native records; the neutral runtime-check prompt
+remains the fallback when those records are missing,
 stale, ambiguous, or come from a restored agent on a different branch. The
 retrospective metrics for three real repository tasks, the neutral env-check
 sample and the current writer startup verification live at
