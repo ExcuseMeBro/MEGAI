@@ -39,10 +39,17 @@ megai queue status --id "$OP_ID"
 ```
 
 For a monorepo use `--repo . task/login`. Paths are relative to `--root` or absolute.
-The target is the **current branch in each primary checkout**, not an assumed dev
-branch. Verify it is the agreed delivery target before planning; the CLI pins its
-branch, HEAD, candidate commit and Git common-directory identity. Planning is
-read-only and needs a unique existing Paseo project; umbrella folders need no Git.
+By default the target is the **current branch in each primary checkout**, not an
+assumed dev branch. For an agreed non-checked-out target use `--target-branch pi`
+(or another explicit branch name, applied to every selected repo). The target ref
+must already exist and must not be checked out in another worktree. Verify the
+agreed target before planning; the CLI pins target branch/head/candidate plus the
+primary checkout branch/head and Git common-directory identity. Ref-only delivery
+checks the target ref while requiring the unrelated primary checkout to remain
+unchanged. It never switches branches or performs the ref update/push itself;
+those remain explicit parent-owned CAS/delivery operations with remote verification.
+Planning is read-only and needs a unique existing Paseo project; umbrella folders
+need no Git. Use separate operations if repos require different target branch names.
 
 Optional `--after OP_ID` references already enqueued integration operations, not
 arbitrary Plane IDs. This earlier-only rule prevents dependency cycles. Only a
@@ -93,7 +100,7 @@ isolated checkout. Generate a new plan with the **same operation ID**, then:
 megai queue refresh --request "$PRIVATE/refreshed.json" --evidence "$PRIVATE/review.txt"
 ```
 
-Refresh is queued-only, preserves sequence/identity/resource set/dependencies, and
+Refresh is queued-only, preserves sequence/target and checkout branches/resource set/dependencies, and
 records the actual evidence file hash. It is an attestation, not a replacement for
 acceptance verification. Resource-set changes need cancellation and a new operation.
 
@@ -106,7 +113,8 @@ bounded operations and renew before expiry. Never interrupt a live mutation mere
 because a lease or five-minute checkpoint elapsed.
 
 `finish --id --owner --token --outcome completed` releases resources only when
-**every** target is clean, on the pinned branch and at its exact candidate commit.
+**every** target ref is at its exact candidate commit and each primary checkout is
+clean on its pinned branch (and unchanged HEAD for ref-only integration).
 This records integration, not tests or Plane Done. `--outcome failed` releases only
 if every clean target still has its original HEAD. Check `status` after an uncertain
 finish response instead of replaying any Git mutation. A queued request can use

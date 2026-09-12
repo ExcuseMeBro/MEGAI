@@ -80,9 +80,14 @@ def plan(args):
         primary, common = repo_identity(path)
         require(identity(primary)["projectId"] == project["projectId"],
                 "Repository must belong to the same existing Paseo project")
-        branch = git(primary, "symbolic-ref", "--quiet", "HEAD")
+        checkout_branch = git(primary, "symbolic-ref", "--quiet", "HEAD")
+        branch = checkout_branch
+        if args.target_branch:
+            git(primary, "check-ref-format", "--branch", args.target_branch)
+            branch = "refs/heads/" + args.target_branch
         repos.append({"path": primary, "common_dir": common, "branch": branch,
-                      "expected_head": commit(primary, "HEAD"),
+                      "checkout_branch": checkout_branch, "checkout_head": commit(primary, "HEAD"),
+                      "expected_head": commit(primary, branch),
                       "candidate_head": commit(primary, revision)})
     request = {"schema": 1, "id": args.id, "project_id": project["projectId"],
                "root": project["root"],
@@ -118,7 +123,8 @@ def validate_request(request):
     seen = set()
     for repo in request["repositories"]:
         require(isinstance(repo, dict) and set(repo) == {
-            "path", "common_dir", "branch", "expected_head", "candidate_head"
+            "path", "common_dir", "branch", "checkout_branch", "checkout_head",
+            "expected_head", "candidate_head"
         }, "Invalid repository vector")
         for value in repo.values():
             text(value, "repository field")
@@ -126,8 +132,9 @@ def validate_request(request):
                 "Repository paths must be canonical absolute paths")
         require(repo["common_dir"] not in seen, "Duplicate repository/common directory")
         seen.add(repo["common_dir"])
-        require(repo["branch"].startswith("refs/heads/"), "Target must be a branch")
-        for key in ("expected_head", "candidate_head"):
+        require(all(repo[key].startswith("refs/heads/") for key in ("branch", "checkout_branch")),
+                "Target and checkout must be branches")
+        for key in ("expected_head", "candidate_head", "checkout_head"):
             require(len(repo[key]) in (40, 64) and all(c in "0123456789abcdef" for c in repo[key]),
                     "Commit vector must contain full pinned hashes")
     request = json.loads(encoded(request))
@@ -151,8 +158,20 @@ def observe(request):
         primary, common = repo_identity(path)
         require((primary, common) == (path, repo["common_dir"]), "Repository identity changed")
         require(identity(path)["projectId"] == request["project_id"], "Repository project changed")
-        require(git(path, "symbolic-ref", "--quiet", "HEAD") == repo["branch"],
+        require(git(path, "symbolic-ref", "--quiet", "HEAD") == repo["checkout_branch"],
                 "Target checkout branch changed")
+        # Ref-only integration must never change a branch checked out elsewhere.
+        fields = git(path, "worktree", "list", "--porcelain", "-z").split("\0")
+        location = None
+        for field in fields:
+            if field.startswith("worktree "):
+                location = str(Path(field[9:]).resolve())
+            elif field == "branch " + repo["branch"]:
+                require(location == path and repo["branch"] == repo["checkout_branch"],
+                        "Target branch is checked out in another worktree")
+        if repo["branch"] != repo["checkout_branch"]:
+            require(commit(path, "HEAD") == repo["checkout_head"],
+                    "Unrelated primary checkout HEAD changed; preserve and reconcile")
         git_dir = Path(git(path, "rev-parse", "--absolute-git-dir"))
         require(not any((git_dir / marker).exists() for marker in (
             "MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-merge", "rebase-apply",
@@ -164,7 +183,7 @@ def observe(request):
         require(commit(path, repo["expected_head"]) == repo["expected_head"]
                 and commit(path, repo["candidate_head"]) == repo["candidate_head"],
                 "Commit objects changed")
-        result.append(commit(path, "HEAD"))
+        result.append(commit(path, repo["branch"]))
     return result
 
 
@@ -294,10 +313,14 @@ class Queue:
                 old = self.row(request["id"])
                 require(old["state"] == "queued", "Only queued requests can refresh")
                 previous = old["request"]
+                def targets(value):
+                    return [tuple(repo[key] for key in ("path", "common_dir", "branch", "checkout_branch"))
+                            for repo in value["repositories"]]
                 require(all(request[key] == previous[key] for key in (
                     "plane", "project_id", "root", "resources", "depends_on"))
-                    and resources(request) == resources(previous),
-                    "Refresh must preserve identity, resources and dependencies")
+                    and resources(request) == resources(previous)
+                    and targets(request) == targets(previous),
+                    "Refresh must preserve target identity, resources and dependencies")
                 proof = evidence(args.evidence)
                 self.db.execute("UPDATE requests SET request=?, reason='', recovery=?, updated=? WHERE id=?",
                                 (encoded(request), encoded(proof), now, request["id"]))
@@ -384,6 +407,7 @@ def parser():
     for name in ("root", "id", "plane-project", "plane-item"):
         p.add_argument("--" + name, required=True)
     p.add_argument("--repo", nargs=2, action="append", required=True, metavar=("PATH", "CANDIDATE"))
+    p.add_argument("--target-branch", help="Explicit target ref in every repo; default is each primary's current branch")
     p.add_argument("--resource", action="append", default=[])
     p.add_argument("--after", action="append", default=[])
     for name in ("enqueue", "refresh"):

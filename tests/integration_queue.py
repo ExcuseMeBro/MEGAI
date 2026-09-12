@@ -64,7 +64,7 @@ class QueueCLI(unittest.TestCase):
         self.assertEqual(result.returncode, code, result.stdout + result.stderr)
         return json.loads(result.stdout)
 
-    def request(self, key, *repos, after=()):
+    def request(self, key, *repos, after=(), target=None):
         args = ["plan", "--root", str(self.project), "--id", key,
                 "--plane-project", "00000000-0000-4000-8000-000000000001",
                 "--plane-item", str(uuid.uuid5(uuid.NAMESPACE_URL, key))]
@@ -72,6 +72,8 @@ class QueueCLI(unittest.TestCase):
             args += ["--repo", str(self.repos[name]), "task/change"]
         for dependency in after:
             args += ["--after", dependency]
+        if target:
+            args += ["--target-branch", target]
         value = self.call(*args)
         file = self.base / (key + ".json")
         file.write_text(json.dumps(value))
@@ -250,6 +252,50 @@ class QueueCLI(unittest.TestCase):
         self.assertIn("Unresolved Git", self.claim("operation", code=2)["reason"])
         self.git(path, "merge", "--abort")
         self.assertEqual(self.claim("operation")["state"], "active")
+
+    def test_explicit_unchecked_target_ref_preserves_primary_checkout(self):
+        path = self.repos["backend"]
+        original = self.git(path, "rev-parse", "HEAD")
+        self.git(path, "branch", "pi")
+        file = self.request("pi-delivery", "backend", target="pi")
+        request = json.loads(file.read_text())
+        self.assertEqual(request["repositories"][0]["branch"], "refs/heads/pi")
+        self.assertEqual(request["repositories"][0]["checkout_branch"], "refs/heads/dev")
+        self.call("enqueue", "--request", file)
+        grant = self.claim("pi-delivery")
+        candidate = self.git(path, "rev-parse", "task/change")
+        self.git(path, "update-ref", "refs/heads/pi", candidate, original)
+        self.assertEqual(self.finish(grant, "completed")["state"], "completed")
+        self.assertEqual(self.git(path, "rev-parse", "HEAD"), original)
+        self.assertEqual(self.git(path, "branch", "--show-current"), "dev")
+        self.assertEqual((path / "file").read_text(), "base\n")
+        self.assertEqual(self.git(path, "status", "--porcelain"), "")
+
+    def test_checked_out_target_and_refresh_retarget_are_rejected(self):
+        path = self.repos["backend"]
+        self.git(path, "branch", "pi")
+        file = self.request("ref", "backend", target="pi")
+        self.call("enqueue", "--request", file)
+        linked = self.base / "pi-checked-out"
+        self.git(path, "worktree", "add", str(linked), "pi")
+        self.assertIn("another worktree", self.claim("ref", code=2)["reason"])
+        self.git(path, "worktree", "remove", str(linked))
+        changed = json.loads(file.read_text())
+        changed["repositories"][0]["branch"] = "refs/heads/dev"
+        file.write_text(json.dumps(changed))
+        self.assertIn("target identity", self.call("refresh", "--request", file,
+                                                  "--evidence", self.proof, code=2)["reason"])
+        self.assertEqual(self.claim("ref")["state"], "active")
+
+    def test_ref_only_completion_rejects_unrelated_checkout_changes(self):
+        path = self.repos["backend"]
+        self.git(path, "branch", "pi")
+        file = self.request("preserve-dev", "backend", target="pi")
+        self.call("enqueue", "--request", file)
+        grant = self.claim("preserve-dev")
+        self.git(path, "commit", "--allow-empty", "-m", "unrelated primary work")
+        self.assertIn("primary checkout HEAD changed", self.finish(grant, code=2)["reason"])
+        self.assertEqual(self.call("status", "--id", "preserve-dev")["state"], "active")
 
     def test_concurrent_first_enqueue_is_idempotent_and_private(self):
         request = self.request("initial", "backend")
