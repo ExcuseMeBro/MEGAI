@@ -179,7 +179,18 @@ under that ID, then pass its verified `workspaceId` to `create_agent`. "Canonica
 means that existing project identity, not a new project or a rename. Missing or
 ambiguous identity blocks creation; ask the user rather than register a replacement.
 
-Each new task uses its own branch and managed worktree workspace. After tests and
+For a registered non-Git directory/umbrella project, `megai workspace --root DIR`
+returns `kind: "directory"` and its existing project ID. Read-only review can use a
+local task workspace under that project and a Pi agent labeled
+`{"megai.access":"read-only"}`; no infra repo creation or Git initialization is
+needed. This declares read-only scope, not a filesystem sandbox. Git writers still
+require a managed worktree in the actual component/infra repo; independent review,
+identity checks and acceptance gates remain required. See the
+[directory review procedure](skills/agent-worktree-lifecycle/SKILL.md#non-git-directory-review).
+Reload Pi after installing the guard/policy update; an already-running session keeps
+its previously loaded extension until reload.
+
+Each new Git change task uses its own branch and managed worktree workspace. After tests and
 review, integrate to `dev`, verify delivery, archive the released task workspace
 and delete safely merged task branches. Keep one primary workspace at rest;
 concurrent unfinished tasks remain isolated until safely delivered. Preserve dirty

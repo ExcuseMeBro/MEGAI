@@ -6,7 +6,7 @@ managed-by: megai
 
 # Agent worktree lifecycle
 
-The parent owns integration. Use one writer per registered managed worktree; readers may share that worktree read-only. Select Pi explicitly and verify the returned harness/model/thinking before task context; follow `megai`'s Pi-only delegation contract. Children never create agents, mutate trackers or integrate branches.
+The parent owns integration. Use one writer per registered managed worktree; readers may share that worktree read-only. Registered non-Git directory projects have the read-only exception below. Select Pi explicitly and verify the returned harness/model/thinking before task context; follow `megai`'s Pi-only delegation contract. Children never create agents, mutate trackers or integrate branches.
 
 ## Existing projects only
 
@@ -17,9 +17,44 @@ project, not only MEGAI. Missing or ambiguous identity is BLOCKED: ask the user 
 select/reconcile the existing project, rather than registering a replacement.
 Project creation or reorganization needs a separate explicit user request.
 
+## Non-Git directory review
+
+A workspace/umbrella folder (e.g. ADAM with separate component repositories) need
+not become a Git repo just to open a reviewer. Run `megai workspace --root DIRECTORY`:
+`kind: "directory"` means the exact real path has one active existing `non_git`
+Paseo project. Use that returned `projectId`; no new infra repo, `git init`, clone,
+project registration or user location question is needed for read-only work.
+Missing/ambiguous identity, malformed registry, inaccessible paths and broken Git
+metadata still block; a Git failure is not a blanket permission to use local mode.
+
+1. Reuse the current task's verified directory `workspaceId` on refinement. For a
+   new read-only task, create a workspace under that existing project using
+   `create_workspace` with `isolation: "local"`, `projectId`, and a task title. If
+   `path` is supplied, it must resolve to the exact registered root; omit all Git
+   branch/worktree/PR fields. Multiple workspaces are normal: choose the known task
+   ID, not the first workspace at that path. Reconcile uncertain creation by lookup.
+2. Verify the returned project/workspace IDs, `kind: "directory"` and exact cwd.
+   Open agent tabs with `create_agent`, an explicit Pi provider/model, supported
+   thinking, and `labels: {"megai.access": "read-only"}`. Use the neutral READY and
+   native model/thinking verification from `megai` before sending task context.
+3. Scope the reader to named files/snapshots and read-only commands. The label is a
+   parent authority declaration, **not a filesystem sandbox**; it does not prevent
+   arbitrary shell writes or authorize a later promotion to writer. No edits, task
+   mutation, delegation or live migration/deploy actions. Preserve independent
+   security review and source-current evidence; never replace review with self-PASS.
+4. A writer still needs the matching existing component/infra Git repository and
+   a managed isolated worktree. An umbrella's child Git repo keeps its own Git/Paseo
+   identity, not the directory exception. Reuse the originating Plane identity and
+   documented mapping (ADAM workspace/components use `ADAM full`). If the write
+   location is genuinely unresolved, continue safe read-only review/planning and
+   report only that write-location decision; never invent a repo or fake acceptance.
+5. Release readers and task-owned terminals before supported archival of a completed
+   task workspace. Local workspace archival is bookkeeping, not permission to delete
+   the directory or its files. Preserve other active workspaces and user data.
+
 ## One primary workspace at rest
 
-Before creating a task workspace, run `megai workspace --root CURRENT_CHECKOUT`.
+For Git project changes, before creating a task workspace, run `megai workspace --root CURRENT_CHECKOUT`.
 It resolves the Git **primary** checkout and its unique existing Paseo project ID,
 even when called from a linked worktree. Same remote URL alone is not identity.
 Missing/ambiguous registration is BLOCKED; do not create another project to bypass it.
@@ -44,7 +79,8 @@ Missing/ambiguous registration is BLOCKED; do not create another project to bypa
    each own a distinct managed worktree. Child workspaces close with the parent task.
 
 The receipt-owned `megai-workspace-guard` enforces canonical project identity and
-managed worktree isolation in Pi creation calls. It does not enforce branch/base/title
+managed worktree isolation in Pi creation calls, with the explicit registered-directory
+read-only launch exception above. It does not enforce post-launch read-only behavior or branch/base/title
 policy or task uniqueness; the parent verifies those separately. Lookup is read-only
 and on demand; models, auth, settings and input arguments remain unchanged. This is
 not an OS sandbox: external clients, arbitrary scripts and excluded extensions are

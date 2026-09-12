@@ -114,6 +114,31 @@ class Slim(unittest.TestCase):
         self.assertFalse((target / "index.ts").exists())
         self.assertFalse((target / "identity.mjs").exists())
 
+    def test_directory_review_policy(self):
+        self.wire()
+        pi = self.home / ".pi/agent"
+        lifecycle = (pi / "skills/agent-worktree-lifecycle/SKILL.md").read_text()
+        for clause in ("## Non-Git directory review", '`isolation: "local"`',
+                       '`labels: {"megai.access": "read-only"}`', "not a filesystem sandbox",
+                       "A writer still needs", "managed isolated worktree", "ADAM full",
+                       "Preserve independent", "Multiple workspaces are normal",
+                       "not permission to delete", "no new infra repo"):
+            self.assertIn(clause.lower(), lifecycle.lower())
+        self.assertEqual(lifecycle, (ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text())
+        policy = (pi / "AGENTS.md").read_text()
+        self.assertIn("non-Git directory projects", policy)
+        self.assertIn("Git writers still require managed isolated worktrees", policy)
+        task = (pi / "skills/megai-task-flow/SKILL.md").read_text()
+        self.assertIn("registered non-Git directory root", task)
+        self.assertIn("explicit documented Plane project mapping", task)
+        self.assertIn("ADAM full", task)
+        self.assertIn("missing states or ambiguity block edits", task)
+        self.assertIn("unavailable", task.lower())
+        self.assertIn("In Review", task)
+        before = self.snapshot()
+        self.wire()
+        self.assertEqual(self.snapshot(), before)
+
     def test_custom_workspace_guard_preserved_before_any_write(self):
         self.write(self.home / ".pi/agent/extensions/megai-workspace-guard/index.ts",
                    "user-owned workspace guard")
