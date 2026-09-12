@@ -2,7 +2,7 @@
   "schema": 1,
   "preset": "mixed",
   "roles": {
-    "planner": {"provider": "openai-codex", "model": "gpt-6-astra", "thinking": "xhigh"},
+    "planner": {"provider": "openai-codex", "model": "gpt-6-astra", "thinking": "high"},
     "scout": {"provider": "minimax", "model": "MiniMax-M2.7-highspeed", "thinking": "medium"},
     "worker": {"provider": "minimax", "model": "MiniMax-M3", "thinking": "high"},
     "reviewer": {"provider": "openai-codex", "model": "gpt-5.6-sol", "thinking": "high"}

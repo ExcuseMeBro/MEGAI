@@ -11,7 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = {
-    "planner": {"provider": "openai-codex", "model": "gpt-6-astra", "thinking": "xhigh"},
+    "planner": {"provider": "openai-codex", "model": "gpt-6-astra", "thinking": "high"},
     "scout": {"provider": "minimax", "model": "MiniMax-M2.7-highspeed", "thinking": "medium"},
     "worker": {"provider": "minimax", "model": "MiniMax-M3", "thinking": "high"},
     "reviewer": {"provider": "openai-codex", "model": "gpt-5.6-sol", "thinking": "high"},
@@ -65,7 +65,7 @@ class MixedPreset(unittest.TestCase):
         self.assertEqual(roles, {"schema": 1, "preset": "mixed", "roles": EXPECTED})
         settings = json.loads((self.agent / "settings.json").read_text())
         wanted = dict(original, defaultProvider="openai-codex", defaultModel="gpt-6-astra",
-                      defaultThinkingLevel="xhigh", modelThinkingLevels={
+                      defaultThinkingLevel="high", modelThinkingLevels={
                           **original["modelThinkingLevels"],
                           **{r["provider"] + "/" + r["model"]: r["thinking"] for r in EXPECTED.values()},
                       })
@@ -79,6 +79,36 @@ class MixedPreset(unittest.TestCase):
         self.run_cli("--preset", "mixed")
         self.assertEqual(self.snapshot(), after)
         self.assertTrue(any(p.name == "manifest.json" for p in (self.home / ".megai/backups").rglob("*")))
+
+    def test_explicit_reapply_upgrades_owned_xhigh_preset(self):
+        legacy = self.home / "legacy-source"
+        for relative in ("pi-skill/delegation.md", "pi-skill/provider-guard/index.ts"):
+            path = legacy / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes((ROOT / relative).read_bytes())
+        old_roles = {name: dict(role) for name, role in EXPECTED.items()}
+        old_roles["planner"]["thinking"] = "xhigh"
+        config = legacy / "pi-skill/presets/mixed.json"
+        config.parent.mkdir(parents=True)
+        config.write_text(json.dumps({"schema": 1, "preset": "mixed", "roles": old_roles}))
+        self.env["MEGAI_SOURCE"] = str(legacy)
+        self.run_cli("--preset", "mixed")
+        self.env["MEGAI_SOURCE"] = str(ROOT)
+        before = json.loads((self.agent / "settings.json").read_text())
+        self.assertEqual(before["defaultThinkingLevel"], "xhigh")
+        self.assertEqual(before["modelThinkingLevels"]["openai-codex/gpt-6-astra"], "xhigh")
+        snapshot = self.snapshot()
+        self.run_cli("--preset", "mixed", "--check")
+        self.assertEqual(self.snapshot(), snapshot)
+        self.run_cli("--preset", "mixed")
+        after = json.loads((self.agent / "settings.json").read_text())
+        before["defaultThinkingLevel"] = "high"
+        before["modelThinkingLevels"]["openai-codex/gpt-6-astra"] = "high"
+        self.assertEqual(after, before)
+        self.assertEqual(json.loads((self.agent / "megai-roles.json").read_text())["roles"], EXPECTED)
+        snapshot = self.snapshot()
+        self.run_cli("--preset", "mixed")
+        self.assertEqual(self.snapshot(), snapshot)
 
     def test_default_is_model_neutral_and_preserves_selected_preset(self):
         settings = '{"defaultModel":"custom", "defaultThinkingLevel":"low"}\n'
