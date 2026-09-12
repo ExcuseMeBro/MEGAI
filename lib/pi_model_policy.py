@@ -58,7 +58,7 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
 
 def stage_adaptive_policy(plan, root: Path, source: Path) -> None:
     """Refresh only Pi workflow resources, without unrelated legacy migrations."""
-    plan.policy(root / "AGENTS.md", False, adaptive=True)
+    plan.policy(root / "AGENTS.md", False, adaptive=True, source=source)
     for relative, target in (
         ("pi-skill/ADAPTIVE.md", "megai/SKILL.md"),
         ("task-flow/skills/megai-task-flow/SKILL.md", "megai-task-flow/SKILL.md"),

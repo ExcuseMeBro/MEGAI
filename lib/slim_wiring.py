@@ -107,7 +107,8 @@ class Plan:
         self.stage(path, None, current)
         self.receipt.pop(str(path), None)
 
-    def policy(self, path: Path, remove: bool, *, adaptive: bool = False) -> None:
+    def policy(self, path: Path, remove: bool, *, adaptive: bool = False,
+               source: Path | None = None) -> None:
         before = read(path)
         current = before or b""
         text = current.decode()
@@ -140,7 +141,8 @@ class Plan:
             + END + "\n"
         )
         if adaptive:
-            block = BEGIN + "\n" + (SOURCE / "pi-skill/bootstrap.md").read_text().rstrip() + "\n" + END + "\n"
+            selected_source = SOURCE if source is None else source
+            block = BEGIN + "\n" + (selected_source / "pi-skill/bootstrap.md").read_text().rstrip() + "\n" + END + "\n"
         if BEGIN in text:
             start = text.index(BEGIN)
             finish = text.index(END) + len(END)

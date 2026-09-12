@@ -92,8 +92,10 @@ Production deployment, secrets and destructive migrations retain separate approv
 
 ## All-repo readiness and dev delivery
 
-1. Preserve independent review and actual acceptance for **all affected repos and
-   configuration scopes before the first dev mutation**. Commit only owned changes
+1. Preserve mode-appropriate review and actual acceptance for **all affected repos and
+   configuration scopes before the first dev mutation**: routine Pi uses focused tests
+   and parent self-review; guarded Pi (including multi-repo delivery) requires the
+   independent formal gate. Other harnesses retain their required independent review. Commit only owned changes
    when Git delivery is agreed, then capture source-current evidence per worktree.
    Include cross-repo/API compatibility tests and runtime resource ownership when
    relevant; one green repository does not make the multi-repo task ready.
@@ -127,8 +129,9 @@ Production deployment, secrets and destructive migrations retain separate approv
    or candidate, all resources stay reserved, the token rotates, and only returned
    remaining repositories may proceed. Never replay already-delivered repositories.
    Only `finish --outcome completed` after
-   actual delivery checks the candidate vector; it never substitutes for independent
-   current acceptance. Queue release/recovery follows its contract.
+   actual delivery checks the candidate vector; it never substitutes for mode-appropriate
+   current acceptance (independent formal evidence for guarded Pi; focused tests and
+   self-review for routine Pi). Queue release/recovery follows its contract.
 5. Verify the delivered dev vector and task-wide behavior before handoff In Review,
    never Done. Capture actual evidence; historical receipt cwd values stay unchanged.
 

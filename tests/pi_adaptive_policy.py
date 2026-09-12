@@ -127,6 +127,36 @@ class Adaptive(Slim):
                      "--adaptive", "--preset", "economy", ok=False)
         self.assertEqual(before, self.snapshot())
 
+    def test_explicit_adaptive_source_is_not_global_source(self):
+        candidate = self.root / "candidate"
+        import shutil
+
+        for folder in ("pi-skill", "skills", "task-flow"):
+            shutil.copytree(ROOT / folder, candidate / folder)
+        bootstrap = candidate / "pi-skill/bootstrap.md"
+        bootstrap.write_text(bootstrap.read_text() + "\nExplicit candidate marker.\n")
+        # The installed/global source is deliberately missing this new asset.
+        (self.megai / "pi-skill/bootstrap.md").unlink()
+        script = ("import sys; from pathlib import Path; "
+                  "sys.path.insert(0, sys.argv[1]); "
+                  "from slim_wiring import Plan; "
+                  "from pi_model_policy import stage_adaptive_policy; "
+                  "p=Plan(); stage_adaptive_policy(p, Path(sys.argv[2]), Path(sys.argv[3])); "
+                  "p.apply(False)")
+        self.run_cmd(sys.executable, "-B", "-c", script, str(self.megai / "lib"),
+                     str(self.home / ".pi/agent"), str(candidate))
+        installed = (self.home / ".pi/agent/AGENTS.md").read_text()
+        self.assertIn("Explicit candidate marker.", installed)
+        self.assertFalse((self.megai / "pi-skill/bootstrap.md").exists())
+
+    def test_lifecycle_does_not_reintroduce_routine_independent_review(self):
+        text = " ".join((ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text().split())
+        self.assertNotIn("Preserve independent review and actual acceptance", text)
+        self.assertNotIn("never substitutes for independent current acceptance", text)
+        self.assertIn("Preserve mode-appropriate review and actual acceptance", text)
+        self.assertIn("routine Pi uses focused tests and parent self-review", text)
+        self.assertIn("guarded Pi (including multi-repo delivery) requires the independent formal gate", text)
+
     def test_all_reachable_workflows_respect_mode(self):
         paths = ("pi-skill/acceptance/SKILL.md", "pi-skill/acceptance/reference.md",
                  "pi-skill/delegation.md", "pi-skill/integration-queue.md",

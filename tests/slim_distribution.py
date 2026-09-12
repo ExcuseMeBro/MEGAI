@@ -121,7 +121,7 @@ class Slim(unittest.TestCase):
         for clause in ("## Non-Git local work", '`isolation: "local"`',
                        '`labels: {"megai.access": "read-only"}`', "not a filesystem sandbox",
                        "Git source isolation", "same task name", "ADAM full",
-                       "Preserve independent", "Multiple workspaces are normal",
+                       "Preserve mode-appropriate", "Multiple workspaces are normal",
                        "not permission to delete", "no new infra repo"):
             self.assertIn(clause.lower(), lifecycle.lower())
         self.assertEqual(lifecycle, (ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text())
