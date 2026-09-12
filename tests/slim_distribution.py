@@ -724,6 +724,57 @@ assert first.read_bytes()==b'concurrent after publish'
         self.run_cmd("bash", "-c", '. "$MEGAI_HOME/lib/state.sh"; state_set .tools.test "{}"', ok=False)
         self.assertEqual((self.megai / "state.json").read_text(), "not-json")
 
+    def test_plane_label_policy(self):
+        policy = (ROOT / "task-flow/skills/megai-task-flow/SKILL.md").read_text()
+        types, areas = policy.split("### Classification\n", 1)[1].split(
+            "Choose one or more affected areas", 1)
+        self.assertEqual(re.findall(r"^\| `([^`]+)` \|", types, re.M),
+                         ["bug", "feature", "refactor", "docs", "test", "chore", "research"])
+        self.assertEqual(re.findall(r"^\| `([^`]+)` \|", areas, re.M),
+                         ["backend", "frontend", "mobile", "desktop", "infra", "data",
+                          "design", "tooling"])
+        for clause in ("exactly one primary type", "task start and resume/refinement",
+                       "before creating/updating the item", "every project label page",
+                       "trimmed, case-insensitive equality", "documented project mapping",
+                       "Multiple matches", "failed/incomplete pages", "missing\n   label permissions",
+                       "complete lookup proves zero matches", "only\n   labels needed by this task",
+                       "uncertain create", "never blindly retry", "Preserve unrelated/custom",
+                       "ask for reconciliation", "additive `manage_label`", "missing UUIDs only",
+                       "never replace\n   the whole `labels` array", "Read back the item",
+                       "prior labels remain", "bulk backfill", "API hook"):
+            self.assertIn(clause, policy)
+
+    def test_plane_label_policy_installation(self):
+        pi = self.home / ".pi/agent"
+        settings = {"defaultProvider": "custom-provider", "defaultModel": "user-model",
+                    "defaultThinkingLevel": "low", "userSetting": {"keep": True}}
+        self.write(pi / "settings.json", json.dumps(settings))
+        auth = self.write(pi / "auth.json", '{"fixture":"not-a-real-secret"}\n')
+        auth_before = auth.read_bytes()
+        self.write(pi / "AGENTS.md", "# User policy\nKeep my custom instructions.\n")
+        command = (sys.executable, "-B", str(self.megai / "lib/slim_wiring.py"), "pi")
+        self.run_cmd(*command)
+        target = pi / "skills/megai-task-flow/SKILL.md"
+        source = ROOT / "task-flow/skills/megai-task-flow/SKILL.md"
+        self.assertEqual(target.read_bytes(), source.read_bytes())
+        receipt = json.loads((self.megai / "slim-wiring.json").read_text())
+        self.assertEqual(receipt[str(target)], hashlib.sha256(source.read_bytes()).hexdigest())
+        before = self.snapshot()
+        self.run_cmd(*command)
+        self.run_cmd(*command, "--verify")
+        self.assertEqual(self.snapshot(), before)
+        installed_settings = json.loads((pi / "settings.json").read_text())
+        for key, value in settings.items():
+            self.assertEqual(installed_settings[key], value)
+        self.assertEqual(auth.read_bytes(), auth_before)
+        self.assertTrue((pi / "AGENTS.md").read_text().startswith(
+            "# User policy\nKeep my custom instructions.\n"))
+        target.write_text(target.read_text() + "\nUser-owned label customisation.\n")
+        before = self.snapshot()
+        failure = self.run_cmd(*command, ok=False)
+        self.assertIn("custom/legacy asset preserved", failure.stderr)
+        self.assertEqual(self.snapshot(), before)
+
     def test_policy_guards_and_public_branch(self):
         policy = (ROOT / "task-flow/skills/megai-task-flow/SKILL.md").read_text()
         for required in ("every Plane project page", "every workflow-state page", "group=started", "automatically create exactly one item without asking for approval", "In Progress", "In Review", "Only the user", "independent review", "persistent branch", "unavailable", "before retrying"):

@@ -100,6 +100,19 @@ installation and runtime network access is disabled. If Headroom is unavailable,
 the Pi extension reports raw-context fallback and the other hosts report the CLI
 failure; no silent active claim is made.
 
+## Plane task labels
+
+The parent applies the [task-label policy](task-flow/skills/megai-task-flow/SKILL.md#task-labels)
+at task start/resume: one primary type (`bug`, `feature`, `refactor`, `docs`, `test`,
+`chore`, `research`) and all applicable areas (`backend`, `frontend`, `mobile`,
+`desktop`, `infra`, `data`, `design`, `tooling`). Optional concern labels require
+explicit acceptance. Existing project mappings and custom labels are preserved;
+missing labels are created on demand after complete lookup, then attached additively.
+Ambiguity, missing permissions and uncertain writes block edits. This is agent
+workflow policy, not API enforcement or retrospective relabeling of other tasks.
+Pi wiring installs it without changing native model/auth settings; reload/reopen Pi
+for refreshed skill discovery in existing sessions.
+
 ## Plane connector matrix
 
 Plane remains the sole execution tracker. Configure only the clients you use:
