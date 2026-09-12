@@ -64,15 +64,20 @@ approval boundaries; never trade data integrity or claim unmeasured speed gains.
 Use structured Paseo `create_agent` with the selected provider/model and supported
 thinking settings. First send only a neutral READY prompt; verify the returned
 harness, exact model and effective thinking via agent status before sending task
-context. Also confirm native Pi model/thinking: inspect the session's model and
-thinking-level entries, or request only `PI_PROVIDER`, `PI_MODEL` and
-`PI_REASONING_LEVEL` through a second neutral runtime-check prompt. Paseo labels
-alone can misreport a clamped thinking level. If native evidence is unavailable,
-stop as BLOCKED; on mismatch cancel the child and report the blocker. Re-check restored
-agents before reuse. Children never delegate or mutate Plane. Follow the hybrid
-`agent-worktree-lifecycle`: Git writers use one managed worktree per affected repo
-with the same task branch/slug under the existing umbrella project; non-Git configuration
-writers use scoped local workspaces and private backups. All affected repos require
+context. When the status-provided session handle already carries native
+`model_change` and `thinking_level_change` records that match the exact current
+Paseo provider, model and thinking, prefer those records and do not run a second
+neutral runtime-check model prompt; the native identity is already proven. If
+those native records are missing, stale, ambiguous, or come from a restored
+session on a different branch, fall back to the second neutral runtime-check
+prompt that requests only `PI_PROVIDER`, `PI_MODEL` and `PI_REASONING_LEVEL`. Do
+not rely on Paseo labels alone: a clamped thinking level can be misreported.
+If native evidence is still unavailable, stop as BLOCKED; on mismatch cancel the
+child and report the blocker. Re-check restored agents before reuse. Children
+never delegate or mutate Plane. Follow the hybrid `agent-worktree-lifecycle`:
+Git writers use one managed worktree per affected repo with the same task
+branch/slug under the existing umbrella project; non-Git configuration writers
+use scoped local workspaces and private backups. All affected repos require
 mode-appropriate acceptance before dev integration; guarded Pi tasks require the
 formal gate, routine tasks retain actual tests and self-review. Reserve target
 resources through `megai queue`.
