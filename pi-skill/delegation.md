@@ -67,9 +67,9 @@ harness, exact model and effective thinking via agent status before sending task
 context. Verify the Paseo harness is `pi` separately from the model provider.
 The status-provided session handle must identify the same current native session ID.
 Match the provider-qualified status model to native `model_change.provider` and
-`model_change.modelId`: `deepseek/deepseek-flash` means `deepseek` + `deepseek-flash`, not `pi`
-+ `deepseek-flash`. Match native `thinking_level_change.thinkingLevel` to the effective
-thinking reported in status. When these current records agree, prefer those records
+`model_change.modelId`: `deepseek/deepseek-flash` means `deepseek` + `deepseek-flash`,
+not `pi` + `deepseek-flash`. Match native `thinking_level_change.thinkingLevel` to the
+effective thinking reported in status. When these current records agree, prefer those records
 and do not run a second neutral runtime-check model prompt; identity is already proven. If
 those native records are missing, stale, ambiguous, or come from a restored
 session on a different branch, fall back to the second neutral runtime-check

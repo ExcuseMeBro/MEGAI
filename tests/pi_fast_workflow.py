@@ -193,6 +193,8 @@ class FastWorkflow(unittest.TestCase):
         ):
             with self.subTest(fragment=fragment):
                 _clause(verified, fragment)
+        self.assertNotRegex(verified, r"(?m)^\+\s+`deepseek-flash`",
+                            "Model identity continuation must not become a Markdown list item")
 
     def test_report_links_redacted_dataset_and_admits_unknowns(self):
         text = REPORT.read_text()
