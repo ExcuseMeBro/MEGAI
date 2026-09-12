@@ -13,7 +13,7 @@ try {
   process.env.PI_OFFLINE = '1';
   const agentDir = process.env.MEGAI_GUARD_AGENT_DIR ?? join(temp, 'agent');
   if (!process.env.MEGAI_GUARD_AGENT_DIR) {
-    execFileSync('python3', [resolve('lib/pi_model_policy.py')], { env: {
+    execFileSync('python3', ['-B', resolve('lib/pi_model_policy.py')], { env: {
       ...process.env, HOME: temp, MEGAI_HOME: join(temp, 'megai'),
       MEGAI_SOURCE: resolve('.'), PI_CODING_AGENT_DIR: agentDir,
     } });
