@@ -19,7 +19,7 @@ Otherwise own scope, task boundaries, delegation, synthesis, and acceptance. Use
 ## Delegation
 
 - Known seam and bounded fix: no child by default. Unknown seam: one read-only scout only when isolation saves work. Independent evidence: start with at most two parallel readers; expand only for a named unresolved question.
-- A scoped writer replaces parent writing, not duplicates it. Parallel writers require separate managed worktrees and non-overlapping ownership; serialize shared interfaces and integration.
+- A scoped writer replaces parent writing, not duplicates it. Parallel Git writers require separate managed worktrees and non-overlapping ownership; serialize shared interfaces and integration. For non-Git configuration, use the scoped local-workspace procedure in `agent-worktree-lifecycle` with one writer per owned scope and private backups, not a new infra repository.
 - Give each child: goal; repo/cwd; exact scope and read/write authority; relevant paths/evidence; acceptance and validation; stop/escalation rules. Fresh context by default; fork only when inherited reasoning is essential. At most one task skill per child plus mandatory policy.
 - Prefer async with completion notification; use the supported wait only if notifications are unavailable. Reuse the same child for its refinement. Retry at most once for a diagnosed launch/transient failure; persistent failure returns to the parent, not a fanout loop.
 - Return verdict, path:line findings or changed files, command/result evidence, and risks in at most ten bullets unless safety evidence needs more. No raw transcripts or repeated plans.

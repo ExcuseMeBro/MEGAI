@@ -154,6 +154,15 @@ class Slim(unittest.TestCase):
         reference = (pi / "skills/megai-acceptance/reference.md").read_text()
         self.assertIn("10,000 entries and 64 MiB", reference)
         self.assertIn("No `.gitignore`", reference)
+        delegation = (pi / "skills/megai/delegation.md").read_text()
+        self.assertEqual(delegation, (ROOT / "pi-skill/delegation.md").read_text())
+        for text in (delegation, (pi / "AGENTS.md").read_text(),
+                     (ROOT / "prompts/paseo-orchestrator.md").read_text(),
+                     (ROOT / "skills/model-composition/routing.md").read_text()):
+            self.assertIn("non-Git configuration", text)
+            self.assertIn("scoped", text)
+            self.assertIn("agent-worktree-lifecycle", text)
+            self.assertNotIn("Writers use managed isolated worktrees", " ".join(text.split()))
         result = self.run_cmd(sys.executable, "-B", str(self.megai / "lib/acceptance_gate.py"),
                               "snapshot", "--root", str(self.project))
         self.assertRegex(json.loads(result.stdout)["snapshot"], r"^[a-f0-9]{64}$")

@@ -21,7 +21,7 @@ Split tasks over 5 minutes. Checkpoint at 5 minutes; no open-ended loops. Keep r
 ## Delegate only when necessary
 
 - Known seam: parent is the sole writer. Unknown seam: one scout only when isolated discovery saves work. A scoped worker replaces parent implementation, not duplicates it.
-- Exactly one writer per checkout. Use a managed worktree; serialize integration with other parents. Children never mutate trackers, merge, promote or drain queues.
+- Exactly one writer per checkout/configuration scope. Git source writers use a managed worktree; non-Git configuration writers use the scoped local-workspace procedure in `agent-worktree-lifecycle` with private backups, without requesting another infra repo. Serialize integration with other parents. Children never mutate trackers, merge, promote or drain queues.
 - Give fresh context: acceptance, relevant paths, authority and focused verification only. No full parent transcript. Return verdict, changed paths, commands/results and risks in at most ten bullets.
 - Use one fresh independent review for security/data-integrity risks, consequential cross-module changes or an explicit independent-review request. Otherwise parent diff review suffices. Keep existing tests, accessibility, compatibility and data-integrity gates.
 - Permit one diagnosed transient retry or one focused correction. If acceptance still fails, preserve evidence and stop/escalate once to a suitable configured alternative; no model ping-pong or repeated repair chain.
