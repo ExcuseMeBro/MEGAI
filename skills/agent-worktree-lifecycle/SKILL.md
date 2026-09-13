@@ -152,9 +152,9 @@ Non-ADAM projects (including SPMAPP and MEGAI) use GitHub only under this rule;
 missing Forgejo does not block them. Do not preflight, create or register Forgejo
 resources for non-ADAM projects. This scope rule grants no new push destination.
 
-**Notes-only releases are sufficient.** Publish the release body without uploaded
-assets unless the user explicitly requests attachments. Do not build, package or
-upload binaries, archives, checksums or evidence bundles solely to populate release
+**Notes-only releases are sufficient.** Publish only the release body; do not upload
+release assets. Do not build, package or upload binaries, archives, checksums or
+evidence bundles solely to populate release
 assets; missing attachments are not a blocker. Required tests and commit/tag/release
 verification below still apply. Forge-generated source archives may appear
 without manual uploads; leave them and any existing release assets unchanged.
@@ -189,8 +189,14 @@ approval; the existing main/push approval boundary is unchanged.
    release bodies, status, the tag's peeled commit and URLs. A tag's peeled commit
    must equal the intended immutable commit; only a branch/ref target may move. An
    uncertain release create is reconciled by tag lookup before any retry.
-5. Notes stay concise: changes, fixes, breaking migration, actual tests, risks and
-   safe source links. Never copy secrets, PII or private tracker content into them.
+5. Write short, simple release notes in plain language. Use a few brief bullets
+   with meaningful emoji labels: ✨ changes, 🐛 fixes, ✅ actual tests, ⚠️ breaking
+   changes/migration or risks, and 🔗 safe source links when useful. Include only
+   relevant items; omit empty sections, boilerplate and long technical narratives.
+   Emojis accompany clear text, never replace it. Preserve material warnings and
+   required migration steps even when brevity needs an exception. Keep full SHA
+   vectors and operational logs in the push journal rather than bloating the notes.
+   Never copy secrets, PII or private tracker content into release notes.
 6. An uncertain or partial push/publication stops and reconciles read-only: preserve
    the journal and queue, keep any published success on one forge, report push success
    separately from release failure, never roll back a successful push, and resume only
