@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline contracts for per-push GitHub notes and ADAM-only Forgejo notes."""
+"""Offline contracts for main-only GitHub notes and ADAM-only Forgejo notes."""
 import hashlib
 import json
 import sys
@@ -21,21 +21,26 @@ class ReleaseNotes(Slim):
         agent = self.home / ".pi/agent"
         bootstrap = (agent / "AGENTS.md").read_text()
         self.assertLess(len(bootstrap), 1900)
-        self.assertIn("every approved push needs GitHub release notes", bootstrap)
+        self.assertIn("only approved main pushes need GitHub release notes", bootstrap)
         self.assertIn("Forgejo is required only for ADAM and its component repositories",
                       " ".join(bootstrap.split()))
         self.assertIn("agent-worktree-lifecycle", bootstrap)
         installed = agent / "skills/agent-worktree-lifecycle/SKILL.md"
         self.assertEqual(installed.read_bytes(), LIFECYCLE.read_bytes())
-        self.assertIn("## Release notes for every approved push (Pi)", installed.read_text())
+        self.assertIn("## Release notes for main pushes (Pi)", installed.read_text())
 
-    def test_lifecycle_policy_covers_the_per_push_contract(self):
+    def test_lifecycle_policy_covers_the_main_only_contract(self):
         text = " ".join(LIFECYCLE.read_text().split())
         for clause in (
-            "## Release notes for every approved push (Pi)",
+            "## Release notes for main pushes (Pi)",
             "Pi delivery policy",
-            "For Pi, every approved push",
-            "it is not main-only",
+            "For Pi, only approved `main` pushes",
+            "release notes are **main-only**",
+            "Only an approved push to `refs/heads/main` triggers the release workflow",
+            "any other branch, or tags alone do not create releases, release notes or snapshot tags",
+            "need no release-specific preflight",
+            "For mixed-ref pushes, only the `main` ref gets a release",
+            "Normal push approval and remote-head verification still apply to every pushed ref",
             "GitHub for every project, plus Forgejo only for ADAM and its component repositories",
             "verified existing umbrella project identity and documented repository mapping",
             "`ADAM full` in Plane",
@@ -76,7 +81,8 @@ class ReleaseNotes(Slim):
             "created before any mutation and reused on every retry",
             "one deterministic per-ref publication identity",
             "exact fully qualified ref plus its intended peeled commit",
-            "the snapshot tag above for a branch, or the already-approved tag for a tag push",
+            "using the main snapshot tag above",
+            "Non-main refs in the same push have no release publication entry",
             "Reuse that same per-ref identity on all required destinations and every retry",
             "never mint a fresh ID for missing-side recovery",
             "Verify the remote ref first",
@@ -84,7 +90,10 @@ class ReleaseNotes(Slim):
             "peeled commit must equal the intended immutable commit",
             "only a branch/ref target may move",
             "reconciled by tag lookup before any retry",
-            "changes, fixes, breaking migration, actual tests, risks and safe source links",
+            "Write short, simple release notes in plain language",
+            "meaningful emoji labels",
+            "Preserve material warnings and required migration steps",
+            "do not upload release assets",
             "Never copy secrets, PII or private tracker content",
             "reconciles read-only",
             "preserve the journal and queue",
@@ -103,11 +112,11 @@ class ReleaseNotes(Slim):
 
     def test_snapshot_tag_digest_is_canonical_and_golden(self):
         policy = " ".join(LIFECYCLE.read_text().split())
-        golden = "a4ff746fc8339e348c9018b8e701f2b4a547b36e6409099b9e4ac9c894e749df"
-        digest = hashlib.sha256(b"refs/heads/pi").hexdigest()
+        golden = "f921bd05e68b03740c450e565e0e6173e546193170b2dd404ddb6f153e9b5bf3"
+        digest = hashlib.sha256(b"refs/heads/main").hexdigest()
         self.assertEqual(digest, golden)
         self.assertRegex(digest, r"\A[0-9a-f]{64}\Z")
-        self.assertIn("`refs/heads/pi` -> `" + golden + "`", policy)
+        self.assertIn("`refs/heads/main` -> `" + golden + "`", policy)
         self.assertIn("push/<ref-digest>/<full-new-commit-SHA>", policy)
 
     def test_focused_install_parity_idempotence_backup_and_user_state(self):
@@ -126,7 +135,7 @@ class ReleaseNotes(Slim):
         installed = (agent / "AGENTS.md").read_text()
         self.assertTrue(installed.startswith(user_policy))
         self.assertIn("<!-- megai:slim:begin -->", installed)
-        self.assertIn("every approved push needs GitHub release notes", installed)
+        self.assertIn("only approved main pushes need GitHub release notes", installed)
         self.assertIn("Forgejo is required only for ADAM and its component repositories",
                       " ".join(installed.split()))
         self.assertEqual((agent / "skills/agent-worktree-lifecycle/SKILL.md").read_bytes(),

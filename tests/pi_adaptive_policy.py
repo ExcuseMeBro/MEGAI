@@ -53,7 +53,7 @@ class Adaptive(Slim):
         bootstrap = (ROOT / "pi-skill/bootstrap.md").read_text()
         self.assertIn("Routine work is three steps", bootstrap)
         self.assertIn("main/push need separate approval", bootstrap)
-        self.assertIn("every approved push needs GitHub release notes", bootstrap)
+        self.assertIn("only approved main pushes need GitHub release notes", bootstrap)
         self.assertIn("Forgejo is required only for ADAM and its component repositories",
                       " ".join(bootstrap.split()))
 

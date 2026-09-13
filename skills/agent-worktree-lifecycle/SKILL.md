@@ -118,9 +118,9 @@ Production deployment, secrets and destructive migrations retain separate approv
    A moved dev requires integrating that new base into the owned task worktree and
    fresh tests/review; conflicts stay isolated, never force/reset another task.
 4. Push only if explicitly included in delivery scope, using normal non-force pushes
-   and exact remote-head verification. For Pi, every approved push then publishes
-   GitHub release notes, plus Forgejo only for ADAM (see Release notes for every
-   approved push (Pi)), not main only. Recheck source/target vectors between steps.
+   and exact remote-head verification. For Pi, only approved `main` pushes publish
+   GitHub release notes, plus Forgejo only for ADAM (see Release notes for main
+   pushes (Pi)). Other branch pushes do not create releases. Recheck source/target vectors between steps.
    Multi-repo delivery is **not atomic**: journal each completed repo; on conflict,
    test/push failure or uncertain result stop the remaining integrations, preserve
    every worktree/ref/evidence and reconcile actual refs before resuming. Never
@@ -137,10 +137,18 @@ Production deployment, secrets and destructive migrations retain separate approv
 5. Verify the delivered dev vector and task-wide behavior before handoff In Review,
    never Done. Capture actual evidence; historical receipt cwd values stay unchanged.
 
-## Release notes for every approved push (Pi)
+## Release notes for main pushes (Pi)
 
-Pi delivery policy. Push approval names the exact destinations, refs and the
-release/tag publication authority; it is not main-only. Required destinations are
+Pi delivery policy: release notes are **main-only**. Only an approved push to
+`refs/heads/main` triggers the release workflow below. Pushes to `pi`, `dev` and
+`task/...`, any other branch, or tags alone do not create releases, release notes
+or snapshot tags, and need no release-specific preflight. For mixed-ref pushes,
+only the `main` ref gets a release. Normal push approval and remote-head verification
+still apply to every pushed ref. Preserve existing releases and historical journals;
+do not backfill non-main releases.
+
+Push approval names the exact destinations, refs and the release/tag publication
+authority; this rule grants no main/push approval. Required release destinations are
 GitHub for every project, plus Forgejo only for ADAM and its component repositories.
 Resolve ADAM membership from the verified existing umbrella project identity and
 documented repository mapping (`ADAM full` in Plane); component repositories and
@@ -159,7 +167,7 @@ assets; missing attachments are not a blocker. Required tests and commit/tag/rel
 verification below still apply. Forge-generated source archives may appear
 without manual uploads; leave them and any existing release assets unchanged.
 
-Before any push, preflight only the required destinations for authenticated access
+Before a qualifying main push, preflight only the required destinations for authenticated access
 and the existing target repo identity/remote, then draft the notes. A missing, unmapped or
 unauthorized required forge is BLOCKED; never treat it as success, invent a
 project/remote or expose private code to a new host. A queue reservation is not push
@@ -171,18 +179,19 @@ approval; the existing main/push approval boundary is unchanged.
    from an explicitly selected baseline or a clearly identified initial-history scope;
    never assume `HEAD^`. A no-op (`old == new`) skips a new release but still
    reconciles any previously pending note.
-2. Branch pushes, including `pi`, `dev` and `task/...`, publish a **prerelease**
-   snapshot, never latest. Tags follow the agreed release convention; never guess or
-   increment a semantic version. The branch snapshot tag is
+2. Main pushes publish a notes-only **prerelease** snapshot, never latest. Tags
+   follow the agreed release convention; never guess or increment a semantic version.
+   The branch snapshot tag is
    `push/<ref-digest>/<full-new-commit-SHA>`, where `ref-digest` is the full 64
    lowercase hex SHA-256 of the exact fully qualified ref name's UTF-8 bytes (e.g.
-   `refs/heads/pi` -> `a4ff746fc8339e348c9018b8e701f2b4a547b36e6409099b9e4ac9c894e749df`),
+   `refs/heads/main` -> `f921bd05e68b03740c450e565e0e6173e546193170b2dd404ddb6f153e9b5bf3`),
    with no newline, truncation or normalization. Look up an existing release by tag
    before creating; a conflicting tag identity is BLOCKED.
 3. Group the whole approved push under one persisted push journal ID, created before
    any mutation and reused on every retry. Inside it keep one deterministic per-ref
-   publication identity: the exact fully qualified ref plus its intended peeled commit
-   - the snapshot tag above for a branch, or the already-approved tag for a tag push.
+   publication identity for `refs/heads/main`: the exact fully qualified ref plus
+   its intended peeled commit, using the main snapshot tag above. Non-main refs in
+   the same push have no release publication entry.
    Reuse that same per-ref identity on all required destinations and every retry; never mint a fresh
    ID for missing-side recovery.
 4. Verify the remote ref first, then publish and read back the exact target commit,
