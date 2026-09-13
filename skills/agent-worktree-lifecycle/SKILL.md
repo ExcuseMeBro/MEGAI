@@ -118,7 +118,9 @@ Production deployment, secrets and destructive migrations retain separate approv
    A moved dev requires integrating that new base into the owned task worktree and
    fresh tests/review; conflicts stay isolated, never force/reset another task.
 4. Push only if explicitly included in delivery scope, using normal non-force pushes
-   and exact remote-head verification. Recheck source/target vectors between steps.
+   and exact remote-head verification. For Pi, every approved push then publishes
+   release notes on both configured forges (see Release notes for every approved push
+   (Pi)), not main only. Recheck source/target vectors between steps.
    Multi-repo delivery is **not atomic**: journal each completed repo; on conflict,
    test/push failure or uncertain result stop the remaining integrations, preserve
    every worktree/ref/evidence and reconcile actual refs before resuming. Never
@@ -134,6 +136,45 @@ Production deployment, secrets and destructive migrations retain separate approv
    self-review for routine Pi). Queue release/recovery follows its contract.
 5. Verify the delivered dev vector and task-wide behavior before handoff In Review,
    never Done. Capture actual evidence; historical receipt cwd values stay unchanged.
+
+## Release notes for every approved push (Pi)
+
+Pi delivery policy. Push approval names the exact destinations, refs and the
+release/tag publication authority; it is not main-only. Before any push, preflight
+both configured forges (GitHub and Forgejo) for authenticated access and the
+existing target repo identity/remote, then draft the notes. A missing, unmapped or unauthorized required
+forge is BLOCKED; never treat it as success, invent a project/remote or expose private
+code to a new host. A queue reservation is not push approval; the existing main/push
+approval boundary is unchanged.
+
+1. Publish a GitHub/Forgejo **Release** for the same pinned commit on both forges -
+   release bodies, not merely commit or PR text. Record each destination's old/new
+   full SHA and ref and summarize the actual verified pushed range. On a new ref, push
+   from an explicitly selected baseline or a clearly identified initial-history scope;
+   never assume `HEAD^`. A no-op (`old == new`) skips a new release but still
+   reconciles any previously pending note.
+2. Branch pushes, including `pi`, `dev` and `task/...`, publish a **prerelease**
+   snapshot, never latest. Tags follow the agreed release convention; never guess or
+   increment a semantic version. Use a deterministic collision-safe snapshot tag,
+   `push/<hash-of-full-ref>/<full-new-commit-SHA>`, pinned to that commit identically
+   on both forges. Look up an existing release by tag before creating; a conflicting
+   tag identity is BLOCKED. When one `git push` updates several refs, capture an
+   operation identity per ref.
+3. Verify the remote ref first, then publish and read back the exact target commit,
+   release bodies, status, the tag's peeled commit and URLs. A tag's peeled commit
+   must equal the intended immutable commit; only a branch/ref target may move. Keep
+   one deterministic operation identity per push so a retry reuses it; an uncertain
+   release create is reconciled by tag lookup before any retry.
+4. Notes stay concise: changes, fixes, breaking migration, actual tests, risks and
+   safe source links. Never copy secrets, PII or private tracker content into them.
+5. An uncertain or partial push/publication stops and reconciles read-only: preserve
+   the journal and queue, keep any published success on one forge, report push success
+   separately from release failure, never roll back a successful push, and resume only
+   the missing forge without re-pushing successful refs, duplicating releases or
+   overwriting human-written text.
+
+This is agent instruction, not enforcement: MEGAI installs no git hook, and manual
+pushes outside this workflow are not intercepted.
 
 ## Main promotion and cleanup
 
