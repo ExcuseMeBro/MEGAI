@@ -107,6 +107,23 @@ steering; compression, retrieval, memory and explicit verbosity overrides stay.
 No upstream installer, shared `~/.agents` writes or universal savings claim. See
 [docs/pi-token-profile.md](docs/pi-token-profile.md).
 
+### Opt-in skill profiles and read-only task metrics
+
+`lib/pi_skill_profiles.py` prints opt-in native `settings.json` `skills` exclusion
+snippets (`coding`, `design`, `mobile`) that narrow known optional design/mobile
+skills without touching core/safety/a11y or project selections; nothing is applied
+globally: snapshot settings privately, append only missing exclusions, and restore
+only the entries you added so a pre-existing identical `!name` is never removed.
+`lib/pi_task_metrics.py` reads
+Pi JSONL sessions read-only and aggregates usage/cost for an explicit entry-ID or
+timestamp boundary, reporting observed subtotals separately from complete totals,
+nulling complete totals when a `toolResult` usage may overlap an explicit child,
+and leaving unknown child totals, missing cost and provider waits null. Both
+helpers are repository source run from the checkout, **not installed into `~/.megai`
+yet**; they never edit settings or apply anything globally. See
+[docs/pi-skill-profiles.md](docs/pi-skill-profiles.md) and
+[docs/pi-task-metrics.md](docs/pi-task-metrics.md).
+
 ## Plane task labels
 
 The parent applies the [task-label policy](task-flow/skills/megai-task-flow/SKILL.md#task-labels)
@@ -231,6 +248,8 @@ python3 -B tests/acceptance_gate.py
 python3 -B tests/acceptance_flow.py
 bash tests/slim-distribution.sh
 python3 tests/headroom_wiring.py
+python3 -B tests/skill_profiles.py
+python3 -B tests/task_metrics.py
 HEADROOM_TEST_PYTHON="$HOME/.megai/venv/headroom/bin/python" \
   HEADROOM_TEST_ASSETS="$HOME/.megai/headroom-assets" \
   python3 tests/headroom_runtime.py

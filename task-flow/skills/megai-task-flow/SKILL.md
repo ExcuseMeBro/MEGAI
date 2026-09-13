@@ -13,8 +13,11 @@ Plane owns task identity, acceptance, execution notes and status. The parent loa
 For Pi, choose verification mode in `megai` once. Routine tasks record a concise
 outcome, actual tests and self-review; no formal contract/hash or mandatory reviewer.
 Guarded tasks retain `megai-acceptance`. Use this skill only at task start/resume and
-handoff; reuse known project/item/state/label IDs while scope is unchanged. Discovery
-pages are required when resolving unknown identity, not routine status polling.
+handoff; reuse known project/item/state/label IDs and previously verified evidence
+while scope is unchanged. Keep that reuse in-session: verified IDs and evidence
+only, with every authority check and final gate unchanged. Refresh on drift, errors,
+identity ambiguity or a required boundary check. Discovery pages are required
+when resolving unknown identity, not routine status polling.
 Workspace safety and integration reservations remain unchanged in both modes.
 
 ## Start boundary

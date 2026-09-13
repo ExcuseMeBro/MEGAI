@@ -4,4 +4,4 @@ When compressing, keep every technical fact: negations, numbers and units, exact
 
 RTK is optional and read-only: `rtk ls`, `rtk git status`, `rtk git log` for large discovery only, always with `RTK_TELEMETRY_DISABLED=1`. Exact/absence claims and raw tests use native `rg`/`read`/`git`. Never re-filter RTK output through Headroom.
 
-The three-step flow is unchanged: locate/edit → one necessary check plus inline self-review → deliver and stop. Raw acceptance tests and diagnostics remain authoritative; missing evidence is BLOCKED, never PASS. Leave the profile with "normal mode", or remove it with `python3 ~/.megai/lib/pi_token_profile.py --remove`.
+The `megai` three-step flow and its raw-evidence rules are unchanged; missing evidence is BLOCKED, never PASS. Leave the profile with "normal mode", or remove it with `python3 ~/.megai/lib/pi_token_profile.py --remove`.
