@@ -366,6 +366,45 @@ class TokenProfile(Slim):
         self.wire_pi(ok=False)
         self.assertEqual(self.snapshot(), before)
 
+    def test_rtk_preflight_env_is_minimal(self):
+        agent = self.home / ".pi/agent"
+        self.profile("--apply")
+        capture = self.home / "rtk-env"
+        stub = self.write(self.bin / "rtk-stub", "#!/bin/sh\nenv > " + str(capture) + "\nexit 0\n")
+        stub.chmod(0o755)
+        env = dict(self.env, RTK_BIN=str(stub), OPENAI_API_KEY="synthetic-only",
+                   NODE_OPTIONS="--no-warnings", PYTHONPATH="/synthetic",
+                   XDG_CONFIG_HOME="" + str(self.root / "xdg-config"),
+                   XDG_DATA_HOME="" + str(self.root / "xdg-data"))
+        self.profile("--check", env=env)
+        seen = dict(line.split("=", 1) for line in capture.read_text().splitlines() if "=" in line)
+        for leaked in ("OPENAI_API_KEY", "NODE_OPTIONS", "PYTHONPATH"):
+            self.assertNotIn(leaked, seen)
+        self.assertEqual(seen.get("RTK_TELEMETRY_DISABLED"), "1")
+        self.assertIn("HOME", seen)
+        self.assertIn("PATH", seen)
+        self.assertEqual(seen.get("XDG_CONFIG_HOME"), str(self.root / "xdg-config"))
+        self.assertEqual(seen.get("XDG_DATA_HOME"), str(self.root / "xdg-data"))
+        self.assertTrue((agent / "skills/caveman/SKILL.md").is_file())
+
+    @unittest.skipUnless(os.environ.get("PI_PACKAGE_ROOT"), "native verifier needs PI_PACKAGE_ROOT")
+    def test_native_verify_isolates_credentials_and_preload(self):
+        agent = self.home / ".pi/agent"
+        self.profile("--apply")
+        canary = self.home / "canary-loaded"
+        self.write(agent / "extensions/credential-canary.ts",
+                   "import { writeFileSync } from 'node:fs';\n"
+                   "if (process.env.OPENAI_API_KEY || process.env.NODE_OPTIONS || process.env.PYTHONPATH) "
+                   "throw new Error('credential canary leaked');\n"
+                   f"writeFileSync({json.dumps(str(canary))}, 'loaded without credentials');\n"
+                   "export default function (pi) {}\n")
+        env = dict(self.env, PATH=os.environ["PATH"], OPENAI_API_KEY="synthetic-only",
+                   NODE_OPTIONS="--no-warnings", PYTHONPATH="/synthetic")
+        before = dict(os.environ)
+        self.profile("--verify", env=env)
+        self.assertEqual(canary.read_text(), "loaded without credentials")
+        self.assertEqual(dict(os.environ), before, "caller environment must stay unchanged")
+
     def test_stage_profile_is_staging_only(self):
         script = (
             "import sys\n"

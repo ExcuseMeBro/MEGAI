@@ -113,6 +113,20 @@ def rtk_binary() -> str | None:
     return configured or shutil.which("rtk")
 
 
+def rtk_env() -> dict[str, str]:
+    """Minimal RTK environment: no provider, preload or interpreter overrides."""
+    env = {
+        "HOME": os.environ.get("HOME", str(Path.home())),
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "RTK_TELEMETRY_DISABLED": "1",
+    }
+    for key in ("XDG_CONFIG_HOME", "XDG_DATA_HOME"):
+        value = os.environ.get(key, "").strip()
+        if value:
+            env[key] = value
+    return env
+
+
 def _relative_posix(path: Path, base: Path) -> str:
     try:
         return path.relative_to(base).as_posix()
@@ -194,7 +208,11 @@ def profile_gaps(root: Path) -> list[str]:
 
 
 def native_activation(root: Path) -> tuple[bool, str]:
-    """Run the existing native Pi activation verifier offline; no provider calls."""
+    """Run the existing native Pi activation verifier offline; no provider calls.
+
+    Node loads user extensions, so it gets an explicit minimal environment instead
+    of the caller's: no provider credentials, preload or interpreter overrides.
+    """
     node = shutil.which("node")
     if not node:
         return False, "node is unavailable; native activation was not verified"
@@ -205,8 +223,16 @@ def native_activation(root: Path) -> tuple[bool, str]:
     pi = shutil.which("pi")
     if pi:
         command.append(pi)
-    env = {**os.environ, "PI_CODING_AGENT_DIR": str(root),
-           "MEGAI_HOME": str(MEGAI), "PI_OFFLINE": "1"}
+    env = {
+        "HOME": os.environ.get("HOME", str(Path.home())),
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "MEGAI_HOME": str(MEGAI),
+        "PI_CODING_AGENT_DIR": str(root),
+        "PI_OFFLINE": "1",
+    }
+    package_root = os.environ.get("PI_PACKAGE_ROOT", "").strip()
+    if package_root:
+        env["PI_PACKAGE_ROOT"] = package_root
     try:
         result = subprocess.run(command, capture_output=True, text=True, timeout=60,
                                 check=False, env=env)
@@ -228,8 +254,7 @@ def rtk_preflight() -> tuple[bool, str]:
         return False, f"RTK_BIN is not an executable file: {binary}"
     try:
         result = subprocess.run([str(path), "--version"], capture_output=True, text=True,
-                                timeout=10, check=False,
-                                env={**os.environ, "RTK_TELEMETRY_DISABLED": "1"})
+                                timeout=10, check=False, env=rtk_env())
     except (OSError, subprocess.SubprocessError) as error:
         return False, f"RTK preflight failed: {error}"
     if result.returncode != 0:
