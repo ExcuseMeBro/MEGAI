@@ -34,11 +34,23 @@ profile, automatic dispatcher or sandbox. The parent reads it only when selectin
 a needed role, then passes the explicit `pi/PROVIDER/MODEL` and thinking to Paseo.
 Direct tools remain preferable for a bounded task; no mandatory scout/planner/worker/
 reviewer fanout. Explicit user/task model choices override the preset. Missing
-models, native-thinking mismatch or unavailable evidence are BLOCKED, not silent
-fallback. Apply [verified launch](../delegation.md#verified-launch) before context;
+primary models may use the documented
+[DeepSeek-first subagent fallback](../delegation.md#deepseek-first-subagent-fallback)
+when permitted. Native-thinking mismatch or unavailable verification evidence stays
+BLOCKED, not silent fallback. Apply [verified launch](../delegation.md#verified-launch) before context;
 Paseo may report `xhigh` while the native Pi session actually uses `high`.
 
-Restart Pi or open a fresh session to load the new startup defaults and policy.
+## Subagent-only fallback, parent unchanged
+
+The delegation policy keeps configured DeepSeek planner/scout/worker roles primary
+and prefers MiniMax M3 only for a permitted model-failure fallback. Reviewer routing
+is unchanged. This is a parent-consumed instruction, not an automatic Pi failover
+engine or a new `settings.json` key. Refresh the owned delegation policy without
+`--preset` when only this child fallback is wanted; primary role data and all native
+model settings stay untouched. Do not select a preset just to add a fallback.
+
+After a policy-only refresh, reload/reopen Pi; no startup defaults change.
+After explicitly applying a full preset, restart Pi to use its new startup defaults.
 An already-running parent's model is not changed by editing settings. Per-model
 startup levels do not override an explicitly selected Paseo thinking value.
 `--remove` retires owned policy/role files but keeps the user's native model

@@ -69,6 +69,37 @@ planner and reviewer are read-only; a worker gets only its assigned managed path
 Read-only checks use `python3 -B` and Ruff with
 `--no-fix --no-fix-only --force-exclude --no-cache`; avoid cache-producing checks.
 
+## DeepSeek-first subagent fallback
+
+For delegated planner/scout/worker roles whose configured primary is
+`deepseek/deepseek-flash` (high), keep DeepSeek first. After a confirmed
+model-specific failure, timeout, reasoning dead-end or unavailable primary model,
+prefer `minimax/MiniMax-M3` (high) as the first fallback before GPT escalation.
+Explicit task model/provider restrictions override this preference; do not replace
+other configured primaries or the independent reviewer's configured model.
+
+This is parent-driven **subagent-only** routing, not a Pi runtime failover setting.
+Keep the parent model, native startup defaults, model-thinking settings, credentials
+and provider catalog unchanged. Keep primary roles in `megai-roles.json`; do not
+reapply a preset merely to enable this fallback, because `--preset` also changes
+native startup defaults.
+
+Apply the escalation and verified-launch rules below to every fallback. Record the
+reason and failed identity, reconcile writes and confirm the old writer has stopped
+before a replacement. Verify MiniMax availability and native model/thinking before
+sending task context; missing evidence or a mismatch remains BLOCKED. One MiniMax
+attempt per blocker counts toward the existing two-transition limit; never cycle
+back to the failed primary or start speculative standby agents. New independent
+tasks start with the configured primary; a healthy fallback child may handle the
+same task's refinements. Auth/permission failures, shared quota/outages and uncertain
+writes still require reconciliation, not blind fallback. Use completion notifications,
+not sleep polling.
+
+The MiniMax Max plan's advertised 4–5 concurrent agents is capacity, not a required
+fanout. Keep the existing independent-scope/one-writer rules and initial two-child
+limit. Do not rewrite native context limits or infer available quota from plan copy;
+text, image and speech may share the account quota.
+
 ## Immediate escalation — model failure or stalled progress
 
 A model-specific error, timeout or reasoning dead-end returns immediately to the
