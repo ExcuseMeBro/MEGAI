@@ -1,6 +1,6 @@
 ---
 name: megai
-description: Adaptive Pi execution: one agent and focused verification by default; guarded evidence for risky changes.
+description: "Adaptive Pi execution: one agent and focused verification by default; guarded evidence for risky changes."
 managed-by: megai
 ---
 
@@ -29,12 +29,15 @@ No formal-gate claim without running that gate. Existing stricter repo/user rule
 
 ## Three-step default
 
-1. **Locate and edit.** Find symbols with scoped rg, then read the needed ranges;
-   widen only for a named unresolved question. Batch independent reads/searches;
-   keep dependent operations ordered. Reuse verified paths, IDs and metadata while
-   current; refresh for drift, a boundary check or a failed assumption. Use native
-   compact output for small discovery, RTK for large discovery, raw output for
-   evidence. Keep one writer, private backups and the smallest complete change.
+1. **Locate and edit.** Use scoped `rg -n` or `rg -l` to locate symbols/files,
+   then `read` with offset/limit for relevant ranges and their dependencies. Widen
+   for a named unresolved question; complete mandatory document reads still apply.
+   Batch independent lookups; keep dependent operations ordered. Reuse current
+   files, paths, IDs and evidence; refresh for drift, a boundary check or a failed
+   assumption. Keep full logs on disk and inspect relevant ranges, not repeated
+   dumps. Exact/absence claims need complete scoped native search; truncated output
+   is not proof. Use RTK only for eligible large discovery, raw output for evidence.
+   Keep one writer, private backups and the smallest complete change.
    Reuse `megai-task-flow` identity and `agent-worktree-lifecycle` isolation;
    a known bounded change needs no extra scout, plan or research phase.
 2. **Verify once.** Choose the smallest existing test or observable reproduction
@@ -62,6 +65,22 @@ source-current evidence as required; never turn a failed gate into a routine PAS
 
 Missing optional tools never block native discovery. Reuse ready indexes only when
 useful; index on demand, never at startup. Save memory only when explicitly requested.
+
+## Session hygiene — native capacity unchanged
+
+For a new independent task, prefer a fresh session (`/new`), not inherited history
+via `/fork` or `/clone`. When history is needed, reuse it; do not restart an active
+task or change sessions without the user's request. At a completed phase of a long
+ongoing task, suggest `/compact` once when old history dominates; no fixed threshold,
+repeated reminders or automatic custom compactor. Compaction costs tokens and can
+omit details: originals and raw receipts remain authoritative.
+
+When a handoff is needed, carry only the goal, constraints, Plane pair, verified
+workspace/branch, changed paths, evidence references, blockers and next action.
+Read original evidence for exact decisions. This is a handoff, not another tracker.
+Load only matching skills once; disclose specialist references when needed. Keep
+existing safety rules and user resource choices. No context-window, model/thinking,
+auto-compaction setting or transcript edits; do not claim savings without measurement.
 
 ## Delegation and cost
 
