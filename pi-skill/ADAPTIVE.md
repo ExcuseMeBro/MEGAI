@@ -29,18 +29,23 @@ No formal-gate claim without running that gate. Existing stricter repo/user rule
 
 ## Three-step default
 
-1. **Locate and edit.** Use rg/read at the responsible seam, then make the smallest
-   complete change. Reuse the Plane identity and resolved metadata from
-   `megai-task-flow`; use `agent-worktree-lifecycle` for isolation/delivery, not a
-   second planning phase. Keep one writer and private backups. No automatic scout,
-   research, written plan or new test file for a known, bounded change.
+1. **Locate and edit.** Find symbols with scoped rg, then read the needed ranges;
+   widen only for a named unresolved question. Batch independent reads/searches;
+   keep dependent operations ordered. Reuse verified paths, IDs and metadata while
+   current; refresh for drift, a boundary check or a failed assumption. Use native
+   compact output for small discovery, RTK for large discovery, raw output for
+   evidence. Keep one writer, private backups and the smallest complete change.
+   Reuse `megai-task-flow` identity and `agent-worktree-lifecycle` isolation;
+   a known bounded change needs no extra scout, plan or research phase.
 2. **Verify once.** Choose the smallest existing test or observable reproduction
    that proves the outcome; inspect its result and the diff in the same pass.
    For wording-only docs, a diff/link check or installed-file parity is enough;
    do not add tests that merely repeat prose. Add a regression test when behavior
    needs protection. A bug's failing reproduction and passing fix are different
    source states, not duplicate checks. Run each needed check once per candidate;
-   add diagnostics only for the changed code or a concrete risk. Changed Python
+   reuse its raw receipt across handoffs. Inspect failures at the relevant log range,
+   expanding as needed, rather than repeatedly dumping the whole log. Add diagnostics
+   only for changed code or a concrete risk. Changed Python
    uses Ruff with `--no-fix --no-fix-only --force-exclude --no-cache`.
    Full suites/live services need task risk, repo policy or explicit scope.
 3. **Deliver and stop.** Record actual results/gaps in the same Plane item, hand off
@@ -60,8 +65,10 @@ useful; index on demand, never at startup. Save memory only when explicitly requ
 
 ## Delegation and cost
 
-Direct parent tools are the default. Load [delegation.md](delegation.md) only before
-creating/reusing a child or handling a model failure. Choose one task-appropriate
+Direct parent tools are the default. Create a child only for a concrete isolated
+job, required review or configured economy routing, not speculative standby.
+Load [delegation.md](delegation.md) only before delegation or a model failure.
+Choose one task-appropriate
 engineering skill, not an entire workflow stack. A worker replaces parent writing;
 a reviewer receives a bounded diff and evidence, not the full conversation. A
 healthy DeepSeek parent performs its own routine work directly; it does not launch
