@@ -17,10 +17,40 @@ task-specific deadlines only when required by the user or operational constraint
 Keep the same Plane parent identity; only the parent replans, delegates or updates
 Plane. Parallelize only independent scopes with isolated writers, initially at most
 two children; otherwise use direct parent tools. Give each child owned paths,
-authority and observable acceptance. Prefer completion notifications.
+authority and observable acceptance. Use notification-driven waiting below.
 Preserve in-flight non-interruptible writes and reconcile their actual outcome
 before proceeding, rather than killing or replaying a mutation. Operational tool
 timeouts and queue leases remain separate from task decomposition.
+
+## Notification-driven waiting (Pi + Paseo)
+
+1. At `create_agent`, set `notifyOnFinish: true` explicitly. Keep the neutral
+   READY launch and identity verification below before task context. At every
+   `send_agent_prompt`, including refinements, set `background: true` and
+   `notifyOnFinish: true`; retain the returned agent/run identity. Describe the
+   connected tool first if its schema differs; do not assume caller defaults.
+2. Continue only independent work. When the next step depends on a child, end the
+   parent turn with a short pending status and let the completion notification
+   resume it. This is a yield, not task completion: keep the Plane item In Progress
+   and the child's workspace intact. Do not keep the turn alive with shell
+   `sleep`, repeated status/activity/file reads, or a heartbeat/scheduled poll.
+3. On notification, match it to the expected child and current dispatch; read the
+   result/evidence once when needed. Finished, errored and permission-needed events
+   are distinct: idle/finished alone is not acceptance. Reconcile errors or request
+   the required permission without automatically approving it. Ignore stale or
+   duplicate events for already-consumed work; never replay a task just to wait.
+4. Notifications require a supported delivery path to this parent; the flag alone
+   is not proof. If unavailable, use an advertised native wait tool, or select
+   `background: false` on the initial `send_agent_prompt` to use its synchronous
+   result. There is no assumed Paseo `wait_agent` API. For an already-running child,
+   never resend its prompt as a wait: one diagnostic status/activity read may
+   reconcile a missing event; if still pending with no supported wait, report the
+   delivery blocker and yield. On resume, reconcile that same child before reuse.
+
+These rules cover child-result waiting, not test timing, provider inactivity
+protection or integration-queue lease/claim semantics; those contracts stay intact.
+MEGAI supplies instructions here, not a runtime sleep interceptor or notification
+transport. Standalone Pi needs its connected adapter to deliver completion events.
 
 ## Model choice
 

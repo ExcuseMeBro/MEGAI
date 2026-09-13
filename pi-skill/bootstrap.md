@@ -16,6 +16,8 @@ Reserve integration targets with `megai queue`; main/push need separate approval
 and every approved push needs GitHub release notes; Forgejo is required only for
 ADAM and its component repositories.
 
-Load delegation only when a child is justified. Keep native model preferences; MEGAI
-has no model allowlist. Use Headroom memory or ready indexes only when useful; no
-startup indexing, mandatory scout, routine polling or duplicate verification.
+For delegation or an existing child's pending result, load `megai/delegation.md`:
+use completion notifications and yield, not shell sleep/status polling.
+Keep native model preferences; MEGAI has no model allowlist. Use Headroom memory or
+ready indexes only when useful; no startup indexing, mandatory scout, routine
+polling or duplicate verification.
