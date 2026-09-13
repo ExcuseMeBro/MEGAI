@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Offline contracts for the per-push dual-forge release-notes policy."""
+import hashlib
 import json
 import sys
 import unittest
@@ -53,17 +54,23 @@ class ReleaseNotes(Slim):
             "never latest",
             "agreed release convention",
             "never guess or increment a semantic version",
-            "deterministic collision-safe snapshot tag",
-            "`push/<hash-of-full-ref>/<full-new-commit-SHA>`",
-            "pinned to that commit identically on both forges",
+            "The branch snapshot tag is `push/<ref-digest>/<full-new-commit-SHA>`",
+            ("`ref-digest` is the full 64 lowercase hex SHA-256 of the exact fully "
+             "qualified ref name's UTF-8 bytes"),
+            "with no newline, truncation or normalization",
             "Look up an existing release by tag before creating",
             "conflicting tag identity is BLOCKED",
-            "capture an operation identity per ref",
+            "one persisted push journal ID",
+            "created before any mutation and reused on every retry",
+            "one deterministic per-ref publication identity",
+            "exact fully qualified ref plus its intended peeled commit",
+            "the snapshot tag above for a branch, or the already-approved tag for a tag push",
+            "Reuse that same per-ref identity on both forges and every retry",
+            "never mint a fresh ID for missing-side recovery",
             "Verify the remote ref first",
             "read back the exact target commit",
             "peeled commit must equal the intended immutable commit",
             "only a branch/ref target may move",
-            "one deterministic operation identity per push",
             "reconciled by tag lookup before any retry",
             "changes, fixes, breaking migration, actual tests, risks and safe source links",
             "Never copy secrets, PII or private tracker content",
@@ -81,6 +88,15 @@ class ReleaseNotes(Slim):
         ):
             with self.subTest(clause=clause):
                 self.assertIn(clause, text)
+
+    def test_snapshot_tag_digest_is_canonical_and_golden(self):
+        policy = " ".join(LIFECYCLE.read_text().split())
+        golden = "a4ff746fc8339e348c9018b8e701f2b4a547b36e6409099b9e4ac9c894e749df"
+        digest = hashlib.sha256(b"refs/heads/pi").hexdigest()
+        self.assertEqual(digest, golden)
+        self.assertRegex(digest, r"\A[0-9a-f]{64}\Z")
+        self.assertIn("`refs/heads/pi` -> `" + golden + "`", policy)
+        self.assertIn("push/<ref-digest>/<full-new-commit-SHA>", policy)
 
     def test_focused_install_parity_idempotence_backup_and_user_state(self):
         agent = self.home / ".pi/agent"

@@ -142,10 +142,10 @@ Production deployment, secrets and destructive migrations retain separate approv
 Pi delivery policy. Push approval names the exact destinations, refs and the
 release/tag publication authority; it is not main-only. Before any push, preflight
 both configured forges (GitHub and Forgejo) for authenticated access and the
-existing target repo identity/remote, then draft the notes. A missing, unmapped or unauthorized required
-forge is BLOCKED; never treat it as success, invent a project/remote or expose private
-code to a new host. A queue reservation is not push approval; the existing main/push
-approval boundary is unchanged.
+existing target repo identity/remote, then draft the notes. A missing, unmapped or
+unauthorized required forge is BLOCKED; never treat it as success, invent a
+project/remote or expose private code to a new host. A queue reservation is not push
+approval; the existing main/push approval boundary is unchanged.
 
 1. Publish a GitHub/Forgejo **Release** for the same pinned commit on both forges -
    release bodies, not merely commit or PR text. Record each destination's old/new
@@ -155,19 +155,25 @@ approval boundary is unchanged.
    reconciles any previously pending note.
 2. Branch pushes, including `pi`, `dev` and `task/...`, publish a **prerelease**
    snapshot, never latest. Tags follow the agreed release convention; never guess or
-   increment a semantic version. Use a deterministic collision-safe snapshot tag,
-   `push/<hash-of-full-ref>/<full-new-commit-SHA>`, pinned to that commit identically
-   on both forges. Look up an existing release by tag before creating; a conflicting
-   tag identity is BLOCKED. When one `git push` updates several refs, capture an
-   operation identity per ref.
-3. Verify the remote ref first, then publish and read back the exact target commit,
+   increment a semantic version. The branch snapshot tag is
+   `push/<ref-digest>/<full-new-commit-SHA>`, where `ref-digest` is the full 64
+   lowercase hex SHA-256 of the exact fully qualified ref name's UTF-8 bytes (e.g.
+   `refs/heads/pi` -> `a4ff746fc8339e348c9018b8e701f2b4a547b36e6409099b9e4ac9c894e749df`),
+   with no newline, truncation or normalization. Look up an existing release by tag
+   before creating; a conflicting tag identity is BLOCKED.
+3. Group the whole approved push under one persisted push journal ID, created before
+   any mutation and reused on every retry. Inside it keep one deterministic per-ref
+   publication identity: the exact fully qualified ref plus its intended peeled commit
+   - the snapshot tag above for a branch, or the already-approved tag for a tag push.
+   Reuse that same per-ref identity on both forges and every retry; never mint a fresh
+   ID for missing-side recovery.
+4. Verify the remote ref first, then publish and read back the exact target commit,
    release bodies, status, the tag's peeled commit and URLs. A tag's peeled commit
-   must equal the intended immutable commit; only a branch/ref target may move. Keep
-   one deterministic operation identity per push so a retry reuses it; an uncertain
-   release create is reconciled by tag lookup before any retry.
-4. Notes stay concise: changes, fixes, breaking migration, actual tests, risks and
+   must equal the intended immutable commit; only a branch/ref target may move. An
+   uncertain release create is reconciled by tag lookup before any retry.
+5. Notes stay concise: changes, fixes, breaking migration, actual tests, risks and
    safe source links. Never copy secrets, PII or private tracker content into them.
-5. An uncertain or partial push/publication stops and reconciles read-only: preserve
+6. An uncertain or partial push/publication stops and reconciles read-only: preserve
    the journal and queue, keep any published success on one forge, report push success
    separately from release failure, never roll back a successful push, and resume only
    the missing forge without re-pushing successful refs, duplicating releases or
