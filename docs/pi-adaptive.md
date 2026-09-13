@@ -1,11 +1,23 @@
 # Adaptive Pi: less ceremony, real verification
 
 Pi now installs a short bootstrap and loads detailed delegation only when needed.
-The installed `megai` skill routes clear reversible work to one parent, focused
-checks and self-review. Security/data integrity, payments, migrations, shared-state
-concurrency, consequential cross-module changes, safety/installer policy and
-multi-repo delivery use the existing formal independent acceptance gate. Explicit
+The installed `megai` skill defaults to three steps: **locate/edit → one necessary
+check with inline self-review → deliver/stop**. Known routine changes do not need
+an automatic scout, new test file, full suite or separate review/report stage.
+Wording-only docs use a diff/link check or installed-file parity; behavior changes
+use the smallest relevant test/reproduction and any necessary diagnostics.
+
+Classify actual effects, not filenames or file count. Harmless skill/AGENTS.md prose
+and installing already-reviewed policy bytes are not automatically guarded.
+Security/data integrity, payments, migrations, shared-state concurrency,
+consequential cross-module changes, behavior-changing safety/installer/acceptance
+policy and multi-repo delivery retain formal independent acceptance. Instructions
+that alter approval, validation or ownership checks remain guarded. Explicit
 repo/user requirements still win. A failed gate cannot become a routine PASS.
+A guarded reviewer reads current raw evidence instead of repeating passing suites
+by default; only a concrete unresolved risk justifies extra checks. Editorial
+preferences do not create repair loops unless they violate the frozen contract
+or cause a demonstrated safety/correctness failure.
 
 Plane remains boundary-only tracking. Worktree isolation, private configuration
 backups, cooperative integration reservations and separate main/push approval stay.

@@ -9,7 +9,11 @@ managed-by: megai
 Use for **guarded** work selected by `megai`, explicit formal assurance, or an
 existing frozen contract. Routine Pi tasks use focused verification and self-review
 without loading this workflow. Once selected, this gate is mandatory: urgency or a
-failed check cannot downgrade it. Safety/acceptance/installer policy changes are guarded.
+failed check cannot downgrade it. Changes to safety/acceptance/installer behavior
+or enforcement are guarded, including instruction-only changes to approval or
+validation requirements. Harmless prose edits and installation of already-reviewed
+policy bytes do not trigger this gate by filename alone; classify their actual
+risk with `megai`.
 
 Parent owns the contract and Plane identity; leaves inherit both, never delegate,
 mutate Plane or integrate. Load this workflow once per task; reuse it at handoff.
@@ -63,7 +67,11 @@ screenshots, coverage, exit zero or LLM scores alone do not prove behavior.
 
 ## 3. Review, decide, stop
 
-Use one fresh independent Pi verifier through the approved route: neutral READY,
+Use one fresh independent Pi verifier, not an automatic scout/writer/reviewer team.
+Give it the existing raw receipts; repeat a passing check only for a concrete
+unresolved risk. Editorial preferences are nonblocking unless they violate the
+frozen contract or create a demonstrated safety/correctness failure.
+Launch through the approved route: neutral READY,
 verify Pi/exact model/effective high thinking, then send the frozen contract/hash,
 candidate diff/snapshot and raw evidence, not the implementer's reasoning transcript.
 Use a configured model suitable for independent review. Give read-only authority

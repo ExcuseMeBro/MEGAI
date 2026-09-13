@@ -2,6 +2,7 @@
 """Offline adaptive-policy/explicit economy wiring contracts; no provider calls."""
 import hashlib
 import json
+import re
 import sys
 import unittest
 
@@ -30,6 +31,29 @@ class Adaptive(Slim):
             shared = (self.home / name / "skills/megai/SKILL.md").read_text()
             self.assertEqual(shared, (ROOT / "pi-skill/SKILL.md").read_text())
         self.assertNotIn("MEGAI adaptive", (self.home / ".claude/CLAUDE.md").read_text())
+
+    def test_three_step_routing_preserves_guarded_boundaries(self):
+        policy = (ROOT / "pi-skill/ADAPTIVE.md").read_text()
+        self.assertEqual(re.findall(r"^\d+\. \*\*(.+?)\*\*", policy, re.MULTILINE),
+                         ["Locate and edit.", "Verify once.", "Deliver and stop."])
+        for clause in ("Classify the actual effect, not the filename or number of files",
+                       "routine when they leave safety behavior unchanged",
+                       "Changing approval, permissions,",
+                       "validation, data handling, acceptance requirements or installer ownership checks is",
+                       "guarded even when expressed only as instructions",
+                       "one independent reviewer", "existing raw evidence",
+                       "each needed check once per candidate", "concrete unresolved risk",
+                       "never turn a failed gate into a routine PASS"):
+            self.assertIn(clause, policy)
+        acceptance = (ROOT / "pi-skill/acceptance/SKILL.md").read_text()
+        self.assertIn("including instruction-only changes to approval or", acceptance)
+        self.assertIn("validation requirements", acceptance)
+        self.assertIn("Editorial preferences are nonblocking", acceptance)
+        self.assertIn("source-current PASS", acceptance)
+        bootstrap = (ROOT / "pi-skill/bootstrap.md").read_text()
+        self.assertIn("Routine work is three steps", bootstrap)
+        self.assertIn("main/push need separate approval", bootstrap)
+        self.assertIn("release notes on both GitHub and Forgejo", bootstrap)
 
     def test_owned_legacy_bootstrap_upgrade_is_idempotent(self):
         self.wire()
