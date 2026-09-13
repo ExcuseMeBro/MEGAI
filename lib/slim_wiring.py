@@ -290,6 +290,38 @@ class Plan:
         # Stage only receipt-owned files. Retain directories: planning/checks
         # must never mutate them, and empty directories are not active skills.
 
+    def token_profile_active(self, root: Path) -> bool:
+        """Validate the opt-in profile sidecar before any legacy decision.
+
+        An ABSENT sidecar keeps the unchanged default legacy behavior. A PRESENT
+        sidecar that is unowned, modified, malformed or unsupported fails closed:
+        this config namespace is new, so there is no legacy compatibility that
+        would justify deleting an owned core and leaving a dangling marker.
+        """
+        path = root / "megai-token-profile.json"
+        data = read(path)
+        if data is None:
+            return False
+        if self.prior_receipt.get(str(path)) != digest(data):
+            raise ValueError(f"unowned or modified token profile sidecar preserved: {path}; reconcile manually")
+        try:
+            parsed = json.loads(data)
+        except ValueError as error:
+            raise ValueError(f"malformed token profile sidecar preserved: {path}; reconcile manually") from error
+        if not isinstance(parsed, dict) or parsed.get("schema") != 1 or parsed.get("profile") != "max":
+            raise ValueError(f"unsupported token profile sidecar preserved: {path}; reconcile manually")
+        return True
+
+    def stage_token_profile(self, root: Path, remove: bool) -> None:
+        """Keep an owned max profile source-current via its installer Plan.
+
+        Imported locally: pi_token_profile imports this module, so a module-level
+        import would be circular.
+        """
+        import pi_token_profile
+
+        pi_token_profile.stage_profile(self, root, SOURCE, remove)
+
     def client(self, name: str, root: Path, remove: bool) -> None:
         # Validate configs without changing credentials, parent models, packages or hooks.
         for filename in ("settings.json", "mcp.json") if name != "codex" else ():
@@ -350,6 +382,7 @@ class Plan:
                 self.asset(skill_root / skill / "tgrep.md", (SOURCE / "pi-skill/tgrep.md").read_bytes(), remove)
                 self.asset(skill_root / skill / "delegation.md", (SOURCE / "pi-skill/delegation.md").read_bytes(), remove)
         if name == "pi":
+            active = self.token_profile_active(root)
             if not remove:
                 settings = load_json(root / "settings.json")
                 retired = re.compile(r"(?:^|[/@:])(?:rtk|caveman|agent[-_]memory|agentmemory|megai-memory)(?:$|[/@.])", re.I)
@@ -373,8 +406,14 @@ class Plan:
                             raise ValueError(f"unowned retired skill preserved: {child}; reconcile manually")
             self.configure_pi_resources(root, remove)
             self.retire_legacy_pi_assets(root, remove)
-            for retired_path in (root / "skills/caveman/SKILL.md", root / "skills/caveman/LICENSE.md"):
-                self.retire(retired_path)
+            if active:
+                # Owned opt-in max profile: refresh the marker and cores from source
+                # instead of retiring them as legacy. Unrelated, unowned, modified or
+                # companion files still block through the checks above and in the plan.
+                self.stage_token_profile(root, remove)
+            else:
+                for retired_path in (root / "skills/caveman/SKILL.md", root / "skills/caveman/LICENSE.md"):
+                    self.retire(retired_path)
             cache_path = root / "mcp-cache.json"
             cache_before = read(cache_path)
             if cache_before is not None:

@@ -96,6 +96,17 @@ installation and runtime network access is disabled. If Headroom is unavailable,
 the Pi extension reports raw-context fallback and the other hosts report the CLI
 failure; no silent active claim is made.
 
+### Opt-in token profile
+
+A separate, explicitly opt-in profile adds compact MIT-attributed Caveman/Ponytail
+core skills, RTK read-only discovery guidance and a Headroom style handoff. Ordinary
+defaults are unchanged until `--apply`; `--remove` returns the baseline without
+touching settings, credentials, models or user AGENTS text. Under `profile: max`,
+Caveman owns chat terseness so the adapter drops only its duplicate concise-output
+steering; compression, retrieval, memory and explicit verbosity overrides stay.
+No upstream installer, shared `~/.agents` writes or universal savings claim. See
+[docs/pi-token-profile.md](docs/pi-token-profile.md).
+
 ## Plane task labels
 
 The parent applies the [task-label policy](task-flow/skills/megai-task-flow/SKILL.md#task-labels)
@@ -224,6 +235,7 @@ HEADROOM_TEST_PYTHON="$HOME/.megai/venv/headroom/bin/python" \
   HEADROOM_TEST_ASSETS="$HOME/.megai/headroom-assets" \
   python3 tests/headroom_runtime.py
 bash tests/plane-mcp.sh
+env PI_PACKAGE_ROOT=<installed pi-coding-agent> RTK_BIN=<rtk> bash tests/pi-token-profile.sh
 bash -n bin/megai lib/*.sh install.sh
 python3 -m py_compile lib/*.py pi-skill/headroom/*.py
 ruff check --no-fix --no-fix-only --force-exclude --no-cache -- lib/*.py pi-skill/headroom/*.py tests/*.py
