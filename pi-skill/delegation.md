@@ -90,10 +90,36 @@ before a replacement. Verify MiniMax availability and native model/thinking befo
 sending task context; missing evidence or a mismatch remains BLOCKED. One MiniMax
 attempt per blocker counts toward the existing two-transition limit; never cycle
 back to the failed primary or start speculative standby agents. New independent
-tasks start with the configured primary; a healthy fallback child may handle the
+tasks start with the configured primary unless its balance is already known to be
+exhausted in this parent session (below); a healthy fallback child may handle the
 same task's refinements. Auth/permission failures, shared quota/outages and uncertain
 writes still require reconciliation, not blind fallback. Use completion notifications,
 not sleep polling.
+
+### Confirmed DeepSeek balance exhaustion
+
+A terminal child **provider** error with `model=deepseek/deepseek-flash`,
+`stopReason=error`, HTTP `402` and message `Insufficient Balance` is an explicit
+fallback trigger, even when the payload says `type=unknown_error` and
+`code=invalid_request_error`. Classify the actual provider response, not those
+broad type/code fields alone or a quoted error in repository/tool/test output.
+
+For this confirmed case, the parent must route the unfinished subagent task once
+to `minimax/MiniMax-M3` (high) after the stopped-writer and verified-launch checks.
+Notify the user briefly and continue without requesting the same fallback approval
+again, retrying DeepSeek, sleeping or waiting for a balance top-up. Carry the task's
+existing diff/evidence and resume only unfinished work; never replay uncertain
+mutations. Keep DeepSeek marked unavailable in this parent session so additional
+eligible subagents use MiniMax directly while the known balance error persists.
+Return to the configured primary only after the user confirms funding is restored
+or a separately authorized readiness check succeeds; do not poll the balance.
+This is session-local routing knowledge, not a change to native defaults or roles.
+
+This exception does not cover `401`/`403`, generic `429`, unknown `402` responses,
+shared outages or unresolved writes. Those retain reconciliation/blocking rules.
+If MiniMax is unavailable or also has a billing/auth/quota failure, report BLOCKED;
+do not cycle providers, buy credits or modify credentials. Other MiniMax failures
+retain the bounded escalation rule above.
 
 The MiniMax Max plan's advertised 4–5 concurrent agents is capacity, not a required
 fanout. Keep the existing independent-scope/one-writer rules and initial two-child
@@ -113,6 +139,8 @@ continue a smaller safe non-model-dependent step.
 
 Auth/permission failures, shared quota/outages and uncertain writes are not fixed
 by model hopping: report them, preserve evidence and reconcile writes read-only.
+The confirmed DeepSeek `402` balance-exhaustion exception above permits the named
+cross-provider fallback; it does not waive write reconciliation or authorization.
 An ordinary code/test failure needs a focused diagnosis, not automatic rerouting.
 Confirm the old writer has stopped before transferring write authority; retain
 its diff and completed tests. Reuse a healthy child for refinements; replace a
