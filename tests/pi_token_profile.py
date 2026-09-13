@@ -7,6 +7,7 @@ only this class so the inherited distribution suite is not repeated.
 from __future__ import annotations
 
 import json
+import os
 import sys
 import unittest
 
@@ -39,9 +40,9 @@ class TokenProfile(Slim):
         self.assertEqual((agent / "AGENTS.md").read_text().count("megai:token-profile:begin"), 1)
         self.assertFalse((self.home / ".agents").exists(), "no shared skill writes")
         after = self.snapshot()
-        self.profile("--verify")
         self.profile("--apply")
         self.assertEqual(self.snapshot(), after, "reapply must be idempotent")
+        self.profile("--verify")
         self.profile("--remove")
         self.assertFalse((agent / "skills/caveman/SKILL.md").exists())
         self.assertFalse((agent / "skills/ponytail/SKILL.md").exists())
@@ -177,7 +178,7 @@ class TokenProfile(Slim):
         self.write(agent / "settings.json", json.dumps(settings))
         result = self.profile("--apply")
         self.assertNotIn("activation gap", result.stderr)
-        self.assertIn("applied", result.stdout)
+        self.assertIn("installed", result.stdout)
         self.profile("--verify")
         self.assertEqual(json.loads((agent / "settings.json").read_text()), settings)
 
@@ -262,7 +263,7 @@ class TokenProfile(Slim):
         self.wire_pi(ok=False)
         self.assertEqual(self.snapshot(), before)
         self.assertTrue((agent / "skills/caveman/SKILL.md").is_file())
-        # An absent sidecar keeps the unchanged legacy default.
+        # An absent, receipted profile cleans up in the same Plan.
         sidecar.unlink()
         self.wire_pi()
         self.assertFalse((agent / "skills/caveman/SKILL.md").exists())
@@ -276,6 +277,94 @@ class TokenProfile(Slim):
         self.assertFalse((agent / "skills/caveman/SKILL.md").exists())
         self.assertFalse((agent / "megai-token-profile.json").exists())
         self.assertEqual((agent / "skills/caveman/companion.md").read_text(), "user file\n")
+
+    def test_check_reports_native_exclusion_semantics(self):
+        agent = self.home / ".pi/agent"
+        self.profile("--apply")
+        self.write(agent / "settings.json", json.dumps({"skills": ["!caveman"]}))
+        result = self.profile("--check", ok=False)
+        self.assertIn("caveman", result.stdout + result.stderr)
+        # `-caveman` is exact-path-only in native Pi and does not disable the core.
+        self.write(agent / "settings.json", json.dumps({"skills": ["-caveman"]}))
+        self.profile("--check")
+        # Plain positive paths are additive and never disable a core.
+        self.write(agent / "settings.json", json.dumps({"skills": ["/opt/shared/skills/caveman/SKILL.md"]}))
+        self.profile("--check")
+
+    @unittest.skipUnless(os.environ.get("PI_PACKAGE_ROOT"), "native verifier needs PI_PACKAGE_ROOT")
+    def test_verify_delegates_to_fresh_native_activation(self):
+        agent = self.home / ".pi/agent"
+        self.profile("--apply")
+        env = dict(self.env, PATH=os.environ["PATH"])
+        self.profile("--verify", env=env)
+        cases = (
+            ("relative parent-name exclusion", {"skills": ["!caveman"]}),
+            ("relative ponytail exclusion", {"skills": ["!ponytail"]}),
+            ("wildcard caveman exclusion", {"skills": ["!" + str(agent / "skills/caveman") + "/**"]}),
+            ("exact force-exclude of the ponytail dir", {"skills": ["-" + str(agent / "skills/ponytail")]}),
+            ("excluded Headroom extension",
+             {"extensions": ["-" + str(agent / "extensions/megai-headroom/index.ts")]}),
+        )
+        for label, settings in cases:
+            with self.subTest(label=label):
+                self.write(agent / "settings.json", json.dumps(settings))
+                result = self.profile("--verify", ok=False, env=env)
+                self.assertIn("BLOCKED", result.stderr)
+        self.write(agent / "settings.json", json.dumps({"skills": ["-caveman"]}))
+        self.profile("--verify", env=env)
+        self.write(agent / "settings.json", json.dumps({"skills": ["/opt/shared/skills/caveman/SKILL.md"]}))
+        self.profile("--verify", env=env)
+
+    def test_missing_sidecar_cleans_owned_profile(self):
+        agent = self.home / ".pi/agent"
+        self.wire_pi()
+        self.profile("--apply")
+        settings = {"defaultModel": "keep", "packages": ["npm:user"],
+                    "skills": ["!" + str(self.home / ".agents/skills") + "/**"]}
+        self.write(agent / "settings.json", json.dumps(settings))
+        self.write(agent / "skills/user-skill/SKILL.md", "---\nname: user-skill\ndescription: user\n---\n")
+        (agent / "megai-token-profile.json").unlink()
+        self.wire_pi()
+        for skill in ("caveman", "ponytail"):
+            self.assertFalse((agent / "skills" / skill / "SKILL.md").exists())
+            self.assertFalse((agent / "skills" / skill / "LICENSE.md").exists())
+        self.assertNotIn("megai:token-profile", (agent / "AGENTS.md").read_text())
+        receipt = json.loads((self.megai / "slim-wiring.json").read_text())
+        for skill in ("caveman", "ponytail"):
+            for name in ("SKILL.md", "LICENSE.md"):
+                self.assertNotIn(str(agent / "skills" / skill / name), receipt)
+        self.assertNotIn(str(agent / "megai-token-profile.json"), receipt)
+        self.assertNotIn(str(agent / "AGENTS.md") + "#token-profile", receipt)
+        actual = json.loads((agent / "settings.json").read_text())
+        self.assertEqual(actual["defaultModel"], "keep")
+        self.assertEqual(actual["packages"], ["npm:user"])
+        self.assertTrue((agent / "skills/user-skill/SKILL.md").is_file())
+        after = self.snapshot()
+        self.wire_pi()
+        self.assertEqual(self.snapshot(), after)
+
+    def test_missing_sidecar_blocks_modified_core(self):
+        agent = self.home / ".pi/agent"
+        self.wire_pi()
+        self.profile("--apply")
+        (agent / "megai-token-profile.json").unlink()
+        with open(agent / "skills/caveman/SKILL.md", "a", encoding="utf-8") as stream:
+            stream.write("\nuser edit\n")
+        before = self.snapshot()
+        self.wire_pi(ok=False)
+        self.assertEqual(self.snapshot(), before)
+        self.assertIn("user edit", (agent / "skills/caveman/SKILL.md").read_text())
+
+    def test_missing_sidecar_blocks_modified_marker(self):
+        agent = self.home / ".pi/agent"
+        self.wire_pi()
+        self.profile("--apply")
+        (agent / "megai-token-profile.json").unlink()
+        text = (agent / "AGENTS.md").read_text().replace("MEGAI token profile", "MEGAI token profile edited")
+        (agent / "AGENTS.md").write_text(text)
+        before = self.snapshot()
+        self.wire_pi(ok=False)
+        self.assertEqual(self.snapshot(), before)
 
     def test_stage_profile_is_staging_only(self):
         script = (

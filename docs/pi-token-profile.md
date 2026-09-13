@@ -28,7 +28,7 @@ python3 ~/.megai/lib/pi_token_profile.py --check
 # Deliberate apply: requires an existing RTK binary.
 RTK_BIN=/opt/homebrew/bin/rtk python3 ~/.megai/lib/pi_token_profile.py --apply
 
-# Fail unless the installed profile matches source and activation is complete.
+# Fail unless the installed profile matches source and a fresh native loader activates it.
 python3 ~/.megai/lib/pi_token_profile.py --verify
 
 # Remove only receipt-owned assets; leaves settings, auth, models and user text.
@@ -37,13 +37,19 @@ python3 ~/.megai/lib/pi_token_profile.py --remove
 
 `--apply` prints `installed-with-gap` and a bounded explanation when a user
 filter excludes an installed core: the files are owned and current, but the
-profile is not fully activated, and `--verify` then exits nonzero (`BLOCKED`).
+profile is not fully activated. `--check` and `--apply` are best-effort (they
+mirror native Pi override semantics but do not claim full activation);
+`--verify` runs a **fresh native Pi resource loader** offline and is authoritative.
+It never claims a live-session reload.
 
-When settings.json is unreadable, not a JSON object, or its `skills` entry is not
-a list, the profile reports that activation could not be checked instead of
-crashing or writing settings. Explicit positive skill paths are additive in Pi and
-are never treated as an allow-list; only an exclusion (`!`/`-`) that matches an
-installed core is reported as a gap. The native Pi loader remains authoritative.
+When settings.json is unreadable, not a JSON object, or a selection entry is not a
+list, the profile reports that activation could not be checked instead of crashing
+or writing settings. Explicit positive paths are additive in Pi and are never
+treated as an allow-list. Overrides follow native semantics: `!name` matches the
+parent skill name, `!path`/`!dir/**` match paths and wildcards, and `-`/`+` are
+exact-path force overrides applied in native order (so `-caveman` alone is
+exact-path-only and does not disable the core; use `!caveman` or the exact path).
+Excluded Headroom extensions are reported too. Filters are never rewritten.
 
 The installer reuses the existing `lib/slim_wiring.py` `Plan`: ownership receipts,
 preflight-before-write, concurrent-drift refusal and private backups. Re-apply is
@@ -98,15 +104,20 @@ Broad Pi wiring recognizes an **owned valid max profile** and refreshes its mark
 and cores from source instead of retiring them as legacy; the `LICENSE.md` filename
 matches the convention that wiring already tolerates. The exception is narrow:
 
-- Default wiring without a valid, receipt-owned sidecar is unchanged.
+- Default wiring without profile receipts is unchanged.
 - Unowned, modified or companion files still block, and existing legacy retirement
   still applies to any caveman/legacy resource outside the exact owned core paths.
+- If the sidecar is deleted but owned profile receipts remain, the same Plan clears
+  the owned cores, marker and receipts consistently; modified user assets block.
 - Removal removes only owned profile assets; user files remain.
 
 The Headroom activation verifier (`lib/verify_headroom_activation.mjs`) exempts a
-local caveman/ponytail core only when the sidecar is valid and the per-file receipts
-match the loaded files. A foreign or shared caveman skill, or an unowned/modified
-local core, still fails verification.
+local caveman/ponytail core only when the sidecar exists, its own SHA matches the
+receipt, and the per-core receipts match the loaded files. When an owned max profile
+exists it additionally requires **both** cores to be loaded and Headroom to be
+active, so a filter that omits a core fails. A foreign or shared caveman skill, an
+unowned/modified local core or sidecar, and an excluded Headroom extension all fail
+verification.
 
 ## Verification
 

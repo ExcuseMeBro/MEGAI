@@ -18,7 +18,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from slim_wiring import Plan, SOURCE, digest, encoded, read
+from slim_wiring import MEGAI, Plan, SOURCE, digest, encoded, read
 
 PROFILE = "max"
 BEGIN = "<!-- megai:token-profile:begin -->"
@@ -88,8 +88,16 @@ def stage_profile(plan: Plan, root: Path, source: Path, remove: bool = False) ->
             asset = base / skill / name
             if not asset.is_file():
                 raise ValueError(f"missing token profile asset: {asset}")
-            plan.asset(root / "skills" / skill / name, asset.read_bytes(), remove)
-    plan.asset(root / SIDECAR, encoded({"schema": 1, "profile": PROFILE}), remove)
+            target = root / "skills" / skill / name
+            if remove:
+                # retire() clears a missing receipt and blocks unowned user edits.
+                plan.retire(target)
+            else:
+                plan.asset(target, asset.read_bytes(), False)
+    if remove:
+        plan.retire(root / SIDECAR)
+    else:
+        plan.asset(root / SIDECAR, encoded({"schema": 1, "profile": PROFILE}), False)
 
 
 def stage_adapter(plan: Plan, root: Path, source: Path) -> None:
@@ -105,11 +113,58 @@ def rtk_binary() -> str | None:
     return configured or shutil.which("rtk")
 
 
-def profile_gaps(root: Path) -> list[str]:
-    """Best-effort activation gaps. User filters are always preserved.
+def _relative_posix(path: Path, base: Path) -> str:
+    try:
+        return path.relative_to(base).as_posix()
+    except ValueError:
+        return path.as_posix()
 
-    Explicit positive skill paths are additive in Pi, so only exclusions that match
-    an installed core are reported. The native Pi loader remains authoritative.
+
+def _native_pattern_match(path: Path, pattern: str, base: Path) -> bool:
+    """Mirror native Pi matchesAnyPattern for an auto-discovered resource."""
+    normalized = pattern.replace("\\", "/")
+    candidates = [_relative_posix(path, base), path.name, path.as_posix()]
+    if path.name == "SKILL.md":
+        parent = path.parent
+        candidates += [_relative_posix(parent, base), parent.name, parent.as_posix()]
+    return any(fnmatch.fnmatchcase(candidate, normalized) for candidate in candidates)
+
+
+def _native_exact_match(path: Path, pattern: str, base: Path) -> bool:
+    """Mirror native Pi matchesAnyExactPattern (`+`/`-` force overrides)."""
+    normalized = pattern.replace("\\", "/")
+    if normalized.startswith("./"):
+        normalized = normalized[2:]
+    if normalized in (_relative_posix(path, base), path.as_posix()):
+        return True
+    if path.name == "SKILL.md":
+        parent = path.parent
+        return normalized in (_relative_posix(parent, base), parent.as_posix())
+    return False
+
+
+def _native_enabled(path: Path, patterns: list, base: Path) -> bool:
+    """Mirror native Pi isEnabledByOverrides, including `!`/`+`/`-` order."""
+    overrides = [item for item in patterns if isinstance(item, str) and item[:1] in ("!", "+", "-")]
+    excludes = [item[1:] for item in overrides if item.startswith("!")]
+    force_includes = [item[1:] for item in overrides if item.startswith("+")]
+    force_excludes = [item[1:] for item in overrides if item.startswith("-")]
+    enabled = True
+    if excludes and any(_native_pattern_match(path, item, base) for item in excludes):
+        enabled = False
+    if force_includes and any(_native_exact_match(path, item, base) for item in force_includes):
+        enabled = True
+    if force_excludes and any(_native_exact_match(path, item, base) for item in force_excludes):
+        enabled = False
+    return enabled
+
+
+def profile_gaps(root: Path) -> list[str]:
+    """Best-effort activation gaps mirroring native Pi override semantics.
+
+    Plain positive paths are additive in Pi, so only `!`/`+`/`-` overrides are
+    considered, in native order. The native loader stays authoritative and
+    `--verify` runs it directly. Filters are never rewritten.
     """
     path = root / "settings.json"
     if not path.exists():
@@ -117,23 +172,50 @@ def profile_gaps(root: Path) -> list[str]:
     try:
         settings = json.loads(path.read_text())
     except (OSError, ValueError) as error:
-        return [f"Pi settings are unreadable; skill activation was not checked: {path} ({error})"]
+        return [f"Pi settings are unreadable; activation was not checked: {path} ({error})"]
     if not isinstance(settings, dict):
-        return [f"Pi settings must be a JSON object; skill activation was not checked: {path}"]
-    patterns = settings.get("skills")
-    if not isinstance(patterns, list):
-        return []
+        return [f"Pi settings must be a JSON object; activation was not checked: {path}"]
     gaps = []
-    for skill in SKILLS:
-        skill_file = str(root / "skills" / skill / "SKILL.md")
-        for pattern in patterns:
-            if not isinstance(pattern, str) or not pattern.startswith(("!", "-")):
-                continue
-            target = pattern[1:]
-            if fnmatch.fnmatch(skill_file, target) or skill_file == target.rstrip("/*"):
-                gaps.append(f"settings.json excludes the local {skill} core: {pattern}")
-                break
+    skills = settings.get("skills", [])
+    if isinstance(skills, list):
+        for skill in SKILLS:
+            if not _native_enabled(root / "skills" / skill / "SKILL.md", skills, root):
+                gaps.append(f"settings.json disables the local {skill} core")
+    elif skills is not None:
+        gaps.append(f"settings.json skills must be a list; activation was not checked: {path}")
+    extensions = settings.get("extensions", [])
+    if isinstance(extensions, list):
+        adapter = root / HEADROOM_ADAPTER
+        if adapter.exists() and not _native_enabled(adapter, extensions, root):
+            gaps.append("settings.json disables the Headroom extension")
+    elif extensions is not None:
+        gaps.append(f"settings.json extensions must be a list; activation was not checked: {path}")
     return gaps
+
+
+def native_activation(root: Path) -> tuple[bool, str]:
+    """Run the existing native Pi activation verifier offline; no provider calls."""
+    node = shutil.which("node")
+    if not node:
+        return False, "node is unavailable; native activation was not verified"
+    verifier = SOURCE / "lib/verify_headroom_activation.mjs"
+    if not verifier.is_file():
+        return False, f"native activation verifier missing: {verifier}"
+    command = [node, str(verifier)]
+    pi = shutil.which("pi")
+    if pi:
+        command.append(pi)
+    env = {**os.environ, "PI_CODING_AGENT_DIR": str(root),
+           "MEGAI_HOME": str(MEGAI), "PI_OFFLINE": "1"}
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, timeout=60,
+                                check=False, env=env)
+    except (OSError, subprocess.SubprocessError) as error:
+        return False, f"native activation verifier failed: {error}"
+    if result.returncode == 0:
+        return True, (result.stdout or "").strip() or "native activation verified"
+    output = (result.stderr or "").strip() or (result.stdout or "").strip()
+    return False, output.splitlines()[-1] if output else f"native activation exited {result.returncode}"
 
 
 def rtk_preflight() -> tuple[bool, str]:
@@ -185,7 +267,7 @@ def main(argv: list[str] | None = None) -> int:
         if gaps:
             print(f"token profile {PROFILE} installed-with-gap; not fully activated (rtk: {rtk_detail})")
         else:
-            print(f"token profile {PROFILE} applied (rtk: {rtk_detail})")
+            print(f"token profile {PROFILE} installed (rtk: {rtk_detail}); run --verify for native activation")
         return 0
     blockers = list(gaps)
     if not rtk_ok:
@@ -197,13 +279,16 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError(f"installed token profile is missing or stale; re-apply ({error})") from error
         if blockers:
             raise ValueError("token profile BLOCKED: " + "; ".join(blockers))
-        print(f"token profile {PROFILE} verified (rtk: {rtk_detail})")
+        active, detail = native_activation(root)
+        if not active:
+            raise ValueError(f"token profile BLOCKED: native activation not verified ({detail})")
+        print(f"token profile {PROFILE} verified by fresh native activation (rtk: {rtk_detail})")
         return 0
     plan.apply(True)
     if blockers:
         print(f"token profile {PROFILE} preflight BLOCKED: " + "; ".join(blockers))
         return 1
-    print(f"token profile {PROFILE} preflight ready; rtk: {rtk_detail}")
+    print(f"token profile {PROFILE} preflight ready (best-effort; run --verify for native activation); rtk: {rtk_detail}")
     return 0
 
 

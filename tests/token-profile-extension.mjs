@@ -177,6 +177,17 @@ try {
     settingsManager: SettingsManager.inMemory({ packages: [] }) };
   assert.equal(await activation(packageRoot, activationOptions), true,
     'owned max profile must pass activation verification');
+  const settingsActivation = (settings) => activation(packageRoot,
+    { cwd: temporary, agentDir: activationAgent, settingsManager: SettingsManager.inMemory({ packages: [], ...settings }) });
+  // Native override semantics: `!name` matches the parent skill name, plain paths are
+  // additive, and `-name` is exact-path-only so it does not disable a core.
+  await assert.rejects(settingsActivation({ skills: ['!caveman'] }), /Token profile core not active/);
+  await assert.rejects(settingsActivation({ skills: ['!ponytail'] }), /Token profile core not active/);
+  await assert.rejects(settingsActivation({ skills: ['!' + join(activationAgent, 'skills/caveman') + '/**'] }), /Token profile core not active/);
+  assert.equal(await settingsActivation({ skills: ['-caveman'] }), true, '-caveman is exact-path-only in native Pi');
+  assert.equal(await settingsActivation({ skills: ['/opt/shared/skills/caveman/SKILL.md'] }), true, 'positive skill paths are additive');
+  assert.equal(await settingsActivation({
+    extensions: ['-' + join(activationAgent, 'extensions/megai-headroom/index.ts')] }), false, 'excluded Headroom is not active');
   // Sidecar receipt removed: the cores stay receipted but the profile is not owned.
   const withoutSidecar = { ...ownedReceipt };
   delete withoutSidecar[sidecar];

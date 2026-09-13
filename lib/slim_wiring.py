@@ -290,18 +290,27 @@ class Plan:
         # Stage only receipt-owned files. Retain directories: planning/checks
         # must never mutate them, and empty directories are not active skills.
 
-    def token_profile_active(self, root: Path) -> bool:
-        """Validate the opt-in profile sidecar before any legacy decision.
+    def token_profile_receipts(self, root: Path) -> list[str]:
+        keys = [str(root / "megai-token-profile.json"), str(root / "AGENTS.md") + "#token-profile"]
+        for skill in ("caveman", "ponytail"):
+            for name in ("SKILL.md", "LICENSE.md"):
+                keys.append(str(root / "skills" / skill / name))
+        return [key for key in keys if key in self.prior_receipt]
 
-        An ABSENT sidecar keeps the unchanged default legacy behavior. A PRESENT
-        sidecar that is unowned, modified, malformed or unsupported fails closed:
-        this config namespace is new, so there is no legacy compatibility that
-        would justify deleting an owned core and leaving a dangling marker.
+    def token_profile_state(self, root: Path) -> str:
+        """Classify the opt-in profile sidecar before any legacy decision.
+
+        ABSENT keeps the unchanged default legacy behavior. ORPHAN means the
+        sidecar is gone but owned profile receipts remain: the same Plan clears
+        the owned cores, marker and receipts. INVALID (present but unowned,
+        modified, malformed or unsupported) fails closed before any write; this
+        config namespace is new, so nothing legacy requires deleting an owned
+        core and leaving a dangling marker. OWNED refreshes from source.
         """
         path = root / "megai-token-profile.json"
         data = read(path)
         if data is None:
-            return False
+            return "orphan" if self.token_profile_receipts(root) else "absent"
         if self.prior_receipt.get(str(path)) != digest(data):
             raise ValueError(f"unowned or modified token profile sidecar preserved: {path}; reconcile manually")
         try:
@@ -310,7 +319,7 @@ class Plan:
             raise ValueError(f"malformed token profile sidecar preserved: {path}; reconcile manually") from error
         if not isinstance(parsed, dict) or parsed.get("schema") != 1 or parsed.get("profile") != "max":
             raise ValueError(f"unsupported token profile sidecar preserved: {path}; reconcile manually")
-        return True
+        return "owned"
 
     def stage_token_profile(self, root: Path, remove: bool) -> None:
         """Keep an owned max profile source-current via its installer Plan.
@@ -382,7 +391,7 @@ class Plan:
                 self.asset(skill_root / skill / "tgrep.md", (SOURCE / "pi-skill/tgrep.md").read_bytes(), remove)
                 self.asset(skill_root / skill / "delegation.md", (SOURCE / "pi-skill/delegation.md").read_bytes(), remove)
         if name == "pi":
-            active = self.token_profile_active(root)
+            profile_state = self.token_profile_state(root)
             if not remove:
                 settings = load_json(root / "settings.json")
                 retired = re.compile(r"(?:^|[/@:])(?:rtk|caveman|agent[-_]memory|agentmemory|megai-memory)(?:$|[/@.])", re.I)
@@ -406,11 +415,16 @@ class Plan:
                             raise ValueError(f"unowned retired skill preserved: {child}; reconcile manually")
             self.configure_pi_resources(root, remove)
             self.retire_legacy_pi_assets(root, remove)
-            if active:
+            if profile_state == "owned":
                 # Owned opt-in max profile: refresh the marker and cores from source
                 # instead of retiring them as legacy. Unrelated, unowned, modified or
                 # companion files still block through the checks above and in the plan.
                 self.stage_token_profile(root, remove)
+            elif profile_state == "orphan":
+                # Sidecar gone but owned profile receipts remain: clear the owned
+                # cores, marker and receipts in this same Plan. Unowned or modified
+                # user assets still block in retire().
+                self.stage_token_profile(root, True)
             else:
                 for retired_path in (root / "skills/caveman/SKILL.md", root / "skills/caveman/LICENSE.md"):
                     self.retire(retired_path)
