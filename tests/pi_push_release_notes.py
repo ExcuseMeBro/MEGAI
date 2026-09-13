@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline contracts for the per-push dual-forge release-notes policy."""
+"""Offline contracts for per-push GitHub notes and ADAM-only Forgejo notes."""
 import hashlib
 import json
 import sys
@@ -21,7 +21,9 @@ class ReleaseNotes(Slim):
         agent = self.home / ".pi/agent"
         bootstrap = (agent / "AGENTS.md").read_text()
         self.assertLess(len(bootstrap), 1900)
-        self.assertIn("release notes on both GitHub and Forgejo", bootstrap)
+        self.assertIn("every approved push needs GitHub release notes", bootstrap)
+        self.assertIn("Forgejo is required only for ADAM and its component repositories",
+                      " ".join(bootstrap.split()))
         self.assertIn("agent-worktree-lifecycle", bootstrap)
         installed = agent / "skills/agent-worktree-lifecycle/SKILL.md"
         self.assertEqual(installed.read_bytes(), LIFECYCLE.read_bytes())
@@ -34,7 +36,17 @@ class ReleaseNotes(Slim):
             "Pi delivery policy",
             "For Pi, every approved push",
             "it is not main-only",
-            "both configured forges (GitHub and Forgejo)",
+            "GitHub for every project, plus Forgejo only for ADAM and its component repositories",
+            "verified existing umbrella project identity and documented repository mapping",
+            "`ADAM full` in Plane",
+            "component repositories and linked worktrees inherit that identity",
+            "Never infer ADAM membership from a branch name, checkout basename or remote alias",
+            "Ambiguous identity is BLOCKED before selecting destinations",
+            "Non-ADAM projects (including SPMAPP and MEGAI) use GitHub only under this rule",
+            "missing Forgejo does not block them",
+            "Do not preflight, create or register Forgejo resources for non-ADAM projects",
+            "This scope rule grants no new push destination",
+            "preflight only the required destinations",
             "existing target repo identity/remote",
             "then draft the notes",
             "missing, unmapped or unauthorized required forge is BLOCKED",
@@ -42,7 +54,7 @@ class ReleaseNotes(Slim):
             "invent a project/remote or expose private code to a new host",
             "queue reservation is not push approval",
             "existing main/push approval boundary is unchanged",
-            "GitHub/Forgejo **Release**",
+            "Publish a **Release** for the same pinned commit on every required destination",
             "release bodies, not merely commit or PR text",
             "old/new full SHA and ref",
             "actual verified pushed range",
@@ -65,7 +77,7 @@ class ReleaseNotes(Slim):
             "one deterministic per-ref publication identity",
             "exact fully qualified ref plus its intended peeled commit",
             "the snapshot tag above for a branch, or the already-approved tag for a tag push",
-            "Reuse that same per-ref identity on both forges and every retry",
+            "Reuse that same per-ref identity on all required destinations and every retry",
             "never mint a fresh ID for missing-side recovery",
             "Verify the remote ref first",
             "read back the exact target commit",
@@ -79,7 +91,7 @@ class ReleaseNotes(Slim):
             "keep any published success on one forge",
             "report push success separately from release failure",
             "never roll back a successful push",
-            "resume only the missing forge",
+            "resume only the missing required destination",
             ("without re-pushing successful refs, duplicating releases "
              "or overwriting human-written text"),
             "agent instruction, not enforcement",
@@ -114,7 +126,9 @@ class ReleaseNotes(Slim):
         installed = (agent / "AGENTS.md").read_text()
         self.assertTrue(installed.startswith(user_policy))
         self.assertIn("<!-- megai:slim:begin -->", installed)
-        self.assertIn("release notes on both GitHub and Forgejo", installed)
+        self.assertIn("every approved push needs GitHub release notes", installed)
+        self.assertIn("Forgejo is required only for ADAM and its component repositories",
+                      " ".join(installed.split()))
         self.assertEqual((agent / "skills/agent-worktree-lifecycle/SKILL.md").read_bytes(),
                          LIFECYCLE.read_bytes())
         self.assertEqual((agent / "skills/megai-task-flow/SKILL.md").read_bytes(),

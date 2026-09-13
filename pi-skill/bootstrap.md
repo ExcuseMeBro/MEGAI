@@ -13,7 +13,8 @@ verified workspaceId, not a new project to create or rename.
 Missing or ambiguous identity is BLOCKED in every project.
 No child repository registration.
 Reserve integration targets with `megai queue`; main/push need separate approval,
-and every approved push needs release notes on both GitHub and Forgejo.
+and every approved push needs GitHub release notes; Forgejo is required only for
+ADAM and its component repositories.
 
 Load delegation only when a child is justified. Keep native model preferences; MEGAI
 has no model allowlist. Use Headroom memory or ready indexes only when useful; no

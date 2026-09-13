@@ -119,8 +119,8 @@ Production deployment, secrets and destructive migrations retain separate approv
    fresh tests/review; conflicts stay isolated, never force/reset another task.
 4. Push only if explicitly included in delivery scope, using normal non-force pushes
    and exact remote-head verification. For Pi, every approved push then publishes
-   release notes on both configured forges (see Release notes for every approved push
-   (Pi)), not main only. Recheck source/target vectors between steps.
+   GitHub release notes, plus Forgejo only for ADAM (see Release notes for every
+   approved push (Pi)), not main only. Recheck source/target vectors between steps.
    Multi-repo delivery is **not atomic**: journal each completed repo; on conflict,
    test/push failure or uncertain result stop the remaining integrations, preserve
    every worktree/ref/evidence and reconcile actual refs before resuming. Never
@@ -140,14 +140,25 @@ Production deployment, secrets and destructive migrations retain separate approv
 ## Release notes for every approved push (Pi)
 
 Pi delivery policy. Push approval names the exact destinations, refs and the
-release/tag publication authority; it is not main-only. Before any push, preflight
-both configured forges (GitHub and Forgejo) for authenticated access and the
-existing target repo identity/remote, then draft the notes. A missing, unmapped or
+release/tag publication authority; it is not main-only. Required destinations are
+GitHub for every project, plus Forgejo only for ADAM and its component repositories.
+Resolve ADAM membership from the verified existing umbrella project identity and
+documented repository mapping (`ADAM full` in Plane); component repositories and
+linked worktrees inherit that identity. Never infer ADAM membership from a branch
+name, checkout basename or remote alias. Ambiguous identity is BLOCKED before
+selecting destinations.
+
+Non-ADAM projects (including SPMAPP and MEGAI) use GitHub only under this rule;
+missing Forgejo does not block them. Do not preflight, create or register Forgejo
+resources for non-ADAM projects. This scope rule grants no new push destination.
+
+Before any push, preflight only the required destinations for authenticated access
+and the existing target repo identity/remote, then draft the notes. A missing, unmapped or
 unauthorized required forge is BLOCKED; never treat it as success, invent a
 project/remote or expose private code to a new host. A queue reservation is not push
 approval; the existing main/push approval boundary is unchanged.
 
-1. Publish a GitHub/Forgejo **Release** for the same pinned commit on both forges -
+1. Publish a **Release** for the same pinned commit on every required destination -
    release bodies, not merely commit or PR text. Record each destination's old/new
    full SHA and ref and summarize the actual verified pushed range. On a new ref, push
    from an explicitly selected baseline or a clearly identified initial-history scope;
@@ -165,7 +176,7 @@ approval; the existing main/push approval boundary is unchanged.
    any mutation and reused on every retry. Inside it keep one deterministic per-ref
    publication identity: the exact fully qualified ref plus its intended peeled commit
    - the snapshot tag above for a branch, or the already-approved tag for a tag push.
-   Reuse that same per-ref identity on both forges and every retry; never mint a fresh
+   Reuse that same per-ref identity on all required destinations and every retry; never mint a fresh
    ID for missing-side recovery.
 4. Verify the remote ref first, then publish and read back the exact target commit,
    release bodies, status, the tag's peeled commit and URLs. A tag's peeled commit
@@ -176,7 +187,7 @@ approval; the existing main/push approval boundary is unchanged.
 6. An uncertain or partial push/publication stops and reconciles read-only: preserve
    the journal and queue, keep any published success on one forge, report push success
    separately from release failure, never roll back a successful push, and resume only
-   the missing forge without re-pushing successful refs, duplicating releases or
+   the missing required destination without re-pushing successful refs, duplicating releases or
    overwriting human-written text.
 
 This is agent instruction, not enforcement: MEGAI installs no git hook, and manual

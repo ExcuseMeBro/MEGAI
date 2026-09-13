@@ -53,7 +53,9 @@ class Adaptive(Slim):
         bootstrap = (ROOT / "pi-skill/bootstrap.md").read_text()
         self.assertIn("Routine work is three steps", bootstrap)
         self.assertIn("main/push need separate approval", bootstrap)
-        self.assertIn("release notes on both GitHub and Forgejo", bootstrap)
+        self.assertIn("every approved push needs GitHub release notes", bootstrap)
+        self.assertIn("Forgejo is required only for ADAM and its component repositories",
+                      " ".join(bootstrap.split()))
 
     def test_owned_legacy_bootstrap_upgrade_is_idempotent(self):
         self.wire()
