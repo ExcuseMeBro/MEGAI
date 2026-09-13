@@ -152,6 +152,13 @@ Non-ADAM projects (including SPMAPP and MEGAI) use GitHub only under this rule;
 missing Forgejo does not block them. Do not preflight, create or register Forgejo
 resources for non-ADAM projects. This scope rule grants no new push destination.
 
+**Notes-only releases are sufficient.** Publish the release body without uploaded
+assets unless the user explicitly requests attachments. Do not build, package or
+upload binaries, archives, checksums or evidence bundles solely to populate release
+assets; missing attachments are not a blocker. Required tests and commit/tag/release
+verification below still apply. Forge-generated source archives may appear
+without manual uploads; leave them and any existing release assets unchanged.
+
 Before any push, preflight only the required destinations for authenticated access
 and the existing target repo identity/remote, then draft the notes. A missing, unmapped or
 unauthorized required forge is BLOCKED; never treat it as success, invent a
