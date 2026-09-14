@@ -144,6 +144,16 @@ pass bounded context and return concise evidence, not full transcripts. Use nati
 completion notifications, never routine polling. Do not create schedules/heartbeats,
 restart daemons, enable watchdogs, or alter models/fallbacks without an explicit request.
 
+Launch children in the background, not by navigating the desktop: use
+`paseo agent run --background` with an explicit existing task workspace and cwd.
+The invoking main tab keeps focus, and that existing workspace owns the created
+agent. `run --background` is background execution, not proof that a UI tab
+rendered. Never automatically invoke `paseo agent open`, desktop agent deep links,
+app/window activation, or a focus-switch-then-restore workaround. If a future
+background tab-open API is needed, verify its documented non-focusing behavior first;
+never invent flags such as `--no-focus`.
+Only an explicit user request may focus a child.
+
 Do not use Pencil unless the user explicitly requests Pencil for the current task.
 A generic UI/design request is not permission. This applies to delegated children,
 Pencil browser tools and every MCP invocation path. Pencil's Pi lifecycle is lazy;

@@ -313,6 +313,23 @@ class Distribution(unittest.TestCase):
             self.assertIn(f"'{name}'", verify)
         self.assertIn('SOURCE / "prompts"', (DEFAULTS / "install.py").read_text())
 
+    def test_child_launch_background_keeps_main_focus(self):
+        policy = (DEFAULTS / "AGENTS.md").read_text()
+        for required in (
+            "`paseo agent run --background`",
+            "an explicit existing task workspace and cwd",
+            "The invoking main tab keeps focus",
+            "is background execution, not proof that",
+            "invoke `paseo agent open`",
+            "desktop agent deep links",
+            "app/window activation",
+            "focus-switch-then-restore workaround",
+            "verify its documented non-focusing behavior first",
+            "never invent flags such as",
+            "Only an explicit user request may focus a child",
+        ):
+            self.assertIn(required, policy)
+
     def test_end_of_task_agent_tab_cleanup_policy(self):
         policy = (DEFAULTS / "AGENTS.md").read_text()
         for required in (
