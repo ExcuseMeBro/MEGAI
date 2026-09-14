@@ -12,8 +12,15 @@ State the observable outcome and smallest useful check, then classify:
 
 | Mode | Trigger | Work and proof |
 | --- | --- | --- |
-| Routine | Clear, reversible, bounded change without guarded risks: copy/style fix, isolated bug, tests/docs, small feature with a known seam, safe scoped configuration | Parent implements directly, checks the smallest observable outcome, self-reviews the diff inline, reports the result. No mandatory subagent, written plan, contract hash or acceptance CLI. Subject to economy routing below. |
+| Routine | Clear, reversible, bounded change without guarded risks: copy/style fix, isolated bug, tests/docs, small feature with a known seam, safe scoped configuration | Parent implements directly, checks the smallest observable outcome, self-reviews the diff inline, reports the result. No mandatory subagent beyond configured economy routing, written plan, contract hash or acceptance CLI. Subject to economy routing below. |
 | Guarded | Security/auth/permissions, sensitive data, payments, destructive operations, migrations, concurrency/shared state, consequential cross-module/API changes, behavior-changing safety/acceptance/installer policy, multi-repo delivery, or explicitly requested formal assurance | Load `megai-acceptance` before implementation; freeze criteria, capture real evidence, obtain one independent Pi review and source-current PASS. |
+
+Before deciding to work directly, use the injected role context or `megai-roles.json`
+(`PI_CODING_AGENT_DIR`, otherwise `~/.pi/agent`) to discover the configured roles:
+with the explicit `economy` preset, route substantial bounded implementation to ONE
+configured worker instead of duplicating it in GPT; trivial or read-only work stays
+direct, and a healthy configured worker parent still does its own routine work.
+Explicit user or task model choices override this.
 
 Classify the actual effect, not the filename or number of files. Editing a skill,
 AGENTS.md, release-note prose or installing already-reviewed policy bytes is not

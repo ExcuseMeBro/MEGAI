@@ -50,6 +50,8 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
     plan.retire(root / "extensions/megai-model-guard/index.ts")
     plan.asset(root / "extensions/megai-provider-guard/index.ts",
                (source / "pi-skill/provider-guard/index.ts").read_bytes(), remove)
+    plan.asset(root / "extensions/megai-role-routing/index.ts",
+               (source / "pi-skill/role-routing/index.ts").read_bytes(), remove)
     plan.asset(root / "skills/megai/delegation.md", policy, remove)
     if remove:
         # Removing policy does not undo the user's native model preferences.

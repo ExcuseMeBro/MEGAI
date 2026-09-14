@@ -73,10 +73,14 @@ Read-only checks use `python3 -B` and Ruff with
 
 For delegated planner/scout/worker roles whose configured primary is
 `deepseek/deepseek-flash` (high), keep DeepSeek first. After a confirmed
-model-specific failure, timeout, reasoning dead-end or unavailable primary model,
-prefer `minimax/MiniMax-M3` (high) as the first fallback before GPT escalation.
+provider/model-specific failure, timeout, reasoning dead-end or unavailable
+primary, use this exact chain, all at high thinking:
+`deepseek/deepseek-flash` -> `minimax/MiniMax-M3` -> `openai-codex/gpt-5.6-luna`.
 Explicit task model/provider restrictions override this preference; do not replace
 other configured primaries or the independent reviewer's configured model.
+A confirmed provider-specific insufficient balance or unavailability permits the
+next user-approved provider in this chain; do not stop at the first failed provider
+while a safe, configured alternative remains.
 
 This is parent-driven **subagent-only** routing, not a Pi runtime failover setting.
 Keep the parent model, native startup defaults, model-thinking settings, credentials
@@ -86,15 +90,14 @@ native startup defaults.
 
 Apply the escalation and verified-launch rules below to every fallback. Record the
 reason and failed identity, reconcile writes and confirm the old writer has stopped
-before a replacement. Verify MiniMax availability and native model/thinking before
-sending task context; missing evidence or a mismatch remains BLOCKED. One MiniMax
-attempt per blocker counts toward the existing two-transition limit; never cycle
-back to the failed primary or start speculative standby agents. New independent
-tasks start with the configured primary unless its balance is already known to be
-exhausted in this parent session (below); a healthy fallback child may handle the
-same task's refinements. Auth/permission failures, shared quota/outages and uncertain
-writes still require reconciliation, not blind fallback. Use completion notifications,
-not sleep polling.
+before a replacement. Verify the next model's availability and native model/thinking
+before sending task context; missing evidence or a mismatch remains BLOCKED. At most
+two transitions per blocker; never cycle back to a failed primary or start
+speculative standby agents. New independent tasks start with the configured primary
+unless its balance is already known to be exhausted in this parent session (below);
+a healthy fallback child may handle the same task's refinements. Auth/permission
+failures, shared quota/outages and uncertain writes still require reconciliation,
+not blind fallback. Use completion notifications, not sleep polling.
 
 ### Confirmed DeepSeek balance exhaustion
 
@@ -104,22 +107,25 @@ fallback trigger, even when the payload says `type=unknown_error` and
 `code=invalid_request_error`. Classify the actual provider response, not those
 broad type/code fields alone or a quoted error in repository/tool/test output.
 
-For this confirmed case, the parent must route the unfinished subagent task once
-to `minimax/MiniMax-M3` (high) after the stopped-writer and verified-launch checks.
-Notify the user briefly and continue without requesting the same fallback approval
-again, retrying DeepSeek, sleeping or waiting for a balance top-up. Carry the task's
-existing diff/evidence and resume only unfinished work; never replay uncertain
-mutations. Keep DeepSeek marked unavailable in this parent session so additional
-eligible subagents use MiniMax directly while the known balance error persists.
-Return to the configured primary only after the user confirms funding is restored
-or a separately authorized readiness check succeeds; do not poll the balance.
+For this confirmed case, the parent routes the unfinished subagent task to the next
+provider in the chain — `minimax/MiniMax-M3` (high), then
+`openai-codex/gpt-5.6-luna` (high) — after the stopped-writer and verified-launch
+checks. Notify the user briefly and continue without requesting the same fallback
+approval again, retrying DeepSeek, sleeping or waiting for a balance top-up. Carry
+the task's existing diff/evidence and resume only unfinished work; never replay
+uncertain mutations. Keep a confirmed-unavailable provider marked unavailable in this
+parent session so additional eligible subagents skip it while the failure persists.
+Return to the configured primary only after the user confirms funding is restored or
+a separately authorized readiness check succeeds; do not poll the balance.
 This is session-local routing knowledge, not a change to native defaults or roles.
 
-This exception does not cover `401`/`403`, generic `429`, unknown `402` responses,
-shared outages or unresolved writes. Those retain reconciliation/blocking rules.
-If MiniMax is unavailable or also has a billing/auth/quota failure, report BLOCKED;
-do not cycle providers, buy credits or modify credentials. Other MiniMax failures
-retain the bounded escalation rule above.
+Advance the chain only on an eligible confirmed provider/model-specific failure,
+including a known provider-specific balance failure. Unresolved `401`/`403`, generic
+`429`, shared quota/outages, unknown `402` responses and uncertain writes are BLOCKED
+until reconciled, not fallback triggers. Do not cycle providers, buy credits or
+modify credentials. If `openai-codex/gpt-5.6-luna` also fails, stop as BLOCKED: the
+current parent does not silently implement in its place and the chain does not
+restart. If no eligible chain provider is available, report BLOCKED.
 
 The MiniMax Max plan's advertised 4–5 concurrent agents is capacity, not a required
 fanout. Keep the existing independent-scope/one-writer rules and initial two-child

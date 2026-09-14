@@ -15,6 +15,7 @@ class ModelPolicy(Slim):
         self.assertIn("no model allowlist", policy)
         self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
         self.assertTrue((agent / "extensions/megai-provider-guard/index.ts").is_file())
+        self.assertTrue((agent / "extensions/megai-role-routing/index.ts").is_file())
         before = self.snapshot()
         self.wire()
         self.assertEqual(self.snapshot(), before)
@@ -22,6 +23,23 @@ class ModelPolicy(Slim):
         self.assertNotIn("megai:subagent-models:begin", (agent / "AGENTS.md").read_text())
         self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-provider-guard/index.ts").exists())
+        self.assertFalse((agent / "extensions/megai-role-routing/index.ts").exists())
+
+    def test_role_routing_asset_installs_idempotently_and_preserves_collision(self):
+        self.wire()
+        agent = self.home / ".pi/agent"
+        target = agent / "extensions/megai-role-routing/index.ts"
+        self.assertEqual(target.read_bytes(), (self.megai / "pi-skill/role-routing/index.ts").read_bytes())
+        before = self.snapshot()
+        self.wire()
+        self.assertEqual(self.snapshot(), before)
+        self.wire("--verify")
+        self.wire("--remove")
+        self.assertFalse(target.exists())
+        self.write(target, "user-owned role routing")
+        before = self.snapshot()
+        self.assertIn("custom/legacy asset preserved", self.wire(ok=False).stderr)
+        self.assertEqual(self.snapshot(), before)
 
     def test_owned_legacy_guard_retired_on_upgrade(self):
         import hashlib

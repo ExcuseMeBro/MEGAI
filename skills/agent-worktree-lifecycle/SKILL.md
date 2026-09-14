@@ -267,15 +267,15 @@ approval. It is agent workflow, not a Git hook or background cleanup service.
    first; preserve required session/evidence bytes before archival. Verify it is
    inactive and its managed worktree is absent from both Git and the filesystem
    before deleting its task branch. Local-workspace archival is bookkeeping,
-   never permission to delete shared folders/files. Never edit Paseo's registry
+   not permission to delete shared folders/files. Never edit Paseo's registry
    or use `rm -rf`, force worktree removal or `git branch -D` as a fallback.
-   Delete only the recorded merged local task branch with `git branch -d -- NAME`
+   Delete only the recorded safely merged local task branch with `git branch -d -- NAME`
    from a retained checkout; if Git refuses, retain and report it. Published task
    refs need explicit remote-deletion approval, fresh exact remote-tip/ancestry
    checks and race-protected deletion of that ref only; absent approval, keep them.
 5. **Read back and hand off.** Recheck Paseo workspaces, Git worktrees and local
    (and authorized remote) refs. Record removed resources and retained resources
-   with concrete reasons in the same Plane item. Only the primary should remain
+   with concrete reasons in the same Plane item. Leave one primary workspace at rest
    when this task has no unfinished work or retention exception; other tasks stay
    untouched. If archival/deletion fails or its result is uncertain, stop cleanup,
    preserve remaining resources and reconcile read-only before retrying. Report

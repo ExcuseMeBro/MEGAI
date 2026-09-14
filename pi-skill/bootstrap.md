@@ -4,6 +4,9 @@ For coding tasks load `megai` once: it owns routine/guarded classification, the
 three-step flow and its verification rules. Routine work is three steps; guarded
 work loads `megai-acceptance` and needs a source-current PASS. Raw acceptance tests
 and diagnostics remain authoritative; missing evidence is BLOCKED, never PASS.
+Before direct work, apply injected role context: an explicit `economy` preset
+routes substantial implementation to ONE configured worker; trivial or read-only
+work stays direct.
 
 Before edits use `megai-task-flow` once; Plane is the only tracker, reuse the task
 and hand off In Review, never Done. Use hybrid `agent-worktree-lifecycle`:
