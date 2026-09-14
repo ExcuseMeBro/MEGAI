@@ -33,8 +33,118 @@ Use repository formatting rules; do not automatically rewrite unrelated files.
 
 Use pi-web-access for public research. Keep private repository text and credentials
 out of public search queries. pi-mcp-adapter provides lazy Plane and zvec tools.
-Use pi-subagents for bounded independent tasks or required independent review;
+Use native Paseo agents for bounded independent tasks or required independent review;
 otherwise work directly. Give children explicit cwd, scope and acceptance. Children
 are leaves and never mutate Plane or integrate branches. One writer per worktree.
 Use completion notifications. Security/data-integrity or consequential cross-module
 changes require a fresh independent reviewer. Verify behavior before handoff.
+
+## Small-task execution — fast path (default)
+
+Default sequence: minimal fix → focused test → required review → result.
+For a localized fix with known acceptance and no security/data-integrity or
+consequential cross-module impact, minimize model round trips, not verification.
+This fast path takes precedence over packaged workflow ceremony for routine fixes;
+substantial behavior changes still require the applicable design/spec workflow.
+- Proceed on clear implementation requests; ask only for blocking user-owned
+  decisions. No optional brainstorming, separate plan, or approval round trip.
+- Use one scoped DeepSeek writer for both implementation and focused tests, then
+  the required fresh GPT review. Do not add scouts, planners, separate testers or
+  parallel children unless a named independent need justifies the handoff.
+  The parent scopes and accepts; it does not duplicate the writer's investigation.
+  Tiny runtime-setting edits may stay in the parent as specified below.
+- Reuse instructions, CLI syntax, project/task IDs and source already available
+  in this session; reread only after changes, missing context or compaction.
+  Load matching required skills once, not an unrelated workflow stack.
+- State acceptance briefly in the existing Plane item. Do not create a separate
+  plan/spec for a routine bugfix unless scope or project policy requires it.
+- Locate the affected symbol and callers in one scoped discovery pass. Once paths
+  are known, request independent source/test reads together when parallel tools
+  are available; do not spend a model turn per known file or adjacent range.
+- Reuse the nearest working test harness. Check imports and setup before running;
+  avoid booting the whole app for a widget/callback test. Keep red/green evidence.
+  In Flutter, use `--no-pub` when dependencies are already resolved and unchanged.
+- Group known edits per file in one edit call. Run focused tests and relevant
+  diagnostics after the patch; rerun only checks affected by subsequent edits.
+- After acceptance and diff review pass, perform required delivery/tracking and
+  stop. No optional test expansion, formatting churn or repeated discovery.
+  Report only material blockers during execution; finish with the result, focused
+  verification and any remaining risk. Do not claim speed gains without timing.
+- Preserve required safety checks, independent review and safe task placement.
+  Do not impose a hard tool cap, skip evidence, or change model/thinking for speed.
+
+## User-approved DeepSeek execution / GPT review
+
+For implementation tasks, use one native Paseo Pi agent for DeepSeek coding and
+focused tests, then a fresh read-only GPT reviewer; security-sensitive work also
+requires security review. Pi owns scoping, coordination and acceptance, while
+Paseo owns agent execution and visible Agent tabs in the existing task workspace.
+Do not create a second runner for the same task or import an actively owned session.
+Keep the selected parent provider, model and thinking level unchanged.
+The approved worker model is `deepseek/deepseek-flash` with high thinking; its
+trusted fallback is `openai-codex/gpt-5.6-luna:high`. The reviewer/security model is
+`openai-codex/gpt-6-astra` with no configured fallback. Preserve the other historical
+role settings in the private removal backup; do not invent new mappings.
+Before delegation, verify the native Paseo model/thinking selection, read-only
+review boundary and completion/control path. Removed extension profiles do not
+automatically configure Paseo. Missing support is a blocker, not permission to
+silently change models or claim that a fallback ran on DeepSeek.
+Return accepted findings to the same writer agent and rerun affected checks and
+review. Share scoped context, diffs and concise evidence, not full transcripts.
+One writer per checkout; children never mutate Plane or integrate branches.
+Questions and tiny runtime-setting edits may stay in the parent.
+The user removed pi-subagents. Do not reinstall it or use its tools, commands or
+packaged workflows; translate packaged delegation guidance to native Paseo only
+when the equivalent ownership, isolation and verification requirements are met.
+
+## Bounded shell discovery
+
+- Reuse known project context and resolved paths. Locate rules/configs with exact
+  file checks in cwd and its ancestors (including AGENTS.override.md); inspect
+  nested rules only along the paths being worked on. Never use recursive `find ..`,
+  home-wide or workspace-wide scans for startup discovery. `head` limits output,
+  not traversal time. Scope content searches to the relevant repo/subdirectory.
+- Run independent diagnostics as separate tool calls (parallel when supported),
+  not a semicolon chain sharing one timeout. Batch only cheap exact-path checks.
+- Set explicit 2–5 second tool timeouts for cheap local discovery: path/executable
+  checks, CLI help, Git metadata and narrow searches. Use task-appropriate budgets
+  for builds, tests, indexing, network calls and known expensive operations.
+- After a timeout, isolate the slow command and narrow its scope; never retry the
+  same command unchanged or simply raise its timeout. Check CLI syntax once when
+  unknown, reuse that result, and do not guess flags. On macOS, do not assume GNU
+  `timeout` or GNU-only flags are installed; use the tool's timeout parameter.
+- Check file type before reading an unknown executable/artifact. Use native read
+  for source text, not compiled binaries; use bounded CLI help for executable usage.
+
+## User-approved Pi / Paseo routing
+
+Pi is the orchestrator; native Paseo owns child execution, visible Agent tabs,
+workspaces, worktrees and terminals. Use one agent tree; Plane remains the tracker.
+This placement policy overrides pi-workflow step 3's per-task Paseo requirement;
+all other workflow requirements remain in force.
+
+Use a Paseo-managed task worktree when estimated implementation needs
+more than 5 minutes AND approximately 1000+ changed source lines (additions plus
+deletions, excluding generated/vendor/lockfile churn). Either condition alone is
+not the large-change trigger. Explicit user requests or necessary safety isolation
+may require Paseo below this threshold. Reassess scope growth at a safe checkpoint;
+never replay or abandon unfinished writes merely to switch workspaces.
+
+For smaller work, operate directly in a clean, exclusively owned task checkout;
+reuse an existing suitable task workspace rather than creating another. Never
+write on a busy/shared checkout or switch someone else's branch. If no safe task
+checkout exists, obtain isolated placement first. Non-Git runtime settings can be
+edited in place with a private backup and focused verification; do not invent a repo.
+Keep Plane tracking and dev/main approval rules unchanged.
+
+Reuse the same Paseo project/task identity. Supply explicit workspace titles and
+branch names. Delegate only genuinely independent work, starting with at most two
+children, and keep one writer per worktree. Reuse resumable children for refinements;
+pass bounded context and return concise evidence, not full transcripts. Use native
+completion notifications, never routine polling. Do not create schedules/heartbeats,
+restart daemons, enable watchdogs, or alter models/fallbacks without an explicit request.
+
+Do not use Pencil unless the user explicitly requests Pencil for the current task.
+A generic UI/design request is not permission. This applies to delegated children,
+Pencil browser tools and every MCP invocation path. Pencil's Pi lifecycle is lazy;
+this avoids startup connection but is not a technical tool-authorization gate.

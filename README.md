@@ -36,12 +36,13 @@ Pi startup never updates packages or builds indexes automatically.
 | 📐 OpenSpec 1.13.0 | Global core skills and `/opsx-*` commands, telemetry disabled |
 | 🔌 pi-mcp-adapter 2.33.0 | Lazy Plane and zvec MCP |
 | 🌐 pi-web-access 0.29.0 | Exa public search without a separate key, page fetching |
-| 👥 pi-subagents 0.67.0 | Bounded children inheriting the selected model |
+| 🧑‍🤝‍🧑 Native Paseo agents | Bounded children and required independent review; no Pi package |
 
 Package versions and integrity hashes are in [package-lock.json](pi-defaults/package-lock.json).
-Superpowers' extra `dispatch_agent` extension is excluded because pi-subagents owns
-delegation. Shared legacy skill discovery is excluded from this Pi profile to avoid
-contradictory defaults. Other agents retain their own configuration.
+Superpowers' extra delegation extension is excluded: only its bootstrap is loaded, and
+native Paseo agents own delegation, one writer per worktree. Shared legacy skill discovery
+is excluded from this Pi profile to avoid contradictory defaults. Other agents retain
+their own configuration.
 
 <a id="plane-and-branches"></a>
 
@@ -68,6 +69,12 @@ checkout paths, pins remote URLs, and preserves previous delivery coverage.
 A missing merge or changed item leaves the task In Review. Plane lacks conditional
 updates: serialize task boundary edits; the command checks for concurrent changes
 immediately before its final write. There is no unattended watcher or automatic merge.
+
+The `/mdev` and `/prdev` prompt templates are installed globally: `/mdev` is explicit
+authorization to reconcile, review, merge and push task work into `dev` (no repeated approval)
+and to clean safe local task workspaces, and `/prdev` opens the `dev` → `main` pull request
+without merging. Neither promotes `main`, and both keep delivery evidence bound to the exact
+recorded SHAs.
 
 The persistent branches are `dev` and `main`. Normal task branches start from dev
 in managed Paseo worktrees and deliver to dev after tests/review. Main promotion
@@ -120,5 +127,4 @@ must not contain private repository content or credentials.
 [Ponytail](https://github.com/DietrichGebert/ponytail),
 [OpenSpec](https://github.com/Fission-AI/OpenSpec),
 [web access](https://github.com/nicobailon/pi-web-access),
-[subagents](https://github.com/nicobailon/pi-subagents),
 [MCP adapter](https://github.com/nicobailon/pi-mcp-adapter).

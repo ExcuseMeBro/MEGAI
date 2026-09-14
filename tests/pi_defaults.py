@@ -6,6 +6,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,12 @@ spec = importlib.util.spec_from_file_location(
 )
 w = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(w)
+install_spec = importlib.util.spec_from_file_location(
+    "pi_defaults_install", ROOT / "pi-defaults/install.py"
+)
+install = importlib.util.module_from_spec(install_spec)
+install_spec.loader.exec_module(install)
+DEFAULTS = ROOT / "pi-defaults"
 STATES = {s: s for s in ("Todo", "In Progress", "In Review", "Done")}
 
 
@@ -265,6 +272,46 @@ class Delivery(unittest.TestCase):
             args for _, args in calls if args["action"] in ("create", "update")
         ]
         self.assertEqual([m["state"] for m in mutations], ["Todo", "In Progress"])
+
+
+class Distribution(unittest.TestCase):
+    """The distribution must match the approved clean native-Paseo profile."""
+
+    def setUp(self):
+        self.package = json.loads((DEFAULTS / "package.json").read_text())
+
+    def test_no_pi_subagents_in_packages_settings_or_tools(self):
+        self.assertNotIn("pi-subagents", self.package["dependencies"])
+        self.assertNotIn("pi-subagents", (DEFAULTS / "package-lock.json").read_text())
+        settings = install.profile_settings(
+            self.package["dependencies"], Path("/Users/example")
+        )
+        self.assertNotIn("subagents", settings)
+        sources = [entry["source"] for entry in settings["packages"]]
+        self.assertEqual([s for s in sources if "subagent" in s], [])
+        superpowers = next(
+            e for e in settings["packages"] if "pi-superpowers" in e["source"]
+        )
+        self.assertEqual(superpowers["extensions"], ["extensions/bootstrap.ts"])
+        verify = (DEFAULTS / "verify.mjs").read_text()
+        required = re.search(r"const requiredTools = \[(.*?)\]", verify, re.S).group(1)
+        self.assertNotIn("subagent", required)
+        removed = re.search(r"const removedTools = \[(.*?)\]", verify, re.S).group(1)
+        self.assertIn("subagent", removed)
+
+    def test_native_policy_and_prompts_are_distributed_and_verified(self):
+        policy = (DEFAULTS / "AGENTS.md").read_text()
+        self.assertIn("native Paseo agents", policy)
+        self.assertNotIn("Use pi-subagents", policy)
+        self.assertIn("Do not reinstall it", policy)
+        names = sorted(p.stem for p in (DEFAULTS / "prompts").glob("*.md"))
+        self.assertEqual(names, ["mdev", "prdev"])
+        verify = (DEFAULTS / "verify.mjs").read_text()
+        for name in names:
+            front = (DEFAULTS / f"prompts/{name}.md").read_text().split("---")[1]
+            self.assertIn("description:", front)
+            self.assertIn(f"'{name}'", verify)
+        self.assertIn('SOURCE / "prompts"', (DEFAULTS / "install.py").read_text())
 
 
 class InstallerPreflight(unittest.TestCase):

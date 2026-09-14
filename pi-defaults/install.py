@@ -34,6 +34,24 @@ def remove(path):
         shutil.rmtree(path)
 
 
+def profile_settings(versions, home):
+    packages = []
+    for name, version in versions.items():
+        if name == "@fission-ai/openspec":
+            continue
+        entry = {"source": f"npm:{name}@{version}"}
+        if name == "@weiping/pi-superpowers":
+            # Bootstrap only: the bundled delegation extension stays excluded.
+            entry["extensions"] = ["extensions/bootstrap.ts"]
+        packages.append(entry)
+    return {
+        "theme": "dark",
+        "defaultThinkingLevel": "high",
+        "packages": packages,
+        "skills": [f"!{home}/.agents/skills/**"],
+    }
+
+
 def install(reset=False, remove_omp=False):
     home = Path.home()
     agent = home / ".pi/agent"
@@ -168,39 +186,10 @@ def install(reset=False, remove_omp=False):
     headroom.mkdir(exist_ok=True)
     shutil.copy2(REPO / "pi-skill/headroom/index.ts", headroom / "index.ts")
     shutil.copytree(SOURCE / "skills", agent / "skills", dirs_exist_ok=True)
+    shutil.copytree(SOURCE / "prompts", agent / "prompts", dirs_exist_ok=True)
     shutil.copy2(SOURCE / "AGENTS.md", agent / "AGENTS.md")
     versions = json.loads((SOURCE / "package.json").read_text())["dependencies"]
-    packages = []
-    for name, version in versions.items():
-        if name == "@fission-ai/openspec":
-            continue
-        entry = {"source": f"npm:{name}@{version}"}
-        if name == "@weiping/pi-superpowers":
-            # pi-subagents is the single delegation implementation.
-            entry["extensions"] = ["extensions/bootstrap.ts"]
-        packages.append(entry)
-    write_json(
-        agent / "settings.json",
-        {
-            "theme": "dark",
-            "defaultThinkingLevel": "high",
-            "packages": packages,
-            "skills": [f"!{home}/.agents/skills/**"],
-            "subagents": {
-                "projectRootResolution": "git-root",
-                "agentOverrides": {
-                    name: {"model": "inherit", "fallbackModels": []}
-                    for name in (
-                        "backend",
-                        "frontend",
-                        "security",
-                        "tester",
-                        "reviewer",
-                    )
-                },
-            },
-        },
-    )
+    write_json(agent / "settings.json", profile_settings(versions, home))
     write_json(
         agent / "mcp.json",
         {
@@ -251,12 +240,7 @@ def install(reset=False, remove_omp=False):
             "autoOpenBrowser": False,
         },
     )
-    # All children inherit the selected model. Restrict the independent reviewer.
-    agents = agent / "agents"
-    agents.mkdir(exist_ok=True)
-    (agents / "reviewer.md").write_text(
-        "---\nname: reviewer\ndescription: Independent read-only code and evidence review\ntools: read, grep, find, ls, bash\ncompletionGuard: false\n---\nReview only the assigned scope. Read-only: do not edit, commit, integrate, delegate, or mutate Plane. Use read-only commands; report concrete findings and evidence. Never read credentials.\n"
-    )
+    # Children inherit the selected model through native Paseo; no Pi agent profiles.
     local_bin.mkdir(parents=True, exist_ok=True)
     bridge = shared / "bin/megai-headroom"
     bridge.write_text(
