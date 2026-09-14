@@ -47,6 +47,9 @@ prepare_core() {
 launch_agent() {
   local agent="$1" bin="$2"; shift 2
   command -v "$bin" >/dev/null 2>&1 || die "$bin is not installed; install/authenticate that harness separately"
+  if [ "$agent" = pi ] && [ -f "$HOME/.pi/agent/defaults/manifest.json" ]; then
+    exec "$bin" "$@"
+  fi
   # Validate only the selected harness before every native launch; never alter native args.
   python3 "$LIB/slim_wiring.py" "$agent" --verify
   bash "$LIB/ensure_dev.sh" --launch
@@ -140,6 +143,23 @@ cmd_uninstall() {
   python3 "$LIB/slim_wiring.py" all --remove || die "Wiring removal failed; recovery manifests retained"
   ok "MEGAI wiring detached; tools, skill kits, backups and project data retained"
 }
+
+# Clean Pi installations bypass legacy multi-harness repair and backup flows.
+if [ -f "$HOME/.pi/agent/defaults/manifest.json" ]; then
+  case "${1:-__project__}" in
+    install|update)
+      exec python3 "$MEGAI_HOME/pi-profile/pi-defaults/install.py" ;;
+    __project__|status)
+      printf '%s\n' 'Pi clean defaults installed. Use pi, pi-workflow, and megai doctor.'
+      exit 0 ;;
+    doctor)
+      for tool in pi ruff tgrep openspec zg; do "$tool" --version; done
+      "$MEGAI_HOME/bin/megai-headroom" doctor
+      exec node "$HOME/.pi/agent/defaults/verify.mjs" ;;
+    wire)
+      if [ "${2:-}" = pi ]; then exec python3 "$MEGAI_HOME/pi-profile/pi-defaults/install.py"; fi ;;
+  esac
+fi
 
 case "${1:-__project__}" in
   cc) shift; launch_agent cc claude "$@" ;;

@@ -1,0 +1,7 @@
+{
+  "layout": "multi",
+  "planeProject": "ADAM",
+  "forge": "git.adam.uz",
+  "repositories": ["landing-fe", "landing-be", "qr-gen", "business-fe", "mobile", "main-be", "adam-bots"],
+  "preserveBranches": {"mobile": ["validationsdk"], "main-be": ["validationsdk"]}
+}

@@ -1,272 +1,110 @@
-# MEGAI
+# MEGAI · Pi defaults
 
-MEGAI is a harness-neutral coding workflow for **Pi, Claude Code (cc), Codex and
-OMP**. It keeps the selected provider, model, thinking level, credentials, native
-arguments and user-owned resources unchanged. This branch is prepared for parent
-review; it does not promote itself to `main`.
-
-## Install
-
-The public installer defaults to the integrated distribution and preserves an
-explicit ref:
+The `pi` branch provides a clean global Pi setup. Configuration lives in
+`~/.pi/agent`; local project exceptions live in each project's `AGENTS.md` and
+`.pi/project.json`. The installer does not create backups. It requires Python 3.11+, Node 22.22+,
+Git, npm, uv and jq, and uses the standard home directories (custom
+`MEGAI_HOME` / `PI_CODING_AGENT_DIR` values are rejected).
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | bash
-# Optional deliberate branch/ref selection:
-curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | MEGAI_REF=dev bash
-source ~/.zshrc  # or reopen the shell
-megai status
+# From this branch's checkout. --reset deletes Pi auth, sessions and old settings.
+python3 pi-defaults/install.py --reset --remove-omp
+# Open Pi, then use /login to authenticate the freshly reset agent.
+pi
 megai doctor
 ```
 
-Supported launchers forward native arguments unchanged:
+For a remote installation, download and inspect this branch's `install.sh`, then
+run it with `MEGAI_REF=pi MEGAI_PI_RESET=1 MEGAI_REMOVE_OMP=1`. Reset/removal are
+explicit options. Reinstallation of a clean profile reuses its pinned packages;
+Pi startup never updates packages or builds indexes automatically.
 
-```bash
-megai pi [pi args]
-megai cc [claude args]
-megai codex [codex args]
-megai omp --profile work [omp args]
-```
-
-`megai omp --profile work` preserves both the profile and all other OMP arguments.
-The launcher performs local wiring/worktree checks only; it makes no provider
-request, model selection, Plane mutation or startup daemon call.
-
-## Active stack
-
-| Tool | Purpose |
+| Default | Purpose |
 | --- | --- |
-| Headroom 0.37.0 | Local discovery compression and explicit semantic memory |
-| tgrep / codedb / zvec-grep | Text, structural and intent discovery |
-| [Ruff](https://docs.astral.sh/ruff/) | Non-mutating Python verification |
+| Pi 0.85.1 | Native agent, user-selected provider/model |
+| Ruff | Check changed Python without automatic fixes |
+| Headroom 0.37.0 | Local discovery compression; raw source/tests/failures |
+| codedb / tgrep 1.0.4 / zvec-grep 0.2.1 | Structure, ranked text, local intent search |
+| Superpowers 5.1.0 | Automatic bootstrap and matching engineering skills |
+| Ponytail 4.9.0 | Default full mode; smallest complete implementation |
+| OpenSpec 1.13.0 | Global core skills and `/opsx-*` commands, telemetry disabled |
+| pi-mcp-adapter 2.33.0 | Lazy Plane and zvec MCP |
+| pi-web-access 0.29.0 | Exa public search without a separate key, page fetching |
+| pi-subagents 0.67.0 | Bounded children inheriting the selected model |
 
-- Headroom 0.37.0 in a pinned, hash-locked Python 3.14 runtime for local
-  discovery compression and local ONNX semantic memory.
-- tgrep, codedb and zvec-grep for task-appropriate discovery, structure and intent.
-- Plane-only task-flow, worktree lifecycle, and task-appropriate skill kits.
-- [Ruff](https://docs.astral.sh/ruff/) for non-mutating Python checks.
-- Native harness configurations remain the source of provider/auth/model/thinking
-  choices. RTK, Caveman and agent-memory are retired from the active defaults.
+Package versions and integrity hashes are in [package-lock.json](pi-defaults/package-lock.json).
+Superpowers' extra `dispatch_agent` extension is excluded because pi-subagents owns
+delegation. Shared legacy skill discovery is excluded from this Pi profile to avoid
+contradictory defaults. Other agents retain their own configuration.
 
-## Pi provider stall protection
+## Plane and branches
 
-Pi installs `megai-provider-guard`: a **180-second provider inactivity deadline**,
-not a limit on active generation or task duration. Nonempty streamed text, thinking
-and tool-argument deltas renew it. Keepalives, empty deltas and automatic retry/backoff
-without content do not. Genuine silence is aborted with native Pi cancellation,
-preserving session/tool results and recording metadata-only `megai-provider-timeout`
-evidence (total request elapsed time and idle time). Successful responses disarm it;
-tool execution is never timed out by this extension, including nested model work
-inside a tool. No provider, model, thinking, credentials or retry settings change.
-
-`MEGAI_PROVIDER_TIMEOUT_MS` selects a different inactivity interval; `0` explicitly opts out.
-Existing extension filters still win. Reload/reopen Pi after installation;
-already-running processes do not acquire new extensions automatically. Do not
-restart a writer mid-mutation. This bounds waiting rather than making providers
-faster; after a timeout, reconcile saved evidence before resuming/escalating.
-
-Native `retry.provider.timeoutMs` alone is insufficient for this incident: the
-installed Codex SSE implementation times out headers, not the full response body.
-See `docs/audits/pi-provider-stalls.md` for evidence and offline verification.
-
-## Headroom use and compatibility
-
-Pi has an automatic native extension. It compresses only eligible successful
-read-only discovery output; native session messages, source reads, edits, tests,
-full diffs and failures remain raw. `headroom_retrieve` pages exact originals,
-which are repository-scoped and retained for seven days within a bounded cache.
-`headroom_memory` provides explicit local recall/save; saves are only for requested
-persistence. `MEGAI_HEADROOM=0` disables Pi automation and normal mode or
-`/headroom-verbosity 0` disables concise guidance.
-
-Claude Code, Codex and OMP do **not** receive invented interception hooks,
-provider rewrites or API proxies. They use the same local bridge explicitly:
+Workspace `brodev`: **Todo → In Progress → In Review → Done**. Plane is the only
+execution tracker. OpenSpec specifications and verification receipts are artifacts,
+not a second board. The existing private Plane token stays outside Pi and Git at
+`~/.config/megai/credentials/plane-api-token` (mode 600).
 
 ```bash
-megai headroom doctor
-megai headroom compress < discovery.txt
-megai headroom retrieve ID
-megai headroom recall "relevant prior decision"
-megai headroom save "decision to persist"
-printf '%s' '{"action":"compress","text":"..."}' | megai-headroom json
+pi-workflow context
+pi-workflow start --title "Exact task title"
+pi-workflow review --project-id UUID --task-id UUID \
+  --receipt delivery.json --evidence-file verification.txt
+# After explicitly approved main promotion in every affected repository:
+pi-workflow done --project-id UUID --task-id UUID
 ```
 
-This is compatibility, not native-auto parity. Runtime assets are prepared during
-installation and runtime network access is disabled. If Headroom is unavailable,
-the Pi extension reports raw-context fallback and the other hosts report the CLI
-failure; no silent active claim is made.
+The review receipt lists **all affected repositories**, their delivered commit SHAs
+and remotes. `review` binds it to the Plane task and canonical project, stores primary
+checkout paths, pins remote URLs, and preserves previous delivery coverage.
+`done` fetches each remote main and checks commit ancestry before changing Plane.
+A missing merge or changed item leaves the task In Review. Plane lacks conditional
+updates: serialize task boundary edits; the command checks for concurrent changes
+immediately before its final write. There is no unattended watcher or automatic merge.
 
-### Opt-in token profile
+The persistent branches are `dev` and `main`. Normal task branches start from dev
+in managed Paseo worktrees and deliver to dev after tests/review. Main promotion
+requires explicit approval. A specifically requested persistent branch overrides
+dev delivery: push only that branch, retain its worktree, leave the task In Review
+until it reaches main. `pi` is this task's explicitly requested delivery branch.
 
-A separate, explicitly opt-in profile adds compact MIT-attributed Caveman/Ponytail
-core skills, RTK read-only discovery guidance and a Headroom style handoff. Ordinary
-defaults are unchanged until `--apply`; `--remove` returns the baseline without
-touching settings, credentials, models or user AGENTS text. Under `profile: max`,
-Caveman owns chat terseness so the adapter drops only its duplicate concise-output
-steering; compression, retrieval, memory and explicit verbosity overrides stay.
-No upstream installer, shared `~/.agents` writes or universal savings claim. See
-[docs/pi-token-profile.md](docs/pi-token-profile.md).
+A monorepo gets one worktree per task. A folder containing separate repositories
+gets one worktree per affected repository under the same existing Paseo project and
+Plane task. The coordination folder remains a non-Git folder. The project-rules
+extension loads original project rules even when worktrees live outside that folder.
 
-### Opt-in skill profiles and read-only task metrics
+## Local project configuration
 
-`lib/pi_skill_profiles.py` prints opt-in native `settings.json` `skills` exclusion
-snippets (`coding`, `design`, `mobile`) that narrow known optional design/mobile
-skills without touching core/safety/a11y or project selections; nothing is applied
-globally: snapshot settings privately, append only missing exclusions, and restore
-only the entries you added so a pre-existing identical `!name` is never removed.
-`lib/pi_task_metrics.py` reads
-Pi JSONL sessions read-only and aggregates usage/cost for an explicit entry-ID or
-timestamp boundary, reporting observed subtotals separately from complete totals,
-nulling complete totals when a `toolResult` usage may overlap an explicit child,
-and leaving unknown child totals, missing cost and provider waits null. Both
-helpers are repository source run from the checkout, **not installed into `~/.megai`
-yet**; they never edit settings or apply anything globally. See
-[docs/pi-skill-profiles.md](docs/pi-skill-profiles.md) and
-[docs/pi-task-metrics.md](docs/pi-task-metrics.md).
+Copy [the template](pi-defaults/projects/template.json) to `.pi/project.json` in a
+project. For grouped repositories use `layout: "multi"` and component-relative
+paths in `repositories`. Set `planeProject` to an existing exact Plane project name;
+the setup never creates missing Plane projects. Preserve repository-specific rules.
 
-## Plane task labels
+[ADAM's template](pi-defaults/projects/ADAM.json) and [local policy](pi-defaults/projects/ADAM.md)
+keep Forgejo at `git.adam.uz`, one ADAM Plane project, and persistent `validationsdk`
+branches in `mobile` and `main-be`. The global installer does not edit project files
+or create/delete project branches. Existing dirty work and branch protections are
+retained. Read `pi-workflow` for worktree creation and branch cleanup rules.
 
-The parent applies the [task-label policy](task-flow/skills/megai-task-flow/SKILL.md#task-labels)
-at task start/resume: one primary type (`bug`, `feature`, `refactor`, `docs`, `test`,
-`chore`, `research`) and all applicable areas (`backend`, `frontend`, `mobile`,
-`desktop`, `infra`, `data`, `design`, `tooling`). Optional concern labels require
-explicit acceptance. Existing project mappings and custom labels are preserved;
-missing labels are created on demand after complete lookup, then attached additively.
-Ambiguity, missing permissions and uncertain writes block edits. This is agent
-workflow policy, not API enforcement or retrospective relabeling of other tasks.
-Pi wiring installs it without changing native model/auth settings; reload/reopen Pi
-for refreshed skill discovery in existing sessions.
-
-## Plane connector matrix
-
-Plane remains the sole execution tracker. Configure only the clients you use:
+## Verification and operation
 
 ```bash
-megai plane bridge install
-megai plane setup --workspace SLUG --token-file /private/path/to/token --client all
-megai plane status --client all
-# Supported client values: pi, codex, cc, omp, all
+python3 -B tests/pi_defaults.py
+ruff check --no-fix --no-fix-only --force-exclude --no-cache -- pi-defaults/*.py tests/pi_defaults.py
+bash -n bin/megai install.sh
+node pi-defaults/verify.mjs  # installed Pi; no model request
+megai doctor
 ```
 
-Pi uses its native `requestHeadersCommand` shape. Codex keeps its existing native
-TOML integration. Claude Code uses `~/.claude.json` `mcpServers.plane`; OMP uses
-`mcp.json` under its selected profile (`~/.omp/agent` or
-`~/.omp/profiles/<profile>/agent`). CC/OMP use the receipt-verified local
-`plane_mcp_remote.py` stdio bridge with a private token-file path and workspace
-slug in configuration; the token itself is never placed in config or argv.
+A clean reset removes Pi login credentials too. `/login` is the required human step
+before model requests; installation and loader/tool checks do not prove model auth.
+Use `/reload` or reopen existing Pi sessions after configuration changes. Package
+installation grants the extensions normal Pi process access. Public web searches
+must not contain private repository content or credentials.
 
-Every requested client is parsed and staged before the first mutation. Existing
-unowned or malformed Plane entries refuse setup/removal. Private target-bound
-backups support restore; connector failures preserve staged/unrelated settings.
-Existing Pi/Codex semantics remain unchanged.
-
-## Preservation and migration
-
-Adoption is fail-closed. Retirement metadata for Graphify, RepoWise, ui-craft,
-Dembrandt, Argent, Numasec and OpenSpec is preflighted before source publication
-or cleanup. Receipt-owned legacy wiring is archived in private backups; custom or
-ambiguous registrations, nonempty legacy memory/process receipts, malformed
-configs, symlinked destinations and custom policy markers require manual
-reconciliation with an actionable error. Historical sessions, memory stores,
-indexes, auth, hooks, models and unrelated settings are not deleted or rewritten.
-Multi-file wiring writes use ownership receipts, private recovery manifests,
-permission preservation, concurrency checks and rollback. Unrelated third-party
-installer work is not falsely represented as an atomic rollback.
-
-Pi-owned shared skills are excluded from Pi discovery when harness-specific copies
-are installed, preventing duplicate MEGAI skill resolution. Codex/CC/OMP retain
-their native/shared destinations and explicit filters. User opt-outs remain in
-force and inactive resources are reported honestly.
-
-## Appllama mobile design
-
-Pi bundles the pinned [Appllama design skill](skills/appllama-app-design-skill/SKILL.md)
-for Expo / React Native UI, with reviewed upstream references, MIT license and a
-permission-aware Pi wrapper. MCP, paid services, simulators and research skills do
-not start automatically. Existing filters and other harnesses remain unchanged.
-[Provenance](skills/appllama-app-design-skill/PROVENANCE.md) records the retained
-standalone bytes. Identical manual installs can be adopted; MEGAI update/removal
-uses receipt-owned wiring without fetching upstream or overwriting custom edits.
-
-## Adaptive Pi and DeepSeek-first execution
-
-Pi defaults to one parent, focused verification and self-review for routine work.
-Guarded risks retain independent formal acceptance. Detailed delegation is loaded
-on demand, not duplicated in the always-loaded bootstrap. The explicit `economy`
-preset selects DeepSeek V4.1-Flash for next-session planning/implementation and reserves GPT
-for guarded review or a concrete failure. Ordinary wiring preserves model settings.
-See [adaptive workflow, installation and verification](docs/pi-adaptive.md).
-
-## Acceptance and task delivery
-
-For guarded work or explicit formal assurance, Pi's [acceptance gate](pi-skill/acceptance/SKILL.md) freezes criteria, captures
-source-bound command/runtime evidence and requires independent Pi review before
-`megai acceptance check` can return PASS (0). Failed checks return FAIL (1);
-missing/stale evidence returns BLOCKED (2). `collect` produces a BLOCKED draft,
-never an automatic approval. Schema-2 bug fixes require captured red → green
-regression evidence. See the [CLI and trust limits](pi-skill/acceptance/reference.md).
-
-Use only existing Paseo projects: project → task workspace → agent tabs. Resolve
-`projectId` with `megai workspace --root FOLDER`, create the appropriate task workspace
-under that ID, then pass its verified `workspaceId` to `create_agent`. "Canonical"
-means that existing project identity, not a new project or a rename. Missing or
-ambiguous identity blocks creation; ask the user rather than register a replacement.
-
-A task spanning backend/frontend/mobile Git repos uses one umbrella project/task
-and one managed worktree per affected repo, all named with the same task slug/branch
-from each repo's `dev`. Native Paseo accepts `isolation: "worktree"`, the existing
-umbrella `projectId`, and `path` pointing to each absolute primary repository.
-Do not register child repos as projects. Writers run in their verified workspaces.
-Local workspaces remain for coordination/readers and Git-free configuration scopes
-with one writer/private backups; local Git writer scopes and broad scopes containing
-nested Git are rejected. Local labels declare scope, not a filesystem sandbox/lock.
-Guarded work requires independent review and formal acceptance; routine work retains
-actual tests and self-review. For the formal gate, `megai acceptance --help` lists commands; pass the complete configuration directory
-as `--root` to snapshot/run/collect/check without Git (all entries included; bounded
-to 10,000 entries/64 MiB; unsupported/symlink/nested Git source is rejected).
-See the [local-work procedure](skills/agent-worktree-lifecycle/SKILL.md#non-git-local-work).
-Reload Pi after installing the guard/policy update; an already-running session keeps
-its previously loaded extension until reload.
-
-Require every affected repository's acceptance and cross-repo checks before the
-first dev mutation. Reserve all integration targets atomically with `megai queue`
-(the separately delivered queue component), then integrate into each repo's dev.
-Preserve queue order and partial-delivery evidence; multi-repo merges are not atomic.
-Main requires separate user approval of the exact reviewed repo/commit vector;
-queue acquisition grants no push/main authorization. Close only released, safely
-delivered workspaces/branches; retain dirty work and one primary workspace at rest.
-The [lifecycle skill](skills/agent-worktree-lifecycle/SKILL.md) owns the procedure.
-
-## Verification
-
-Focused, non-live checks use disposable HOME/config roots and do not execute
-non-Pi harnesses or send provider calls:
-
-```bash
-python3 -B tests/slim_distribution.py -k appllama
-python3 -B tests/acceptance_gate.py
-python3 -B tests/acceptance_flow.py
-bash tests/slim-distribution.sh
-python3 tests/headroom_wiring.py
-python3 -B tests/skill_profiles.py
-python3 -B tests/task_metrics.py
-HEADROOM_TEST_PYTHON="$HOME/.megai/venv/headroom/bin/python" \
-  HEADROOM_TEST_ASSETS="$HOME/.megai/headroom-assets" \
-  python3 tests/headroom_runtime.py
-bash tests/plane-mcp.sh
-env PI_PACKAGE_ROOT=<installed pi-coding-agent> RTK_BIN=<rtk> bash tests/pi-token-profile.sh
-bash -n bin/megai lib/*.sh install.sh
-python3 -m py_compile lib/*.py pi-skill/headroom/*.py
-ruff check --no-fix --no-fix-only --force-exclude --no-cache -- lib/*.py pi-skill/headroom/*.py tests/*.py
- git diff --check
-```
-
-The Pi extension suites require an explicitly selected local Pi package via
-`PI_PACKAGE_ROOT`; they use disposable settings and a fake/no-provider bridge.
-Actual local Headroom runtime tests may read already-installed assets but write
-only disposable test storage. No live CC/Codex/OMP execution is part of this
-verification.
-
-See `docs/audits/headroom-migration.md` for the concise source/conflict decision
-record and run evidence. It records only evidence produced in this checkout; no
-host install, nonexistent review or main promotion is claimed.
+Upstream references: [Pi packages](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/packages.md),
+[Superpowers](https://github.com/weiping/pi-superpowers),
+[Ponytail](https://github.com/DietrichGebert/ponytail),
+[OpenSpec](https://github.com/Fission-AI/OpenSpec),
+[web access](https://github.com/nicobailon/pi-web-access),
+[subagents](https://github.com/nicobailon/pi-subagents),
+[MCP adapter](https://github.com/nicobailon/pi-mcp-adapter).

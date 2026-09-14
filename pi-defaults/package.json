@@ -1,0 +1,14 @@
+{
+  "name": "megai-pi-defaults",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Pinned packages for the clean MEGAI Pi profile",
+  "dependencies": {
+    "@fission-ai/openspec": "1.13.0",
+    "@weiping/pi-superpowers": "5.1.0",
+    "pi-mcp-adapter": "2.33.0",
+    "pi-subagents": "0.67.0",
+    "pi-web-access": "0.29.0",
+    "@dietrichgebert/ponytail": "4.9.0"
+  }
+}
