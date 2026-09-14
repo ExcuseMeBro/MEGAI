@@ -313,6 +313,22 @@ class Distribution(unittest.TestCase):
             self.assertIn(f"'{name}'", verify)
         self.assertIn('SOURCE / "prompts"', (DEFAULTS / "install.py").read_text())
 
+    def test_end_of_task_agent_tab_cleanup_policy(self):
+        policy = (DEFAULTS / "AGENTS.md").read_text()
+        for required in (
+            "PASEO_AGENT_ID",
+            "ParentAgentId",
+            "`paseo agent archive EXACT_ID --json`",
+            "never `--force`",
+            "soft archive",
+            "workspace archive",
+            "invoking main agent",
+            "before the final reply",
+            "not background daemon automation",
+        ):
+            self.assertIn(required, policy)
+        self.assertNotIn("archive --force", policy)
+
 
 class InstallerPreflight(unittest.TestCase):
     def test_custom_roots_fail_before_reset(self):

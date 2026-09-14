@@ -148,3 +148,20 @@ Do not use Pencil unless the user explicitly requests Pencil for the current tas
 A generic UI/design request is not permission. This applies to delegated children,
 Pencil browser tools and every MCP invocation path. Pencil's Pi lifecycle is lazy;
 this avoids startup connection but is not a technical tool-authorization gate.
+
+## End-of-task Agent tab cleanup
+
+When the parent invokes children it records the invoking `PASEO_AGENT_ID` and each exact
+child ID with its task workspace/cwd. After acceptance/review and the required delivery
+and tracker evidence are saved, but before the final reply, the parent archives only those
+recorded task-owned direct children that match its `ParentAgentId` and expected
+workspace/cwd, are freshly idle with no pending permission, queued or follow-up work, and
+have saved final results: `paseo agent archive EXACT_ID --json` per child, never `--force` -
+a soft archive only, not delete, stop or `paseo workspace archive`. Then verify `Archived`
+and that the invoking main agent remains unarchived. Never archive the invoking main agent
+even when idle, and never sweep all agent tabs or another task's unknown, busy or
+unrecorded children; a failed archive is preserved and reported, never forced. Keep a
+writer or reviewer tab until parent acceptance/delivery so it can be reused for
+refinement; do not close it when its individual turn ends. This is orchestrator policy at
+task end, not background daemon automation. The user already authorized cleanup of safe
+eligible children: do not ask again.
