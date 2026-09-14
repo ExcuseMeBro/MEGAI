@@ -134,8 +134,9 @@ Production deployment, secrets and destructive migrations retain separate approv
    actual delivery checks the candidate vector; it never substitutes for mode-appropriate
    current acceptance (independent formal evidence for guarded Pi; focused tests and
    self-review for routine Pi). Queue release/recovery follows its contract.
-5. Verify the delivered dev vector and task-wide behavior before handoff In Review,
-   never Done. Capture actual evidence; historical receipt cwd values stay unchanged.
+5. Verify the delivered dev vector and task-wide behavior, then run **Post-merge
+   cleanup** below before handoff In Review, never Done. Capture actual evidence;
+   historical receipt cwd values stay unchanged.
 
 ## Release notes for main pushes (Pi)
 
@@ -225,10 +226,61 @@ again. Neither task creation, dev delivery, queue acquisition nor a previous app
 silently authorizes main, push or production deployment. Partial promotion follows
 the same journal/stop/reconcile rules; no automatic rollback across repositories.
 
-After verified delivery and reviewer release, inventory tracked/untracked/ignored
-files and retain required private artifacts. Archive only released, clean, safely
-delivered workspaces through Paseo; delete only safely merged task branches. Local
-archival is bookkeeping, not permission to delete shared folders/files. Preserve
-unfinished/dirty work and explicit retention exceptions; keep one primary workspace
-at rest. The guard validates paths/provenance, not task-wide readiness, queue locking,
+## Post-merge cleanup
+
+Cleanup is part of delivery, not optional polish. Run it after verified task-to-dev
+integration, and again for remaining task resources after separately approved
+main promotion. Do not keep a delivered task workspace merely to wait for main:
+its commit and evidence must already be preserved in dev and private artifacts.
+An explicitly named persistent target such as MEGAI `pi` uses the same procedure
+after verified delivery to that target; retain `pi` itself and any explicitly
+retained workspace. This procedure grants no merge, main, push or remote-deletion
+approval. It is agent workflow, not a Git hook or background cleanup service.
+
+1. **Scope and preserve.** Use the same Plane task's recorded repo/workspace/ref
+   vector, not a global merged-branch sweep. Protect primary workspaces, `dev`,
+   `main`, `master`, named persistent branches and explicit retention exceptions.
+   Confirm all-repo delivery and required push/release results first; partial,
+   failed or uncertain delivery retains every task resource for reconciliation.
+   Inventory tracked, untracked and ignored files, and preserve required drafts,
+   logs, session/evidence bytes and recovery refs in verified private backups
+   outside retiring paths. A clean `git status` alone does not cover ignored data.
+2. **Release owners.** Finish mode-appropriate verification before retirement;
+   release task writers, reviewers, owned terminals and workspace services. Check
+   current Paseo agents/terminals and Git worktree ownership. An idle agent is not
+   proof of release; active, unknown or another task's owners require retention.
+   Never archive the current parent workspace from inside its own retiring cwd:
+   hand cleanup to a parent in the retained primary workspace. Keep historical
+   receipt paths unchanged; retain the checkout if a pending check still needs it.
+3. **Prove safe retirement.** Immediately before each mutation, recheck exact
+   projectId/workspaceId, path/common-directory identity, branch tip, clean data
+   inventory and released ownership. Require the recorded task tip to be an
+   ancestor of every target required by this delivery stage, using
+   `git merge-base --is-ancestor TASK_SHA TARGET_SHA`; recheck the target refs too.
+   For dev-only delivery, verified dev is sufficient; approved main promotion
+   requires the recorded promoted commit in main as well. Squash/rebase delivery
+   without ancestry proof is retained for explicit reconciliation, not force
+   deletion. Keep the applicable integration reservation through retirement;
+   if already released, reacquire it and revalidate before deleting refs.
+4. **Archive, then delete.** Use supported Paseo `archive_workspace` only for the
+   released, clean, safely delivered task workspace. Describe its current schema
+   first; preserve required session/evidence bytes before archival. Verify it is
+   inactive and its managed worktree is absent from both Git and the filesystem
+   before deleting its task branch. Local-workspace archival is bookkeeping,
+   never permission to delete shared folders/files. Never edit Paseo's registry
+   or use `rm -rf`, force worktree removal or `git branch -D` as a fallback.
+   Delete only the recorded merged local task branch with `git branch -d -- NAME`
+   from a retained checkout; if Git refuses, retain and report it. Published task
+   refs need explicit remote-deletion approval, fresh exact remote-tip/ancestry
+   checks and race-protected deletion of that ref only; absent approval, keep them.
+5. **Read back and hand off.** Recheck Paseo workspaces, Git worktrees and local
+   (and authorized remote) refs. Record removed resources and retained resources
+   with concrete reasons in the same Plane item. Only the primary should remain
+   when this task has no unfinished work or retention exception; other tasks stay
+   untouched. If archival/deletion fails or its result is uncertain, stop cleanup,
+   preserve remaining resources and reconcile read-only before retrying. Report
+   verified delivery separately from blocked cleanup; never claim cleanup complete
+   with unexplained leftovers. Hand off In Review, never Done, with that outcome.
+
+The guard validates paths/provenance, not task-wide readiness, queue locking,
 branch/base/title policy, user approval or post-launch filesystem writes.
