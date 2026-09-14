@@ -1,10 +1,14 @@
-# MEGAI · Pi defaults
+# 🚀 MEGAI · Pi defaults
 
 The `pi` branch provides a clean global Pi setup. Configuration lives in
 `~/.pi/agent`; local project exceptions live in each project's `AGENTS.md` and
 `.pi/project.json`. The installer does not create backups. It requires Python 3.11+, Node 22.22+,
 Git, npm, uv and jq, and uses the standard home directories (custom
 `MEGAI_HOME` / `PI_CODING_AGENT_DIR` values are rejected).
+
+## ⚡ Quick start
+
+> ⚠️ **Reset is destructive:** Pi credentials, sessions and old settings are deleted without a backup.
 
 ```bash
 # From this branch's checkout. --reset deletes Pi auth, sessions and old settings.
@@ -19,25 +23,29 @@ run it with `MEGAI_REF=pi MEGAI_PI_RESET=1 MEGAI_REMOVE_OMP=1`. Reset/removal ar
 explicit options. Reinstallation of a clean profile reuses its pinned packages;
 Pi startup never updates packages or builds indexes automatically.
 
+## 🧰 Included tools
+
 | Default | Purpose |
 | --- | --- |
-| Pi 0.85.1 | Native agent, user-selected provider/model |
-| Ruff | Check changed Python without automatic fixes |
-| Headroom 0.37.0 | Local discovery compression; raw source/tests/failures |
-| codedb / tgrep 1.0.4 / zvec-grep 0.2.1 | Structure, ranked text, local intent search |
-| Superpowers 5.1.0 | Automatic bootstrap and matching engineering skills |
-| Ponytail 4.9.0 | Default full mode; smallest complete implementation |
-| OpenSpec 1.13.0 | Global core skills and `/opsx-*` commands, telemetry disabled |
-| pi-mcp-adapter 2.33.0 | Lazy Plane and zvec MCP |
-| pi-web-access 0.29.0 | Exa public search without a separate key, page fetching |
-| pi-subagents 0.67.0 | Bounded children inheriting the selected model |
+| 🤖 Pi 0.85.1 | Native agent, user-selected provider/model |
+| 🐍 Ruff | Check changed Python without automatic fixes |
+| 🧠 Headroom 0.37.0 | Local discovery compression; raw source/tests/failures |
+| 🔎 codedb / tgrep 1.0.4 / zvec-grep 0.2.1 | Structure, ranked text, local intent search |
+| 🦸 Superpowers 5.1.0 | Automatic bootstrap and matching engineering skills |
+| 🐴 Ponytail 4.9.0 | Default full mode; smallest complete implementation |
+| 📐 OpenSpec 1.13.0 | Global core skills and `/opsx-*` commands, telemetry disabled |
+| 🔌 pi-mcp-adapter 2.33.0 | Lazy Plane and zvec MCP |
+| 🌐 pi-web-access 0.29.0 | Exa public search without a separate key, page fetching |
+| 👥 pi-subagents 0.67.0 | Bounded children inheriting the selected model |
 
 Package versions and integrity hashes are in [package-lock.json](pi-defaults/package-lock.json).
 Superpowers' extra `dispatch_agent` extension is excluded because pi-subagents owns
 delegation. Shared legacy skill discovery is excluded from this Pi profile to avoid
 contradictory defaults. Other agents retain their own configuration.
 
-## Plane and branches
+<a id="plane-and-branches"></a>
+
+## 🗂️ Plane and branches
 
 Workspace `brodev`: **Todo → In Progress → In Review → Done**. Plane is the only
 execution tracker. OpenSpec specifications and verification receipts are artifacts,
@@ -72,7 +80,9 @@ gets one worktree per affected repository under the same existing Paseo project 
 Plane task. The coordination folder remains a non-Git folder. The project-rules
 extension loads original project rules even when worktrees live outside that folder.
 
-## Local project configuration
+<a id="local-project-configuration"></a>
+
+## ⚙️ Local project configuration
 
 Copy [the template](pi-defaults/projects/template.json) to `.pi/project.json` in a
 project. For grouped repositories use `layout: "multi"` and component-relative
@@ -85,7 +95,9 @@ branches in `mobile` and `main-be`. The global installer does not edit project f
 or create/delete project branches. Existing dirty work and branch protections are
 retained. Read `pi-workflow` for worktree creation and branch cleanup rules.
 
-## Verification and operation
+<a id="verification-and-operation"></a>
+
+## ✅ Verification and operation
 
 ```bash
 python3 -B tests/pi_defaults.py
@@ -101,7 +113,9 @@ Use `/reload` or reopen existing Pi sessions after configuration changes. Packag
 installation grants the extensions normal Pi process access. Public web searches
 must not contain private repository content or credentials.
 
-Upstream references: [Pi packages](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/packages.md),
+## 📚 Upstream references
+
+[Pi packages](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/packages.md),
 [Superpowers](https://github.com/weiping/pi-superpowers),
 [Ponytail](https://github.com/DietrichGebert/ponytail),
 [OpenSpec](https://github.com/Fission-AI/OpenSpec),
