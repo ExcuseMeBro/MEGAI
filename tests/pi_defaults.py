@@ -180,7 +180,7 @@ class Delivery(unittest.TestCase):
             }
         )
         self.item["description_html"] = (
-            f'<pre data-pi-delivery="v1">{html.escape(json.dumps(old))}</pre>'
+            f"<pre>PI_DELIVERY_V1:{html.escape(json.dumps(old))}:END_PI_DELIVERY_V1</pre>"
         )
         with self.assertRaisesRegex(ValueError, "cannot drop"):
             self.review()
@@ -202,6 +202,17 @@ class Delivery(unittest.TestCase):
             self.command("done", "--project-id", "project", "--task-id", "task")
         self.assertEqual(self.item["description_html"], "human edit")
         self.assertEqual(len(self.writes), 1)
+
+    def test_plane_html_sanitization_keeps_receipt_readable(self):
+        self.review()
+        # Plane strips data-* attributes; completion metadata must live in text.
+        import re
+
+        self.item["description_html"] = re.sub(
+            r"<pre[^>]*>", "<pre>", self.item["description_html"]
+        )
+        result = self.command("done", "--project-id", "project", "--task-id", "task")
+        self.assertEqual(result["state"], "Done")
 
     def test_done_rejects_changed_remote(self):
         self.review()

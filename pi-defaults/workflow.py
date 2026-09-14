@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
 from plane_mcp_headers import read_token  # noqa: E402
 
 ENDPOINT = "https://mcp.plane.so/http/api-key/mcp"
-MARKER = r'<pre data-pi-delivery="v1">(.*?)</pre>'
+MARKER = r"<pre>PI_DELIVERY_V1:(.*?):END_PI_DELIVERY_V1</pre>"
 
 
 def git(path, *args):
@@ -374,7 +374,7 @@ def main():
         if not evidence:
             raise ValueError("Provide actual verification evidence")
         description = re.sub(MARKER, "", description, flags=re.S)
-        description += f'<pre>{html.escape(evidence)}</pre><pre data-pi-delivery="v1">{html.escape(json.dumps(receipt))}</pre>'
+        description += f"<pre>{html.escape(evidence)}</pre><pre>PI_DELIVERY_V1:{html.escape(json.dumps(receipt))}:END_PI_DELIVERY_V1</pre>"
         target = "In Review"
     else:
         if item["state"] != workflow["In Review"]:
