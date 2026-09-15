@@ -44,6 +44,14 @@ native Paseo agents own delegation, one writer per worktree. Shared legacy skill
 is excluded from this Pi profile to avoid contradictory defaults. Other agents retain
 their own configuration.
 
+Model routing stays user-selected: the repo ships explicit opt-in presets
+(`economy`, `mixed`) that route DeepSeek Flash planning and implementation while
+keeping GPT for guarded review. Nothing is applied until you run the preset
+command yourself. Measure a change instead of assuming it: `megai report --text`
+reports turns, prompt tokens per turn, reported cost per model and estimated
+tool-output replay from local sessions, and `megai budget --check` previews the
+optional native context budget without writing.
+
 <a id="plane-and-branches"></a>
 
 ## 🗂️ Plane and branches
@@ -108,7 +116,9 @@ retained. Read `pi-workflow` for worktree creation and branch cleanup rules.
 
 ```bash
 python3 -B tests/pi_defaults.py
-ruff check --no-fix --no-fix-only --force-exclude --no-cache -- pi-defaults/*.py tests/pi_defaults.py
+python3 -B tests/pi_context_budget.py
+python3 -B tests/pi_usage_report.py
+ruff check --no-fix --no-fix-only --force-exclude --no-cache -- pi-defaults/*.py lib/pi_context_budget.py lib/pi_usage_report.py tests/pi_defaults.py
 bash -n bin/megai install.sh
 node pi-defaults/verify.mjs  # installed Pi; no model request
 megai doctor

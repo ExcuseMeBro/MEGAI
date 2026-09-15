@@ -21,15 +21,50 @@ original files/receipts when exact evidence is needed.
 
 ## Apply and activate
 
-Back up `~/.pi/agent/models.json` privately. If absent, the template can supply it;
-otherwise merge only the two `contextWindow` fields, preserving existing entries.
-This is a separate native preference: the token-profile installer does not apply
-or remove it automatically. Restore the prior fields to undo it.
+`lib/pi_context_budget.py` is the explicit, opt-in installer. It merges only the
+`contextWindow` fields named in the shipped template, preserves every other key,
+provider, credential and setting, and refuses a user-owned value instead of
+overwriting it. Writes go through the shared ownership receipts with a private
+backup; `--check` is the default and never writes.
+
+```bash
+megai budget --check          # preflight, no writes
+megai budget --apply
+megai budget --verify          # real native model loader
+megai budget --apply --window 131072
+megai budget --remove          # owned fields only
+```
+
+From a checkout, run `python3 lib/pi_context_budget.py` with the same flags.
+
+`--window` replaces the template value for every target and is bounded to
+32768..2000000. `--verify` loads the installed `models.json` with Pi's own model
+loader offline and fails when the file does not actually change the native budget,
+so a written-but-ineffective file is not reported as active. It needs Node and the
+Pi package (`PI_PACKAGE_ROOT`, or a resolvable `pi` executable); when neither is
+available it stops as blocked rather than claiming success.
 
 In interactive Pi, reopen `/model` and reselect the same model, or start a new Pi
 session. A fresh native loader sees the change; an already-running agent must not
 be assumed to have reloaded. In an oversized existing session, `/compact` requests
 native summarization; it does not delete the original transcript.
+
+## The trade-off is measured, not assumed
+
+A smaller window cuts the per-turn prompt, but each compaction is itself a
+full-context summarization request and can omit detail. In the observed
+2026-09-15 window (see [pi-usage-report.md](pi-usage-report.md)) the GPT parent ran
+at 91,662 prompt tokens per turn and reached a 255,852-token prompt before the
+native trigger, while only 4 compactions and reported $4.42 of summarization work
+occurred in 14 days. A substantially smaller window therefore removes a large
+per-turn term and adds summarization work at the same time; the net effect is not
+knowable without measuring. Compare equal tasks in fresh sessions with
+
+```bash
+megai report --text
+```
+
+before and after. Nothing in this repository claims the cap saves tokens.
 
 ## Verification
 
@@ -37,6 +72,8 @@ native summarization; it does not delete the original transcript.
 PI_PACKAGE_ROOT=/path/to/pi-coding-agent node tests/pi-context-budget.mjs
 # Read the actual installed preference without a model/provider request:
 PI_PACKAGE_ROOT=/path/to/pi-coding-agent node tests/pi-context-budget.mjs "$HOME/.pi/agent/models.json"
+# Installer behaviour, ownership and native verification:
+PYTHONDONTWRITEBYTECODE=1 python3 tests/pi_context_budget.py
 ```
 
 The offline test uses the real native model loader and compaction predicate. It

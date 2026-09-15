@@ -75,7 +75,7 @@ For delegated planner/scout/worker roles whose configured primary is
 `deepseek/deepseek-flash` (high), keep DeepSeek first. After a confirmed
 provider/model-specific failure, timeout, reasoning dead-end or unavailable
 primary, use this exact chain, all at high thinking:
-`deepseek/deepseek-flash` -> `minimax/MiniMax-M3` -> `openai-codex/gpt-5.6-luna`.
+`deepseek/deepseek-flash` -> `openai-codex/gpt-5.6-luna`.
 Explicit task model/provider restrictions override this preference; do not replace
 other configured primaries or the independent reviewer's configured model.
 A confirmed provider-specific insufficient balance or unavailability permits the
@@ -108,9 +108,9 @@ fallback trigger, even when the payload says `type=unknown_error` and
 broad type/code fields alone or a quoted error in repository/tool/test output.
 
 For this confirmed case, the parent routes the unfinished subagent task to the next
-provider in the chain — `minimax/MiniMax-M3` (high), then
-`openai-codex/gpt-5.6-luna` (high) — after the stopped-writer and verified-launch
-checks. Notify the user briefly and continue without requesting the same fallback
+provider in the chain — `openai-codex/gpt-5.6-luna` (high) — after the stopped-writer
+and verified-launch checks. Notify the user briefly and continue without requesting
+the same fallback
 approval again, retrying DeepSeek, sleeping or waiting for a balance top-up. Carry
 the task's existing diff/evidence and resume only unfinished work; never replay
 uncertain mutations. Keep a confirmed-unavailable provider marked unavailable in this
@@ -127,7 +127,7 @@ modify credentials. If `openai-codex/gpt-5.6-luna` also fails, stop as BLOCKED: 
 current parent does not silently implement in its place and the chain does not
 restart. If no eligible chain provider is available, report BLOCKED.
 
-The MiniMax Max plan's advertised 4–5 concurrent agents is capacity, not a required
+A fallback plan's advertised concurrency is capacity, not a required
 fanout. Keep the existing independent-scope/one-writer rules and initial two-child
 limit. Do not rewrite native context limits or infer available quota from plan copy;
 text, image and speech may share the account quota.

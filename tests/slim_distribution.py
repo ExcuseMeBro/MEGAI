@@ -852,8 +852,12 @@ assert first.read_bytes()==b'concurrent after publish'
         for active in (ROOT / "pi-skill/SKILL.md", ROOT / "skills/agent-worktree-lifecycle/SKILL.md", ROOT / "task-flow/skills/megai-task-flow/SKILL.md"):
             self.assertNotIn(".todos", active.read_text())
             self.assertNotIn("MiniMax", active.read_text())
-        self.assertIn('MEGAI_REF="${MEGAI_REF:-main}"', (ROOT / "install.sh").read_text())
-        self.assertNotIn('MEGAI_REF="${MEGAI_REF:-slim}"', (ROOT / "install.sh").read_text())
+        # The installer must pin one persistent branch explicitly; this checkout
+        # delivers the `pi` profile, while `main` keeps its own default there.
+        installer = (ROOT / "install.sh").read_text()
+        self.assertTrue(any(f'MEGAI_REF="${{MEGAI_REF:-{branch}}}"' in installer
+                            for branch in ("main", "pi")))
+        self.assertNotIn('MEGAI_REF="${MEGAI_REF:-slim}"', installer)
         for flag in ("--no-fix", "--no-fix-only", "--no-cache", "ruff format --check"):
             self.assertIn(flag, (ROOT / "pi-skill/SKILL.md").read_text())
 

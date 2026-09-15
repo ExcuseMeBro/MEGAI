@@ -17,6 +17,8 @@ megai
   headroom doctor|compress|retrieve|recall|save [args]
                                 Local compression, retrieval and memory CLI
   acceptance [args]             Capture/check source-bound acceptance evidence
+  report [args]                 Read-only local Pi usage/cost report (no writes)
+  budget [args]                 Opt-in native Pi context budget (apply needs --apply)
   queue [args]                  Durable integration reservations (no auto merge)
   workspace --root CHECKOUT     Resolve canonical Git/Paseo project (read-only)
   reindex                       Explicit local zvec index/rebuild
@@ -117,6 +119,17 @@ cmd_start() { die "agent-memory is retired; use megai headroom recall/save"; }
 cmd_stop() { die "agent-memory is retired; use megai headroom recall/save"; }
 cmd_logs() { die "agent-memory is retired; use megai headroom doctor"; }
 
+exec_lib_python() {
+  local name="$1"; shift
+  local script
+  # A clean install publishes lib/ once; an existing shared install keeps its own
+  # copy, so the always-refreshed profile source is the second candidate.
+  for script in "$MEGAI_HOME/lib/$name" "$MEGAI_HOME/pi-profile/lib/$name"; do
+    [ -f "$script" ] && exec python3 -B "$script" "$@"
+  done
+  die "$name is not installed; run megai update"
+}
+
 cmd_reindex() {
   command -v zg >/dev/null 2>&1 || die "zvec-grep missing; run megai install"
   local root embedding; root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
@@ -173,6 +186,8 @@ case "${1:-__project__}" in
   doctor) cmd_doctor ;;
   headroom) shift; cmd_headroom "$@" ;;
   acceptance) shift; exec python3 "$LIB/acceptance_gate.py" "$@" ;;
+  report) shift; exec_lib_python pi_usage_report.py "$@" ;;
+  budget) shift; exec_lib_python pi_context_budget.py "$@" ;;
   queue) shift; exec python3 -B "$LIB/integration_queue.py" "$@" ;;
   workspace) shift; exec node "$MEGAI_HOME/pi-skill/workspace-guard/identity.mjs" "$@" ;;
   start) shift; cmd_start "$@" ;;

@@ -116,6 +116,27 @@ when the equivalent ownership, isolation and verification requirements are met.
 - Check file type before reading an unknown executable/artifact. Use native read
   for source text, not compiled binaries; use bounded CLI help for executable usage.
 
+## Context and output budget
+
+Prompt size multiplied by turn count is the dominant cost of a session, and a
+retained tool result is re-sent in every later request of that session. Bound
+both terms:
+
+- Put independent tool calls in the **same** assistant turn (parallel tool block)
+  so one round trip covers them. Keep dependent calls ordered, and never chain
+  unrelated diagnostics into one shell command that shares a single timeout.
+- Redirect output that can be large into a file and search the file, instead of
+  printing it into the conversation:
+  `CMD > /tmp/step.log 2>&1; rg -n "pattern" /tmp/step.log | head -40`.
+- Read the range under investigation (`read` with offset/limit, `rg -n`, `sed -n`)
+  rather than printing a whole large file, and re-read only after a change.
+- Prefer one bounded call over many small ones; each small result stays in the
+  context for the rest of the session.
+- Measure instead of guessing: `megai report --text` reports turns, prompt tokens
+  per turn, reported cost per model, the single-tool-call ratio and estimated
+  tool-output replay. Reported cost is not billed cost, and the replay figure is
+  an estimate. Do not claim a saving without a comparable before/after measurement.
+
 ## User-approved Pi / Paseo routing
 
 Pi is the orchestrator; native Paseo owns child execution, visible Agent tabs,

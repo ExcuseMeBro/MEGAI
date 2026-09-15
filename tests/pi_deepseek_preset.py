@@ -40,7 +40,8 @@ class DeepSeekPreset(MixedPreset):
 
     def upgrade_legacy(self, preset):
         legacy = self.home / "legacy-source"
-        for relative in ("pi-skill/delegation.md", "pi-skill/provider-guard/index.ts"):
+        for relative in ("pi-skill/delegation.md", "pi-skill/provider-guard/index.ts",
+                         "pi-skill/role-routing/index.ts"):
             path = legacy / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes((ROOT / relative).read_bytes())

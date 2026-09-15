@@ -84,7 +84,8 @@ class MixedPreset(unittest.TestCase):
 
     def test_explicit_reapply_upgrades_owned_xhigh_preset(self):
         legacy = self.home / "legacy-source"
-        for relative in ("pi-skill/delegation.md", "pi-skill/provider-guard/index.ts"):
+        for relative in ("pi-skill/delegation.md", "pi-skill/provider-guard/index.ts",
+                         "pi-skill/role-routing/index.ts"):
             path = legacy / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes((ROOT / relative).read_bytes())

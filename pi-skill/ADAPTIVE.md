@@ -39,10 +39,13 @@ No formal-gate claim without running that gate. Existing stricter repo/user rule
 1. **Locate and edit.** Use scoped `rg -n` or `rg -l` to locate symbols/files,
    then `read` with offset/limit for relevant ranges and their dependencies. Widen
    for a named unresolved question; complete mandatory document reads still apply.
-   Batch independent lookups; keep dependent operations ordered. Reuse current
-   files, paths, IDs and evidence; refresh for drift, a boundary check or a failed
-   assumption. Keep full logs on disk and inspect relevant ranges, not repeated
-   dumps. Exact/absence claims need complete scoped native search; truncated output
+   Batch independent lookups into ONE assistant turn; keep dependent operations
+   ordered. Keep full logs on disk and inspect relevant ranges, not repeated
+   dumps: redirect verbose output to a file and search it, and read ranges with
+   offset/limit instead of printing a whole large file. Every retained result is
+   re-sent in each later request, so its size is paid per remaining turn.
+   Reuse current files, paths, IDs and evidence; refresh for drift, a boundary
+   check or a failed assumption. Exact/absence claims need complete scoped native search; truncated output
    is not proof. Use RTK only for eligible large discovery, raw output for evidence.
    Keep one writer, private backups and the smallest complete change.
    Reuse `megai-task-flow` identity and `agent-worktree-lifecycle` isolation;
@@ -115,3 +118,6 @@ to launch.
 
 Provider stall protection and Headroom remain available without new daemons or hooks.
 These are workflow/cost defaults, not a sandbox or a measured latency/token guarantee.
+Measure before claiming: `megai report --text` reports observed turns, prompt
+tokens per turn, reported cost per model and estimated tool-output replay; this is
+an estimate and reported cost is not billed cost.
