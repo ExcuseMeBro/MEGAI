@@ -52,6 +52,60 @@ reports turns, prompt tokens per turn, reported cost per model and estimated
 tool-output replay from local sessions, and `megai budget --check` previews the
 optional native context budget without writing.
 
+<a id="token-economy"></a>
+
+## 🪙 Token economy
+
+Prompt size multiplied by turn count is the whole bill: `cacheRead` is about 96% of
+reported tokens in the observed local window. Four habits cover it.
+
+**1. Inspect a command yourself with `!!`.** `!command` runs a shell command and sends
+its output to the model; `!!command` runs it without adding the output to context. Use
+`!!` for anything you read yourself — versions, git status, `ls`, logs — and ask the
+agent for the one line you actually need. The agent is also told to reuse what you
+already inspected instead of reproducing the same output.
+
+**2. Keep long-term rules in `AGENTS.md`, procedures in skills.** `AGENTS.md` is sent
+with every request, so its size is charged on every turn; a skill is loaded only when
+its trigger fires. Measured on this repository (chars/4, an estimate):
+
+| File | Before | After |
+| --- | --- | --- |
+| `pi-defaults/AGENTS.md` (every request) | 17,862 chars ≈ 4.4k tokens | 16,410 chars ≈ 4.1k tokens |
+| `pi-skill/delegation.md` (only when delegating or escalating) | 12,197 chars | 15,147 chars |
+
+The blocked Codex Spark procedure and the parent-side provider-timeout/replacement
+sequence moved out of `AGENTS.md` into `pi-skill/delegation.md`. Sections that are used
+on almost every task (discovery, placement, context budget) stay in `AGENTS.md`:
+moving them to a skill would load them anyway and only add a lookup step.
+
+**3. Enable tools by task.** Built-in tools come from `defaultTools` in
+`~/.pi/agent/settings.json` (`read`, `bash`, `edit`, `write`, `grep`, `find`, `ls`), and
+a project `.pi/settings.json` replaces it, so a repository can run narrower than your
+global default. For a one-off narrow session, allowlist tools at launch:
+
+```bash
+pi --tools read,grep,find,ls -p "Review this file"   # strict allowlist: built-in,
+                                                     # extension and custom tools
+pi --exclude-tools web_search,fetch_content         # filter the resulting list
+pi --no-builtin-tools                               # extension tools only
+```
+
+MCP servers in `~/.pi/agent/mcp.json` already declare `lifecycle: lazy`, so an unused
+server is not connected at startup. `defaultTools` selects **built-in** tools only;
+extension and MCP tools stay enabled, so narrow them with `--exclude-tools` when it
+matters.
+
+**4. Break long work into phases.** `/compact` summarizes older turns while keeping
+recent work, and a new task belongs in a new session. Compaction is itself a
+summarization request that can omit detail: in the observed 14-day window it ran 5
+times for a reported $4.46, against 4,326 turns. Compact at phase boundaries, not per
+message, and do not re-read logs a finished phase has already discarded.
+
+Measure the whole picture with `megai report --text`. Reported cost is
+provider-reported, not billed, and every token figure here is an estimate from local
+sessions, not a benchmark.
+
 <a id="plane-and-branches"></a>
 
 ## 🗂️ Plane and branches

@@ -81,6 +81,13 @@ both terms:
   rather than printing a whole large file, and re-read only after a change.
 - Prefer one bounded call over many small ones; each small result stays in the
   context for the rest of the session.
+- Reuse what the user already inspected instead of buying the same output twice:
+  their `!!command` output is deliberately outside the model context, so ask for the
+  relevant lines rather than re-running the command to reproduce them.
+- Split a long task at phase boundaries: `/compact` keeps recent work and summarizes
+  the rest, and a new task belongs in a new session. Compaction is itself a
+  summarization request that can omit detail, so use it at boundaries, not per
+  message, and never re-read logs a phase has already discarded.
 - Measure instead of guessing: `megai report --text` reports turns, prompt tokens
   per turn, reported cost per model, the single-tool-call ratio and estimated
   tool-output replay. Reported cost is not billed cost, and the replay figure is
@@ -145,53 +152,26 @@ boundary and completion/control path. Removed extension profiles do not configur
 Paseo. Missing support is a blocker — never change models silently or claim a fallback
 ran on DeepSeek.
 
-Confirmed DeepSeek provider timeout → no resend to DeepSeek, no second long wait; use
-the approved Luna/high fallback once and report the actual model. A native wait timeout
-alone is not a provider failure. Suspected stall → one bounded native wait (at most 180
-seconds), inspect progress/errors once, never repeated 600-second waits or routine
-polling. No observable model/tool progress in that interval with only a provider
-response pending → the owning parent may abort that request and use the fallback; never
-interrupt a progressing stream, active tool/test or pending permission. Before
-replacement: original writer idle, no queued work or pending permission, diff inspected
-and preserved, same task/workspace/cwd. No safe in-place switch → one replacement only
-after the original is quiescent; never two writers. Never take over another parent's
-child. Fallback failure → report the blocker, no retry or fan-out. Keep parent
-model/thinking and required review.
+Provider timeouts, suspected stalls, the quiescent-replacement sequence and the
+runtime-timeout semantics live in `megai/delegation.md`, loaded on delegation or
+escalation. In short: use the approved Luna/high fallback once, report the model
+that actually ran, never keep two writers, and never keep waiting on a confirmed
+provider timeout. Accepted findings return to the same writer, then rerun affected
+checks and review. Share scoped context, diffs and concise evidence, not full
+transcripts. One writer per checkout; children never mutate Plane or integrate
+branches. Questions and tiny runtime-setting edits may stay in the parent.
+pi-subagents was removed. Do not reinstall it; do not use its commands, tools or
+packaged workflows; translate packaged delegation guidance to native Paseo only
+when equivalent ownership, isolation and verification hold.
 
-Runtime timeout settings bound SDK requests/idle transport, not total task duration;
-keep-alive streaming can outlive them — not a hard wall-clock SLA. Accepted findings
-return to the same writer, then rerun affected checks and review. Share scoped context,
-diffs and concise evidence, not full transcripts. One writer per checkout; children
-never mutate Plane or integrate branches. Questions and tiny runtime-setting edits may
-stay in the parent. pi-subagents was removed. Do not reinstall it; do not use its
-commands, tools or packaged workflows; translate packaged delegation guidance to
-native Paseo only when equivalent ownership, isolation and verification hold.
+## Codex Spark helper — approved but blocked
 
-## User-approved Codex Spark helper
-
-Gate: the 2026-09-15 native Pi/Paseo smoke test failed with
-`The 'gpt-5.3-codex-spark' model is not supported when using Codex with a ChatGPT account.`
-Catalog presence did not prove account access. Approved but blocked: no Spark dispatch
-until a user-requested access retest succeeds — no automatic retry, no authentication
-change, no silent substitution.
-
-Preferred for bounded helper work — scoped code reading/discovery, log analysis, small
-independent low-risk fixes with focused tests — through native Paseo's Pi provider, not
-a separate runner:
-`paseo agent run --background --provider pi --model openai-codex/gpt-5.3-codex-spark --thinking medium --workspace EXISTING_ID --cwd EXPLICIT_PATH --title TITLE PROMPT`
-`medium` is Spark's verified native default; parent selection unchanged. Verify
-availability and native completion/control support before each new delegation unless
-already verified in this session. Spark is text-only: no images.
-
-Give only necessary paths/excerpts, one goal, explicit read-only or scoped write
-authority and observable acceptance. Reading/log tasks stay read-only; fixes need a
-safe checkout, one writer, focused tests and the same GPT review. Not for architecture,
-security/data-integrity, consequential cross-module work or final approval. DeepSeek
-remains the primary implementation worker with its Luna fallback; GPT remains the
-reviewer. Spark failure or outgrown scope → back to the parent, no silent substitution;
-quiesce any writer first. No scout when direct tools suffice, no splitting one fix
-across extra agents, no launches to consume quota. Existing workspace, background
-launch, Plane tracking, leaf-agent and task-end archive rules apply.
+The 2026-09-15 native Pi/Paseo smoke test failed with
+`The 'gpt-5.3-codex-spark' model is not supported when using Codex with a ChatGPT account.`,
+so no Spark dispatch happens until a user-requested access retest succeeds: no
+automatic retry, no authentication change, no silent substitution. Scope, launch
+syntax and the bounded-helper rules are in `megai/delegation.md`. DeepSeek stays the
+primary implementation worker with its Luna fallback; GPT stays the reviewer.
 
 ## Bounded shell discovery
 

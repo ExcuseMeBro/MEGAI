@@ -183,3 +183,54 @@ Main promotion still needs separate explicit approval of the exact commit vector
 
 MEGAI does not install a model-selection tool-call guard. User permissions,
 provider availability and project rules still apply to agent launches.
+
+## Parent-side provider timeout, stall and replacement
+
+Moved out of the always-loaded `AGENTS.md` so the parent pays for it only when it
+delegates or escalates.
+
+A confirmed DeepSeek provider timeout means no resend to DeepSeek and no second long
+wait: use the approved `openai-codex/gpt-5.6-luna` (high) fallback once and report the
+model that actually ran. A native wait timeout alone is not a provider failure.
+For a suspected stall, do one bounded native wait of at most 180 seconds and inspect
+progress/errors once — never repeated 600-second waits and never routine polling. If
+no model or tool progress is observable in that interval while only a provider
+response is pending, the owning parent may abort that request and use the fallback.
+Never interrupt a progressing stream, an active tool or test, or a pending permission.
+
+Before replacement: the original writer is idle, with no queued work and no pending
+permission, its diff has been inspected and preserved, and the replacement runs in the
+same task, workspace and cwd. With no safe in-place switch, allow exactly one
+replacement after the original is quiescent — never two writers, and never take over
+another parent's child. A fallback failure is reported as a blocker with no retry and
+no fan-out. Keep the parent model and thinking level unchanged, and keep the required
+review.
+
+Runtime timeout settings bound SDK requests and idle transport, not total task
+duration; keep-alive streaming can outlive them, so they are not a hard wall-clock SLA.
+
+## Codex Spark helper (approved, blocked)
+
+Preferred for bounded helper work — scoped code reading/discovery, log analysis, small
+independent low-risk fixes with focused tests — through native Paseo's Pi provider, not
+a separate runner:
+
+```
+paseo agent run --background --provider pi --model openai-codex/gpt-5.3-codex-spark \
+  --thinking medium --workspace EXISTING_ID --cwd EXPLICIT_PATH --title TITLE PROMPT
+```
+
+`medium` is Spark's verified native default and the parent selection is unchanged.
+Verify availability and native completion/control support before each new delegation
+unless already verified in this session. Spark is text-only: no images.
+
+Give only necessary paths/excerpts, one goal, explicit read-only or scoped write
+authority and observable acceptance. Reading and log tasks stay read-only; fixes need a
+safe checkout, one writer, focused tests and the same GPT review. Not for architecture,
+security/data-integrity, consequential cross-module work or final approval. DeepSeek
+remains the primary implementation worker with its Luna fallback; GPT remains the
+reviewer. A Spark failure or outgrown scope returns to the parent with no silent
+substitution — quiesce any writer first. No scout when direct tools suffice, no
+splitting one fix across extra agents and no launches to consume quota. The existing
+workspace, background launch, Plane tracking, leaf-agent and task-end archive rules
+apply.
