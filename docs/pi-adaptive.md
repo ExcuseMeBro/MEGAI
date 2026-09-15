@@ -40,8 +40,9 @@ This sets next-session defaults and planner/scout/worker roles to
 `openai-codex/gpt-5.6-sol` with high thinking. Shared model roles use one consistent
 per-model startup level; scout also uses high. Roles are preferences, not mandatory
 agent launches. Routine DeepSeek parent work does not launch GPT; GPT is reserved
-for guarded review or a concrete model-specific failure. The `mixed` preset uses
-the same DeepSeek scout/worker while retaining its GPT planner/reviewer.
+for guarded review or a concrete model-specific failure. The retired `mixed` preset
+differed only in a GPT planner; one `economy` preset now covers DeepSeek planning,
+scout and worker with a GPT reviewer.
 
 A healthy DeepSeek parent performs its own routine work directly. With an
 inherited GPT/Paseo parent and the `economy` preset, substantial bounded
@@ -85,7 +86,6 @@ there. Running writers must finish before reload/restart.
 ```bash
 python3 -B tests/pi_adaptive_policy.py
 python3 -B tests/pi_model_policy.py
-python3 -B tests/pi_mixed_preset.py
 python3 -B tests/pi_deepseek_preset.py
 ```
 

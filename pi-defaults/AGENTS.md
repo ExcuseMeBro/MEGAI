@@ -1,120 +1,69 @@
 # Pi defaults
 
-Use the user's language. Keep the selected provider, model and thinking level.
-Read the nearest project AGENTS.md and `.pi/project.json`; project-specific rules
-stay there. In a worktree, `pi-workflow context` resolves the original repository
-and lists the original project's rules too. Explicit user instructions take precedence.
+User's language. Keep the selected provider, model, thinking level. Read the nearest
+project AGENTS.md and `.pi/project.json`; project rules stay there. In a worktree,
+`pi-workflow context` resolves the original repo and lists its rules. Explicit user
+instructions take precedence.
 
-Before project changes, load `pi-workflow`. Plane in workspace `brodev` is the
-only execution tracker: Todo → In Progress → In Review → Done. Reuse the same
-project/task identity. Done requires verified main delivery for every affected
-repository; use `pi-workflow done`. Main promotion still needs explicit approval.
-Questions and read-only investigation do not need a task.
+Before project changes load `pi-workflow`. Plane (workspace `brodev`) is the only
+tracker — Todo → In Progress → In Review → Done, one reused project/task identity.
+Done needs verified main delivery in every affected repo (`pi-workflow done`); main
+promotion needs explicit approval. Questions and read-only work need no task.
 
-For coding, use Superpowers' matching workflow and Ponytail's smallest complete
-solution. Superpowers' plan/spec files are technical artifacts; its TodoWrite and
-local checklist instructions map to the existing Plane item, not a second tracker.
-The Pi workflow owns task identity, worktree placement and branch delivery when a
-packaged skill suggests a different convention. Use OpenSpec for specifications
-and substantial behavior changes; preserve existing specs. Initialize missing
-project OpenSpec storage only when needed, with `openspec init --tools none`.
-OpenSpec core skills and `/opsx-*` commands are installed globally. Its planning-only
-boundary applies to planning requests; an explicit implementation request authorizes
-continuing through apply after the necessary specification work.
+Coding: Superpowers' matching workflow plus Ponytail's smallest complete solution.
+Superpowers plan/spec files are technical artifacts; its TodoWrite and local
+checklists map to the existing Plane item, not a second tracker. Pi workflow owns task
+identity, worktree placement and branch delivery when a packaged skill suggests
+otherwise. OpenSpec for specifications and substantial behavior changes; preserve
+existing specs; init missing project storage only when needed
+(`openspec init --tools none`). OpenSpec core skills and `/opsx-*` are global; the
+planning-only boundary covers planning requests, and an explicit implementation
+request authorizes continuing through apply after that spec work.
 
-Use codedb for definitions/outlines, tgrep for ranked text discovery, and zvec-grep
-(`zg` or its MCP tools) for intent search. Use rg for exact/exhaustive matching and
-native read for source verification. Index only on task demand; keep embeddings
-local. Headroom automatically compresses eligible successful discovery output;
-source reads, edits, full diffs, tests and failures remain raw. Never infer test
-success from compressed output. Run Ruff on changed Python by default:
-`ruff check --no-fix --no-fix-only --force-exclude --no-cache -- FILES`.
-Use repository formatting rules; do not automatically rewrite unrelated files.
+## Code discovery — Graft first
 
-Use pi-web-access for public research. Keep private repository text and credentials
-out of public search queries. pi-mcp-adapter provides lazy Plane and zvec tools.
-Use native Paseo agents for bounded independent tasks or required independent review;
-otherwise work directly. Give children explicit cwd, scope and acceptance. Children
-are leaves and never mutate Plane or integrate branches. One writer per worktree.
-Use completion notifications. Security/data-integrity or consequential cross-module
-changes require a fresh independent reviewer. Verify behavior before handoff.
+Graft FIRST in every Pi session, children included: find code, inspect file APIs,
+trace callers through the lazy `graft` MCP server — the Pi discovery default,
+overriding bundled tgrep-first or generic search routing; no separate user request
+needed. Task-driven: not a search per message or before every edit. Binary
+`~/.pi/agent/tools/graft/node_modules/.bin/graft` (0.18.0); discover its tools once
+with `mcp({server:"graft"})`, small limits/scopes. Root is the session cwd with cache
+`.pi/graft` there; it never follows a shell `cd` into another repository or worktree.
+If `.pi/graft/.graph/wiring.json` is absent there, build once in the safely owned task
+checkout:
+`DO_NOT_TRACK=1 GRAFT_NO_GITIGNORE=1 GRAFT_NO_IGNORE=1 ~/.pi/agent/tools/graft/node_modules/.bin/graft --dir .pi/graft build --no-gitignore --no-ignore .`
+Never build in a busy/shared checkout, non-repository parent or across projects. Keep
+`.pi/graft` local and out of commits; never overwrite tracked cache files. Queries
+refresh incrementally — no per-prompt rebuilds, no startup hooks. Another checkout →
+CLI with explicit cwd. No `graft init`, `--deep`, Brain/cloud connection or
+model/API-key configuration without explicit approval; telemetry stays off.
 
-## Small-task execution — fast path (default)
+Known path and source → native read/edit, no rediscovery. Unknown code → one scoped
+Graft query, reuse its paths/ranges. codedb find/outline for symbol/file structure;
+zvec-grep (`zg query`) for intent discovery when Graft is unavailable, missing, slow,
+stale, incomplete or unanswered. Never Graft → codedb → zvec mechanically for an
+answered question. Missing graph → the single safe build above; other failures →
+immediate fallback, no retry loop. Embeddings stay local; no ready zvec index → scoped
+native rg rather than blocking a small edit on a rebuild. tgrep for literal discovery,
+native rg for exact/exhaustive matching (indexes cover only indexed files), native read
+for source verification. Batch independent lookups/reads and reuse readiness/discovery
+evidence per cwd, refreshing only on a relevant change or error. Dart is broad-tier,
+not compiler-grade — verify caller coverage with rg. Never substitute graph summaries
+for source verification or test evidence. Index on task demand only.
 
-Default sequence: minimal fix → focused test → required review → result.
-For a localized fix with known acceptance and no security/data-integrity or
-consequential cross-module impact, minimize model round trips, not verification.
-This fast path takes precedence over packaged workflow ceremony for routine fixes;
-substantial behavior changes still require the applicable design/spec workflow.
-- Proceed on clear implementation requests; ask only for blocking user-owned
-  decisions. No optional brainstorming, separate plan, or approval round trip.
-- Use one scoped DeepSeek writer for both implementation and focused tests, then
-  the required fresh GPT review. Do not add scouts, planners, separate testers or
-  parallel children unless a named independent need justifies the handoff.
-  The parent scopes and accepts; it does not duplicate the writer's investigation.
-  Tiny runtime-setting edits may stay in the parent as specified below.
-- Reuse instructions, CLI syntax, project/task IDs and source already available
-  in this session; reread only after changes, missing context or compaction.
-  Load matching required skills once, not an unrelated workflow stack.
-- State acceptance briefly in the existing Plane item. Do not create a separate
-  plan/spec for a routine bugfix unless scope or project policy requires it.
-- Locate the affected symbol and callers in one scoped discovery pass. Once paths
-  are known, request independent source/test reads together when parallel tools
-  are available; do not spend a model turn per known file or adjacent range.
-- Reuse the nearest working test harness. Check imports and setup before running;
-  avoid booting the whole app for a widget/callback test. Keep red/green evidence.
-  In Flutter, use `--no-pub` when dependencies are already resolved and unchanged.
-- Group known edits per file in one edit call. Run focused tests and relevant
-  diagnostics after the patch; rerun only checks affected by subsequent edits.
-- After acceptance and diff review pass, perform required delivery/tracking and
-  stop. No optional test expansion, formatting churn or repeated discovery.
-  Report only material blockers during execution; finish with the result, focused
-  verification and any remaining risk. Do not claim speed gains without timing.
-- Preserve required safety checks, independent review and safe task placement.
-  Do not impose a hard tool cap, skip evidence, or change model/thinking for speed.
+Headroom compresses eligible successful discovery output; source reads, edits, full
+diffs, tests and failures stay raw. Never infer test success from compressed output.
+Ruff on changed Python by default:
+`ruff check --no-fix --no-fix-only --force-exclude --no-cache -- FILES`. Follow
+repository formatting; never rewrite unrelated files.
 
-## User-approved DeepSeek execution / GPT review
-
-For implementation tasks, use one native Paseo Pi agent for DeepSeek coding and
-focused tests, then a fresh read-only GPT reviewer; security-sensitive work also
-requires security review. Pi owns scoping, coordination and acceptance, while
-Paseo owns agent execution and visible Agent tabs in the existing task workspace.
-Do not create a second runner for the same task or import an actively owned session.
-Keep the selected parent provider, model and thinking level unchanged.
-The approved worker model is `deepseek/deepseek-flash` with high thinking; its
-trusted fallback is `openai-codex/gpt-5.6-luna:high`. The reviewer/security model is
-`openai-codex/gpt-6-astra` with no configured fallback. Preserve the other historical
-role settings in the private removal backup; do not invent new mappings.
-Before delegation, verify the native Paseo model/thinking selection, read-only
-review boundary and completion/control path. Removed extension profiles do not
-automatically configure Paseo. Missing support is a blocker, not permission to
-silently change models or claim that a fallback ran on DeepSeek.
-Return accepted findings to the same writer agent and rerun affected checks and
-review. Share scoped context, diffs and concise evidence, not full transcripts.
-One writer per checkout; children never mutate Plane or integrate branches.
-Questions and tiny runtime-setting edits may stay in the parent.
-The user removed pi-subagents. Do not reinstall it or use its tools, commands or
-packaged workflows; translate packaged delegation guidance to native Paseo only
-when the equivalent ownership, isolation and verification requirements are met.
-
-## Bounded shell discovery
-
-- Reuse known project context and resolved paths. Locate rules/configs with exact
-  file checks in cwd and its ancestors (including AGENTS.override.md); inspect
-  nested rules only along the paths being worked on. Never use recursive `find ..`,
-  home-wide or workspace-wide scans for startup discovery. `head` limits output,
-  not traversal time. Scope content searches to the relevant repo/subdirectory.
-- Run independent diagnostics as separate tool calls (parallel when supported),
-  not a semicolon chain sharing one timeout. Batch only cheap exact-path checks.
-- Set explicit 2–5 second tool timeouts for cheap local discovery: path/executable
-  checks, CLI help, Git metadata and narrow searches. Use task-appropriate budgets
-  for builds, tests, indexing, network calls and known expensive operations.
-- After a timeout, isolate the slow command and narrow its scope; never retry the
-  same command unchanged or simply raise its timeout. Check CLI syntax once when
-  unknown, reuse that result, and do not guess flags. On macOS, do not assume GNU
-  `timeout` or GNU-only flags are installed; use the tool's timeout parameter.
-- Check file type before reading an unknown executable/artifact. Use native read
-  for source text, not compiled binaries; use bounded CLI help for executable usage.
+pi-web-access for public research; keep private repository text and credentials out of
+public queries. pi-mcp-adapter supplies lazy Plane and zvec tools. Use native Paseo agents
+for bounded independent tasks or required independent review; otherwise work directly.
+Give children explicit cwd, scope and acceptance. Children are leaves: no Plane
+mutation, no branch integration, one writer per worktree. Completion notifications.
+Security/data-integrity or consequential cross-module changes need a fresh independent
+reviewer. Verify behavior before handoff.
 
 ## Context and output budget
 
@@ -137,62 +86,184 @@ both terms:
   tool-output replay. Reported cost is not billed cost, and the replay figure is
   an estimate. Do not claim a saving without a comparable before/after measurement.
 
+## Small-task execution — fast path (default)
+
+minimal fix → focused test → required review → result. Localized fix, known
+acceptance, no security/data-integrity or consequential cross-module impact: cut model
+round trips, not verification. Beats packaged workflow ceremony for routine fixes;
+substantial behavior changes still need the applicable design/spec workflow.
+- Clear implementation request → proceed; ask only blocking user-owned decisions. No
+  optional brainstorming, separate plan or approval round trip.
+- One scoped DeepSeek writer (or the eligible Spark helper below) does implementation
+  and focused tests; the existing GPT parent reviews diff and test evidence — no
+  separate reviewer on this low-risk path — and verifies acceptance without repeating
+  the writer's investigation or unaffected passing checks. No scouts, planners,
+  separate testers or parallel children without a named independent need. Review/model
+  rules below apply. Tiny runtime-setting edits may stay in the parent.
+- Reuse instructions, CLI syntax, project/task IDs and source already in the session;
+  reread only after changes, missing context or compaction. Load matching required
+  skills once, not an unrelated workflow stack.
+- Acceptance stated briefly in the existing Plane item; no separate plan/spec for a
+  routine bugfix unless scope or project policy requires it.
+- One scoped discovery pass for the affected symbol and callers; then independent
+  source/test reads together when parallel tools are available — not a model turn per
+  known file or adjacent range.
+- Nearest working test harness; check imports and setup first; no whole-app boot for a
+  widget/callback test; keep red/green evidence; Flutter `--no-pub` when dependencies
+  are resolved and unchanged.
+- Known edits per file in one edit call; focused tests and relevant diagnostics after
+  the patch; rerun only checks affected by later edits.
+- Acceptance and diff review pass → delivery/tracking → stop. No optional test
+  expansion, formatting churn or repeated discovery. Report only material blockers;
+  finish with result, focused verification and remaining risk. No speed-gain claims
+  without timing.
+- Keep required safety checks, independent review and safe task placement. No hard
+  tool cap, no skipped evidence, no model/thinking change for speed.
+
+## User-approved DeepSeek execution / GPT review
+
+Implementation defaults to one native Paseo Pi agent for DeepSeek coding and focused
+tests; the Spark helper below is the bounded exception. On the low-risk fast path the
+existing GPT parent reviews diff and test evidence instead of a reviewer agent.
+Large/substantial, security/data-integrity or consequential cross-module changes need
+a fresh read-only independent GPT reviewer; security-sensitive work also needs security
+review. Explicit independent-review requests are honored; scope growth past the fast
+path needs independent review before acceptance. Pi owns scoping, coordination and
+acceptance; Paseo owns child execution and visible Agent tabs in the existing task
+workspace. No second runner for the same task; never import an actively owned session.
+Parent provider, model and thinking level stay unchanged.
+
+Approved: worker `deepseek/deepseek-flash` at high thinking, trusted fallback
+`openai-codex/gpt-5.6-luna:high`; reviewer/security `openai-codex/gpt-6-astra`, no
+configured fallback. Parent review replaces a separate reviewer only when the selected
+parent is that approved GPT model; otherwise keep a separate approved GPT reviewer
+without switching the parent. Other historical role settings stay in the private
+removal backup; invent no new mappings.
+
+Before delegating, verify the native Paseo model/thinking selection, read-only review
+boundary and completion/control path. Removed extension profiles do not configure
+Paseo. Missing support is a blocker — never change models silently or claim a fallback
+ran on DeepSeek.
+
+Confirmed DeepSeek provider timeout → no resend to DeepSeek, no second long wait; use
+the approved Luna/high fallback once and report the actual model. A native wait timeout
+alone is not a provider failure. Suspected stall → one bounded native wait (at most 180
+seconds), inspect progress/errors once, never repeated 600-second waits or routine
+polling. No observable model/tool progress in that interval with only a provider
+response pending → the owning parent may abort that request and use the fallback; never
+interrupt a progressing stream, active tool/test or pending permission. Before
+replacement: original writer idle, no queued work or pending permission, diff inspected
+and preserved, same task/workspace/cwd. No safe in-place switch → one replacement only
+after the original is quiescent; never two writers. Never take over another parent's
+child. Fallback failure → report the blocker, no retry or fan-out. Keep parent
+model/thinking and required review.
+
+Runtime timeout settings bound SDK requests/idle transport, not total task duration;
+keep-alive streaming can outlive them — not a hard wall-clock SLA. Accepted findings
+return to the same writer, then rerun affected checks and review. Share scoped context,
+diffs and concise evidence, not full transcripts. One writer per checkout; children
+never mutate Plane or integrate branches. Questions and tiny runtime-setting edits may
+stay in the parent. pi-subagents was removed. Do not reinstall it; do not use its
+commands, tools or packaged workflows; translate packaged delegation guidance to
+native Paseo only when equivalent ownership, isolation and verification hold.
+
+## User-approved Codex Spark helper
+
+Gate: the 2026-09-15 native Pi/Paseo smoke test failed with
+`The 'gpt-5.3-codex-spark' model is not supported when using Codex with a ChatGPT account.`
+Catalog presence did not prove account access. Approved but blocked: no Spark dispatch
+until a user-requested access retest succeeds — no automatic retry, no authentication
+change, no silent substitution.
+
+Preferred for bounded helper work — scoped code reading/discovery, log analysis, small
+independent low-risk fixes with focused tests — through native Paseo's Pi provider, not
+a separate runner:
+`paseo agent run --background --provider pi --model openai-codex/gpt-5.3-codex-spark --thinking medium --workspace EXISTING_ID --cwd EXPLICIT_PATH --title TITLE PROMPT`
+`medium` is Spark's verified native default; parent selection unchanged. Verify
+availability and native completion/control support before each new delegation unless
+already verified in this session. Spark is text-only: no images.
+
+Give only necessary paths/excerpts, one goal, explicit read-only or scoped write
+authority and observable acceptance. Reading/log tasks stay read-only; fixes need a
+safe checkout, one writer, focused tests and the same GPT review. Not for architecture,
+security/data-integrity, consequential cross-module work or final approval. DeepSeek
+remains the primary implementation worker with its Luna fallback; GPT remains the
+reviewer. Spark failure or outgrown scope → back to the parent, no silent substitution;
+quiesce any writer first. No scout when direct tools suffice, no splitting one fix
+across extra agents, no launches to consume quota. Existing workspace, background
+launch, Plane tracking, leaf-agent and task-end archive rules apply.
+
+## Bounded shell discovery
+
+- Reuse known project context and resolved paths. Find rules/configs by exact path
+  checks in cwd and ancestors (including AGENTS.override.md); nested rules only along
+  the paths in play. Never recursive `find ..`, home-wide or workspace-wide startup
+  scans; `head` limits output, not traversal time. Scope content searches to the
+  relevant repo/subdirectory.
+- Independent diagnostics as separate tool calls (parallel when supported), not a
+  semicolon chain on one timeout. Batch only cheap exact-path checks.
+- Cheap local discovery (path/executable checks, CLI help, Git metadata, narrow
+  searches): explicit 2–5 second timeouts. Builds, tests, indexing, network calls and
+  known expensive operations: task-appropriate budgets.
+- Timeout → isolate the slow command and narrow scope; never retry unchanged or just
+  raise the timeout. Check unknown CLI syntax once, reuse it, never guess flags. macOS:
+  no assumed GNU `timeout` or GNU-only flags — use the tool's timeout parameter.
+- Check file type before reading an unknown executable/artifact: native read for source
+  text, never compiled binaries; bounded CLI help for executable usage.
+
 ## User-approved Pi / Paseo routing
 
-Pi is the orchestrator; native Paseo owns child execution, visible Agent tabs,
-workspaces, worktrees and terminals. Use one agent tree; Plane remains the tracker.
-This placement policy overrides pi-workflow step 3's per-task Paseo requirement;
-all other workflow requirements remain in force.
+Pi orchestrates; native Paseo owns child execution, visible Agent tabs, workspaces,
+worktrees and terminals. One agent tree; Plane stays the tracker. Overrides pi-workflow
+step 3's per-task Paseo requirement; all other workflow requirements remain in force.
 
-Use a Paseo-managed task worktree when estimated implementation needs
-more than 5 minutes AND approximately 1000+ changed source lines (additions plus
-deletions, excluding generated/vendor/lockfile churn). Either condition alone is
-not the large-change trigger. Explicit user requests or necessary safety isolation
-may require Paseo below this threshold. Reassess scope growth at a safe checkpoint;
-never replay or abandon unfinished writes merely to switch workspaces.
+Paseo-managed task worktree when estimated implementation needs more than 5 minutes AND
+approximately 1000+ changed source lines (additions plus deletions, excluding
+generated/vendor/lockfile churn); either condition alone is not the large-change
+trigger. Explicit user requests or necessary safety isolation may require Paseo below
+that threshold. Reassess scope growth at a safe checkpoint; never replay or abandon
+unfinished writes merely to switch workspaces.
 
-For smaller work, operate directly in a clean, exclusively owned task checkout;
-reuse an existing suitable task workspace rather than creating another. Never
-write on a busy/shared checkout or switch someone else's branch. If no safe task
-checkout exists, obtain isolated placement first. Non-Git runtime settings can be
-edited in place with a private backup and focused verification; do not invent a repo.
-Keep Plane tracking and dev/main approval rules unchanged.
+Smaller work → a clean, exclusively owned task checkout, reusing a suitable existing
+task workspace rather than creating another. Never write on a busy/shared checkout and
+never switch someone else's branch; no safe checkout → isolate first. Non-Git runtime
+settings may be edited in place with a private backup and focused verification; do not
+invent a repo. Plane tracking and dev/main approval rules unchanged.
 
-Reuse the same Paseo project/task identity. Supply explicit workspace titles and
-branch names. Delegate only genuinely independent work, starting with at most two
-children, and keep one writer per worktree. Reuse resumable children for refinements;
-pass bounded context and return concise evidence, not full transcripts. Use native
-completion notifications, never routine polling. Do not create schedules/heartbeats,
-restart daemons, enable watchdogs, or alter models/fallbacks without an explicit request.
+Reuse the same Paseo project/task identity; explicit workspace titles and branch names.
+Delegate only genuinely independent work, at most two children to start, one writer per
+worktree. Reuse resumable children for refinements; bounded context and concise
+evidence, not full transcripts. Native completion notifications, never routine polling.
+No schedules/heartbeats, daemon restarts, watchdogs, or model/fallback changes without
+an explicit request.
 
-Launch children in the background, not by navigating the desktop: use
+Launch children in the background, not by navigating the desktop:
 `paseo agent run --background` with an explicit existing task workspace and cwd.
-The invoking main tab keeps focus, and that existing workspace owns the created
-agent. `run --background` is background execution, not proof that a UI tab
-rendered. Never automatically invoke `paseo agent open`, desktop agent deep links,
-app/window activation, or a focus-switch-then-restore workaround. If a future
-background tab-open API is needed, verify its documented non-focusing behavior first;
+The invoking main tab keeps focus; that workspace owns the created agent.
+`run --background` is background execution, not proof that a UI tab rendered.
+Never automatically invoke `paseo agent open`, desktop agent deep links,
+app/window activation or a focus-switch-then-restore workaround.
+Future background tab-open API → verify its documented non-focusing behavior first;
 never invent flags such as `--no-focus`.
 Only an explicit user request may focus a child.
 
-Do not use Pencil unless the user explicitly requests Pencil for the current task.
-A generic UI/design request is not permission. This applies to delegated children,
-Pencil browser tools and every MCP invocation path. Pencil's Pi lifecycle is lazy;
-this avoids startup connection but is not a technical tool-authorization gate.
+Pencil only on an explicit user request for the current task; a generic UI/design
+request is not permission. Covers delegated children, Pencil browser tools and every
+MCP invocation path. Pencil's Pi lifecycle is lazy — avoids startup connection but is
+not a technical tool-authorization gate.
 
 ## End-of-task Agent tab cleanup
 
-When the parent invokes children it records the invoking `PASEO_AGENT_ID` and each exact
-child ID with its task workspace/cwd. After acceptance/review and the required delivery
-and tracker evidence are saved, but before the final reply, the parent archives only those
-recorded task-owned direct children that match its `ParentAgentId` and expected
-workspace/cwd, are freshly idle with no pending permission, queued or follow-up work, and
-have saved final results: `paseo agent archive EXACT_ID --json` per child, never `--force` -
-a soft archive only, not delete, stop or `paseo workspace archive`. Then verify `Archived`
-and that the invoking main agent remains unarchived. Never archive the invoking main agent
-even when idle, and never sweep all agent tabs or another task's unknown, busy or
-unrecorded children; a failed archive is preserved and reported, never forced. Keep a
-writer or reviewer tab until parent acceptance/delivery so it can be reused for
-refinement; do not close it when its individual turn ends. This is orchestrator policy at
-task end, not background daemon automation. The user already authorized cleanup of safe
-eligible children: do not ask again.
+The parent records the invoking `PASEO_AGENT_ID` and each exact child ID with its task
+workspace/cwd. After acceptance/review and the required delivery and tracker evidence
+are saved, but before the final reply, it archives only recorded task-owned direct
+children matching its `ParentAgentId` and expected workspace/cwd that are freshly idle,
+with no pending permission, queued or follow-up work, and saved final results —
+`paseo agent archive EXACT_ID --json` per child, never `--force`: soft archive only, not
+delete, stop or `paseo workspace archive`. Then verify `Archived` and that the invoking
+main agent remains unarchived. Never archive the invoking main agent even when idle;
+never sweep all agent tabs or another task's unknown, busy or unrecorded children; a
+failed archive is preserved and reported, never forced. Keep a writer or reviewer tab
+until parent acceptance/delivery for reuse; do not close it when its turn ends.
+Orchestrator policy at task end, not background daemon automation. Cleanup of safe
+eligible children is already authorized: do not ask again.

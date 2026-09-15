@@ -1,23 +1,27 @@
-# Optional mixed Pi preset
+# Optional economy Pi preset
 
-Use after explicitly choosing mixed GPT/DeepSeek routing. The authoritative model
-and thinking values are in [mixed.json](mixed.json): planner, scout, worker and
-reviewer. This is a user-selected default, not a model allowlist or a guarantee
-that mixed routing wins on other tasks. The three-task pilot found scope and
-reporting errors even when functional tests passed.
+Use after explicitly choosing DeepSeek execution with GPT review. The
+authoritative model and thinking values are in [economy.json](economy.json):
+planner, scout, worker and reviewer. This is a user-selected default, not a model
+allowlist or a guarantee that economy routing wins on other tasks. The three-task
+pilot found scope and reporting errors even when functional tests passed.
 
-Both presets use `deepseek/deepseek-flash` (V4.1-Flash) with high thinking for
-scout and worker; `economy` also uses it for the planner. Shared model roles use
-one consistent startup thinking level. Existing GPT role selections are retained.
-To upgrade an owned older preset, explicitly reapply the same preset; ordinary
-wiring preserves it. Historical model-specific settings remain user-owned and
-are not active role routing. No credentials or provider registrations are removed.
+`deepseek/deepseek-flash` (V4.1-Flash) with high thinking covers planner, scout and
+worker; the reviewer stays on GPT. Shared model roles use one consistent startup
+thinking level. Existing GPT role selections are retained. To upgrade an owned
+older preset, explicitly reapply the same preset; ordinary wiring preserves it.
+Historical model-specific settings remain user-owned and are not active role
+routing. No credentials or provider registrations are removed.
+
+The retired `mixed` preset differed only in its GPT planner. It is no longer
+accepted: `--preset mixed` fails before any write. Reapply `economy` to replace an
+owned `mixed` role file, or keep selecting a GPT planner per task instead.
 
 From the reviewed `pi` checkout, preview then apply:
 
 ```sh
-MEGAI_SOURCE="$PWD" python3 -B lib/pi_model_policy.py --preset mixed --check
-MEGAI_SOURCE="$PWD" python3 -B lib/pi_model_policy.py --preset mixed
+MEGAI_SOURCE="$PWD" python3 -B lib/pi_model_policy.py --preset economy --check
+MEGAI_SOURCE="$PWD" python3 -B lib/pi_model_policy.py --preset economy
 ```
 
 The explicit flag writes `megai-roles.json` in the Pi agent directory and updates

@@ -75,7 +75,7 @@ def stage_adaptive_policy(plan, root: Path, source: Path) -> None:
 def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
     from slim_wiring import encoded, load_json, read
 
-    if preset not in ("mixed", "economy"):
+    if preset not in ("economy",):
         raise ValueError(f"unknown Pi preset: {preset}")
     config = load_json(source / f"pi-skill/presets/{preset}.json")
     roles = config.get("roles")
@@ -89,7 +89,7 @@ def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
                 or any(not isinstance(role.get(key), str) or not role[key].strip()
                        for key in ("provider", "model", "thinking"))
                 or role["thinking"] not in ("off", "minimal", "low", "medium", "high", "xhigh", "max")):
-            raise ValueError("invalid mixed role identity/thinking")
+            raise ValueError("invalid preset role identity/thinking")
         identity = role["provider"] + "/" + role["model"]
         if identity in levels and levels[identity] != role["thinking"]:
             raise ValueError("conflicting per-model thinking in preset")
@@ -121,7 +121,7 @@ def main() -> None:
                         help="refresh only owned Pi workflow policy, not unrelated legacy resources")
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument("--remove", action="store_true")
-    selection.add_argument("--preset", choices=("mixed", "economy"),
+    selection.add_argument("--preset", choices=("economy",),
                            help="explicitly apply role and native startup model preferences")
     args = parser.parse_args()
     if args.adaptive and args.remove:

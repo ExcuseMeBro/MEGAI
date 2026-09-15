@@ -44,8 +44,8 @@ native Paseo agents own delegation, one writer per worktree. Shared legacy skill
 is excluded from this Pi profile to avoid contradictory defaults. Other agents retain
 their own configuration.
 
-Model routing stays user-selected: the repo ships explicit opt-in presets
-(`economy`, `mixed`) that route DeepSeek Flash planning and implementation while
+Model routing stays user-selected: the repo ships one explicit opt-in `economy`
+preset that routes DeepSeek Flash planning and implementation while
 keeping GPT for guarded review. Nothing is applied until you run the preset
 command yourself. Measure a change instead of assuming it: `megai report --text`
 reports turns, prompt tokens per turn, reported cost per model and estimated
