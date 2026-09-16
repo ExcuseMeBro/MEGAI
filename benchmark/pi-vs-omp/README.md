@@ -27,7 +27,13 @@ Native entry points only; no provider, credential, model or thinking rewriting:
 
 ## Frozen inputs
 
-Reused from the reviewed Capy preparation pack, not re-authored:
+Reused from the reviewed Capy preparation pack, not re-authored. That pack was
+removed from the tree afterwards (Pi-only harness decision), so restore it from
+the revision the trials ran against before rerunning:
+
+```sh
+git checkout caaf5e1 -- capy/
+```
 
 - Tasks and public seams: `capy/benchmark/tasks.md` (approved interfaces).
 - Cases and acceptance suites: `capy/benchmark/cases/{bugfix,feature,refactor}/`,
@@ -37,6 +43,9 @@ Reused from the reviewed Capy preparation pack, not re-authored:
   resolved prompt hash.
 - Baseline: the pinned clean checkout SHA recorded in every trial record and in
   the published result file.
+
+The prompts and every trial record keep the original `capy/benchmark/...` paths,
+so restored inputs must land back at those paths for a rerun to be comparable.
 
 ## Matrix
 
