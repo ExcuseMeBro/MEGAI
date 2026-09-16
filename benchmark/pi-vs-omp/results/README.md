@@ -5,6 +5,10 @@ both harnesses, one run per cell. Full tables are in [summary.md](summary.md);
 sanitized per-trial records (tokens, cost, wall time, acceptance, scope) are in
 [trials.json](trials.json).
 
+A later six-trial rerun on the `pi` arm compares the DeepSeek `high` and `low` role
+thinking levels that the economy preset selects:
+[thinking-levels.md](thinking-levels.md).
+
 **No winner is claimed.** Both arms passed every frozen acceptance suite, so
 acceptance cannot separate them on these three small exercises; that is the main
 result and the main limitation.

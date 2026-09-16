@@ -35,10 +35,11 @@ python3 -B ~/.megai/lib/pi_model_policy.py --adaptive --preset economy --check
 python3 -B ~/.megai/lib/pi_model_policy.py --adaptive --preset economy
 ```
 
-This sets next-session defaults and planner/scout/worker roles to
-`deepseek/deepseek-flash` (V4.1-Flash) with high thinking, and guarded reviewer to
-`openai-codex/gpt-5.6-sol` with high thinking. Shared model roles use one consistent
-per-model startup level; scout also uses high. Roles are preferences, not mandatory
+This sets next-session defaults to `deepseek/deepseek-flash` (V4.1-Flash) and the
+planner to high thinking, scout and worker to low, and the guarded reviewer to
+`openai-codex/gpt-5.6-sol` with high thinking. Roles may share a model at different
+levels: `megai-roles.json` keeps the per-role level and `settings.json` keeps the
+planner's level as the native startup default. Roles are preferences, not mandatory
 agent launches. Routine DeepSeek parent work does not launch GPT; GPT is reserved
 for guarded review or a concrete model-specific failure. The retired `mixed` preset
 differed only in a GPT planner; one `economy` preset now covers DeepSeek planning,

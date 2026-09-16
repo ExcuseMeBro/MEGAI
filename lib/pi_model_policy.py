@@ -84,16 +84,19 @@ def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
             or set(roles) != {"planner", "scout", "worker", "reviewer"}):
         raise ValueError("invalid role preset")
     levels = {}
-    for role in roles.values():
+    # The planner is declared first and owns the native startup level for a shared
+    # model; every other role keeps its own level in megai-roles.json. That lets one
+    # cheap model plan at high thinking and execute at low while settings.json stays
+    # unambiguous about the level a native session starts with.
+    for name in ("planner", "scout", "worker", "reviewer"):
+        role = roles[name]
         if (not isinstance(role, dict)
                 or any(not isinstance(role.get(key), str) or not role[key].strip()
                        for key in ("provider", "model", "thinking"))
                 or role["thinking"] not in ("off", "minimal", "low", "medium", "high", "xhigh", "max")):
             raise ValueError("invalid preset role identity/thinking")
         identity = role["provider"] + "/" + role["model"]
-        if identity in levels and levels[identity] != role["thinking"]:
-            raise ValueError("conflicting per-model thinking in preset")
-        levels[identity] = role["thinking"]
+        levels.setdefault(identity, role["thinking"])
     plan.asset(root / "megai-roles.json", encoded(config), False)
     path = root / "settings.json"
     before = read(path)

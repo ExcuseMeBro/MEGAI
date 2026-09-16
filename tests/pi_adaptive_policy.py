@@ -116,9 +116,12 @@ class Adaptive(Slim):
             self.assertEqual(selected[key], settings[key])
         self.assertEqual((agent / "auth.json").read_text(), '{"synthetic":"preserve"}')
         roles = json.loads((agent / "megai-roles.json").read_text())
-        for role in ("planner", "scout", "worker"):
+        self.assertEqual(roles["roles"]["planner"], {
+            "provider": "deepseek", "model": "deepseek-flash", "thinking": "high",
+        })
+        for role in ("scout", "worker"):
             self.assertEqual(roles["roles"][role], {
-                "provider": "deepseek", "model": "deepseek-flash", "thinking": "high",
+                "provider": "deepseek", "model": "deepseek-flash", "thinking": "low",
             })
         self.assertEqual(roles["roles"]["reviewer"]["provider"], "openai-codex")
         before = self.snapshot()

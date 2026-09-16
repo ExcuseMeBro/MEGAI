@@ -119,11 +119,16 @@ try {
   assert.equal(readFileSync(join(economy, 'settings.json'), 'utf8'), settingsBefore,
     'role routing must not mutate native settings');
 
-  // 3. Fallback guidance follows configured primaries, not the preset: mixed shows
-  // its GPT Astra planner and DeepSeek worker (chain allowed only for eligible roles);
-  // custom schema1+roles without preset stays fully GPT with no injected chain.
+  // 3. Fallback guidance follows configured primaries, not the preset: a custom role
+  // map with a GPT Astra planner and DeepSeek worker shows both (chain allowed only
+  // for eligible roles); custom schema1+roles without preset stays fully GPT with no
+  // injected chain.
   const mixed = agent('mixed');
-  install(mixed, '--preset', 'mixed');
+  install(mixed);
+  writeFileSync(join(mixed, 'megai-roles.json'), JSON.stringify({
+    schema: 1,
+    roles: { planner: gpt('gpt-6-astra'), scout: gpt('deepseek-flash'), worker: { provider: 'deepseek', model: 'deepseek-flash', thinking: 'low' }, reviewer: gpt('gpt-5.6-sol') },
+  }));
   const mixedExtensions = await loadExtensions(mixed);
   const mixedTurn = await blockedNetwork(() => beginTurn(mixedExtensions, BASE));
   assert.ok(mixedTurn.prompt.includes('openai-codex/gpt-6-astra'),
