@@ -1,6 +1,7 @@
 # Pi vs OMP pilot results
 
-48/48 trials are valid model runs: four models, two thinking levels, three tasks,
+48/48 trials are valid model runs: four models, two requested thinking levels (DeepSeek
+`medium` clamps to none — see the note below), three tasks,
 both harnesses, one run per cell. Full tables are in [summary.md](summary.md);
 sanitized per-trial records (tokens, cost, wall time, acceptance, scope) are in
 [trials.json](trials.json).

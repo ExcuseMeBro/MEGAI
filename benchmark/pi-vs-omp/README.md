@@ -3,7 +3,8 @@
 Measures the two MEGAI harness profiles on identical frozen Python tasks and
 reports speed, wall time, token consumption, reported cost and acceptance in one
 table. Requested comparison: **Pi + MEGAI (`pi` branch)** against **OMP + MEGAI
-(`omp` branch)** across DeepSeek and GPT models at high and medium thinking.
+(`omp` branch)** across DeepSeek and GPT models at high thinking and a second requested
+level (`medium`, which DeepSeek Flash clamps — see the correction under Matrix).
 
 ## Arms and configuration identity
 
