@@ -57,6 +57,10 @@ so restored inputs must land back at those paths for a rerun to be comparable.
 - Tasks: `bugfix` (defect fix), `feature` (implement `chunked`),
   `refactor` (de-duplicate `render_checks`)
 
+A model-comparison follow-up (`results/union-alpha.md`) adds
+`openrouter/stealth/union-alpha` to `MODELS` and runs the Pi arm only
+(`--arms pi`); its provider-failure evidence lives in the same file.
+
 Arm order alternates per task (Pi first for bugfix/refactor, OMP first for
 feature) to reduce order bias. Trials run sequentially: concurrency would
 confound the latency and token measurements this benchmark is about.

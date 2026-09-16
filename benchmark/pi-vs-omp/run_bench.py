@@ -27,7 +27,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 PLANE_PROJECT = "59005e36-ecd4-46ed-bb42-f779858b20ce"
-PLANE_TASK = "8da0cfa6-7759-4fee-8964-88c7d967897e"
+PLANE_TASK = "c8adaee4-0654-4b08-a35d-92c6c7ff79ad"
 
 ARMS = ("pi", "omp")
 MODELS = (
@@ -35,6 +35,7 @@ MODELS = (
     "openai-codex/gpt-6-astra",
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-luna",
+    "openrouter/stealth/union-alpha",
 )
 THINKING_LEVELS = ("high", "medium")
 TASK_IMPL = {
@@ -54,6 +55,7 @@ SHORT_MODEL = {
     "openai-codex/gpt-6-astra": "gpt-6-astra",
     "openai-codex/gpt-5.6-sol": "gpt-5.6-sol",
     "openai-codex/gpt-5.6-luna": "gpt-5.6-luna",
+    "openrouter/stealth/union-alpha": "union-alpha",
 }
 
 

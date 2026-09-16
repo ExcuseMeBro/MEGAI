@@ -1,0 +1,715 @@
+[
+  {
+    "trial_id": "pi__deepseek-flash__high__bugfix",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "high",
+    "task": "bugfix",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "fceab194089742a9dcd9c6fad82967ca449db6f4855c6752b7c0eebac3ae2b6c",
+    "prompt_chars": 1773,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-16T21:38:21+0500",
+    "wall_seconds": 23.207,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 9,
+    "usage": {
+      "input": 14261,
+      "output": 3488,
+      "cache_read": 182272,
+      "reasoning": 1349,
+      "total": 200021,
+      "cost_usd": 0.009558
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 1808,
+    "diff_sha256": "77fbe60d7810548bd6ef377e6c6a0a9e0603713898126d550e2856fb5eca83f2",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 3,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_input_list_is_not_modified (test_participant.NestedIntervalRegression.test_input_list_is_not_modified) ... ok\ntest_nested_interval_does_not_shrink_outer (test_participant.NestedIntervalRegression.test_nested_interval_does_not_shrink_outer) ... ok\ntest_unnested_interval_after_nested_one_still_merges (test_participant.NestedIntervalRegression.test_unnested_interval_after_nested_one_still_merges) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true
+  },
+  {
+    "trial_id": "pi__deepseek-flash__high__feature",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "high",
+    "task": "feature",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "d107ea68cf6d5f93bcc9b561cbd90b4be714af08f9099b15cfb89e18c962eed6",
+    "prompt_chars": 1723,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-16T21:38:45+0500",
+    "wall_seconds": 22.456,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 9,
+    "usage": {
+      "input": 14399,
+      "output": 3352,
+      "cache_read": 187392,
+      "reasoning": 1173,
+      "total": 205143,
+      "cost_usd": 0.009466
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 3368,
+    "diff_sha256": "66285638424974578d48f5418d4f378e2392cc0aead92c31e7909cceb37b8289",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 12,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 5,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_source_exception_propagates_unchanged (test_participant.ChunkedParticipant.test_source_exception_propagates_unchanged) ... ok\ntest_valid_call_consumes_nothing_until_iteration (test_participant.ChunkedParticipant.test_valid_call_consumes_nothing_until_iteration) ... ok\ntest_validation_happens_before_consuming_source (test_participant.ChunkedParticipant.test_validation_happens_before_consuming_source) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true
+  },
+  {
+    "trial_id": "pi__deepseek-flash__high__refactor",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "high",
+    "task": "refactor",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "a9662c4ecae03d69b9c45bb0fe48044e100ff3d3fcb28b22a77390f125de3b04",
+    "prompt_chars": 1856,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-16T21:39:07+0500",
+    "wall_seconds": 29.522,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 8,
+    "usage": {
+      "input": 14508,
+      "output": 5098,
+      "cache_read": 169728,
+      "reasoning": 2628,
+      "total": 189334,
+      "cost_usd": 0.011488
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 2802,
+    "diff_sha256": "6b272cd157443f90eb57bcffe8980f678d6b5b1a69a4f192f8330c0d10663908",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": false,
+      "ok": null,
+      "tests": null,
+      "exit_status": null
+    },
+    "stderr_bytes": 0,
+    "valid": true
+  },
+  {
+    "trial_id": "pi__deepseek-flash__low__bugfix",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "low",
+    "task": "bugfix",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "8dfaaeb99baa79af58acbf69a51820a0f32ff18a65d6f7f0d23b82ac4ecf7014",
+    "prompt_chars": 1772,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-16T21:39:37+0500",
+    "wall_seconds": 13.39,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 6,
+    "usage": {
+      "input": 13160,
+      "output": 1542,
+      "cache_read": 111488,
+      "reasoning": 218,
+      "total": 126190,
+      "cost_usd": 0.006467
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 1510,
+    "diff_sha256": "774242623714cf67334241b4828e2418a85af7c4f56b05230420e727d2564835",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 3,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nested_chain_reaches_later_disjoint_interval (test_participant.NestedIntervalRegression.test_nested_chain_reaches_later_disjoint_interval) ... ok\ntest_nested_interval_is_not_lost_between_neighbours (test_participant.NestedIntervalRegression.test_nested_interval_is_not_lost_between_neighbours) ... ok\ntest_short_nested_interval_does_not_shrink_outer (test_participant.NestedIntervalRegression.test_short_nested_interval_does_not_shrink_outer) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true
+  },
+  {
+    "trial_id": "pi__deepseek-flash__low__feature",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "low",
+    "task": "feature",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "3176c9546edf76aba8eb382c4a8a6e964b0108365286b2aaac54dee78285b76a",
+    "prompt_chars": 1722,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-16T21:39:51+0500",
+    "wall_seconds": 14.306,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 6,
+    "usage": {
+      "input": 14055,
+      "output": 2214,
+      "cache_read": 116224,
+      "reasoning": 485,
+      "total": 132493,
+      "cost_usd": 0.007571
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 2930,
+    "diff_sha256": "81debe723d7c96f268498abe05f21169022021099411acdca407353e835364a1",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 12,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 4,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_fresh_lists_preserve_identity (test_participant.ChunkedContract.test_fresh_lists_preserve_identity) ... ok\ntest_source_exception_propagates (test_participant.ChunkedContract.test_source_exception_propagates) ... ok\ntest_validation_happens_at_call_without_consuming (test_participant.ChunkedContract.test_validation_happens_at_call_without_consuming) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true
+  },
+  {
+    "trial_id": "pi__deepseek-flash__low__refactor",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "low",
+    "task": "refactor",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "d7b0ecc90ac076c9821786c1d3e36e2fcbe61a0a248665e747e547aaf0d54bde",
+    "prompt_chars": 1855,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-16T21:40:05+0500",
+    "wall_seconds": 24.556,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 8,
+    "usage": {
+      "input": 14166,
+      "output": 4002,
+      "cache_read": 166912,
+      "reasoning": 1736,
+      "total": 185080,
+      "cost_usd": 0.010054
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py",
+      "capy/benchmark/cases/refactor/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 4893,
+    "diff_sha256": "5c42b9ae6abebd187170f084984137ed19ee797fdb1a7ec55094b4a9b6fa5423",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 4,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_counts_match_rows_in_both_styles (test_participant.RefactorEquivalence.test_counts_match_rows_in_both_styles) ... ok\ntest_input_not_mutated (test_participant.RefactorEquivalence.test_input_not_mutated) ... ok\ntest_invalid_status_raises_before_output_in_both_styles (test_participant.RefactorEquivalence.test_invalid_status_raises_before_output_in_both_styles) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true
+  },
+  {
+    "trial_id": "pi__union-alpha__high__bugfix",
+    "arm": "pi",
+    "model": "openrouter/stealth/union-alpha",
+    "model_short": "union-alpha",
+    "thinking": "high",
+    "task": "bugfix",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "451dd9de76b2e6d0c6eab1c22f3257fc8d3648f3acea9f207e262b299bb9e0b4",
+    "prompt_chars": 1780,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-16T21:23:33+0500",
+    "wall_seconds": 75.865,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 3,
+    "usage": {
+      "input": 19838,
+      "output": 291,
+      "cache_read": 17196,
+      "reasoning": 0,
+      "total": 37325,
+      "cost_usd": 0.0
+    },
+    "reported_models": [
+      "openrouter/stealth/union-alpha"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "error"
+    ],
+    "provider_error": true,
+    "changed_paths": [],
+    "scope_ok": true,
+    "diff_bytes": 0,
+    "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "acceptance": {
+      "present": true,
+      "ok": false,
+      "tests": 10,
+      "failures": "failures=2",
+      "exit_status": 1,
+      "output_tail": "\n- [(1, 3), (8, 12)]\n+ [(1, 12)]\n\n----------------------------------------------------------------------\nRan 10 tests in 0.001s\n\nFAILED (failures=2)"
+    },
+    "participant": {
+      "present": false,
+      "ok": null,
+      "tests": null,
+      "exit_status": null
+    },
+    "stderr_bytes": 0,
+    "valid": false
+  },
+  {
+    "trial_id": "pi__union-alpha__high__feature",
+    "arm": "pi",
+    "model": "openrouter/stealth/union-alpha",
+    "model_short": "union-alpha",
+    "thinking": "high",
+    "task": "feature",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "19aa2458b508a503616d9e3a82e0511348f4066f42c24845e6fe86a5a9bb0378",
+    "prompt_chars": 1730,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-16T21:12:52+0500",
+    "wall_seconds": 217.927,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 10,
+    "usage": {
+      "input": 31149,
+      "output": 7725,
+      "cache_read": 179724,
+      "reasoning": 0,
+      "total": 218598,
+      "cost_usd": 0.0
+    },
+    "reported_models": [
+      "openrouter/stealth/union-alpha"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 4036,
+    "diff_sha256": "db0558d989f17d0a970860a636196f40f66ccb7f53ac13c54947e6aa3974d798",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 12,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.001s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 8,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_no_lookahead_beyond_one_batch (test_participant.ChunkedParticipant.test_no_lookahead_beyond_one_batch) ... ok\ntest_source_exception_propagates_unchanged (test_participant.ChunkedParticipant.test_source_exception_propagates_unchanged) ... ok\ntest_valid_call_consumes_nothing_until_iteration_begins (test_participant.ChunkedParticipant.test_valid_call_consumes_nothing_until_iteration_begins) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true
+  },
+  {
+    "trial_id": "pi__union-alpha__high__refactor",
+    "arm": "pi",
+    "model": "openrouter/stealth/union-alpha",
+    "model_short": "union-alpha",
+    "thinking": "high",
+    "task": "refactor",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "0b1237892778c43766647cf18c61c34229c1e02cc0517991502a27b648dc6bd8",
+    "prompt_chars": 1863,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-16T21:18:22+0500",
+    "wall_seconds": 126.659,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 4,
+    "usage": {
+      "input": 22234,
+      "output": 2579,
+      "cache_read": 34392,
+      "reasoning": 0,
+      "total": 59205,
+      "cost_usd": 0.0
+    },
+    "reported_models": [
+      "openrouter/stealth/union-alpha"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "error"
+    ],
+    "provider_error": true,
+    "changed_paths": [],
+    "scope_ok": true,
+    "diff_bytes": 0,
+    "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": false,
+      "ok": null,
+      "tests": null,
+      "exit_status": null
+    },
+    "stderr_bytes": 0,
+    "valid": false
+  },
+  {
+    "trial_id": "pi__union-alpha__off__bugfix",
+    "arm": "pi",
+    "model": "openrouter/stealth/union-alpha",
+    "model_short": "union-alpha",
+    "thinking": "off",
+    "task": "bugfix",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "bf869506bdc3977119cc5450f8d9ce924fc9125e5bd1f5c9323d2daab9da3ddf",
+    "prompt_chars": 1779,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-16T21:25:01+0500",
+    "wall_seconds": 62.784,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 2,
+    "usage": {
+      "input": 17948,
+      "output": 281,
+      "cache_read": 0,
+      "reasoning": 0,
+      "total": 18229,
+      "cost_usd": 0.0
+    },
+    "reported_models": [
+      "openrouter/stealth/union-alpha"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "error"
+    ],
+    "provider_error": true,
+    "changed_paths": [],
+    "scope_ok": true,
+    "diff_bytes": 0,
+    "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "acceptance": {
+      "present": true,
+      "ok": false,
+      "tests": 10,
+      "failures": "failures=2",
+      "exit_status": 1,
+      "output_tail": "\n- [(1, 3), (8, 12)]\n+ [(1, 12)]\n\n----------------------------------------------------------------------\nRan 10 tests in 0.001s\n\nFAILED (failures=2)"
+    },
+    "participant": {
+      "present": false,
+      "ok": null,
+      "tests": null,
+      "exit_status": null
+    },
+    "stderr_bytes": 0,
+    "valid": false
+  },
+  {
+    "trial_id": "pi__union-alpha__off__feature",
+    "arm": "pi",
+    "model": "openrouter/stealth/union-alpha",
+    "model_short": "union-alpha",
+    "thinking": "off",
+    "task": "feature",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "8cf56b9443d34c4f23765c12c1ac2ce06045437e0409596f13ba99a3d77318a6",
+    "prompt_chars": 1729,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-16T21:40:38+0500",
+    "wall_seconds": 92.582,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 7,
+    "usage": {
+      "input": 60549,
+      "output": 2011,
+      "cache_read": 73904,
+      "reasoning": 0,
+      "total": 136464,
+      "cost_usd": 0.0
+    },
+    "reported_models": [
+      "openrouter/stealth/union-alpha"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 2775,
+    "diff_sha256": "d174ec8f878e76ebe15c9c4b3d350afedaad817730364f7d69640038564a31a2",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 12,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 5,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_independent_calls_yield_fresh_lists (test_participant.ChunkedParticipant.test_independent_calls_yield_fresh_lists) ... ok\ntest_returns_self_iterator (test_participant.ChunkedParticipant.test_returns_self_iterator) ... ok\ntest_validation_before_iteration_no_consumption (test_participant.ChunkedParticipant.test_validation_before_iteration_no_consumption) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true
+  },
+  {
+    "trial_id": "pi__union-alpha__off__refactor",
+    "arm": "pi",
+    "model": "openrouter/stealth/union-alpha",
+    "model_short": "union-alpha",
+    "thinking": "off",
+    "task": "refactor",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "fa8b3f73083499341bb71d3d5f25827cd40b880fb96f2355d9dcc5e2fdfe42d6",
+    "prompt_chars": 1862,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-16T21:26:04+0500",
+    "wall_seconds": 114.182,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 6,
+    "usage": {
+      "input": 25967,
+      "output": 3600,
+      "cache_read": 96220,
+      "reasoning": 0,
+      "total": 125787,
+      "cost_usd": 0.0
+    },
+    "reported_models": [
+      "openrouter/stealth/union-alpha"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py",
+      "capy/benchmark/cases/refactor/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 4299,
+    "diff_sha256": "9b088eb87ea98e6aa1d3d22f73499c9a7924aae0bcffbe717420556df8407a8c",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 3,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_json_counts_mixed (test_participant.ReportParticipant.test_json_counts_mixed) ... ok\ntest_text_counts_and_no_final_newline (test_participant.ReportParticipant.test_text_counts_and_no_final_newline) ... ok\ntest_unknown_status_raises_before_unknown_style_distinction (test_participant.ReportParticipant.test_unknown_status_raises_before_unknown_style_distinction) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true
+  }
+]
