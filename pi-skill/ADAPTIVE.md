@@ -85,6 +85,13 @@ ongoing task, suggest `/compact` once when old history dominates; no fixed thres
 repeated reminders or automatic custom compactor. Compaction costs tokens and can
 omit details: originals and raw receipts remain authoritative.
 
+A long task keeps `.pi/state/<task>.md` in its checkout: current goal, decisions,
+progress, next step and evidence paths, rewritten at each phase boundary and before
+compaction. The profile re-reads the newest recent state file at agent start, so a
+compacted or new session recovers from it instead of re-learning the project. Keep it
+local and out of commits; a delegated child launched in the same checkout also sees it,
+so a child treats it as background only and still gathers its own evidence.
+
 When a handoff is needed, carry only the goal, constraints, Plane pair, verified
 workspace/branch, changed paths, evidence references, blockers and next action.
 Read original evidence for exact decisions. This is a handoff, not another tracker.

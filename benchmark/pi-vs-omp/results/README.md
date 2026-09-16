@@ -1,9 +1,14 @@
 # Pi vs OMP pilot results
 
-48/48 trials are valid model runs: four models, two thinking levels, three tasks,
+48/48 trials are valid model runs: four models, two requested thinking levels (DeepSeek
+`medium` clamps to none — see the note below), three tasks,
 both harnesses, one run per cell. Full tables are in [summary.md](summary.md);
 sanitized per-trial records (tokens, cost, wall time, acceptance, scope) are in
 [trials.json](trials.json).
+
+A later six-trial rerun on the `pi` arm compares the DeepSeek `high` and `low` role
+thinking levels that the economy preset selects:
+[thinking-levels.md](thinking-levels.md).
 
 **No winner is claimed.** Both arms passed every frozen acceptance suite, so
 acceptance cannot separate them on these three small exercises; that is the main
@@ -55,6 +60,10 @@ as the trials.
 | omp | bugfix + deepseek-flash medium | 649.9 | 417.3 | 10.75 | 22.7 | 47.4 |
 | pi | bugfix + gpt-6-astra high | 211.6 | 132.7 | 4.30 | 2.4 | 182.0 |
 | omp | bugfix + gpt-6-astra high | 583.2 | 413.9 | 11.33 | 7.9 | 143.4 |
+
+Note: the `deepseek-flash medium` rows above are mislabeled — `medium` maps to `null` in that
+model's Pi entry, so those runs sent no thinking parameter. The trial numbers stand; the label
+does not describe two thinking levels. See [thinking-levels.md](thinking-levels.md).
 
 - **RAM: OMP needs 2.6–3.0× more.** ~554–650 MB peak versus ~211–220 MB for Pi;
 the gap is ~340–430 MB per session and is already present on an idle one-token

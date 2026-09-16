@@ -99,9 +99,9 @@ Read-only checks use `python3 -B` and Ruff with
 ## DeepSeek-first subagent fallback
 
 For delegated planner/scout/worker roles whose configured primary is
-`deepseek/deepseek-flash` (high), keep DeepSeek first. After a confirmed
+`deepseek/deepseek-flash`, keep DeepSeek first. After a confirmed
 provider/model-specific failure, timeout, reasoning dead-end or unavailable
-primary, use this exact chain, all at high thinking:
+primary, use this exact chain, keeping each role's configured thinking level:
 `deepseek/deepseek-flash` -> `openai-codex/gpt-5.6-luna`.
 Explicit task model/provider restrictions override this preference; do not replace
 other configured primaries or the independent reviewer's configured model.
@@ -135,7 +135,7 @@ fallback trigger, even when the payload says `type=unknown_error` and
 broad type/code fields alone or a quoted error in repository/tool/test output.
 
 For this confirmed case, the parent routes the unfinished subagent task to the next
-provider in the chain — `openai-codex/gpt-5.6-luna` (high) — after the stopped-writer
+provider in the chain — `openai-codex/gpt-5.6-luna` (the role's configured thinking level) — after the stopped-writer
 and verified-launch checks. Notify the user briefly and continue without requesting
 the same fallback
 approval again, retrying DeepSeek, sleeping or waiting for a balance top-up. Carry
@@ -217,7 +217,8 @@ Moved out of the always-loaded `AGENTS.md` so the parent pays for it only when i
 delegates or escalates.
 
 A confirmed DeepSeek provider timeout means no resend to DeepSeek and no second long
-wait: use the approved `openai-codex/gpt-5.6-luna` (high) fallback once and report the
+wait: use the approved `openai-codex/gpt-5.6-luna` (the role's configured thinking
+level) fallback once and report the
 model that actually ran. A native wait timeout alone is not a provider failure.
 For a suspected stall, do one bounded native wait of at most 180 seconds and inspect
 progress/errors once — never repeated 600-second waits and never routine polling. If

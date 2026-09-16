@@ -3,8 +3,8 @@
   "preset": "economy",
   "roles": {
     "planner": {"provider": "deepseek", "model": "deepseek-flash", "thinking": "high"},
-    "scout": {"provider": "deepseek", "model": "deepseek-flash", "thinking": "high"},
-    "worker": {"provider": "deepseek", "model": "deepseek-flash", "thinking": "high"},
+    "scout": {"provider": "deepseek", "model": "deepseek-flash", "thinking": "low"},
+    "worker": {"provider": "deepseek", "model": "deepseek-flash", "thinking": "low"},
     "reviewer": {"provider": "openai-codex", "model": "gpt-5.6-sol", "thinking": "high"}
   }
 }
