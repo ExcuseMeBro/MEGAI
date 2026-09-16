@@ -104,7 +104,9 @@ message, and do not re-read logs a finished phase has already discarded.
 
 Measure the whole picture with `megai report --text`. Reported cost is
 provider-reported, not billed, and every token figure here is an estimate from local
-sessions, not a benchmark.
+sessions, not a benchmark. For the handoff question specifically — how much work an
+agent repeats after another agent already read it — use
+`benchmark/handoff-cost/measure.py`.
 
 <a id="plane-and-branches"></a>
 
@@ -172,7 +174,9 @@ retained. Read `pi-workflow` for worktree creation and branch cleanup rules.
 python3 -B tests/pi_defaults.py
 python3 -B tests/pi_context_budget.py
 python3 -B tests/pi_usage_report.py
-ruff check --no-fix --no-fix-only --force-exclude --no-cache -- pi-defaults/*.py lib/pi_context_budget.py lib/pi_usage_report.py tests/pi_defaults.py
+python3 -B tests/handoff-cost.py
+python3 -B benchmark/handoff-cost/measure.py --days 14
+ruff check --no-fix --no-fix-only --force-exclude --no-cache -- pi-defaults/*.py lib/pi_context_budget.py lib/pi_usage_report.py tests/pi_defaults.py benchmark/handoff-cost/measure.py tests/handoff-cost.py
 bash -n bin/megai install.sh
 node pi-defaults/verify.mjs  # installed Pi; no model request
 megai doctor
