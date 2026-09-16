@@ -531,7 +531,7 @@ def cmd_summarize(args) -> int:
                 )
     lines.append("")
 
-    text = "\n".join(lines) + "\n"
+    text = "\n".join(lines).rstrip() + "\n"
     if args.out:
         out_path = Path(args.out).resolve()
         out_path.parent.mkdir(parents=True, exist_ok=True)

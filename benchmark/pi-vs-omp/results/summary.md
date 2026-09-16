@@ -120,4 +120,3 @@ Total tokens on a one-token reply = harness system prompt plus loaded skills/rul
 | gpt-6-astra | medium | bugfix | P/P | 85.2/64.7 | 252790/276520 | $0.6135/$0.5924 |
 | gpt-6-astra | medium | feature | P/P | 93.6/79.8 | 183414/234489 | $0.5260/$0.5462 |
 | gpt-6-astra | medium | refactor | P/P | 97.9/90.7 | 207477/239725 | $0.5731/$0.6242 |
-
