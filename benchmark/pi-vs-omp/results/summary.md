@@ -11,6 +11,19 @@ Total tokens on a one-token reply = harness system prompt plus loaded skills/rul
 | omp | omp/18.2.0 | 3 | 21844 | 21843 | [21844, 21844, 21844] |
 | pi | 0.85.1 | 3 | 17340 | 17339 | [17340, 17340, 17340] |
 
+## Runtime footprint (peak RSS and CPU per harness process)
+
+Measured with `/usr/bin/time -l` around the harness process; RSS is that process's peak resident set, not the whole desktop session.
+
+| Arm | Scenario | Reps | Peak RSS MB | Peak footprint MB | CPU s | CPU % | Wall s | Total tokens |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| omp | idle | 3 | 553.8 | 414.9 | 5.52 | 55.0 | 10.07 | 65532 |
+| omp | task-deepseek | 2 | 649.9 | 417.3 | 10.75 | 22.7 | 47.42 | 419253 |
+| omp | task-astra | 2 | 583.2 | 413.9 | 11.33 | 7.9 | 143.37 | 444108 |
+| pi | idle | 3 | 211.6 | 133.1 | 3.07 | 39.4 | 7.82 | 53229 |
+| pi | task-deepseek | 2 | 220.2 | 133.0 | 3.95 | 10.0 | 40.21 | 324661 |
+| pi | task-astra | 2 | 211.6 | 132.7 | 4.30 | 2.4 | 182.00 | 461711 |
+
 ## Per-trial results
 
 | Arm | Model | Thinking | Task | Wall s | Reqs | Input | Output | Cache read | Total | Cost | Acceptance | Participant | Scope | Stop |

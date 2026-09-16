@@ -43,6 +43,11 @@ TASK_IMPL = {
     "refactor": "capy/benchmark/cases/refactor/reporting.py",
 }
 PARTICIPANT = "test_participant.py"
+RESOURCE_SCENARIOS = (
+    ("idle", None, "deepseek/deepseek-flash", "off"),
+    ("task-deepseek", "bugfix", "deepseek/deepseek-flash", "medium"),
+    ("task-astra", "bugfix", "openai-codex/gpt-6-astra", "high"),
+)
 BUDGET_SECONDS = 300
 SHORT_MODEL = {
     "deepseek/deepseek-flash": "deepseek-flash",
@@ -363,6 +368,75 @@ def cmd_matrix(args) -> int:
     return 0
 
 
+def parse_time_report(path: Path) -> dict:
+    text = path.read_text(errors="replace") if path.exists() else ""
+    timing = re.search(r"([\d.]+) real\s+([\d.]+) user\s+([\d.]+) sys", text)
+    if not timing:
+        return {}
+    rss = re.search(r"(\d+)\s+maximum resident set size", text)
+    peak = re.search(r"(\d+)\s+peak memory footprint", text)
+    faults = re.search(r"(\d+)\s+page faults", text)
+    wall, user, sys_time = (float(timing.group(i)) for i in (1, 2, 3))
+    return {
+        "wall_seconds": wall,
+        "cpu_user_seconds": user,
+        "cpu_sys_seconds": sys_time,
+        "cpu_seconds": round(user + sys_time, 3),
+        "cpu_percent": round((user + sys_time) / wall * 100, 1) if wall else None,
+        "max_rss_mb": round(int(rss.group(1)) / 1e6, 1) if rss else None,
+        "peak_footprint_mb": round(int(peak.group(1)) / 1e6, 1) if peak else None,
+        "page_faults": int(faults.group(1)) if faults else None,
+    }
+
+
+def cmd_resources(args) -> int:
+    baseline = Path(args.baseline).resolve()
+    root = Path(args.root).resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    records = []
+    for arm in (args.arms.split(",") if args.arms else ARMS):
+        for name, task, model, thinking in RESOURCE_SCENARIOS:
+            reps = args.idle_reps if task is None else args.reps
+            for rep in range(1, reps + 1):
+                work = root / "runs" / f"{arm}__{name}__r{rep}"
+                if work.exists():
+                    shutil.rmtree(work)
+                work.mkdir(parents=True)
+                if task is None:
+                    cwd = baseline
+                    prompt = "Reply with exactly: OK"
+                else:
+                    clone_tree(baseline, work / "repo")
+                    cwd = work / "repo"
+                    prompt = render_prompt(task, model, thinking, arm)
+                report = work / "time.txt"
+                command = ["/usr/bin/time", "-l", "-o", str(report)] + harness_command(
+                    arm, model, thinking, prompt
+                )
+                env = os.environ.copy()
+                env.pop("PI_CONFIG_FILES", None)
+                stdout_path = work / "harness.jsonl"
+                with stdout_path.open("w") as out, (work / "harness.stderr.txt").open("w") as err:
+                    subprocess.run(command, cwd=cwd, env=env, stdout=out, stderr=err, check=False)
+                events = parse_events(stdout_path)
+                record = {
+                    "arm": arm,
+                    "scenario": name,
+                    "rep": rep,
+                    "task": task,
+                    "model": model,
+                    "thinking": thinking,
+                    "harness_version": harness_version(arm),
+                    "requests": events["requests"],
+                    "total_tokens": events["usage"]["total"],
+                }
+                record.update(parse_time_report(report))
+                records.append(record)
+                print(json.dumps(record), flush=True)
+    (root / "resources.json").write_text(json.dumps(records, indent=2) + "\n")
+    return 0
+
+
 def cmd_overhead(args) -> int:
     root = Path(args.root).resolve()
     root.mkdir(parents=True, exist_ok=True)
@@ -439,6 +513,35 @@ def cmd_summarize(args) -> int:
                 f"| {arm} | {subset[0]['harness_version']} | {len(subset)} | "
                 f"{totals[len(totals) // 2]} | {uncached} | {totals} |"
             )
+        lines.append("")
+
+    resources_path = Path(args.root).resolve() / "resources.json"
+    if resources_path.exists():
+        resource_rows = json.loads(resources_path.read_text())
+        lines.append("## Runtime footprint (peak RSS and CPU per harness process)")
+        lines.append("")
+        lines.append("Measured with `/usr/bin/time -l` around the harness process; RSS is that "
+                     "process's peak resident set, not the whole desktop session.")
+        lines.append("")
+        lines.append("| Arm | Scenario | Reps | Peak RSS MB | Peak footprint MB | CPU s | CPU % | "
+                     "Wall s | Total tokens |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        for arm in sorted({row["arm"] for row in resource_rows}):
+            for name, _task, _model, _thinking in RESOURCE_SCENARIOS:
+                subset = [row for row in resource_rows
+                          if row["arm"] == arm and row["scenario"] == name]
+                if not subset:
+                    continue
+                rss = sorted(row["max_rss_mb"] or 0 for row in subset)
+                peak = sorted(row["peak_footprint_mb"] or 0 for row in subset)
+                lines.append(
+                    f"| {arm} | {name} | {len(subset)} | {rss[len(rss) // 2]:.1f} | "
+                    f"{peak[len(peak) // 2]:.1f} | "
+                    f"{sum(row['cpu_seconds'] for row in subset):.2f} | "
+                    f"{sum(row['cpu_percent'] for row in subset) / len(subset):.1f} | "
+                    f"{sum(row['wall_seconds'] for row in subset):.2f} | "
+                    f"{sum(row['total_tokens'] for row in subset)} |"
+                )
         lines.append("")
 
     lines.append("## Per-trial results")
@@ -574,6 +677,14 @@ def main() -> int:
     overhead.add_argument("--arms")
     overhead.add_argument("--reps", type=int, default=3)
     overhead.set_defaults(func=cmd_overhead)
+
+    resources = sub.add_parser("resources")
+    resources.add_argument("--baseline", required=True)
+    resources.add_argument("--root", required=True)
+    resources.add_argument("--arms")
+    resources.add_argument("--reps", type=int, default=2, help="reps for task scenarios")
+    resources.add_argument("--idle-reps", type=int, default=3, dest="idle_reps")
+    resources.set_defaults(func=cmd_resources)
 
     summary = sub.add_parser("summarize")
     summary.add_argument("--results", required=True)

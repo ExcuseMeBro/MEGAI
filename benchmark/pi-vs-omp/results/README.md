@@ -41,6 +41,43 @@ The only consistent per-model gap is DeepSeek Flash: Pi finished 27% faster on
 that model with 18% fewer tokens. The GPT-6 results move by only a few percent in
 either direction, which is inside single-run noise.
 
+## Runtime footprint (RAM and CPU)
+
+Measured with `/usr/bin/time -l` around the harness process; RSS is that process's
+peak resident set, not the whole desktop session. Runs are the same frozen fixture
+as the trials.
+
+| Arm | Scenario | Peak RSS MB | Peak footprint MB | CPU s | CPU % of wall | Wall s |
+| --- | --- | --- | --- | --- | --- | --- |
+| pi | idle request | 211.6 | 133.1 | 3.07 | 39.4 | 7.8 |
+| omp | idle request | 553.8 | 414.9 | 5.52 | 55.0 | 10.1 |
+| pi | bugfix + deepseek-flash medium | 220.2 | 133.0 | 3.95 | 10.0 | 40.2 |
+| omp | bugfix + deepseek-flash medium | 649.9 | 417.3 | 10.75 | 22.7 | 47.4 |
+| pi | bugfix + gpt-6-astra high | 211.6 | 132.7 | 4.30 | 2.4 | 182.0 |
+| omp | bugfix + gpt-6-astra high | 583.2 | 413.9 | 11.33 | 7.9 | 143.4 |
+
+- **RAM: OMP needs 2.6–3.0× more.** ~554–650 MB peak versus ~211–220 MB for Pi;
+the gap is ~340–430 MB per session and is already present on an idle one-token
+request, so it comes from the runtime itself, not from task size.
+- **CPU: OMP burns 2.5–2.7× more.** 5.5–11.3 CPU-seconds per run versus
+  3.1–4.3 for Pi. Idle CPU share is 55% (OMP) versus 39% (Pi); on the GPT-6 run,
+  where wall time is provider-bound, Pi stays at 2.4% against 7.9%.
+- Memory is flat across scenarios for both arms, so the footprint is a property of
+  the harness, not of the model or task.
+
+## Disk footprint
+
+| Item | Pi | OMP |
+| --- | --- | --- |
+| Harness runtime package | 23 MB (`@earendil-works/pi-coding-agent`) | 259 MB (`@oh-my-pi/*`, of which 162 MB `pi-natives-darwin-arm64`) |
+| Profile directory | 743 MB `~/.pi/agent` (372 MB `tools`, 294 MB `npm`, 75 MB `sessions`) | 11 MB `~/.omp/agent` (6.8 MB `models.db`, 4.0 MB `agent.db-wal`) |
+| Shared MEGAI tools | 7.8 GB `~/.megai` | same directory |
+
+This is not a like-for-like delta: Pi fetches extensions and tool runtimes into its
+profile (`pi-superpowers`, `pi-mcp-adapter`, `pi-web-access`, Ponytail, pinned
+Headroom/tgrep/codedb), while OMP ships its native binaries inside the package.
+Only the runtime package line compares equivalently, and there Pi is 11× smaller.
+
 ## Environment failures excluded from the tables
 
 An earlier attempt recorded 19 trials that produced no provider usage at all —

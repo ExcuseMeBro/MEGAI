@@ -70,11 +70,13 @@ an overrun is recorded as a deadline, never reported as a fast completion.
 | Scope | `git diff --name-only`, checked against the two allowed paths |
 | Stop reason | Exit status, or `deadline` on the 300-second checkpoint |
 | Baseline context | Trivial-prompt runs per arm (`overhead` subcommand) |
+| Peak RSS, CPU seconds, page faults | `/usr/bin/time -l` around the harness process (`resources` subcommand) |
 
 ## Run
 
 ```bash
 python3 benchmark/pi-vs-omp/run_bench.py overhead --root DIR --cwd BASELINE --reps 3
+python3 benchmark/pi-vs-omp/run_bench.py resources --baseline BASELINE --root DIR --reps 2
 python3 benchmark/pi-vs-omp/run_bench.py matrix \
   --baseline BASELINE --root DIR --results DIR/results.jsonl
 python3 benchmark/pi-vs-omp/run_bench.py summarize \
