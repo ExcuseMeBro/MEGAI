@@ -24,7 +24,8 @@ try {
   assert.deepEqual(loaded.errors, []);
   assert.equal(loaded.extensions.some(ext => /model-guard[/\\]index\.ts$/.test(ext.resolvedPath)), false);
   assert.ok(loaded.extensions.some(ext => /provider-guard[/\\]index\.ts$/.test(ext.resolvedPath)));
-  assert.ok(readFileSync(join(agentDir, 'AGENTS.md'), 'utf8').includes('no model allowlist'));
+  assert.ok(readFileSync(join(agentDir, 'AGENTS.md'), 'utf8').includes('megai/delegation.md'));
+  assert.ok(readFileSync(join(agentDir, 'skills/megai/delegation.md'), 'utf8').includes('no model allowlist'));
   console.log('PASS: actual Pi loader has no model guard; provider timeout guard remains active');
 } finally { rmSync(temp, { recursive: true, force: true }); }
 // Third-party factories can leave timers; this is an offline loader snapshot.
