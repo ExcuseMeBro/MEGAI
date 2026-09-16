@@ -1,0 +1,2894 @@
+[
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1351,
+    "diff_sha256": "63da9577820ffa8f9ee1b26d6e45ef0332a62f061313ce694ee24d17f19ea97e",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-6-astra",
+    "model_matches_request": true,
+    "model_short": "gpt-6-astra",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_intervals_preserve_reach_for_later_overlap (test_participant.IntervalRegression.test_nested_intervals_preserve_reach_for_later_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+      "present": true,
+      "tests": 1
+    },
+    "prompt_chars": 1774,
+    "prompt_sha256": "a32bab13f93170151b9c22b188c59ece27cc922ca3acfd61a9d283bfd6850e1f",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-6-astra"
+    ],
+    "requests": 9,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:12:58+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "pi__gpt-6-astra__high__bugfix",
+    "usage": {
+      "cache_read": 193280,
+      "cost_usd": 0.58886,
+      "input": 30293,
+      "output": 1853,
+      "reasoning": 91,
+      "total": 225426
+    },
+    "valid": true,
+    "wall_seconds": 89.737
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1452,
+    "diff_sha256": "bcffbbad7267139a54d4f8463df843991fee9fe83d98989f27b5f54858c5e649",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "deepseek/deepseek-flash",
+    "model_matches_request": true,
+    "model_short": "deepseek-flash",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_interval_does_not_shrink_merged_end (test_participant.MergeIntervalsRegression.test_nested_interval_does_not_shrink_merged_end) ... ok\ntest_nested_interval_keeps_later_overlap_connected (test_participant.MergeIntervalsRegression.test_nested_interval_keeps_later_overlap_connected) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 2
+    },
+    "prompt_chars": 1773,
+    "prompt_sha256": "58c6fb7f423bb2e312bbb888660eb8468b7b43a75f5811813ddb32777a150089",
+    "provider_error": false,
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "requests": 9,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:15:02+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "pi__deepseek-flash__high__bugfix",
+    "usage": {
+      "cache_read": 173184,
+      "cost_usd": 0.008589,
+      "input": 13402,
+      "output": 2941,
+      "reasoning": 1216,
+      "total": 189527
+    },
+    "valid": true,
+    "wall_seconds": 21.868
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 2020,
+    "diff_sha256": "b983efa735a698f9336393d96869236247064de027ab61b732a0108235e610c4",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "deepseek/deepseek-flash",
+    "model_matches_request": true,
+    "model_short": "deepseek-flash",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_contained_interval_keeps_outer_end (test_participant.NestedIntervalRegression.test_contained_interval_keeps_outer_end) ... ok\ntest_contained_interval_leaves_source_untouched (test_participant.NestedIntervalRegression.test_contained_interval_leaves_source_untouched) ... ok\ntest_contained_intervals_do_not_split_outer (test_participant.NestedIntervalRegression.test_contained_intervals_do_not_split_outer) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 4
+    },
+    "prompt_chars": 1773,
+    "prompt_sha256": "58c6fb7f423bb2e312bbb888660eb8468b7b43a75f5811813ddb32777a150089",
+    "provider_error": false,
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "requests": 8,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:15:24+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "omp__deepseek-flash__high__bugfix",
+    "usage": {
+      "cache_read": 177536,
+      "cost_usd": 0.006877,
+      "input": 28377,
+      "output": 3480,
+      "reasoning": 1200,
+      "total": 209393
+    },
+    "valid": true,
+    "wall_seconds": 22.921
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 3445,
+    "diff_sha256": "38c57ca3daed9d1f56ea67318a5fad36826b1e1704029ed88124b8c14706ba10",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "deepseek/deepseek-flash",
+    "model_matches_request": true,
+    "model_short": "deepseek-flash",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_each_call_returns_independent_iterator (test_participant.ChunkedContract.test_each_call_returns_independent_iterator) ... ok\ntest_no_extra_consumption_between_batches (test_participant.ChunkedContract.test_no_extra_consumption_between_batches) ... ok\ntest_size_validated_before_source_is_touched (test_participant.ChunkedContract.test_size_validated_before_source_is_touched) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 3
+    },
+    "prompt_chars": 1723,
+    "prompt_sha256": "ca470bea9fdd68652a52a6ff2cb6ed8707501f31d2bc2827496bc2d6c7a96562",
+    "provider_error": false,
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "requests": 7,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:15:47+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "omp__deepseek-flash__high__feature",
+    "usage": {
+      "cache_read": 178560,
+      "cost_usd": 0.00468,
+      "input": 4939,
+      "output": 5672,
+      "reasoning": 3571,
+      "total": 189171
+    },
+    "valid": true,
+    "wall_seconds": 34.314
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 3217,
+    "diff_sha256": "8abd38d8bf65f631d2ce0d44872f3acc1adcdcce571a7303a793309cf5f355a6",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "deepseek/deepseek-flash",
+    "model_matches_request": true,
+    "model_short": "deepseek-flash",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_source_exception_identity_is_preserved (test_participant.ChunkedContract.test_source_exception_identity_is_preserved) ... ok\ntest_source_iteration_starts_only_on_first_next (test_participant.ChunkedContract.test_source_iteration_starts_only_on_first_next) ... ok\ntest_validation_happens_before_source_touch (test_participant.ChunkedContract.test_validation_happens_before_source_touch) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 5
+    },
+    "prompt_chars": 1723,
+    "prompt_sha256": "ca470bea9fdd68652a52a6ff2cb6ed8707501f31d2bc2827496bc2d6c7a96562",
+    "provider_error": false,
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "requests": 9,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:16:22+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "pi__deepseek-flash__high__feature",
+    "usage": {
+      "cache_read": 176512,
+      "cost_usd": 0.009008,
+      "input": 14070,
+      "output": 3107,
+      "reasoning": 1050,
+      "total": 193689
+    },
+    "valid": true,
+    "wall_seconds": 21.528
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py",
+      "capy/benchmark/cases/refactor/test_participant.py"
+    ],
+    "diff_bytes": 4683,
+    "diff_sha256": "17496b2ebdab91031669ee43d12ff0d62db49c7948d7e7b960f2d94ffa493365",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "deepseek/deepseek-flash",
+    "model_matches_request": true,
+    "model_short": "deepseek-flash",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_json_order_matches_input_with_duplicates (test_participant.RenderChecksRefactor.test_json_order_matches_input_with_duplicates) ... ok\ntest_mixed_counts_agree_between_styles (test_participant.RenderChecksRefactor.test_mixed_counts_agree_between_styles) ... ok\ntest_single_status_counts_in_both_styles (test_participant.RenderChecksRefactor.test_single_status_counts_in_both_styles) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 4
+    },
+    "prompt_chars": 1856,
+    "prompt_sha256": "0df2a47c0288a470072265c3d412636c8e1a283b835360f78e1b6cc713582e14",
+    "provider_error": false,
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "requests": 9,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:16:44+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "pi__deepseek-flash__high__refactor",
+    "usage": {
+      "cache_read": 185088,
+      "cost_usd": 0.010246,
+      "input": 14469,
+      "output": 3996,
+      "reasoning": 1418,
+      "total": 203553
+    },
+    "valid": true,
+    "wall_seconds": 23.824
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py",
+      "capy/benchmark/cases/refactor/test_participant.py"
+    ],
+    "diff_bytes": 4186,
+    "diff_sha256": "e77ea4c3453bfbbe42dcff8c4384beb0fb8fc85d1deedd8e252eca8908dade9e",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "deepseek/deepseek-flash",
+    "model_matches_request": true,
+    "model_short": "deepseek-flash",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_styles_report_identical_tallies (test_participant.ReportingConsistency.test_styles_report_identical_tallies) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+      "present": true,
+      "tests": 1
+    },
+    "prompt_chars": 1856,
+    "prompt_sha256": "0df2a47c0288a470072265c3d412636c8e1a283b835360f78e1b6cc713582e14",
+    "provider_error": false,
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "requests": 12,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:17:08+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "omp__deepseek-flash__high__refactor",
+    "usage": {
+      "cache_read": 344960,
+      "cost_usd": 0.007455,
+      "input": 8952,
+      "output": 8462,
+      "reasoning": 4121,
+      "total": 362374
+    },
+    "valid": true,
+    "wall_seconds": 47.775
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1380,
+    "diff_sha256": "01067f6c4bbfb9e64cb19ec09eac58c628c05e013d292cfb75393267b018318f",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "deepseek/deepseek-flash",
+    "model_matches_request": true,
+    "model_short": "deepseek-flash",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_interval_keeps_outer_end (test_participant.NestedIntervalRegression.test_nested_interval_keeps_outer_end) ... ok\ntest_nested_then_overlapping_interval_stays_merged (test_participant.NestedIntervalRegression.test_nested_then_overlapping_interval_stays_merged) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 2
+    },
+    "prompt_chars": 1775,
+    "prompt_sha256": "0fa759c28ea8048eac3f780f6b7c7646ad33c8087a6e0cd2108289eec8a3f66d",
+    "provider_error": false,
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "requests": 8,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:17:56+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "pi__deepseek-flash__medium__bugfix",
+    "usage": {
+      "cache_read": 148864,
+      "cost_usd": 0.00666,
+      "input": 13252,
+      "output": 1493,
+      "reasoning": 175,
+      "total": 163609
+    },
+    "valid": true,
+    "wall_seconds": 13.663
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1540,
+    "diff_sha256": "728c509ed2e6ae868e360c6a4f221168b833c48bf5f32570cb0869e511c6a48b",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "deepseek/deepseek-flash",
+    "model_matches_request": true,
+    "model_short": "deepseek-flash",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_interval_does_not_drop_covered_range (test_participant.NestedIntervalRegression.test_nested_interval_does_not_drop_covered_range) ... ok\ntest_nested_interval_keeps_outer_end (test_participant.NestedIntervalRegression.test_nested_interval_keeps_outer_end) ... ok\ntest_nested_interval_keeps_outer_end_with_later_overlap (test_participant.NestedIntervalRegression.test_nested_interval_keeps_outer_end_with_later_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 3
+    },
+    "prompt_chars": 1775,
+    "prompt_sha256": "0fa759c28ea8048eac3f780f6b7c7646ad33c8087a6e0cd2108289eec8a3f66d",
+    "provider_error": false,
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "requests": 8,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:18:11+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "omp__deepseek-flash__medium__bugfix",
+    "usage": {
+      "cache_read": 172160,
+      "cost_usd": 0.005494,
+      "input": 25626,
+      "output": 1889,
+      "reasoning": 327,
+      "total": 199675
+    },
+    "valid": true,
+    "wall_seconds": 16.09
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 4321,
+    "diff_sha256": "1d919c79aead4fbd9de16d7b3d7a2a40cac5da5c8d6fadfac21a049af457c2fc",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "deepseek/deepseek-flash",
+    "model_matches_request": true,
+    "model_short": "deepseek-flash",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_terminal_partial_batch_has_no_empty_tail (test_participant.ChunkedParticipant.test_terminal_partial_batch_has_no_empty_tail) ... ok\ntest_valid_size_consumes_nothing_until_iteration (test_participant.ChunkedParticipant.test_valid_size_consumes_nothing_until_iteration) ... ok\ntest_values_preserved_by_identity_and_lists_are_fresh (test_participant.ChunkedParticipant.test_values_preserved_by_identity_and_lists_are_fresh) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 6
+    },
+    "prompt_chars": 1725,
+    "prompt_sha256": "5823d33668e9156286f330cf1f6fb354ccd0a31833338182fcdfd14b33a1725e",
+    "provider_error": false,
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "requests": 6,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:18:27+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "omp__deepseek-flash__medium__feature",
+    "usage": {
+      "cache_read": 144128,
+      "cost_usd": 0.002599,
+      "input": 4038,
+      "output": 2601,
+      "reasoning": 639,
+      "total": 150767
+    },
+    "valid": true,
+    "wall_seconds": 16.954
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 4002,
+    "diff_sha256": "937ba1d58d57d7b98e2cbc651b74e37f6c304fead1e406e02014a8892eef7d58",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "deepseek/deepseek-flash",
+    "model_matches_request": true,
+    "model_short": "deepseek-flash",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_partial_batch_exception_identity (test_participant.ChunkedParticipant.test_partial_batch_exception_identity) ... ok\ntest_unconsumed_source_and_no_empty_terminal_batch (test_participant.ChunkedParticipant.test_unconsumed_source_and_no_empty_terminal_batch) ... ok\ntest_validation_rejects_before_any_pull (test_participant.ChunkedParticipant.test_validation_rejects_before_any_pull) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 8
+    },
+    "prompt_chars": 1725,
+    "prompt_sha256": "5823d33668e9156286f330cf1f6fb354ccd0a31833338182fcdfd14b33a1725e",
+    "provider_error": false,
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "requests": 6,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:18:44+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "pi__deepseek-flash__medium__feature",
+    "usage": {
+      "cache_read": 113536,
+      "cost_usd": 0.008343,
+      "input": 13534,
+      "output": 3001,
+      "reasoning": 1066,
+      "total": 130071
+    },
+    "valid": true,
+    "wall_seconds": 17.699
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py",
+      "capy/benchmark/cases/refactor/test_participant.py"
+    ],
+    "diff_bytes": 5002,
+    "diff_sha256": "768d6719e8a7b5dd3cfc4d0adb40cfe3a7bba42c4d8724817bdf5ce2eb37c640",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "deepseek/deepseek-flash",
+    "model_matches_request": true,
+    "model_short": "deepseek-flash",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_text_counts_match_records (test_participant.ReportRefactorCharacterization.test_text_counts_match_records) ... ok\ntest_validation_happens_before_any_output (test_participant.ReportRefactorCharacterization.test_validation_happens_before_any_output) ... ok\ntest_validation_precedence_unknown_style_before_status (test_participant.ReportRefactorCharacterization.test_validation_precedence_unknown_style_before_status) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 5
+    },
+    "prompt_chars": 1858,
+    "prompt_sha256": "c3e8a3fe59b780faa01aa7b3739d66ecad7151032fe01564a2839e5d99180996",
+    "provider_error": false,
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "requests": 10,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:19:03+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "pi__deepseek-flash__medium__refactor",
+    "usage": {
+      "cache_read": 218624,
+      "cost_usd": 0.011847,
+      "input": 16832,
+      "output": 4571,
+      "reasoning": 1601,
+      "total": 240027
+    },
+    "valid": true,
+    "wall_seconds": 28.335
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py"
+    ],
+    "diff_bytes": 3114,
+    "diff_sha256": "b20097f77f0c04ec62fa1d0f1ec3333250ceb325021926c834288be27412ae06",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "deepseek/deepseek-flash",
+    "model_matches_request": true,
+    "model_short": "deepseek-flash",
+    "participant": {
+      "exit_status": null,
+      "ok": null,
+      "present": false,
+      "tests": null
+    },
+    "prompt_chars": 1858,
+    "prompt_sha256": "c3e8a3fe59b780faa01aa7b3739d66ecad7151032fe01564a2839e5d99180996",
+    "provider_error": false,
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "requests": 9,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:19:31+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "omp__deepseek-flash__medium__refactor",
+    "usage": {
+      "cache_read": 240256,
+      "cost_usd": 0.005221,
+      "input": 6032,
+      "output": 5993,
+      "reasoning": 3101,
+      "total": 252281
+    },
+    "valid": true,
+    "wall_seconds": 35.155
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1304,
+    "diff_sha256": "b62c7000db01ee4a872905581af2caf4b017552a3b40bf972fde6db8b39da7bc",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-6-astra",
+    "model_matches_request": true,
+    "model_short": "gpt-6-astra",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_point_preserves_outer_interval_and_input (test_participant.IntervalRegression.test_nested_point_preserves_outer_interval_and_input) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+      "present": true,
+      "tests": 1
+    },
+    "prompt_chars": 1774,
+    "prompt_sha256": "a32bab13f93170151b9c22b188c59ece27cc922ca3acfd61a9d283bfd6850e1f",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-6-astra"
+    ],
+    "requests": 9,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:20:07+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "omp__gpt-6-astra__high__bugfix",
+    "usage": {
+      "cache_read": 207360,
+      "cost_usd": 0.59381,
+      "input": 30055,
+      "output": 1718,
+      "reasoning": 317,
+      "total": 239133
+    },
+    "valid": true,
+    "wall_seconds": 81.564
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 3357,
+    "diff_sha256": "8bdc0f139823683cac8c250804c4340469796525d3f9c1a3839f8ddf2cd4e34b",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-6-astra",
+    "model_matches_request": true,
+    "model_short": "gpt-6-astra",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_source_can_be_resumed_directly_without_lost_lookahead (test_participant.BatchParticipant.test_source_can_be_resumed_directly_without_lost_lookahead) ... ok\ntest_unbounded_integer_size_does_not_require_preallocation (test_participant.BatchParticipant.test_unbounded_integer_size_does_not_require_preallocation) ... ok\ntest_validation_precedes_source_iteration (test_participant.BatchParticipant.test_validation_precedes_source_iteration) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 4
+    },
+    "prompt_chars": 1724,
+    "prompt_sha256": "423fd3a2f90a12f0224ec42de6e643ce0f64f93ce447db9a8ee19ff219a157b6",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-6-astra"
+    ],
+    "requests": 9,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:21:29+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "omp__gpt-6-astra__high__feature",
+    "usage": {
+      "cache_read": 203520,
+      "cost_usd": 0.59778,
+      "input": 29936,
+      "output": 1898,
+      "reasoning": 235,
+      "total": 235354
+    },
+    "valid": true,
+    "wall_seconds": 86.836
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 2543,
+    "diff_sha256": "20b81ae5fd81688ab734c480cd857afa2bc8ff7bfbacc6d2e4055ea9ad44c90e",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-6-astra",
+    "model_matches_request": true,
+    "model_short": "gpt-6-astra",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_integer_subclass_size (test_participant.ChunkedParticipantTests.test_integer_subclass_size) ... ok\ntest_stopping_after_one_batch_leaves_source_remainder (test_participant.ChunkedParticipantTests.test_stopping_after_one_batch_leaves_source_remainder) ... ok\ntest_validation_precedes_source_access (test_participant.ChunkedParticipantTests.test_validation_precedes_source_access) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 4
+    },
+    "prompt_chars": 1724,
+    "prompt_sha256": "423fd3a2f90a12f0224ec42de6e643ce0f64f93ce447db9a8ee19ff219a157b6",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-6-astra"
+    ],
+    "requests": 10,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:22:56+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "pi__gpt-6-astra__high__feature",
+    "usage": {
+      "cache_read": 218752,
+      "cost_usd": 0.651992,
+      "input": 32424,
+      "output": 2180,
+      "reasoning": 292,
+      "total": 253356
+    },
+    "valid": true,
+    "wall_seconds": 88.452
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py"
+    ],
+    "diff_bytes": 2572,
+    "diff_sha256": "7414be945ef1b83ad6456f9a5e7f38d1752e7b7ea6e05588895052f34992b94a",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-6-astra",
+    "model_matches_request": true,
+    "model_short": "gpt-6-astra",
+    "participant": {
+      "exit_status": null,
+      "ok": null,
+      "present": false,
+      "tests": null
+    },
+    "prompt_chars": 1857,
+    "prompt_sha256": "b46f71c654863e68738f6fda531130fcb71af0cedd32f669f97fd2d167e95311",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-6-astra"
+    ],
+    "requests": 6,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:24:25+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "pi__gpt-6-astra__high__refactor",
+    "usage": {
+      "cache_read": 98176,
+      "cost_usd": 0.449296,
+      "input": 24892,
+      "output": 2044,
+      "reasoning": 188,
+      "total": 125112
+    },
+    "valid": true,
+    "wall_seconds": 78.605
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py"
+    ],
+    "diff_bytes": 2723,
+    "diff_sha256": "8b47b179a3fd8d6b76b72d75f871c6b825da8cffd3c1039ed03a7a66fb3340f4",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-6-astra",
+    "model_matches_request": true,
+    "model_short": "gpt-6-astra",
+    "participant": {
+      "exit_status": null,
+      "ok": null,
+      "present": false,
+      "tests": null
+    },
+    "prompt_chars": 1857,
+    "prompt_sha256": "b46f71c654863e68738f6fda531130fcb71af0cedd32f669f97fd2d167e95311",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-6-astra"
+    ],
+    "requests": 8,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:25:44+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "omp__gpt-6-astra__high__refactor",
+    "usage": {
+      "cache_read": 168448,
+      "cost_usd": 0.572578,
+      "input": 29023,
+      "output": 2278,
+      "reasoning": 424,
+      "total": 199749
+    },
+    "valid": true,
+    "wall_seconds": 96.404
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1342,
+    "diff_sha256": "8e621757fbb954c0cd2fbea3007ae17ec9cc26798819155ade71cfe546da4cf1",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-6-astra",
+    "model_matches_request": true,
+    "model_short": "gpt-6-astra",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_interval_preserves_reach_to_shared_endpoint (test_participant.IntervalRegression.test_nested_interval_preserves_reach_to_shared_endpoint) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+      "present": true,
+      "tests": 1
+    },
+    "prompt_chars": 1776,
+    "prompt_sha256": "922e6826e9e489e17da018d2bef13fdcd5995e951eaca3fe97c4530f14644eaf",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-6-astra"
+    ],
+    "requests": 10,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:27:21+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "pi__gpt-6-astra__medium__bugfix",
+    "usage": {
+      "cache_read": 220160,
+      "cost_usd": 0.6135,
+      "input": 30954,
+      "output": 1676,
+      "reasoning": 46,
+      "total": 252790
+    },
+    "valid": true,
+    "wall_seconds": 85.166
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1258,
+    "diff_sha256": "ea0e10b5d992833a2d40038f3f3c5acf72b4800a38ca0927c5f236909b3a1792",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-6-astra",
+    "model_matches_request": true,
+    "model_short": "gpt-6-astra",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_interval_preserves_reach_to_shared_endpoint (test_participant.IntervalRegression.test_nested_interval_preserves_reach_to_shared_endpoint) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+      "present": true,
+      "tests": 1
+    },
+    "prompt_chars": 1776,
+    "prompt_sha256": "922e6826e9e489e17da018d2bef13fdcd5995e951eaca3fe97c4530f14644eaf",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-6-astra"
+    ],
+    "requests": 11,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:28:46+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "omp__gpt-6-astra__medium__bugfix",
+    "usage": {
+      "cache_read": 246400,
+      "cost_usd": 0.59244,
+      "input": 28999,
+      "output": 1121,
+      "reasoning": 23,
+      "total": 276520
+    },
+    "valid": true,
+    "wall_seconds": 64.655
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 3196,
+    "diff_sha256": "05cf2a45ec7ec549e67c3df2a299cb79ca52154054f973765f760f924f29e4f7",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-6-astra",
+    "model_matches_request": true,
+    "model_short": "gpt-6-astra",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_shared_source_is_not_read_ahead (test_participant.ChunkedParticipantTests.test_shared_source_is_not_read_ahead) ... ok\ntest_size_larger_than_platform_index_limit (test_participant.ChunkedParticipantTests.test_size_larger_than_platform_index_limit) ... ok\ntest_source_failure_is_not_treated_as_partial_completion (test_participant.ChunkedParticipantTests.test_source_failure_is_not_treated_as_partial_completion) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 4
+    },
+    "prompt_chars": 1726,
+    "prompt_sha256": "b131c03702756c621b9113570992688edcbaefe1af5568cbe26c4ab22176b8ab",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-6-astra"
+    ],
+    "requests": 10,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:29:52+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "omp__gpt-6-astra__medium__feature",
+    "usage": {
+      "cache_read": 206336,
+      "cost_usd": 0.546226,
+      "input": 26694,
+      "output": 1459,
+      "reasoning": 70,
+      "total": 234489
+    },
+    "valid": true,
+    "wall_seconds": 79.809
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 3049,
+    "diff_sha256": "435e394d5e7874a59684fac96f700af61fb54e246d57ad12a7121e66d62d9cef",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-6-astra",
+    "model_matches_request": true,
+    "model_short": "gpt-6-astra",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_arbitrarily_large_positive_integer_size (test_participant.ChunkedParticipantTests.test_arbitrarily_large_positive_integer_size) ... ok\ntest_invalid_size_does_not_even_request_source_iterator (test_participant.ChunkedParticipantTests.test_invalid_size_does_not_even_request_source_iterator) ... ok\ntest_single_pass_source_is_untouched_until_iteration (test_participant.ChunkedParticipantTests.test_single_pass_source_is_untouched_until_iteration) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 3
+    },
+    "prompt_chars": 1726,
+    "prompt_sha256": "b131c03702756c621b9113570992688edcbaefe1af5568cbe26c4ab22176b8ab",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-6-astra"
+    ],
+    "requests": 8,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:31:12+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "pi__gpt-6-astra__medium__feature",
+    "usage": {
+      "cache_read": 153600,
+      "cost_usd": 0.52598,
+      "input": 27958,
+      "output": 1856,
+      "reasoning": 144,
+      "total": 183414
+    },
+    "valid": true,
+    "wall_seconds": 93.563
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py",
+      "capy/benchmark/cases/refactor/test_participant.py"
+    ],
+    "diff_bytes": 3597,
+    "diff_sha256": "6aaaa6fe2980f74a9372f2adffd053e2fb7cfeadf112e5e64beb96b88604a1e7",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-6-astra",
+    "model_matches_request": true,
+    "model_short": "gpt-6-astra",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_status_error_message_and_nonmutation (test_participant.ValidationCompatibility.test_status_error_message_and_nonmutation) ... ok\ntest_unknown_style_precedes_invalid_status (test_participant.ValidationCompatibility.test_unknown_style_precedes_invalid_status) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 2
+    },
+    "prompt_chars": 1859,
+    "prompt_sha256": "6aa8ded9effd3a8f3b2562fdd463865cf31663b346364e5920f57a4fc37ca6d3",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-6-astra"
+    ],
+    "requests": 9,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:32:46+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "pi__gpt-6-astra__medium__refactor",
+    "usage": {
+      "cache_read": 176896,
+      "cost_usd": 0.573146,
+      "input": 28320,
+      "output": 2261,
+      "reasoning": 127,
+      "total": 207477
+    },
+    "valid": true,
+    "wall_seconds": 97.878
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py"
+    ],
+    "diff_bytes": 2572,
+    "diff_sha256": "7414be945ef1b83ad6456f9a5e7f38d1752e7b7ea6e05588895052f34992b94a",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-6-astra",
+    "model_matches_request": true,
+    "model_short": "gpt-6-astra",
+    "participant": {
+      "exit_status": null,
+      "ok": null,
+      "present": false,
+      "tests": null
+    },
+    "prompt_chars": 1859,
+    "prompt_sha256": "6aa8ded9effd3a8f3b2562fdd463865cf31663b346364e5920f57a4fc37ca6d3",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-6-astra"
+    ],
+    "requests": 9,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:34:24+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "omp__gpt-6-astra__medium__refactor",
+    "usage": {
+      "cache_read": 206592,
+      "cost_usd": 0.624202,
+      "input": 30976,
+      "output": 2157,
+      "reasoning": 217,
+      "total": 239725
+    },
+    "valid": true,
+    "wall_seconds": 90.736
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1160,
+    "diff_sha256": "a74c51b06fd5e683c3f08efdbd9d6cdc8f5a2ead28e42f42f64bf436fa95f6aa",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-5.6-sol",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-sol",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_interval_does_not_shrink_outer_interval (test_participant.MergeIntervalsRegression.test_nested_interval_does_not_shrink_outer_interval) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+      "present": true,
+      "tests": 1
+    },
+    "prompt_chars": 1774,
+    "prompt_sha256": "2ea9bf664f46dbd26bea0433698635481f270d9b8d457c25e19d519303661051",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-sol"
+    ],
+    "requests": 15,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:35:55+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "pi__gpt-5-6-sol__high__bugfix",
+    "usage": {
+      "cache_read": 376192,
+      "cost_usd": 0.466536,
+      "input": 34448,
+      "output": 3540,
+      "reasoning": 1719,
+      "total": 414180
+    },
+    "valid": true,
+    "wall_seconds": 127.976
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1267,
+    "diff_sha256": "f619bffdc78d458be0e87c50d5eefb7fae31d8b574df491157b1e68aacd8f6f0",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-5.6-sol",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-sol",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_interval_cannot_shrink_merged_range (test_participant.MergeIntervalsRegressionTest.test_nested_interval_cannot_shrink_merged_range) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+      "present": true,
+      "tests": 1
+    },
+    "prompt_chars": 1774,
+    "prompt_sha256": "2ea9bf664f46dbd26bea0433698635481f270d9b8d457c25e19d519303661051",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-sol"
+    ],
+    "requests": 9,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:38:04+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "omp__gpt-5-6-sol__high__bugfix",
+    "usage": {
+      "cache_read": 209792,
+      "cost_usd": 0.267581,
+      "input": 30326,
+      "output": 3118,
+      "reasoning": 1618,
+      "total": 243236
+    },
+    "valid": true,
+    "wall_seconds": 90.119
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 2591,
+    "diff_sha256": "100151393b66f69f5269de61d924f1c3e6a7dcff8eaca668584a570b32fe2934",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-5.6-sol",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-sol",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_arbitrarily_large_integer_size (test_participant.ParticipantChunkedTests.test_arbitrarily_large_integer_size) ... ok\ntest_invalid_size_is_rejected_without_accessing_source (test_participant.ParticipantChunkedTests.test_invalid_size_is_rejected_without_accessing_source) ... ok\ntest_valid_call_does_not_request_source_iterator (test_participant.ParticipantChunkedTests.test_valid_call_does_not_request_source_iterator) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 3
+    },
+    "prompt_chars": 1724,
+    "prompt_sha256": "242bba3e9020e539d24aa99933cf618bd6a53334b6a9baac4ff76c95b4b1addb",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-sol"
+    ],
+    "requests": 11,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:39:34+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "omp__gpt-5-6-sol__high__feature",
+    "usage": {
+      "cache_read": 267136,
+      "cost_usd": 0.335258,
+      "input": 33181,
+      "output": 4784,
+      "reasoning": 2478,
+      "total": 305101
+    },
+    "valid": true,
+    "wall_seconds": 120.292
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 1967,
+    "diff_sha256": "b28c8cd04d11c071e00d1356b84085ee857a95e73074d51f88cb4d1a98f63b8a",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-5.6-sol",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-sol",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_batches_lazily_without_lookahead (test_participant.ChunkedParticipantTests.test_batches_lazily_without_lookahead) ... ok\ntest_invalid_size_is_rejected_at_call_time (test_participant.ChunkedParticipantTests.test_invalid_size_is_rejected_at_call_time) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 2
+    },
+    "prompt_chars": 1724,
+    "prompt_sha256": "242bba3e9020e539d24aa99933cf618bd6a53334b6a9baac4ff76c95b4b1addb",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-sol"
+    ],
+    "requests": 11,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:41:35+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "pi__gpt-5-6-sol__high__feature",
+    "usage": {
+      "cache_read": 250752,
+      "cost_usd": 0.426821,
+      "input": 34135,
+      "output": 4359,
+      "reasoning": 2356,
+      "total": 289246
+    },
+    "valid": true,
+    "wall_seconds": 146.115
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py"
+    ],
+    "diff_bytes": 2569,
+    "diff_sha256": "1f0bce85b2b9a5fe729a3d35bc1e44dfb5603e71ddd92b90ffb6cc73fe9d1bab",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-5.6-sol",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-sol",
+    "participant": {
+      "exit_status": null,
+      "ok": null,
+      "present": false,
+      "tests": null
+    },
+    "prompt_chars": 1857,
+    "prompt_sha256": "7a961bab8b865b81a26959229ea01e9e6dd4b27ac2f0a6e3d864cb9e14ac3f53",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-sol"
+    ],
+    "requests": 13,
+    "scope_ok": true,
+    "started_at": "2026-09-15T18:44:02+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "pi__gpt-5-6-sol__high__refactor",
+    "usage": {
+      "cache_read": 291200,
+      "cost_usd": 0.434315,
+      "input": 32507,
+      "output": 4206,
+      "reasoning": 2112,
+      "total": 327913
+    },
+    "valid": true,
+    "wall_seconds": 138.531
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py"
+    ],
+    "diff_bytes": 2680,
+    "diff_sha256": "19725dd300450412ab1eed95420b8df140c27026a59fcc146364eff1629a81ef",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-5.6-sol",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-sol",
+    "participant": {
+      "exit_status": null,
+      "ok": null,
+      "present": false,
+      "tests": null
+    },
+    "prompt_chars": 1857,
+    "prompt_sha256": "7a961bab8b865b81a26959229ea01e9e6dd4b27ac2f0a6e3d864cb9e14ac3f53",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-sol"
+    ],
+    "requests": 11,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:09:21+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "omp__gpt-5-6-sol__high__refactor",
+    "usage": {
+      "cache_read": 260224,
+      "cost_usd": 0.365914,
+      "input": 33126,
+      "output": 6466,
+      "reasoning": 4078,
+      "total": 299816
+    },
+    "valid": true,
+    "wall_seconds": 189.563
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1160,
+    "diff_sha256": "4bdbd81e4bc98d89e274da65b8e748d5cb4401ae8fec728b129c6c7310d30fdc",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-5.6-sol",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-sol",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_interval_does_not_shrink_merged_end (test_participant.MergeIntervalsRegressionTest.test_nested_interval_does_not_shrink_merged_end) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+      "present": true,
+      "tests": 1
+    },
+    "prompt_chars": 1776,
+    "prompt_sha256": "b09819178762495e9a43d3dc1e844af539364229a79d7f0e4d1283ffbedc7d22",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-sol"
+    ],
+    "requests": 10,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:12:31+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "pi__gpt-5-6-sol__medium__bugfix",
+    "usage": {
+      "cache_read": 221568,
+      "cost_usd": 0.332844,
+      "input": 29988,
+      "output": 2404,
+      "reasoning": 771,
+      "total": 253960
+    },
+    "valid": true,
+    "wall_seconds": 78.889
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1158,
+    "diff_sha256": "0e41d19f8ae7420647207ec144e8746df01b0ab27403afdf2b2c8ab8dd71ebd4",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-5.6-sol",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-sol",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_interval_does_not_shrink_merged_range (test_participant.MergeIntervalsRegression.test_nested_interval_does_not_shrink_merged_range) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+      "present": true,
+      "tests": 1
+    },
+    "prompt_chars": 1776,
+    "prompt_sha256": "b09819178762495e9a43d3dc1e844af539364229a79d7f0e4d1283ffbedc7d22",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-sol"
+    ],
+    "requests": 10,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:13:50+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "omp__gpt-5-6-sol__medium__bugfix",
+    "usage": {
+      "cache_read": 239232,
+      "cost_usd": 0.277593,
+      "input": 31070,
+      "output": 2881,
+      "reasoning": 903,
+      "total": 273183
+    },
+    "valid": true,
+    "wall_seconds": 89.015
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 2553,
+    "diff_sha256": "7d1d30a691ba7002da3ffeda10fd76ddfaedde03786d959ce31eb2ce2828f0ea",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-5.6-sol",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-sol",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_boolean_size_is_rejected_immediately (test_participant.ChunkedParticipantTests.test_boolean_size_is_rejected_immediately) ... ok\ntest_exact_batches_are_distinct_mutable_lists (test_participant.ChunkedParticipantTests.test_exact_batches_are_distinct_mutable_lists) ... ok\ntest_valid_call_defers_iteration_and_reads_exactly_one_batch (test_participant.ChunkedParticipantTests.test_valid_call_defers_iteration_and_reads_exactly_one_batch) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 3
+    },
+    "prompt_chars": 1726,
+    "prompt_sha256": "b1ffa01dd595c82513174b6d1277675a2399a540df34ad8911258ce6abd85df6",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-sol"
+    ],
+    "requests": 9,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:15:20+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "omp__gpt-5-6-sol__medium__feature",
+    "usage": {
+      "cache_read": 190976,
+      "cost_usd": 0.255398,
+      "input": 28147,
+      "output": 3321,
+      "reasoning": 1383,
+      "total": 222444
+    },
+    "valid": true,
+    "wall_seconds": 88.077
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 2062,
+    "diff_sha256": "639eb4b933e0b989798689a49aefbaf7a98bd3dd18421b7d80f64db76c7a1441",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-5.6-sol",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-sol",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_batches_single_pass_iterator_without_lookahead (test_participant.ChunkedParticipantTests.test_batches_single_pass_iterator_without_lookahead) ... ok\ntest_rejects_invalid_size_immediately (test_participant.ChunkedParticipantTests.test_rejects_invalid_size_immediately) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 2
+    },
+    "prompt_chars": 1726,
+    "prompt_sha256": "b1ffa01dd595c82513174b6d1277675a2399a540df34ad8911258ce6abd85df6",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-sol"
+    ],
+    "requests": 10,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:16:49+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "pi__gpt-5-6-sol__medium__feature",
+    "usage": {
+      "cache_read": 211328,
+      "cost_usd": 0.342024,
+      "input": 29644,
+      "output": 2938,
+      "reasoning": 1066,
+      "total": 243910
+    },
+    "valid": true,
+    "wall_seconds": 82.471
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py"
+    ],
+    "diff_bytes": 2601,
+    "diff_sha256": "031406574189aff5ddd2115b857b7603bbce71215e2660f97b2abd581e7bcc48",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-5.6-sol",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-sol",
+    "participant": {
+      "exit_status": null,
+      "ok": null,
+      "present": false,
+      "tests": null
+    },
+    "prompt_chars": 1859,
+    "prompt_sha256": "4ccf0d9c340cfadca5542475f6f75da2b38c0183cfe957c2c96e57cb5142e4c5",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-sol"
+    ],
+    "requests": 7,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:18:11+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "pi__gpt-5-6-sol__medium__refactor",
+    "usage": {
+      "cache_read": 115456,
+      "cost_usd": 0.278468,
+      "input": 24600,
+      "output": 3258,
+      "reasoning": 1295,
+      "total": 143314
+    },
+    "valid": true,
+    "wall_seconds": 93.264
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py"
+    ],
+    "diff_bytes": 2689,
+    "diff_sha256": "fae1d57f375fc925e6b0159c42f0f68ede737cf22662ca93b33d069bd4f5bcf0",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-5.6-sol",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-sol",
+    "participant": {
+      "exit_status": null,
+      "ok": null,
+      "present": false,
+      "tests": null
+    },
+    "prompt_chars": 1859,
+    "prompt_sha256": "4ccf0d9c340cfadca5542475f6f75da2b38c0183cfe957c2c96e57cb5142e4c5",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-sol"
+    ],
+    "requests": 8,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:19:45+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "omp__gpt-5-6-sol__medium__refactor",
+    "usage": {
+      "cache_read": 174720,
+      "cost_usd": 0.2535,
+      "input": 29193,
+      "output": 3342,
+      "reasoning": 1581,
+      "total": 207255
+    },
+    "valid": true,
+    "wall_seconds": 96.427
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1212,
+    "diff_sha256": "babeb26b318aa981961d303d79fa59aeebebc2a8463b0b7148c81d8c37a0ef99",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-5.6-luna",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-luna",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_interval_preserves_outer_end (test_participant.IntervalParticipantRegression.test_nested_interval_preserves_outer_end) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+      "present": true,
+      "tests": 1
+    },
+    "prompt_chars": 1775,
+    "prompt_sha256": "ff4240cbec12d54f22210c1c43ebc563d45744a73cf705488b1fd34cf067558f",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-luna"
+    ],
+    "requests": 12,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:21:22+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "pi__gpt-5-6-luna__high__bugfix",
+    "usage": {
+      "cache_read": 247808,
+      "cost_usd": 0.021677,
+      "input": 61439,
+      "output": 3694,
+      "reasoning": 2004,
+      "total": 312941
+    },
+    "valid": true,
+    "wall_seconds": 103.194
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1225,
+    "diff_sha256": "50f0a4465fb5c3a51a4b814a4d942d2512e57209dce7ba99345946be646d8f33",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-5.6-luna",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-luna",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_interval_preserves_connection_to_later_overlap (test_participant.IntervalParticipantRegression.test_nested_interval_preserves_connection_to_later_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+      "present": true,
+      "tests": 1
+    },
+    "prompt_chars": 1775,
+    "prompt_sha256": "ff4240cbec12d54f22210c1c43ebc563d45744a73cf705488b1fd34cf067558f",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-luna"
+    ],
+    "requests": 15,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:23:06+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "omp__gpt-5-6-luna__high__bugfix",
+    "usage": {
+      "cache_read": 399360,
+      "cost_usd": 0.021138,
+      "input": 41893,
+      "output": 3977,
+      "reasoning": 2136,
+      "total": 445230
+    },
+    "valid": true,
+    "wall_seconds": 109.377
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 2779,
+    "diff_sha256": "70623aff53bcba28eb45d8945add6a73a186380719f2bdc6ce9eb112d5c7fcc9",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-5.6-luna",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-luna",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_batches_preserve_identity_and_are_independent (test_participant.ChunkedParticipant.test_batches_preserve_identity_and_are_independent) ... ok\ntest_invalid_sizes_are_rejected_before_source_consumption (test_participant.ChunkedParticipant.test_invalid_sizes_are_rejected_before_source_consumption) ... ok\ntest_iteration_is_lazy_and_does_not_look_ahead (test_participant.ChunkedParticipant.test_iteration_is_lazy_and_does_not_look_ahead) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 3
+    },
+    "prompt_chars": 1725,
+    "prompt_sha256": "dba2d6c998a927c652e4d528b0e3fc0ddf77b2015b256940884b6e14e29510e9",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-luna"
+    ],
+    "requests": 11,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:24:56+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "omp__gpt-5-6-luna__high__feature",
+    "usage": {
+      "cache_read": 284672,
+      "cost_usd": 0.019381,
+      "input": 37772,
+      "output": 5111,
+      "reasoning": 2716,
+      "total": 327555
+    },
+    "valid": true,
+    "wall_seconds": 120.114
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 2709,
+    "diff_sha256": "6dd1e227a61f7b7dceffb708f64ebc659bff0cb21d9017b23b0314dc40787faa",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-5.6-luna",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-luna",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_first_batch_does_not_look_ahead (test_participant.ChunkedParticipantTests.test_first_batch_does_not_look_ahead) ... ok\ntest_invalid_size_is_rejected_before_iteration (test_participant.ChunkedParticipantTests.test_invalid_size_is_rejected_before_iteration) ... ok\ntest_partial_final_batch_is_fresh_and_preserves_identity (test_participant.ChunkedParticipantTests.test_partial_final_batch_is_fresh_and_preserves_identity) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 3
+    },
+    "prompt_chars": 1725,
+    "prompt_sha256": "dba2d6c998a927c652e4d528b0e3fc0ddf77b2015b256940884b6e14e29510e9",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-luna"
+    ],
+    "requests": 13,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:26:56+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "pi__gpt-5-6-luna__high__feature",
+    "usage": {
+      "cache_read": 283648,
+      "cost_usd": 0.018262,
+      "input": 36444,
+      "output": 4417,
+      "reasoning": 2369,
+      "total": 324509
+    },
+    "valid": true,
+    "wall_seconds": 103.909
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py"
+    ],
+    "diff_bytes": 2673,
+    "diff_sha256": "7940fd51b199dcc85245463a278e611b9bac069bab66082771d518ec5fa13dcf",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-5.6-luna",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-luna",
+    "participant": {
+      "exit_status": null,
+      "ok": null,
+      "present": false,
+      "tests": null
+    },
+    "prompt_chars": 1858,
+    "prompt_sha256": "2cf5d71d3d219ff514556ac118958c9eff43cc915dd47506252bacc1dd7310d1",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-luna"
+    ],
+    "requests": 9,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:28:41+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "pi__gpt-5-6-luna__high__refactor",
+    "usage": {
+      "cache_read": 160768,
+      "cost_usd": 0.022144,
+      "input": 58800,
+      "output": 5974,
+      "reasoning": 3843,
+      "total": 225542
+    },
+    "valid": true,
+    "wall_seconds": 151.308
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py"
+    ],
+    "diff_bytes": 2723,
+    "diff_sha256": "4f72daf027eff090062693ded0f4e55d695c21eb4c2c2f5292c3ec139de088d2",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-5.6-luna",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-luna",
+    "participant": {
+      "exit_status": null,
+      "ok": null,
+      "present": false,
+      "tests": null
+    },
+    "prompt_chars": 1858,
+    "prompt_sha256": "2cf5d71d3d219ff514556ac118958c9eff43cc915dd47506252bacc1dd7310d1",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-luna"
+    ],
+    "requests": 10,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:31:13+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "high",
+    "timed_out": false,
+    "trial_id": "omp__gpt-5-6-luna__high__refactor",
+    "usage": {
+      "cache_read": 241152,
+      "cost_usd": 0.017075,
+      "input": 34457,
+      "output": 4467,
+      "reasoning": 2835,
+      "total": 280076
+    },
+    "valid": true,
+    "wall_seconds": 120.373
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1210,
+    "diff_sha256": "89802931516cd5e6db5cf667bc050bffb9942b1e400fe92114781a872862c891",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-5.6-luna",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-luna",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_interval_preserves_outer_range_for_later_overlap (test_participant.IntervalRegression.test_nested_interval_preserves_outer_range_for_later_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+      "present": true,
+      "tests": 1
+    },
+    "prompt_chars": 1777,
+    "prompt_sha256": "7d63903a5e7a65c5f726fc2c6760aa83d8dd56be0a1b0a69828f1116ee3436ed",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-luna"
+    ],
+    "requests": 12,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:33:13+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "pi__gpt-5-6-luna__medium__bugfix",
+    "usage": {
+      "cache_read": 267776,
+      "cost_usd": 0.014978,
+      "input": 33173,
+      "output": 2490,
+      "reasoning": 1039,
+      "total": 303439
+    },
+    "valid": true,
+    "wall_seconds": 67.249
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "diff_bytes": 1208,
+    "diff_sha256": "0f3fa5e73715d273b26203ae1bb9d9c64cb72ce773e1f944f0d23b7b3480d0a2",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-5.6-luna",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-luna",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nested_interval_preserves_outer_end_for_later_overlap (test_participant.IntervalRegression.test_nested_interval_preserves_outer_end_for_later_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK",
+      "present": true,
+      "tests": 1
+    },
+    "prompt_chars": 1777,
+    "prompt_sha256": "7d63903a5e7a65c5f726fc2c6760aa83d8dd56be0a1b0a69828f1116ee3436ed",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-luna"
+    ],
+    "requests": 10,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:34:21+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "bugfix",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "omp__gpt-5-6-luna__medium__bugfix",
+    "usage": {
+      "cache_read": 203776,
+      "cost_usd": 0.016709,
+      "input": 52900,
+      "output": 1711,
+      "reasoning": 606,
+      "total": 258387
+    },
+    "valid": true,
+    "wall_seconds": 50.366
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.001s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 2688,
+    "diff_sha256": "f291c7a125e699ef18a116a5bb3c50c271050a7ce23b2b921597bba569bb46ef",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-5.6-luna",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-luna",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_call_is_lazy_and_first_batch_has_no_lookahead (test_participant.ChunkedParticipantTests.test_call_is_lazy_and_first_batch_has_no_lookahead) ... ok\ntest_source_error_is_same_exception (test_participant.ChunkedParticipantTests.test_source_error_is_same_exception) ... ok\ntest_validation_happens_before_iteration (test_participant.ChunkedParticipantTests.test_validation_happens_before_iteration) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 3
+    },
+    "prompt_chars": 1727,
+    "prompt_sha256": "4c940835e6424291ed3f71f9a83977b7609bcf928b41651a4bfd60592551b071",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-luna"
+    ],
+    "requests": 8,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:35:12+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "omp__gpt-5-6-luna__medium__feature",
+    "usage": {
+      "cache_read": 147456,
+      "cost_usd": 0.017333,
+      "input": 58407,
+      "output": 2252,
+      "reasoning": 828,
+      "total": 208115
+    },
+    "valid": true,
+    "wall_seconds": 70.203
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 12
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "diff_bytes": 2704,
+    "diff_sha256": "c3737a226f722590ac1652b72b5ef85a996068b03a71a9143384b8806df0d9e3",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-5.6-luna",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-luna",
+    "participant": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_first_batch_does_not_look_ahead (test_participant.BatchParticipantTests.test_first_batch_does_not_look_ahead) ... ok\ntest_partial_batch_preserves_identity_and_is_fresh (test_participant.BatchParticipantTests.test_partial_batch_preserves_identity_and_is_fresh) ... ok\ntest_validates_size_before_iteration (test_participant.BatchParticipantTests.test_validates_size_before_iteration) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 3
+    },
+    "prompt_chars": 1727,
+    "prompt_sha256": "4c940835e6424291ed3f71f9a83977b7609bcf928b41651a4bfd60592551b071",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-luna"
+    ],
+    "requests": 14,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:36:23+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "feature",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "pi__gpt-5-6-luna__medium__feature",
+    "usage": {
+      "cache_read": 214528,
+      "cost_usd": 0.023045,
+      "input": 74919,
+      "output": 3142,
+      "reasoning": 1233,
+      "total": 292589
+    },
+    "valid": true,
+    "wall_seconds": 87.725
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "pi",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py"
+    ],
+    "diff_bytes": 2560,
+    "diff_sha256": "8d4875a1801d748f0133f0ea99cc36b67ac5fd757e34299eb7d01b8c232ead16",
+    "exit_status": 0,
+    "harness_version": "0.85.1",
+    "model": "openai-codex/gpt-5.6-luna",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-luna",
+    "participant": {
+      "exit_status": null,
+      "ok": null,
+      "present": false,
+      "tests": null
+    },
+    "prompt_chars": 1860,
+    "prompt_sha256": "772a6b9cb5a30659d5aae13cee56a51aad2cdfdc3d3b0d8ad7b5bbe6faba35a6",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-luna"
+    ],
+    "requests": 10,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:37:51+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "pi__gpt-5-6-luna__medium__refactor",
+    "usage": {
+      "cache_read": 180224,
+      "cost_usd": 0.019817,
+      "input": 60478,
+      "output": 3431,
+      "reasoning": 1525,
+      "total": 244133
+    },
+    "valid": true,
+    "wall_seconds": 85.77
+  },
+  {
+    "acceptance": {
+      "exit_status": 0,
+      "failures": null,
+      "ok": true,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK",
+      "present": true,
+      "tests": 10
+    },
+    "arm": "omp",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "budget_seconds": 300,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py"
+    ],
+    "diff_bytes": 2675,
+    "diff_sha256": "8b7124ff1feeb772bbb13622e745a438f8d1db48029d1b1827dd0975339dc9f6",
+    "exit_status": 0,
+    "harness_version": "omp/18.2.0",
+    "model": "openai-codex/gpt-5.6-luna",
+    "model_matches_request": true,
+    "model_short": "gpt-5.6-luna",
+    "participant": {
+      "exit_status": null,
+      "ok": null,
+      "present": false,
+      "tests": null
+    },
+    "prompt_chars": 1860,
+    "prompt_sha256": "772a6b9cb5a30659d5aae13cee56a51aad2cdfdc3d3b0d8ad7b5bbe6faba35a6",
+    "provider_error": false,
+    "reported_models": [
+      "openai-codex/gpt-5.6-luna"
+    ],
+    "requests": 12,
+    "scope_ok": true,
+    "started_at": "2026-09-16T10:39:17+0500",
+    "stderr_bytes": 0,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "task": "refactor",
+    "thinking": "medium",
+    "timed_out": false,
+    "trial_id": "omp__gpt-5-6-luna__medium__refactor",
+    "usage": {
+      "cache_read": 270848,
+      "cost_usd": 0.015797,
+      "input": 35608,
+      "output": 2715,
+      "reasoning": 1019,
+      "total": 309171
+    },
+    "valid": true,
+    "wall_seconds": 68.785
+  }
+]
