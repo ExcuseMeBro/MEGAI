@@ -57,6 +57,10 @@ as the trials.
 | omp | idle request | 553.8 | 414.9 | 5.52 | 55.0 | 10.1 |
 | pi | bugfix + deepseek-flash medium | 220.2 | 133.0 | 3.95 | 10.0 | 40.2 |
 | omp | bugfix + deepseek-flash medium | 649.9 | 417.3 | 10.75 | 22.7 | 47.4 |
+
+Note: the `deepseek-flash medium` rows above are mislabeled — `medium` maps to `null` in that
+model's Pi entry, so those runs sent no thinking parameter. The trial numbers stand; the label
+does not describe two thinking levels. See [thinking-levels.md](thinking-levels.md).
 | pi | bugfix + gpt-6-astra high | 211.6 | 132.7 | 4.30 | 2.4 | 182.0 |
 | omp | bugfix + gpt-6-astra high | 583.2 | 413.9 | 11.33 | 7.9 | 143.4 |
 

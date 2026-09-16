@@ -57,6 +57,13 @@ so restored inputs must land back at those paths for a rerun to be comparable.
 - Tasks: `bugfix` (defect fix), `feature` (implement `chunked`),
   `refactor` (de-duplicate `render_checks`)
 
+**Correction (2026-09-16):** `medium` is not a DeepSeek Flash level. Its Pi model
+store entry maps `minimal` and `medium` to `null`, so those trials sent no thinking
+parameter at all and the DeepSeek comparison is `high` against none, not two levels.
+GPT models are unaffected. See
+[results/thinking-levels.md](results/thinking-levels.md), which reran the three tasks
+at DeepSeek `low` and `high`, the levels that model actually accepts.
+
 Arm order alternates per task (Pi first for bugfix/refactor, OMP first for
 feature) to reduce order bias. Trials run sequentially: concurrency would
 confound the latency and token measurements this benchmark is about.

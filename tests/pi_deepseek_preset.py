@@ -265,6 +265,16 @@ class Preset(unittest.TestCase):
         self.run_cli("--remove", ok=False)
         self.assertEqual(self.snapshot(), before)
 
+    def test_unsupported_thinking_level_is_refused_before_any_write(self):
+        # The whitelist validates the level name only. A name no model maps to a real
+        # level is still refused, because nothing downstream can tell it from a typo.
+        roles = {name: dict(role) for name, role in EXPECTED.items()}
+        roles["scout"]["thinking"] = "turbo"
+        self.env["MEGAI_SOURCE"] = str(self.legacy_source(roles))
+        before = self.snapshot()
+        self.run_cli("--preset", "economy", ok=False)
+        self.assertEqual(self.snapshot(), before)
+
     def test_invalid_or_conflicting_options_are_read_only(self):
         before = self.snapshot()
         self.run_cli("--preset", "unknown", ok=False)
