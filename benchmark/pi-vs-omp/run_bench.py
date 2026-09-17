@@ -40,6 +40,7 @@ MODELS = (
     "openai-codex/gpt-5.6-luna",
     "openrouter/stealth/union-alpha",
     "qwen38-local/qwen3.8-35b-a3b-distill",
+    "minimax/MiniMax-M3",
 )
 THINKING_LEVELS = ("high", "medium")
 TASK_IMPL = {
@@ -61,6 +62,7 @@ SHORT_MODEL = {
     "openai-codex/gpt-5.6-luna": "gpt-5.6-luna",
     "openrouter/stealth/union-alpha": "union-alpha",
     "qwen38-local/qwen3.8-35b-a3b-distill": "qwen38-local",
+    "minimax/MiniMax-M3": "minimax-m3",
 }
 
 
@@ -209,12 +211,15 @@ def evaluate(baseline: Path, repo: Path, task: str, eval_dir: Path) -> tuple[dic
     return run_suite(eval_dir, case, "test_acceptance.py"), run_suite(eval_dir, case, PARTICIPANT)
 
 
-def trial_id(arm: str, model: str, thinking: str, task: str) -> str:
-    return "__".join([arm, slug(SHORT_MODEL.get(model, model)), thinking, task])
+def trial_id(arm: str, model: str, thinking: str, task: str, reviewer: str = HYBRID_REVIEWER) -> str:
+    parts = [arm, slug(SHORT_MODEL.get(model, model)), thinking, task]
+    if arm == "hybrid" and reviewer != HYBRID_REVIEWER:
+        parts.append(f"r-{slug(SHORT_MODEL.get(reviewer, reviewer))}")
+    return "__".join(parts)
 
 
-def run_trial(arm, model, thinking, task, baseline, root, budget, versions) -> dict:
-    identity = trial_id(arm, model, thinking, task)
+def run_trial(arm, model, thinking, task, baseline, root, budget, versions, reviewer=HYBRID_REVIEWER) -> dict:
+    identity = trial_id(arm, model, thinking, task, reviewer)
     trial_dir = root / "trials" / identity
     if trial_dir.exists():
         shutil.rmtree(trial_dir)
@@ -236,10 +241,10 @@ def run_trial(arm, model, thinking, task, baseline, root, budget, versions) -> d
     worker_diff_text = None
     stage_specs = [{"role": "worker", "model": model, "prompt": prompt}]
     if arm == "hybrid":
-        review_prompt = render_prompt(task, HYBRID_REVIEWER, thinking, arm, "review")
+        review_prompt = render_prompt(task, reviewer, thinking, arm, "review")
         (trial_dir / "review-prompt.md").write_text(review_prompt)
         stage_specs.append(
-            {"role": "reviewer", "model": HYBRID_REVIEWER, "prompt": review_prompt}
+            {"role": "reviewer", "model": reviewer, "prompt": review_prompt}
         )
     stages = []
     for index, spec in enumerate(stage_specs, start=1):
@@ -299,6 +304,7 @@ def run_trial(arm, model, thinking, task, baseline, root, budget, versions) -> d
         "arm": arm,
         "model": model,
         "model_short": SHORT_MODEL.get(model, model),
+        "reviewer": reviewer if arm == "hybrid" else None,
         "thinking": thinking,
         "task": task,
         "baseline_sha": git(baseline, "rev-parse", "HEAD").strip(),
@@ -364,7 +370,7 @@ def load_results(results_path: Path) -> list[dict]:
 
 
 def arm_order(task: str) -> tuple[str, ...]:
-    return ("pi", "omp") if task in ("bugfix", "refactor") else ("omp", "pi")
+    return ("pi", "omp", "hybrid") if task in ("bugfix", "refactor") else ("omp", "pi", "hybrid")
 
 
 def cmd_trial(args) -> int:
@@ -372,7 +378,7 @@ def cmd_trial(args) -> int:
     record = run_trial(
         args.arm, args.model, args.thinking, args.task,
         Path(args.baseline).resolve(), Path(args.root).resolve(),
-        args.budget, versions,
+        args.budget, versions, args.reviewer,
     )
     append_result(Path(args.results).resolve(), record)
     print(json.dumps({
@@ -396,6 +402,7 @@ def cmd_matrix(args) -> int:
     models = tuple(args.models.split(",")) if args.models else MODELS
     thinkings = tuple(args.thinkings.split(",")) if args.thinkings else THINKING_LEVELS
     tasks = tuple(args.tasks.split(",")) if args.tasks else tuple(TASK_IMPL)
+    reviewer = args.reviewer
     versions = {arm: harness_version(arm) for arm in arms}
     done = {row["trial_id"] for row in load_results(results_path)}
     print(f"versions: {versions} | already recorded: {len(done)}", flush=True)
@@ -405,11 +412,11 @@ def cmd_matrix(args) -> int:
                 for arm in arm_order(task):
                     if arm not in arms:
                         continue
-                    identity = trial_id(arm, model, thinking, task)
+                    identity = trial_id(arm, model, thinking, task, reviewer)
                     if identity in done:
                         print(f"skip {identity}", flush=True)
                         continue
-                    record = run_trial(arm, model, thinking, task, baseline, root, args.budget, versions)
+                    record = run_trial(arm, model, thinking, task, baseline, root, args.budget, versions, reviewer)
                     append_result(results_path, record)
                     acceptance = record["acceptance"]
                     print(
@@ -717,6 +724,7 @@ def main() -> int:
     trial.add_argument("--model", required=True, choices=MODELS)
     trial.add_argument("--thinking", required=True, choices=THINKING_LEVELS)
     trial.add_argument("--task", required=True, choices=tuple(TASK_IMPL))
+    trial.add_argument("--reviewer", default=HYBRID_REVIEWER, choices=MODELS, help="hybrid reviewer model")
     trial.set_defaults(func=cmd_trial)
 
     matrix = sub.add_parser("matrix")
@@ -725,6 +733,7 @@ def main() -> int:
     matrix.add_argument("--models")
     matrix.add_argument("--thinkings")
     matrix.add_argument("--tasks")
+    matrix.add_argument("--reviewer", default=HYBRID_REVIEWER, choices=MODELS, help="hybrid reviewer model")
     matrix.set_defaults(func=cmd_matrix)
 
     overhead = sub.add_parser("overhead")
