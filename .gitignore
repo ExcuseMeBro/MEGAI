@@ -12,3 +12,4 @@ skills-lock.json
 .repowise/
 .zvec-grep/
 .fusion/
+__pycache__/

@@ -12,6 +12,7 @@ level (`medium`, which DeepSeek Flash clamps — see the correction under Matrix
 | --- | --- | --- | --- |
 | `pi` | `pi` 0.85.1 | `~/.pi/agent` (MEGAI Pi profile, `remove_omp` installer → `pi` branch) | Pi-only profile |
 | `omp` | `omp/18.2.0` | `~/.omp/agent` (MEGAI `megai:slim` rules + `megai`, `megai-task-flow`, `agent-worktree-lifecycle` skills) | Profile that keeps OMP installed |
+| `hybrid` | `pi` (two stages) | same as `pi` | Pi-only profile |
 
 The two branches differ by one commit each from their common base: `pi` adds
 Pi-side context/usage tooling, `omp` drops the Pi installer's OMP-removal path.
@@ -64,6 +65,34 @@ parameter at all and the DeepSeek comparison is `high` against none, not two lev
 GPT models are unaffected. See
 [results/thinking-levels.md](results/thinking-levels.md), which reran the three tasks
 at DeepSeek `low` and `high`, the levels that model actually accepts.
+
+A model-comparison follow-up (`results/union-alpha.md`) adds
+`openrouter/stealth/union-alpha` to `MODELS` and runs the Pi arm only
+(`--arms pi`); its provider-failure evidence lives in the same file.
+
+A profile follow-up (`results/typesafe-skill.md`) runs the Pi arm twice over the
+`deepseek-flash` cells, once with the TypeSafe agent skill present in
+`~/.pi/agent/skills/` and once with that directory parked. It changes no harness
+code: the varied variable is the profile, not the matrix or the prompt.
+
+A local-model follow-up (`results/qwen-hybrid.md`) adds a self-hosted
+`qwen38-local/qwen3.8-35b-a3b-distill` provider (a `llama-server` on the tailnet,
+registered in `~/.pi/agent/models.json`) and a third arm, **`hybrid`**: the
+`--model` value works the task first, then `HYBRID_REVIEWER`
+(`deepseek/deepseek-flash`) reviews the uncommitted diff in the same trial checkout
+using `prompts/review.md` and may fix it. Both stages are measured separately in
+`stages`, the worker's own acceptance is evaluated before the reviewer runs, and
+`reviewer_changed` compares the two diffs. Requires that provider to be reachable;
+the other arms are unaffected. The reviewer model is selectable with
+`--reviewer MODEL` (default `HYBRID_REVIEWER`) on both `trial` and `matrix`; a
+non-default reviewer is part of the trial id, so both mixing directions can be
+recorded in one results file.
+
+A paid-model follow-up (`results/minimax-hybrid.md`) adds `minimax/MiniMax-M3` to
+`MODELS` and runs all five arms — each model alone, both mixing directions, and the
+deepseek/deepseek review control — to measure what the second paid model adds. It
+is the same `hybrid` arm as the local-model run, only with a different worker and
+reviewer.
 
 Arm order alternates per task (Pi first for bugfix/refactor, OMP first for
 feature) to reduce order bias. Trials run sequentially: concurrency would

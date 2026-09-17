@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "note": "Reviewer-visible. No labels, defects or scoring information.",
+  "brief": "briefs/review-brief.md",
+  "cases": [
+    {
+      "id": "case-a",
+      "repo": "work/case-a",
+      "base_ref": "base",
+      "head_ref": "candidate",
+      "base_commit": "af6280a89d246a2d2233bf86f844139b4d2b7613",
+      "head_commit": "7e5fdc31403a6de36bdc89364c9f754ae095b573",
+      "base_snapshot": "cases/case-a/base",
+      "patch": "cases/case-a/change.patch",
+      "files": [
+        "lib/asana_plane_import.py"
+      ],
+      "patch_sha256": "f9109d872b8ab2cc06ecc80b5ae5e7816a6ffc66f81279c6c62feb1b949b6439"
+    },
+    {
+      "id": "case-b",
+      "repo": "work/case-b",
+      "base_ref": "base",
+      "head_ref": "candidate",
+      "base_commit": "3ce1383b4e5994c1c2dd46a8e7eb4392abff2867",
+      "head_commit": "d34d5e01bbd2b1047ae0fa9ec081b2405c3ff13b",
+      "base_snapshot": "cases/case-b/base",
+      "patch": "cases/case-b/change.patch",
+      "files": [
+        "lib/asana_plane_import.py"
+      ],
+      "patch_sha256": "44ab44e2335ea9f10e41f56c7dec1c26c55070296425d3a18fa34f0bb8fe722c"
+    },
+    {
+      "id": "case-c",
+      "repo": "work/case-c",
+      "base_ref": "base",
+      "head_ref": "candidate",
+      "base_commit": "42b11bd6fc3136c2aaae5efcab177c84b206a2ce",
+      "head_commit": "7bdbaf4e1158b0ebc80d3a3fdfe72fbeacf646e7",
+      "base_snapshot": "cases/case-c/base",
+      "patch": "cases/case-c/change.patch",
+      "files": [
+        "lib/acceptance_gate.py"
+      ],
+      "patch_sha256": "e831e76a091a5a48c77452a510353524ad8405c4e3af71d5e47d1ab1be0e07bf"
+    },
+    {
+      "id": "case-d",
+      "repo": "work/case-d",
+      "base_ref": "base",
+      "head_ref": "candidate",
+      "base_commit": "3ce1383b4e5994c1c2dd46a8e7eb4392abff2867",
+      "head_commit": "1299d4dace99018f2f98de673f4f52fb624becdd",
+      "base_snapshot": "cases/case-d/base",
+      "patch": "cases/case-d/change.patch",
+      "files": [
+        "lib/asana_plane_import.py"
+      ],
+      "patch_sha256": "29790fb998f967b59dcace1582d0997b823e3d23a042fe1b931db76f2b7acf42"
+    }
+  ]
+}

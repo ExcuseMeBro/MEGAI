@@ -34,6 +34,24 @@ behavior requires it, in either mode; exit zero alone is insufficient. A bug nee
 an observed failing reproduction and passing regression, even in routine mode.
 No formal-gate claim without running that gate. Existing stricter repo/user rules win.
 
+### TypeSafe Jev for classification
+
+The `jev` tool answers typed decision questions (`choice`, `score`, `noul`) in about
+a second for a fraction of a cent. Use it by default for the classification this
+flow already asks for — routine/guarded mode, task type and effort, and whether a
+request needs user approval — instead of asking a model, and record the answer in
+the task item. Give `choice` and `noul` a label→meaning map and `score` an ordered
+level list (a bare label list is accepted for `choice`/`noul` and sent as labels). Send only the text the decision needs: never secrets, credentials,
+tokens, or personal data. Every answer is advisory: `noul` returns a probability
+and never authorizes a reserved user decision (main promotion, deletion,
+credentials or permissions, software install or removal). If the call returns
+`ok: false` — no key, timeout, network, non-200 — decide with your own judgment,
+say the call failed once, and continue; never retry in a loop. When neither
+`TYPESAFE_API_KEY` nor a keychain entry exists, the tool asks you for a key and
+keeps it for the session: enter it in that plain-text dialog (the keychain and
+`TYPESAFE_API_KEY` routes are never visible, and the tool never echoes the key
+back) or decline and decide directly.
+
 ## Three-step default
 
 1. **Locate and edit.** Use scoped `rg -n` or `rg -l` to locate symbols/files,
