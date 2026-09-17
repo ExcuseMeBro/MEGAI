@@ -16,6 +16,7 @@ class ModelPolicy(Slim):
         self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
         self.assertTrue((agent / "extensions/megai-provider-guard/index.ts").is_file())
         self.assertTrue((agent / "extensions/megai-role-routing/index.ts").is_file())
+        self.assertTrue((agent / "extensions/megai-jev/index.ts").is_file())
         before = self.snapshot()
         self.wire()
         self.assertEqual(self.snapshot(), before)
@@ -24,12 +25,15 @@ class ModelPolicy(Slim):
         self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-provider-guard/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-role-routing/index.ts").exists())
+        self.assertFalse((agent / "extensions/megai-jev/index.ts").exists())
 
     def test_role_routing_asset_installs_idempotently_and_preserves_collision(self):
         self.wire()
         agent = self.home / ".pi/agent"
         target = agent / "extensions/megai-role-routing/index.ts"
         self.assertEqual(target.read_bytes(), (self.megai / "pi-skill/role-routing/index.ts").read_bytes())
+        jev = agent / "extensions/megai-jev/index.ts"
+        self.assertEqual(jev.read_bytes(), (self.megai / "pi-skill/jev/index.ts").read_bytes())
         before = self.snapshot()
         self.wire()
         self.assertEqual(self.snapshot(), before)
