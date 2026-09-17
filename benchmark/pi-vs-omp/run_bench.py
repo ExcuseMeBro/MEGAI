@@ -29,13 +29,17 @@ HERE = Path(__file__).resolve().parent
 PLANE_PROJECT = "59005e36-ecd4-46ed-bb42-f779858b20ce"
 PLANE_TASK = "c8adaee4-0654-4b08-a35d-92c6c7ff79ad"
 
-ARMS = ("pi", "omp")
+ARMS = ("pi", "omp", "hybrid")
+# Hybrid arm: --model is the worker, HYBRID_REVIEWER reviews and may fix its
+# uncommitted diff in the same trial checkout.
+HYBRID_REVIEWER = "deepseek/deepseek-flash"
 MODELS = (
     "deepseek/deepseek-flash",
     "openai-codex/gpt-6-astra",
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-luna",
     "openrouter/stealth/union-alpha",
+    "qwen38-local/qwen3.8-35b-a3b-distill",
 )
 THINKING_LEVELS = ("high", "medium")
 TASK_IMPL = {
@@ -56,6 +60,7 @@ SHORT_MODEL = {
     "openai-codex/gpt-5.6-sol": "gpt-5.6-sol",
     "openai-codex/gpt-5.6-luna": "gpt-5.6-luna",
     "openrouter/stealth/union-alpha": "union-alpha",
+    "qwen38-local/qwen3.8-35b-a3b-distill": "qwen38-local",
 }
 
 
@@ -86,7 +91,10 @@ def harness_command(arm: str, model: str, thinking: str, prompt: str) -> list[st
 
 
 def harness_version(arm: str) -> str:
-    result = run([arm, "--version"])
+    try:
+        result = run([arm, "--version"])
+    except OSError:
+        return "not-installed"
     text = (result.stdout or result.stderr or "").strip().splitlines()
     return text[0].strip() if text else "unknown"
 
@@ -109,8 +117,8 @@ def allowed_paths(task: str) -> set[str]:
     return {impl, f"{Path(impl).parent}/{PARTICIPANT}"}
 
 
-def render_prompt(task: str, model: str, thinking: str, arm: str) -> str:
-    text = (HERE / "prompts" / f"{task}.md").read_text()
+def render_prompt(task: str, model: str, thinking: str, arm: str, template: str | None = None) -> str:
+    text = (HERE / "prompts" / f"{template or task}.md").read_text()
     values = {
         "MODEL": model,
         "THINKING": thinking,
@@ -225,23 +233,65 @@ def run_trial(arm, model, thinking, task, baseline, root, budget, versions) -> d
     started_at = time.strftime("%Y-%m-%dT%H:%M:%S%z")
     started = time.time()
     timed_out = False
-    with stdout_path.open("w") as out, stderr_path.open("w") as err:
-        try:
-            proc = subprocess.run(
-                harness_command(arm, model, thinking, prompt),
-                cwd=repo, env=env, stdout=out, stderr=err, timeout=budget,
+    worker_diff_text = None
+    stage_specs = [{"role": "worker", "model": model, "prompt": prompt}]
+    if arm == "hybrid":
+        review_prompt = render_prompt(task, HYBRID_REVIEWER, thinking, arm, "review")
+        (trial_dir / "review-prompt.md").write_text(review_prompt)
+        stage_specs.append(
+            {"role": "reviewer", "model": HYBRID_REVIEWER, "prompt": review_prompt}
+        )
+    stages = []
+    for index, spec in enumerate(stage_specs, start=1):
+        out_path = stdout_path if index == 1 else trial_dir / f"harness-{index}.jsonl"
+        err_path = stderr_path if index == 1 else trial_dir / f"harness.stderr-{index}.txt"
+        if index > 1:
+            git(repo, "add", "-A", "-N")
+            worker_diff_text = git(repo, "diff")
+            (trial_dir / "worker.diff").write_text(worker_diff_text)
+        stage_started = time.time()
+        with out_path.open("w") as out, err_path.open("w") as err:
+            try:
+                proc = subprocess.run(
+                    harness_command(
+                        "pi" if arm == "hybrid" else arm, spec["model"], thinking, spec["prompt"]
+                    ),
+                    cwd=repo, env=env, stdout=out, stderr=err, timeout=budget,
+                )
+                stage_exit = proc.returncode
+            except subprocess.TimeoutExpired:
+                stage_exit = None
+                timed_out = True
+        stage = {
+            "role": spec["role"],
+            "model": spec["model"],
+            "wall_seconds": round(time.time() - stage_started, 3),
+            "exit_status": stage_exit,
+            "harness_log": out_path.name,
+        }
+        stage.update(parse_events(out_path))
+        if arm == "hybrid" and index == 1:
+            stage["acceptance"], stage["participant"] = evaluate(
+                baseline, repo, task, trial_dir / "eval-worker"
             )
-            exit_status = proc.returncode
-        except subprocess.TimeoutExpired:
-            exit_status = None
-            timed_out = True
+        stages.append(stage)
     wall_seconds = round(time.time() - started, 3)
+    exit_status = stages[-1]["exit_status"]
+    events = {
+        "requests": sum(stage["requests"] for stage in stages),
+        "usage": {
+            key: sum(stage["usage"][key] for stage in stages)
+            for key in ("input", "output", "cache_read", "reasoning", "total", "cost_usd")
+        },
+        "reported_models": sorted({m for stage in stages for m in stage["reported_models"]}),
+        "stop_reasons": [reason for stage in stages for reason in stage["stop_reasons"]],
+    }
+    events["usage"]["cost_usd"] = round(events["usage"]["cost_usd"], 6)
 
     git(repo, "add", "-A", "-N")
     changed = [line for line in git(repo, "diff", "--name-only").splitlines() if line.strip()]
     diff_text = git(repo, "diff")
     (trial_dir / "candidate.diff").write_text(diff_text)
-    events = parse_events(stdout_path)
     acceptance, participant = evaluate(baseline, repo, task, trial_dir / "eval")
 
     record = {
@@ -263,7 +313,8 @@ def run_trial(arm, model, thinking, task, baseline, root, budget, versions) -> d
         "requests": events["requests"],
         "usage": events["usage"],
         "reported_models": events["reported_models"],
-        "model_matches_request": events["reported_models"] == [arm_model_id(arm, model)]
+        "model_matches_request": events["reported_models"]
+        == sorted({arm_model_id("pi", spec["model"]) for spec in stage_specs})
         if events["reported_models"]
         else None,
         "stop_reasons": events["stop_reasons"][-3:],
@@ -275,13 +326,17 @@ def run_trial(arm, model, thinking, task, baseline, root, budget, versions) -> d
         "acceptance": acceptance,
         "participant": participant,
         "stderr_bytes": stderr_path.stat().st_size,
+        "stages": stages,
+        "worker_diff_bytes": len(worker_diff_text) if worker_diff_text is not None else None,
+        "reviewer_changed": (diff_text != worker_diff_text) if worker_diff_text is not None else None,
+        "budget_seconds_total": budget * len(stage_specs),
     }
     record["valid"] = (
         record["requests"] > 0
         and record["usage"]["total"] > 0
         and not record["provider_error"]
         and not record["timed_out"]
-        and wall_seconds <= budget
+        and wall_seconds <= record["budget_seconds_total"]
     )
     (trial_dir / "record.json").write_text(json.dumps(record, indent=2) + "\n")
     return record
