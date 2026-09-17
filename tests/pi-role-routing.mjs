@@ -147,7 +147,7 @@ try {
   assert.ok(splitTurn.prompt.includes('openai-codex/gpt-5.6-sol'), 'reviewer Sol must be preserved');
   assert.ok(splitTurn.prompt.includes('minimax/MiniMax-M3'),
     'the configured DeepSeek scout/worker must carry the ordered fallback chain');
-  assert.ok(!splitTurn.prompt.includes('Parent-only economy routing'),
+  assert.ok(splitTurn.prompt.length > BASE.length && !splitTurn.prompt.includes('Parent-only economy routing'),
     'routing beyond the fallback chain must not depend on a preset name');
   const custom = agent('custom');
   install(custom);

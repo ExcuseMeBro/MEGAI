@@ -47,8 +47,9 @@ credentials or permissions, software install or removal). If the call returns
 `ok: false` — no key, timeout, network, non-200 — decide with your own judgment,
 say the call failed once, and continue; never retry in a loop. When neither
 `TYPESAFE_API_KEY` nor a keychain entry exists, the tool asks you for a key and
-keeps it for the session: enter it (it is never echoed back) or decline and decide
-directly.
+keeps it for the session: enter it in that plain-text dialog (the keychain and
+`TYPESAFE_API_KEY` routes are never visible, and the tool never echoes the key
+back) or decline and decide directly.
 
 ## Three-step default
 

@@ -18,7 +18,7 @@ import { platform } from "node:os";
 const DEFAULT_ENDPOINT = "https://api.typesafe.ai/v1/systemone";
 const MODEL = "jev-latest";
 const SERVICE = "typesafe.ai";
-const TIMEOUT_MS = Number(process.env.TYPESAFE_TIMEOUT_MS) || 30_000;
+const TIMEOUT_MS = Math.max(0, Number(process.env.TYPESAFE_TIMEOUT_MS)) || 30_000;
 const DIALOG_MS = 120_000;
 const MAX_STATE = 24_000;
 const MAX_BODY = 256 * 1024;
@@ -59,7 +59,7 @@ async function askForKey(ctx: ExtensionContext | undefined): Promise<string | un
   if (!ctx?.hasUI) return undefined;
   try {
     const entered = (await ctx.ui.input(
-      "TypeSafe API key for this session (store it with `security add-generic-password -s typesafe.ai -w` to keep it)",
+      "TypeSafe API key for this session (store it with `security add-generic-password -s typesafe.ai -a \"$USER\" -w` to keep it)",
       "paste the key",
       { timeout: DIALOG_MS },
     ))?.trim();
