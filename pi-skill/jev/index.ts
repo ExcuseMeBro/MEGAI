@@ -2,13 +2,15 @@
  * TypeSafe System One ("Jev") decision tool.
  *
  * One bounded POST per call for typed decision questions (`choice`, `score`,
- * `noul`). The key comes from `TYPESAFE_API_KEY` or the macOS keychain and is
- * never logged, returned, or written to disk. Every failure returns `ok: false`
- * with a one-line reason, so the agent falls back to its own judgment instead of
- * retrying, blocking, or guessing about the service. Optional `TYPESAFE_ENDPOINT`
- * overrides the public endpoint for a proxy or an offline test.
+ * `noul`). The key comes from `TYPESAFE_API_KEY`, the macOS keychain, or — when
+ * neither has one and a dialog is available — a single user prompt whose answer is
+ * kept in memory for the session; it is never logged, returned, or written into
+ * tool output. Every failure returns `ok: false` with a one-line reason, so the
+ * agent falls back to its own judgment instead of retrying, blocking, or guessing
+ * about the service. `TYPESAFE_ENDPOINT` overrides the public endpoint and
+ * `TYPESAFE_TIMEOUT_MS` the 30 s deadline, for a proxy or an offline test.
  */
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { execFileSync } from "node:child_process";
 import { platform } from "node:os";
@@ -16,7 +18,8 @@ import { platform } from "node:os";
 const DEFAULT_ENDPOINT = "https://api.typesafe.ai/v1/systemone";
 const MODEL = "jev-latest";
 const SERVICE = "typesafe.ai";
-const TIMEOUT_MS = 30_000;
+const TIMEOUT_MS = Number(process.env.TYPESAFE_TIMEOUT_MS) || 30_000;
+const DIALOG_MS = 120_000;
 const MAX_STATE = 24_000;
 const MAX_BODY = 256 * 1024;
 const MAX_QUESTIONS = 8;
@@ -47,6 +50,25 @@ function apiKey(): string | undefined {
   if (provided) return provided;
   if (cachedKey === undefined) cachedKey = keychainKey() ?? "";
   return cachedKey || undefined;
+}
+
+/** Ask the user once per session for a missing key and keep the answer in memory.
+ * The dialog is plain text, so the keychain or the environment stays the durable
+ * route; a headless child, a closed dialog, or a cancel simply means no key. */
+async function askForKey(ctx: ExtensionContext | undefined): Promise<string | undefined> {
+  if (!ctx?.hasUI) return undefined;
+  try {
+    const entered = (await ctx.ui.input(
+      "TypeSafe API key for this session (store it with `security add-generic-password -s typesafe.ai -w` to keep it)",
+      "paste the key",
+      { timeout: DIALOG_MS },
+    ))?.trim();
+    if (!entered) return undefined;
+    cachedKey = entered;
+    return entered;
+  } catch {
+    return undefined;
+  }
 }
 
 function criteria(value: unknown, id: string): string[] | Record<string, string | null> {
@@ -128,16 +150,16 @@ export default function jev(pi: ExtensionAPI) {
         description: "Questions and criteria are sent to the API with `state`: no secrets, credentials or personal data",
       }),
     }),
-    async execute(_id, params, signal) {
+    async execute(_id, params, signal, _onUpdate, ctx) {
       let questions: Record<string, unknown>;
       try {
         questions = questionPayload(params.questions);
       } catch (error) {
         return failed(message(error));
       }
-      const key = apiKey();
+      const key = apiKey() ?? await askForKey(ctx);
       if (!key) {
-        return failed("no TypeSafe key: set TYPESAFE_API_KEY or store one with " +
+        return failed("no TypeSafe key: enter one when asked, set TYPESAFE_API_KEY, or store one with " +
           "`security add-generic-password -s typesafe.ai -a \"$USER\" -w`");
       }
       const controller = new AbortController();

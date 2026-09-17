@@ -45,9 +45,10 @@ tokens, or personal data. Every answer is advisory: `noul` returns a probability
 and never authorizes a reserved user decision (main promotion, deletion,
 credentials or permissions, software install or removal). If the call returns
 `ok: false` — no key, timeout, network, non-200 — decide with your own judgment,
-say the call failed once, and continue; never retry in a loop. A missing-key
-failure holds for the whole session: decide directly after the first one,
-without retrying.
+say the call failed once, and continue; never retry in a loop. When neither
+`TYPESAFE_API_KEY` nor a keychain entry exists, the tool asks you for a key and
+keeps it for the session: enter it (it is never echoed back) or decline and decide
+directly.
 
 ## Three-step default
 
