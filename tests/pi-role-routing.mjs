@@ -4,7 +4,7 @@
 // invoked, no network is used, and the extension must not mutate native Pi state.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -119,18 +119,36 @@ try {
   assert.equal(readFileSync(join(economy, 'settings.json'), 'utf8'), settingsBefore,
     'role routing must not mutate native settings');
 
-  // 3. Fallback guidance follows configured primaries, not the preset: mixed shows
-  // its GPT Astra planner and DeepSeek worker (chain allowed only for eligible roles);
-  // custom schema1+roles without preset stays fully GPT with no injected chain.
-  const mixed = agent('mixed');
-  install(mixed, '--preset', 'mixed');
-  const mixedExtensions = await loadExtensions(mixed);
-  const mixedTurn = await blockedNetwork(() => beginTurn(mixedExtensions, BASE));
-  assert.ok(mixedTurn.prompt.includes('openai-codex/gpt-6-astra'),
-    'mixed planner primary must stay configured GPT Astra, not globally forced to DeepSeek');
-  assert.ok(mixedTurn.prompt.includes('deepseek/deepseek-flash'),
-    'mixed worker primary must come from megai-roles.json');
-  assert.ok(mixedTurn.prompt.includes('openai-codex/gpt-5.6-sol'), 'mixed reviewer Sol must be preserved');
+  // 3. One preset only: `--preset mixed` is rejected before any write. Fallback
+  // guidance follows configured primaries, not a preset name: a custom schema1 file
+  // with a GPT planner and DeepSeek scout/worker shows the chain only for the
+  // eligible roles; custom schema1+roles without preset stays fully GPT with no chain.
+  const retired = agent('retired');
+  assert.throws(() => install(retired, '--preset', 'mixed'), 'the retired mixed preset must be rejected');
+  assert.ok(!existsSync(join(retired, 'megai-roles.json')) && !existsSync(join(retired, 'settings.json')),
+    'a rejected preset must write nothing');
+  const split = agent('split');
+  install(split);
+  writeFileSync(join(split, 'megai-roles.json'), JSON.stringify({
+    schema: 1,
+    roles: {
+      planner: gpt('gpt-6-astra'),
+      scout: { provider: 'deepseek', model: 'deepseek-flash', thinking: 'high' },
+      worker: { provider: 'deepseek', model: 'deepseek-flash', thinking: 'high' },
+      reviewer: gpt('gpt-5.6-sol'),
+    },
+  }));
+  const splitExtensions = await loadExtensions(split);
+  const splitTurn = await blockedNetwork(() => beginTurn(splitExtensions, BASE));
+  assert.ok(splitTurn.prompt.includes('openai-codex/gpt-6-astra'),
+    'a configured GPT planner primary must stay GPT, not globally forced to DeepSeek');
+  assert.ok(splitTurn.prompt.includes('deepseek/deepseek-flash'),
+    'the DeepSeek scout/worker primaries must come from megai-roles.json');
+  assert.ok(splitTurn.prompt.includes('openai-codex/gpt-5.6-sol'), 'reviewer Sol must be preserved');
+  assert.ok(splitTurn.prompt.includes('minimax/MiniMax-M3'),
+    'the configured DeepSeek scout/worker must carry the ordered fallback chain');
+  assert.ok(!splitTurn.prompt.includes('Parent-only economy routing'),
+    'routing beyond the fallback chain must not depend on a preset name');
   const custom = agent('custom');
   install(custom);
   writeFileSync(join(custom, 'megai-roles.json'), JSON.stringify(customRoles));

@@ -13,9 +13,10 @@ older preset, explicitly reapply the same preset; ordinary wiring preserves it.
 Historical model-specific settings remain user-owned and are not active role
 routing. No credentials or provider registrations are removed.
 
-The retired `mixed` preset differed only in its GPT planner. It is no longer
-accepted: `--preset mixed` fails before any write. Reapply `economy` to replace an
-owned `mixed` role file, or keep selecting a GPT planner per task instead.
+`economy` is the only preset: `--preset mixed` is rejected before any write, and a
+role file that still names `mixed` is ignored rather than honoured. Reapply
+`economy` to replace an owned `mixed` role file, or keep selecting a GPT planner
+per task instead.
 
 From the reviewed `pi` checkout, preview then apply:
 
