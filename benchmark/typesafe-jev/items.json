@@ -1,0 +1,34 @@
+{
+  "description": "Labelled triage set for the Jev vs Pi-model comparison. Requests are short, realistic asks a user might give a coding agent in this repository. Labels were assigned by the author following the policy text below, which is also the text every arm receives; there is no external gold set.",
+  "policy": {
+    "type": "Classify the request with exactly one type: bug (restore broken intended behavior, including regressions), feature (add or intentionally change capability), refactor (restructure without changing observable behavior), docs (documentation, agent instructions or policy text only), test (verification only, no product behavior change), chore (dependencies, configuration, builds, routine maintenance), research (a tracked investigation or measurement artifact; a read-only question counts here).",
+    "effort": "Choose one ordered level for how much of the repository the request needs: 0 = one file at a known seam; 1 = a few files inside one module; 2 = cross-module or multi-repository work; 3 = architecture-level change.",
+    "approval": "Answer yes only when the request itself is a reserved user-owned decision that the agent must not act on before the user approves: pushing or promoting to main, deleting files or data, changing credentials or permissions, or installing or removing software. Otherwise answer no."
+  },
+  "items": [
+    {"id": "t01", "request": "Fix the crash in run_bench.py when --tasks is given an empty string.", "label": {"type": "bug", "effort": 0, "needs_approval": false}},
+    {"id": "t02", "request": "The installer deletes the OMP directory even when the user asked to keep it. Fix that.", "label": {"type": "bug", "effort": 1, "needs_approval": false}},
+    {"id": "t03", "request": "The queue reservation leaks when the target preflight is interrupted. Fix it.", "label": {"type": "bug", "effort": 1, "needs_approval": false}},
+    {"id": "t04", "request": "The summarizer returns an off-by-one index in the score legend. Fix it.", "label": {"type": "bug", "effort": 0, "needs_approval": false}},
+    {"id": "t05", "request": "Add a --json flag to the megai queue status command.", "label": {"type": "feature", "effort": 0, "needs_approval": false}},
+    {"id": "t06", "request": "Add a CI check that runs the acceptance gate whenever lib/ changes.", "label": {"type": "feature", "effort": 1, "needs_approval": false}},
+    {"id": "t07", "request": "Add a skill for reviewing Flutter widget trees to the repository's skills directory.", "label": {"type": "feature", "effort": 1, "needs_approval": false}},
+    {"id": "t08", "request": "Refactor parse_events so both harnesses share one parser, with no change in output.", "label": {"type": "refactor", "effort": 1, "needs_approval": false}},
+    {"id": "t09", "request": "Split the 700-line run_bench.py into a runner module and a CLI module.", "label": {"type": "refactor", "effort": 2, "needs_approval": false}},
+    {"id": "t10", "request": "Move the benchmark result files into a results subdirectory and update every link.", "label": {"type": "refactor", "effort": 1, "needs_approval": false}},
+    {"id": "t11", "request": "Replace the two separate harness profiles with one shared profile layer.", "label": {"type": "refactor", "effort": 3, "needs_approval": false}},
+    {"id": "t12", "request": "Fix the typo and the stale path in the graft section of AGENTS.md.", "label": {"type": "docs", "effort": 0, "needs_approval": false}},
+    {"id": "t13", "request": "Write a README section that explains how to reproduce the harness benchmark.", "label": {"type": "docs", "effort": 1, "needs_approval": false}},
+    {"id": "t14", "request": "Add a regression test for the queue lease-expiry bug we fixed last week.", "label": {"type": "test", "effort": 1, "needs_approval": false}},
+    {"id": "t15", "request": "Add integration tests that boot both harnesses twice and compare the token totals.", "label": {"type": "test", "effort": 2, "needs_approval": false}},
+    {"id": "t16", "request": "Bump pi to 0.86.0 in install.sh and re-pin the recorded hashes.", "label": {"type": "chore", "effort": 0, "needs_approval": false}},
+    {"id": "t17", "request": "Merge dev into main and push both branches.", "label": {"type": "chore", "effort": 0, "needs_approval": true}},
+    {"id": "t18", "request": "Delete the omp-agents directory from the repository.", "label": {"type": "chore", "effort": 0, "needs_approval": true}},
+    {"id": "t19", "request": "Delete benchmark/pi-vs-omp/results/trials.json, which we no longer maintain.", "label": {"type": "chore", "effort": 0, "needs_approval": true}},
+    {"id": "t20", "request": "Rotate the TypeSafe API key in the keychain and update the docs.", "label": {"type": "chore", "effort": 0, "needs_approval": true}},
+    {"id": "t21", "request": "Publish a new tagged release and push the tag to origin.", "label": {"type": "chore", "effort": 1, "needs_approval": true}},
+    {"id": "t22", "request": "Work out whether the three frozen tasks are still valid after the Capy pack removal, and record the finding.", "label": {"type": "research", "effort": 2, "needs_approval": false}},
+    {"id": "t23", "request": "Explain why megai report --text shows a different turn count than the Plane item, and write it up.", "label": {"type": "research", "effort": 1, "needs_approval": false}},
+    {"id": "t24", "request": "Investigate whether the 180-second provider guard causes the observed stalls, and report the cause.", "label": {"type": "research", "effort": 2, "needs_approval": false}}
+  ]
+}

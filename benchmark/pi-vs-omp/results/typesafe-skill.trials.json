@@ -1,0 +1,746 @@
+[
+  {
+    "trial_id": "pi__deepseek-flash__high__bugfix",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "high",
+    "task": "bugfix",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "fceab194089742a9dcd9c6fad82967ca449db6f4855c6752b7c0eebac3ae2b6c",
+    "prompt_chars": 1773,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T12:05:20+0500",
+    "wall_seconds": 21.625,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 8,
+    "usage": {
+      "input": 14957,
+      "output": 3010,
+      "cache_read": 164224,
+      "reasoning": 1119,
+      "total": 182191,
+      "cost_usd": 0.009084
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 1719,
+    "diff_sha256": "1294c8c791ac45d1a12ff9b81e356537ce2feb18aa87fe76256ba342251541cb",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 4,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_input_is_not_mutated (test_participant.NestedIntervalRegression.test_input_is_not_mutated) ... ok\ntest_nested_interval_does_not_shrink_outer (test_participant.NestedIntervalRegression.test_nested_interval_does_not_shrink_outer) ... ok\ntest_nested_then_overlapping_still_connects (test_participant.NestedIntervalRegression.test_nested_then_overlapping_still_connects) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true,
+    "profile": "typesafe-absent"
+  },
+  {
+    "trial_id": "pi__deepseek-flash__high__bugfix",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "high",
+    "task": "bugfix",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "fceab194089742a9dcd9c6fad82967ca449db6f4855c6752b7c0eebac3ae2b6c",
+    "prompt_chars": 1773,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T12:07:54+0500",
+    "wall_seconds": 16.133,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 7,
+    "usage": {
+      "input": 13529,
+      "output": 2125,
+      "cache_read": 136320,
+      "reasoning": 535,
+      "total": 151974,
+      "cost_usd": 0.007427
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 1791,
+    "diff_sha256": "dbf64894f8097ba62a6fc3a538dda78f618cc16aa6c96d1f2e33a5cc77aa6542",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 4,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nested_duplicates_and_zero_width (test_participant.NestedIntervalRegression.test_nested_duplicates_and_zero_width) ... ok\ntest_nested_interval_keeps_later_merge_connected (test_participant.NestedIntervalRegression.test_nested_interval_keeps_later_merge_connected) ... ok\ntest_nested_interval_keeps_outer_end (test_participant.NestedIntervalRegression.test_nested_interval_keeps_outer_end) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true,
+    "profile": "typesafe-present"
+  },
+  {
+    "trial_id": "pi__deepseek-flash__high__feature",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "high",
+    "task": "feature",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "d107ea68cf6d5f93bcc9b561cbd90b4be714af08f9099b15cfb89e18c962eed6",
+    "prompt_chars": 1723,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T12:05:41+0500",
+    "wall_seconds": 29.188,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 10,
+    "usage": {
+      "input": 16608,
+      "output": 4194,
+      "cache_read": 224512,
+      "reasoning": 1293,
+      "total": 245314,
+      "cost_usd": 0.011362
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 4792,
+    "diff_sha256": "dc0ae8d07395861723de6a9b1ac7a81d691e7230a944fe3c25a1a2683369bd16",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 12,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 11,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one_and_oversized_batch (test_participant.ChunkedContract.test_size_one_and_oversized_batch) ... ok\ntest_size_validated_before_source_is_touched (test_participant.ChunkedContract.test_size_validated_before_source_is_touched) ... ok\ntest_source_exception_propagates_by_identity (test_participant.ChunkedContract.test_source_exception_propagates_by_identity) ... ok\n\n----------------------------------------------------------------------\nRan 11 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true,
+    "profile": "typesafe-absent"
+  },
+  {
+    "trial_id": "pi__deepseek-flash__high__feature",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "high",
+    "task": "feature",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "d107ea68cf6d5f93bcc9b561cbd90b4be714af08f9099b15cfb89e18c962eed6",
+    "prompt_chars": 1723,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T12:08:10+0500",
+    "wall_seconds": 30.002,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 8,
+    "usage": {
+      "input": 14217,
+      "output": 5267,
+      "cache_read": 172416,
+      "reasoning": 2119,
+      "total": 191900,
+      "cost_usd": 0.01162
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 6278,
+    "diff_sha256": "9712611319db36dfde071132ff66d25de767d352decf7f11789e7412fd17309e",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 12,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 15,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_non_integer_size_rejected_before_consuming (test_participant.ChunkedValidation.test_non_integer_size_rejected_before_consuming) ... ok\ntest_positive_check_happens_at_call_time (test_participant.ChunkedValidation.test_positive_check_happens_at_call_time) ... ok\ntest_valid_size_does_not_start_iteration (test_participant.ChunkedValidation.test_valid_size_does_not_start_iteration) ... ok\n\n----------------------------------------------------------------------\nRan 15 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true,
+    "profile": "typesafe-present"
+  },
+  {
+    "trial_id": "pi__deepseek-flash__high__refactor",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "high",
+    "task": "refactor",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "a9662c4ecae03d69b9c45bb0fe48044e100ff3d3fcb28b22a77390f125de3b04",
+    "prompt_chars": 1856,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T12:06:11+0500",
+    "wall_seconds": 38.972,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 12,
+    "usage": {
+      "input": 15757,
+      "output": 5986,
+      "cache_read": 273152,
+      "reasoning": 2197,
+      "total": 294895,
+      "cost_usd": 0.013549
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py",
+      "capy/benchmark/cases/refactor/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 4011,
+    "diff_sha256": "8a01086735795440e83917a65e7457d1334dbbb0005bda9895fb44772ceddb66",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 2,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_bad_style_reported_before_bad_status (test_participant.RenderChecksParticipant.test_bad_style_reported_before_bad_status) ... ok\ntest_counts_shared_by_both_styles (test_participant.RenderChecksParticipant.test_counts_shared_by_both_styles) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true,
+    "profile": "typesafe-absent"
+  },
+  {
+    "trial_id": "pi__deepseek-flash__high__refactor",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "high",
+    "task": "refactor",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "a9662c4ecae03d69b9c45bb0fe48044e100ff3d3fcb28b22a77390f125de3b04",
+    "prompt_chars": 1856,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T12:08:41+0500",
+    "wall_seconds": 32.199,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 12,
+    "usage": {
+      "input": 15841,
+      "output": 5015,
+      "cache_read": 269824,
+      "reasoning": 2207,
+      "total": 290680,
+      "cost_usd": 0.012389
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py",
+      "capy/benchmark/cases/refactor/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 4329,
+    "diff_sha256": "d0a02d525a592b7db7e345076823d138c58cf3108c49d2640d8c5219c0d65c0c",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 4,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_invalid_style_and_status_still_raise (test_participant.RefactorParity.test_invalid_style_and_status_still_raise) ... ok\ntest_unknown_status_reports_for_unique_names_too (test_participant.RefactorParity.test_unknown_status_reports_for_unique_names_too) ... ok\ntest_validation_before_any_output (test_participant.RefactorParity.test_validation_before_any_output) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true,
+    "profile": "typesafe-present"
+  },
+  {
+    "trial_id": "pi__deepseek-flash__low__bugfix",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "low",
+    "task": "bugfix",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "8dfaaeb99baa79af58acbf69a51820a0f32ff18a65d6f7f0d23b82ac4ecf7014",
+    "prompt_chars": 1772,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T12:06:50+0500",
+    "wall_seconds": 14.513,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 7,
+    "usage": {
+      "input": 13552,
+      "output": 1660,
+      "cache_read": 132864,
+      "reasoning": 292,
+      "total": 148076,
+      "cost_usd": 0.006855
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 1428,
+    "diff_sha256": "4a98a8ac3a3bccb54d4c992e8836e6376ea0e6e165936fcac8ddd84e68791c58",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 3,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_duplicate_nested_wider_interval (test_participant.NestedIntervalRegression.test_duplicate_nested_wider_interval) ... ok\ntest_nested_interval_does_not_shrink_outer (test_participant.NestedIntervalRegression.test_nested_interval_does_not_shrink_outer) ... ok\ntest_nesting_keeps_later_overlap_connected (test_participant.NestedIntervalRegression.test_nesting_keeps_later_overlap_connected) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true,
+    "profile": "typesafe-absent"
+  },
+  {
+    "trial_id": "pi__deepseek-flash__low__bugfix",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "low",
+    "task": "bugfix",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "8dfaaeb99baa79af58acbf69a51820a0f32ff18a65d6f7f0d23b82ac4ecf7014",
+    "prompt_chars": 1772,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T12:09:13+0500",
+    "wall_seconds": 21.171,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 8,
+    "usage": {
+      "input": 16759,
+      "output": 2825,
+      "cache_read": 155648,
+      "reasoning": 850,
+      "total": 175232,
+      "cost_usd": 0.009352
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 1933,
+    "diff_sha256": "20a0e8421bf66fc3455d1c8ff32afcd730ae7b98360c646163bed6bc49659c57",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 4,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_input_list_is_unchanged (test_participant.NestedIntervalRegression.test_input_list_is_unchanged) ... ok\ntest_nested_then_overlapping_interval_stays_connected (test_participant.NestedIntervalRegression.test_nested_then_overlapping_interval_stays_connected) ... ok\ntest_nesting_does_not_shrink_merged_chain (test_participant.NestedIntervalRegression.test_nesting_does_not_shrink_merged_chain) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true,
+    "profile": "typesafe-present"
+  },
+  {
+    "trial_id": "pi__deepseek-flash__low__feature",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "low",
+    "task": "feature",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "3176c9546edf76aba8eb382c4a8a6e964b0108365286b2aaac54dee78285b76a",
+    "prompt_chars": 1722,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T12:07:05+0500",
+    "wall_seconds": 18.9,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 7,
+    "usage": {
+      "input": 13688,
+      "output": 2595,
+      "cache_read": 137600,
+      "reasoning": 965,
+      "total": 153883,
+      "cost_usd": 0.008046
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 3205,
+    "diff_sha256": "f42e3808854ce1247a021742c132c36867907656cbe4fe799876fadfa127fb29",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 12,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 6,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_no_lookahead_at_batch_boundaries (test_participant.ChunkedParticipant.test_no_lookahead_at_batch_boundaries) ... ok\ntest_source_exception_propagates (test_participant.ChunkedParticipant.test_source_exception_propagates) ... ok\ntest_validation_happens_before_any_consumption (test_participant.ChunkedParticipant.test_validation_happens_before_any_consumption) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true,
+    "profile": "typesafe-absent"
+  },
+  {
+    "trial_id": "pi__deepseek-flash__low__feature",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "low",
+    "task": "feature",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "3176c9546edf76aba8eb382c4a8a6e964b0108365286b2aaac54dee78285b76a",
+    "prompt_chars": 1722,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T12:09:34+0500",
+    "wall_seconds": 20.008,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 8,
+    "usage": {
+      "input": 14528,
+      "output": 2735,
+      "cache_read": 161280,
+      "reasoning": 690,
+      "total": 178543,
+      "cost_usd": 0.008608
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 3708,
+    "diff_sha256": "b3766945b09c49e4af9cace444cfff6b2fe749228d8253e43bd557ddbca0a32a",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 12,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 7,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_partial_batch_exception_is_not_returned_as_batch (test_participant.ChunkedParticipant.test_partial_batch_exception_is_not_returned_as_batch) ... ok\ntest_validation_does_not_consume (test_participant.ChunkedParticipant.test_validation_does_not_consume) ... ok\ntest_validation_leaves_source_untouched (test_participant.ChunkedParticipant.test_validation_leaves_source_untouched) ... ok\n\n----------------------------------------------------------------------\nRan 7 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true,
+    "profile": "typesafe-present"
+  },
+  {
+    "trial_id": "pi__deepseek-flash__low__refactor",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "low",
+    "task": "refactor",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "d7b0ecc90ac076c9821786c1d3e36e2fcbe61a0a248665e747e547aaf0d54bde",
+    "prompt_chars": 1855,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T12:07:24+0500",
+    "wall_seconds": 21.172,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 8,
+    "usage": {
+      "input": 14617,
+      "output": 3092,
+      "cache_read": 161536,
+      "reasoning": 867,
+      "total": 179245,
+      "cost_usd": 0.009065
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py",
+      "capy/benchmark/cases/refactor/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 4462,
+    "diff_sha256": "b618f0526013341478c274f6cebcc30b817a4ba538c7dacde968e8c583236e41",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 5,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_input_unchanged_after_refactor (test_participant.RefactorCharacterization.test_input_unchanged_after_refactor) ... ok\ntest_style_error_on_empty_and_valid_checks (test_participant.RefactorCharacterization.test_style_error_on_empty_and_valid_checks) ... ok\ntest_unknown_status_raises_before_any_output (test_participant.RefactorCharacterization.test_unknown_status_raises_before_any_output) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true,
+    "profile": "typesafe-absent"
+  },
+  {
+    "trial_id": "pi__deepseek-flash__low__refactor",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "thinking": "low",
+    "task": "refactor",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "d7b0ecc90ac076c9821786c1d3e36e2fcbe61a0a248665e747e547aaf0d54bde",
+    "prompt_chars": 1855,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T12:09:55+0500",
+    "wall_seconds": 27.84,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 9,
+    "usage": {
+      "input": 15030,
+      "output": 4622,
+      "cache_read": 195712,
+      "reasoning": 1888,
+      "total": 215364,
+      "cost_usd": 0.01123
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py",
+      "capy/benchmark/cases/refactor/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 4157,
+    "diff_sha256": "4d785d78fbb0b3005be74f4cac94f911844e2980787dd16f938dbe8e5934960e",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 3,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_all_skips_text (test_participant.RenderChecksCounts.test_all_skips_text) ... ok\ntest_shared_counts_match_both_styles (test_participant.RenderChecksCounts.test_shared_counts_match_both_styles) ... ok\ntest_status_validated_in_both_styles (test_participant.RenderChecksCounts.test_status_validated_in_both_styles) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "valid": true,
+    "profile": "typesafe-present"
+  }
+]
