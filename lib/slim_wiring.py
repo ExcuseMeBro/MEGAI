@@ -107,7 +107,8 @@ class Plan:
         self.stage(path, None, current)
         self.receipt.pop(str(path), None)
 
-    def policy(self, path: Path, remove: bool) -> None:
+    def policy(self, path: Path, remove: bool, *, adaptive: bool = False,
+               source: Path | None = None) -> None:
         before = read(path)
         current = before or b""
         text = current.decode()
@@ -117,11 +118,12 @@ class Plan:
             BEGIN + "\n# MEGAI slim\n"
             "Before project changes, the parent loads `megai-task-flow` and starts the linked Plane item. "
             "Plane is the only execution tracker. Reuse the identity through refinements; children never mutate it. "
-            "Use `agent-worktree-lifecycle` for isolated writes and the agreed delivery target. "
+            "Use hybrid `agent-worktree-lifecycle` for isolated Git worktrees, scoped local configuration and the agreed delivery target. "
             "Use only existing Paseo projects: resolve projectId before creating a task workspace, then pass its verified workspaceId when opening agent tabs. "
             "Canonical means the existing project identity, not a new project to create or rename. "
             "Missing or ambiguous identity is BLOCKED; ask the user instead of registering another project. "
-            "Apply this to every project; use distinct managed task workspaces and return to one primary workspace after verified delivery. "
+            "Apply this to every project; coordinate task workspaces under the registered folder and return to one primary workspace after verified delivery. "
+            "Use one task identity and same task branch/slug across isolated worktrees for each affected Git repo; non-Git configuration uses scoped local workspaces with private backups. No child repository registration. Require all-repo acceptance and atomic `megai queue` target reservation before per-repo dev delivery; main promotion needs separate explicit approval of the commit vector. "
             "On Pi, load `megai-acceptance` before implementation: freeze criteria, capture actual tests/runtime evidence, "
             "require fresh independent Pi review and a source-current PASS before verified handoff. "
             "Missing tools, authorization or evidence are BLOCKED, not PASS. "
@@ -138,6 +140,9 @@ class Plan:
             "Raw acceptance tests and diagnostics remain authoritative.\n"
             + END + "\n"
         )
+        if adaptive:
+            selected_source = SOURCE if source is None else source
+            block = BEGIN + "\n" + (selected_source / "pi-skill/bootstrap.md").read_text().rstrip() + "\n" + END + "\n"
         if BEGIN in text:
             start = text.index(BEGIN)
             finish = text.index(END) + len(END)
@@ -285,6 +290,47 @@ class Plan:
         # Stage only receipt-owned files. Retain directories: planning/checks
         # must never mutate them, and empty directories are not active skills.
 
+    def token_profile_receipts(self, root: Path) -> list[str]:
+        keys = [str(root / "megai-token-profile.json"), str(root / "AGENTS.md") + "#token-profile"]
+        for skill in ("caveman", "ponytail"):
+            for name in ("SKILL.md", "LICENSE.md"):
+                keys.append(str(root / "skills" / skill / name))
+        return [key for key in keys if key in self.prior_receipt]
+
+    def token_profile_state(self, root: Path) -> str:
+        """Classify the opt-in profile sidecar before any legacy decision.
+
+        ABSENT keeps the unchanged default legacy behavior. ORPHAN means the
+        sidecar is gone but owned profile receipts remain: the same Plan clears
+        the owned cores, marker and receipts. INVALID (present but unowned,
+        modified, malformed or unsupported) fails closed before any write; this
+        config namespace is new, so nothing legacy requires deleting an owned
+        core and leaving a dangling marker. OWNED refreshes from source.
+        """
+        path = root / "megai-token-profile.json"
+        data = read(path)
+        if data is None:
+            return "orphan" if self.token_profile_receipts(root) else "absent"
+        if self.prior_receipt.get(str(path)) != digest(data):
+            raise ValueError(f"unowned or modified token profile sidecar preserved: {path}; reconcile manually")
+        try:
+            parsed = json.loads(data)
+        except ValueError as error:
+            raise ValueError(f"malformed token profile sidecar preserved: {path}; reconcile manually") from error
+        if not isinstance(parsed, dict) or parsed.get("schema") != 1 or parsed.get("profile") != "max":
+            raise ValueError(f"unsupported token profile sidecar preserved: {path}; reconcile manually")
+        return "owned"
+
+    def stage_token_profile(self, root: Path, remove: bool) -> None:
+        """Keep an owned max profile source-current via its installer Plan.
+
+        Imported locally: pi_token_profile imports this module, so a module-level
+        import would be circular.
+        """
+        import pi_token_profile
+
+        pi_token_profile.stage_profile(self, root, SOURCE, remove)
+
     def client(self, name: str, root: Path, remove: bool) -> None:
         # Validate configs without changing credentials, parent models, packages or hooks.
         for filename in ("settings.json", "mcp.json") if name != "codex" else ():
@@ -332,11 +378,12 @@ class Plan:
                 agents = root / "agents"
                 if agents.exists() and any("minimax" in p.name or p.name == "smart-router.md" for p in agents.iterdir()):
                     raise ValueError(f"legacy routing agents preserved: {agents}; detach manually")
-        self.policy(root / ("CLAUDE.md" if name == "cc" else "RULES.md" if name == "omp" else "AGENTS.md"), remove)
+        self.policy(root / ("CLAUDE.md" if name == "cc" else "RULES.md" if name == "omp" else "AGENTS.md"),
+                    remove, adaptive=name == "pi")
         for relative, skill in (
             ("task-flow/skills/megai-task-flow/SKILL.md", "megai-task-flow"),
             ("skills/agent-worktree-lifecycle/SKILL.md", "agent-worktree-lifecycle"),
-            ("pi-skill/SKILL.md", "megai"),
+            ("pi-skill/ADAPTIVE.md" if name == "pi" else "pi-skill/SKILL.md", "megai"),
         ):
             skill_root = root / "skills" if name == "pi" else HOME / ".agents/skills" if name == "codex" else root / "skills"
             self.asset(skill_root / skill / "SKILL.md", (SOURCE / relative).read_bytes(), remove)
@@ -344,6 +391,7 @@ class Plan:
                 self.asset(skill_root / skill / "tgrep.md", (SOURCE / "pi-skill/tgrep.md").read_bytes(), remove)
                 self.asset(skill_root / skill / "delegation.md", (SOURCE / "pi-skill/delegation.md").read_bytes(), remove)
         if name == "pi":
+            profile_state = self.token_profile_state(root)
             if not remove:
                 settings = load_json(root / "settings.json")
                 retired = re.compile(r"(?:^|[/@:])(?:rtk|caveman|agent[-_]memory|agentmemory|megai-memory)(?:$|[/@.])", re.I)
@@ -367,8 +415,19 @@ class Plan:
                             raise ValueError(f"unowned retired skill preserved: {child}; reconcile manually")
             self.configure_pi_resources(root, remove)
             self.retire_legacy_pi_assets(root, remove)
-            for retired_path in (root / "skills/caveman/SKILL.md", root / "skills/caveman/LICENSE.md"):
-                self.retire(retired_path)
+            if profile_state == "owned":
+                # Owned opt-in max profile: refresh the marker and cores from source
+                # instead of retiring them as legacy. Unrelated, unowned, modified or
+                # companion files still block through the checks above and in the plan.
+                self.stage_token_profile(root, remove)
+            elif profile_state == "orphan":
+                # Sidecar gone but owned profile receipts remain: clear the owned
+                # cores, marker and receipts in this same Plan. Unowned or modified
+                # user assets still block in retire().
+                self.stage_token_profile(root, True)
+            else:
+                for retired_path in (root / "skills/caveman/SKILL.md", root / "skills/caveman/LICENSE.md"):
+                    self.retire(retired_path)
             cache_path = root / "mcp-cache.json"
             cache_before = read(cache_path)
             if cache_before is not None:

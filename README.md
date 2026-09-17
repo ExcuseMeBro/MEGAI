@@ -1,205 +1,194 @@
-# MEGAI
+# 🚀 MEGAI · Pi defaults
 
-MEGAI is a harness-neutral coding workflow for **Pi, Claude Code (cc), Codex and
-OMP**. It keeps the selected provider, model, thinking level, credentials, native
-arguments and user-owned resources unchanged. This branch is prepared for parent
-review; it does not promote itself to `main`.
+The `pi` branch provides a clean global Pi setup. Configuration lives in
+`~/.pi/agent`; local project exceptions live in each project's `AGENTS.md` and
+`.pi/project.json`. The installer does not create backups. It requires Python 3.11+, Node 22.22+,
+Git, npm, uv and jq, and uses the standard home directories (custom
+`MEGAI_HOME` / `PI_CODING_AGENT_DIR` values are rejected).
 
-## Capy adaptation
+## ⚡ Quick start
 
-The persistent `capy` branch contains an experimental, manually supplied
-[Capy instructions pack](capy/README.md). It does not add a Capy launcher or
-installer, and does not imply native Pi-extension compatibility.
-
-## Install
-
-The public installer defaults to the integrated distribution and preserves an
-explicit ref:
+> ⚠️ **Reset is destructive:** Pi credentials, sessions and old settings are deleted without a backup.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | bash
-# Optional deliberate branch/ref selection:
-curl -fsSL https://raw.githubusercontent.com/ExcuseMeBro/MEGAI/main/install.sh | MEGAI_REF=dev bash
-source ~/.zshrc  # or reopen the shell
-megai status
+# From this branch's checkout. --reset deletes Pi auth, sessions and old settings.
+python3 pi-defaults/install.py --reset --remove-omp
+# Open Pi, then use /login to authenticate the freshly reset agent.
+pi
 megai doctor
 ```
 
-Supported launchers forward native arguments unchanged:
+For a remote installation, download and inspect this branch's `install.sh`, then
+run it with `MEGAI_REF=pi MEGAI_PI_RESET=1 MEGAI_REMOVE_OMP=1`. Reset/removal are
+explicit options. Reinstallation of a clean profile reuses its pinned packages;
+Pi startup never updates packages or builds indexes automatically.
 
-```bash
-megai pi [pi args]
-megai cc [claude args]
-megai codex [codex args]
-megai omp --profile work [omp args]
-```
+## 🧰 Included tools
 
-`megai omp --profile work` preserves both the profile and all other OMP arguments.
-The launcher performs local wiring/worktree checks only; it makes no provider
-request, model selection, Plane mutation or startup daemon call.
-
-## Active stack
-
-| Tool | Purpose |
+| Default | Purpose |
 | --- | --- |
-| Headroom 0.37.0 | Local discovery compression and explicit semantic memory |
-| tgrep / codedb / zvec-grep | Text, structural and intent discovery |
-| [Ruff](https://docs.astral.sh/ruff/) | Non-mutating Python verification |
+| 🤖 Pi 0.85.1 | Native agent, user-selected provider/model |
+| 🐍 Ruff | Check changed Python without automatic fixes |
+| 🧠 Headroom 0.37.0 | Local discovery compression; raw source/tests/failures |
+| 🔎 codedb / tgrep 1.0.4 / zvec-grep 0.2.1 | Structure, ranked text, local intent search |
+| 🦸 Superpowers 5.1.0 | Automatic bootstrap and matching engineering skills |
+| 🐴 Ponytail 4.9.0 | Default full mode; smallest complete implementation |
+| 📐 OpenSpec 1.13.0 | Global core skills and `/opsx-*` commands, telemetry disabled |
+| 🔌 pi-mcp-adapter 2.33.0 | Lazy Plane and zvec MCP |
+| 🌐 pi-web-access 0.29.0 | Exa public search without a separate key, page fetching |
+| 🧑‍🤝‍🧑 Native Paseo agents | Bounded children and required independent review; no Pi package |
 
-- Headroom 0.37.0 in a pinned, hash-locked Python 3.14 runtime for local
-  discovery compression and local ONNX semantic memory.
-- tgrep, codedb and zvec-grep for task-appropriate discovery, structure and intent.
-- Plane-only task-flow, worktree lifecycle, and task-appropriate skill kits.
-- [Ruff](https://docs.astral.sh/ruff/) for non-mutating Python checks.
-- Native harness configurations remain the source of provider/auth/model/thinking
-  choices. RTK, Caveman and agent-memory are retired from the active defaults.
+Package versions and integrity hashes are in [package-lock.json](pi-defaults/package-lock.json).
+Superpowers' extra delegation extension is excluded: only its bootstrap is loaded, and
+native Paseo agents own delegation, one writer per worktree. Shared legacy skill discovery
+is excluded from this Pi profile to avoid contradictory defaults. Other agents retain
+their own configuration.
 
-## Pi provider stall protection
+Model routing stays user-selected: the repo ships one explicit opt-in `economy`
+preset that routes DeepSeek Flash planning and implementation while
+keeping GPT for guarded review. Nothing is applied until you run the preset
+command yourself. Measure a change instead of assuming it: `megai report --text`
+reports turns, prompt tokens per turn, reported cost per model and estimated
+tool-output replay from local sessions, and `megai budget --check` previews the
+optional native context budget without writing.
 
-Pi installs `megai-provider-guard`: a **180-second wall-time budget for a model
-request and its automatic retries**, not a task deadline. It aborts the provider
-wait with native Pi cancellation, preserves session/tool results, and records a
-metadata-only `megai-provider-timeout` entry. Successful responses disarm it;
-tool execution is never timed out by this extension, including nested model work
-inside a tool. No provider, model, thinking, credentials or retry settings change.
+<a id="token-economy"></a>
 
-`MEGAI_PROVIDER_TIMEOUT_MS` selects a different budget; `0` explicitly opts out.
-Existing extension filters still win. Reload/reopen Pi after installation;
-already-running processes do not acquire new extensions automatically. Do not
-restart a writer mid-mutation. This bounds waiting rather than making providers
-faster; after a timeout, reconcile saved evidence before resuming/escalating.
+## 🪙 Token economy
 
-Native `retry.provider.timeoutMs` alone is insufficient for this incident: the
-installed Codex SSE implementation times out headers, not the full response body.
-See `docs/audits/pi-provider-stalls.md` for evidence and offline verification.
+Prompt size multiplied by turn count is the whole bill: `cacheRead` is about 96% of
+reported tokens in the observed local window. Four habits cover it.
 
-## Headroom use and compatibility
+**1. Inspect a command yourself with `!!`.** `!command` runs a shell command and sends
+its output to the model; `!!command` runs it without adding the output to context. Use
+`!!` for anything you read yourself — versions, git status, `ls`, logs — and ask the
+agent for the one line you actually need. The agent is also told to reuse what you
+already inspected instead of reproducing the same output.
 
-Pi has an automatic native extension. It compresses only eligible successful
-read-only discovery output; native session messages, source reads, edits, tests,
-full diffs and failures remain raw. `headroom_retrieve` pages exact originals,
-which are repository-scoped and retained for seven days within a bounded cache.
-`headroom_memory` provides explicit local recall/save; saves are only for requested
-persistence. `MEGAI_HEADROOM=0` disables Pi automation and normal mode or
-`/headroom-verbosity 0` disables concise guidance.
+**2. Keep long-term rules in `AGENTS.md`, procedures in skills.** `AGENTS.md` is sent
+with every request, so its size is charged on every turn; a skill is loaded only when
+its trigger fires. Measured on this repository (chars/4, an estimate):
 
-Claude Code, Codex and OMP do **not** receive invented interception hooks,
-provider rewrites or API proxies. They use the same local bridge explicitly:
+| File | Before | After |
+| --- | --- | --- |
+| `pi-defaults/AGENTS.md` (every request) | 17,862 chars ≈ 4.4k tokens | 16,410 chars ≈ 4.1k tokens |
+| `pi-skill/delegation.md` (only when delegating or escalating) | 12,197 chars | 15,147 chars |
 
-```bash
-megai headroom doctor
-megai headroom compress < discovery.txt
-megai headroom retrieve ID
-megai headroom recall "relevant prior decision"
-megai headroom save "decision to persist"
-printf '%s' '{"action":"compress","text":"..."}' | megai-headroom json
-```
+The blocked Codex Spark procedure and the parent-side provider-timeout/replacement
+sequence moved out of `AGENTS.md` into `pi-skill/delegation.md`. Sections that are used
+on almost every task (discovery, placement, context budget) stay in `AGENTS.md`:
+moving them to a skill would load them anyway and only add a lookup step.
 
-This is compatibility, not native-auto parity. Runtime assets are prepared during
-installation and runtime network access is disabled. If Headroom is unavailable,
-the Pi extension reports raw-context fallback and the other hosts report the CLI
-failure; no silent active claim is made.
-
-## Plane connector matrix
-
-Plane remains the sole execution tracker. Configure only the clients you use:
+**3. Enable tools by task.** Built-in tools come from `defaultTools` in
+`~/.pi/agent/settings.json` (`read`, `bash`, `edit`, `write`, `grep`, `find`, `ls`), and
+a project `.pi/settings.json` replaces it, so a repository can run narrower than your
+global default. For a one-off narrow session, allowlist tools at launch:
 
 ```bash
-megai plane bridge install
-megai plane setup --workspace SLUG --token-file /private/path/to/token --client all
-megai plane status --client all
-# Supported client values: pi, codex, cc, omp, all
+pi --tools read,grep,find,ls -p "Review this file"   # strict allowlist: built-in,
+                                                     # extension and custom tools
+pi --exclude-tools web_search,fetch_content         # filter the resulting list
+pi --no-builtin-tools                               # extension tools only
 ```
 
-Pi uses its native `requestHeadersCommand` shape. Codex keeps its existing native
-TOML integration. Claude Code uses `~/.claude.json` `mcpServers.plane`; OMP uses
-`mcp.json` under its selected profile (`~/.omp/agent` or
-`~/.omp/profiles/<profile>/agent`). CC/OMP use the receipt-verified local
-`plane_mcp_remote.py` stdio bridge with a private token-file path and workspace
-slug in configuration; the token itself is never placed in config or argv.
+MCP servers in `~/.pi/agent/mcp.json` already declare `lifecycle: lazy`, so an unused
+server is not connected at startup. `defaultTools` selects **built-in** tools only;
+extension and MCP tools stay enabled, so narrow them with `--exclude-tools` when it
+matters.
 
-Every requested client is parsed and staged before the first mutation. Existing
-unowned or malformed Plane entries refuse setup/removal. Private target-bound
-backups support restore; connector failures preserve staged/unrelated settings.
-Existing Pi/Codex semantics remain unchanged.
+**4. Break long work into phases.** `/compact` summarizes older turns while keeping
+recent work, and a new task belongs in a new session. Compaction is itself a
+summarization request that can omit detail: in the observed 14-day window it ran 5
+times for a reported $4.46, against 4,326 turns. Compact at phase boundaries, not per
+message, and do not re-read logs a finished phase has already discarded.
 
-## Preservation and migration
+Measure the whole picture with `megai report --text`. Reported cost is
+provider-reported, not billed, and every token figure here is an estimate from local
+sessions, not a benchmark.
 
-Adoption is fail-closed. Retirement metadata for Graphify, RepoWise, ui-craft,
-Dembrandt, Argent, Numasec and OpenSpec is preflighted before source publication
-or cleanup. Receipt-owned legacy wiring is archived in private backups; custom or
-ambiguous registrations, nonempty legacy memory/process receipts, malformed
-configs, symlinked destinations and custom policy markers require manual
-reconciliation with an actionable error. Historical sessions, memory stores,
-indexes, auth, hooks, models and unrelated settings are not deleted or rewritten.
-Multi-file wiring writes use ownership receipts, private recovery manifests,
-permission preservation, concurrency checks and rollback. Unrelated third-party
-installer work is not falsely represented as an atomic rollback.
+<a id="plane-and-branches"></a>
 
-Pi-owned shared skills are excluded from Pi discovery when harness-specific copies
-are installed, preventing duplicate MEGAI skill resolution. Codex/CC/OMP retain
-their native/shared destinations and explicit filters. User opt-outs remain in
-force and inactive resources are reported honestly.
+## 🗂️ Plane and branches
 
-## Appllama mobile design
-
-Pi bundles the pinned [Appllama design skill](skills/appllama-app-design-skill/SKILL.md)
-for Expo / React Native UI, with reviewed upstream references, MIT license and a
-permission-aware Pi wrapper. MCP, paid services, simulators and research skills do
-not start automatically. Existing filters and other harnesses remain unchanged.
-[Provenance](skills/appllama-app-design-skill/PROVENANCE.md) records the retained
-standalone bytes. Identical manual installs can be adopted; MEGAI update/removal
-uses receipt-owned wiring without fetching upstream or overwriting custom edits.
-
-## Acceptance and task delivery
-
-Pi's [acceptance gate](pi-skill/acceptance/SKILL.md) freezes criteria, captures
-source-bound command/runtime evidence and requires independent Pi review before
-`megai acceptance check` can return PASS (0). Failed checks return FAIL (1);
-missing/stale evidence returns BLOCKED (2). `collect` produces a BLOCKED draft,
-never an automatic approval. Schema-2 bug fixes require captured red → green
-regression evidence. See the [CLI and trust limits](pi-skill/acceptance/reference.md).
-
-Use only existing Paseo projects: project → task workspace → agent tabs. Resolve
-`projectId` with `megai workspace --root CHECKOUT`, create the managed task worktree
-under that ID, then pass its verified `workspaceId` to `create_agent`. "Canonical"
-means that existing project identity, not a new project or a rename. Missing or
-ambiguous identity blocks creation; ask the user rather than register a replacement.
-
-Each new task uses its own branch and managed worktree workspace. After tests and
-review, integrate to `dev`, verify delivery, archive the released task workspace
-and delete safely merged task branches. Keep one primary workspace at rest;
-concurrent unfinished tasks remain isolated until safely delivered. Preserve dirty
-work and history before cleanup. `main` promotion remains separately approved.
-The [lifecycle skill](skills/agent-worktree-lifecycle/SKILL.md) owns the procedure.
-
-## Verification
-
-Focused, non-live checks use disposable HOME/config roots and do not execute
-non-Pi harnesses or send provider calls:
+Workspace `brodev`: **Todo → In Progress → In Review → Done**. Plane is the only
+execution tracker. OpenSpec specifications and verification receipts are artifacts,
+not a second board. The existing private Plane token stays outside Pi and Git at
+`~/.config/megai/credentials/plane-api-token` (mode 600).
 
 ```bash
-python3 -B tests/slim_distribution.py -k appllama
-python3 -B tests/acceptance_gate.py
-python3 -B tests/acceptance_flow.py
-bash tests/slim-distribution.sh
-python3 tests/headroom_wiring.py
-HEADROOM_TEST_PYTHON="$HOME/.megai/venv/headroom/bin/python" \
-  HEADROOM_TEST_ASSETS="$HOME/.megai/headroom-assets" \
-  python3 tests/headroom_runtime.py
-bash tests/plane-mcp.sh
-bash -n bin/megai lib/*.sh install.sh
-python3 -m py_compile lib/*.py pi-skill/headroom/*.py
-ruff check --no-fix --no-fix-only --force-exclude --no-cache -- lib/*.py pi-skill/headroom/*.py tests/*.py
- git diff --check
+pi-workflow context
+pi-workflow start --title "Exact task title"
+pi-workflow review --project-id UUID --task-id UUID \
+  --receipt delivery.json --evidence-file verification.txt
+# After explicitly approved main promotion in every affected repository:
+pi-workflow done --project-id UUID --task-id UUID
 ```
 
-The Pi extension suites require an explicitly selected local Pi package via
-`PI_PACKAGE_ROOT`; they use disposable settings and a fake/no-provider bridge.
-Actual local Headroom runtime tests may read already-installed assets but write
-only disposable test storage. No live CC/Codex/OMP execution is part of this
-verification.
+The review receipt lists **all affected repositories**, their delivered commit SHAs
+and remotes. `review` binds it to the Plane task and canonical project, stores primary
+checkout paths, pins remote URLs, and preserves previous delivery coverage.
+`done` fetches each remote main and checks commit ancestry before changing Plane.
+A missing merge or changed item leaves the task In Review. Plane lacks conditional
+updates: serialize task boundary edits; the command checks for concurrent changes
+immediately before its final write. There is no unattended watcher or automatic merge.
 
-See `docs/audits/headroom-migration.md` for the concise source/conflict decision
-record and run evidence. It records only evidence produced in this checkout; no
-host install, nonexistent review or main promotion is claimed.
+The `/mdev` and `/prdev` prompt templates are installed globally: `/mdev` is explicit
+authorization to reconcile, review, merge and push task work into `dev` (no repeated approval)
+and to clean safe local task workspaces, and `/prdev` opens the `dev` → `main` pull request
+without merging. Neither promotes `main`, and both keep delivery evidence bound to the exact
+recorded SHAs.
+
+The persistent branches are `dev` and `main`. Normal task branches start from dev
+in managed Paseo worktrees and deliver to dev after tests/review. Main promotion
+requires explicit approval. A specifically requested persistent branch overrides
+dev delivery: push only that branch, retain its worktree, leave the task In Review
+until it reaches main. `pi` is this task's explicitly requested delivery branch.
+
+A monorepo gets one worktree per task. A folder containing separate repositories
+gets one worktree per affected repository under the same existing Paseo project and
+Plane task. The coordination folder remains a non-Git folder. The project-rules
+extension loads original project rules even when worktrees live outside that folder.
+
+<a id="local-project-configuration"></a>
+
+## ⚙️ Local project configuration
+
+Copy [the template](pi-defaults/projects/template.json) to `.pi/project.json` in a
+project. For grouped repositories use `layout: "multi"` and component-relative
+paths in `repositories`. Set `planeProject` to an existing exact Plane project name;
+the setup never creates missing Plane projects. Preserve repository-specific rules.
+
+[ADAM's template](pi-defaults/projects/ADAM.json) and [local policy](pi-defaults/projects/ADAM.md)
+keep Forgejo at `git.adam.uz`, one ADAM Plane project, and persistent `validationsdk`
+branches in `mobile` and `main-be`. The global installer does not edit project files
+or create/delete project branches. Existing dirty work and branch protections are
+retained. Read `pi-workflow` for worktree creation and branch cleanup rules.
+
+<a id="verification-and-operation"></a>
+
+## ✅ Verification and operation
+
+```bash
+python3 -B tests/pi_defaults.py
+python3 -B tests/pi_context_budget.py
+python3 -B tests/pi_usage_report.py
+ruff check --no-fix --no-fix-only --force-exclude --no-cache -- pi-defaults/*.py lib/pi_context_budget.py lib/pi_usage_report.py tests/pi_defaults.py
+bash -n bin/megai install.sh
+node pi-defaults/verify.mjs  # installed Pi; no model request
+megai doctor
+```
+
+A clean reset removes Pi login credentials too. `/login` is the required human step
+before model requests; installation and loader/tool checks do not prove model auth.
+Use `/reload` or reopen existing Pi sessions after configuration changes. Package
+installation grants the extensions normal Pi process access. Public web searches
+must not contain private repository content or credentials.
+
+## 📚 Upstream references
+
+[Pi packages](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/packages.md),
+[Superpowers](https://github.com/weiping/pi-superpowers),
+[Ponytail](https://github.com/DietrichGebert/ponytail),
+[OpenSpec](https://github.com/Fission-AI/OpenSpec),
+[web access](https://github.com/nicobailon/pi-web-access),
+[MCP adapter](https://github.com/nicobailon/pi-mcp-adapter).

@@ -1,0 +1,6 @@
+{
+  "layout": "mono",
+  "planeProject": "EXISTING PLANE PROJECT NAME",
+  "repositories": ["."],
+  "preserveBranches": {}
+}

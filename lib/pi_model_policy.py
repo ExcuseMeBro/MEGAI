@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install only the Pi delegation policy/guard, without changing model or auth settings."""
+"""Install Pi policy; change native model defaults only with an explicit --preset."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -16,7 +16,10 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
     before = read(path)
     current = plan.changes.get(path, before) or b""
     text = current.decode()
-    block = BEGIN + "\n" + policy.decode().rstrip() + "\n" + END + "\n"
+    block = (BEGIN + "\n"
+             "Pi children: load `megai/delegation.md` only when delegating or escalating a model failure. "
+             "Use configured roles; verify Pi/native model/thinking before task context. "
+             "Children never delegate or mutate Plane.\n" + END + "\n")
     key = str(path) + "#subagent-models"
     if text.count(BEGIN) != text.count(END) or text.count(BEGIN) > 1:
         raise ValueError(f"ambiguous subagent model policy markers: {path}")
@@ -44,11 +47,69 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
     # unowned user instructions merely because this installer appended a block.
     if plan.receipt.get(str(path)) == digest(current):
         plan.receipt[str(path)] = digest(updated.encode())
-    plan.asset(root / "extensions/megai-model-guard/index.ts",
-               (source / "pi-skill/model-guard/index.ts").read_bytes(), remove)
+    plan.retire(root / "extensions/megai-model-guard/index.ts")
     plan.asset(root / "extensions/megai-provider-guard/index.ts",
                (source / "pi-skill/provider-guard/index.ts").read_bytes(), remove)
+    plan.asset(root / "extensions/megai-role-routing/index.ts",
+               (source / "pi-skill/role-routing/index.ts").read_bytes(), remove)
+    plan.asset(root / "extensions/megai-jev/index.ts",
+               (source / "pi-skill/jev/index.ts").read_bytes(), remove)
     plan.asset(root / "skills/megai/delegation.md", policy, remove)
+    if remove:
+        # Removing policy does not undo the user's native model preferences.
+        plan.retire(root / "megai-roles.json")
+
+
+def stage_adaptive_policy(plan, root: Path, source: Path) -> None:
+    """Refresh only Pi workflow resources, without unrelated legacy migrations."""
+    plan.policy(root / "AGENTS.md", False, adaptive=True, source=source)
+    for relative, target in (
+        ("pi-skill/ADAPTIVE.md", "megai/SKILL.md"),
+        ("task-flow/skills/megai-task-flow/SKILL.md", "megai-task-flow/SKILL.md"),
+        ("skills/agent-worktree-lifecycle/SKILL.md", "agent-worktree-lifecycle/SKILL.md"),
+        ("pi-skill/acceptance/SKILL.md", "megai-acceptance/SKILL.md"),
+        ("pi-skill/acceptance/reference.md", "megai-acceptance/reference.md"),
+        ("pi-skill/acceptance/contract.example.json", "megai-acceptance/contract.example.json"),
+    ):
+        plan.asset(root / "skills" / target, (source / relative).read_bytes(), False)
+
+
+def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
+    from slim_wiring import encoded, load_json, read
+
+    if preset not in ("economy",):
+        raise ValueError(f"unknown Pi preset: {preset}")
+    config = load_json(source / f"pi-skill/presets/{preset}.json")
+    roles = config.get("roles")
+    if (config.get("schema") != 1 or config.get("preset") != preset
+            or not isinstance(roles, dict)
+            or set(roles) != {"planner", "scout", "worker", "reviewer"}):
+        raise ValueError("invalid role preset")
+    levels = {}
+    for role in roles.values():
+        if (not isinstance(role, dict)
+                or any(not isinstance(role.get(key), str) or not role[key].strip()
+                       for key in ("provider", "model", "thinking"))
+                or role["thinking"] not in ("off", "minimal", "low", "medium", "high", "xhigh", "max")):
+            raise ValueError("invalid preset role identity/thinking")
+        identity = role["provider"] + "/" + role["model"]
+        if identity in levels and levels[identity] != role["thinking"]:
+            raise ValueError("conflicting per-model thinking in preset")
+        levels[identity] = role["thinking"]
+    plan.asset(root / "megai-roles.json", encoded(config), False)
+    path = root / "settings.json"
+    before = read(path)
+    settings = load_json(path)
+    current_levels = settings.get("modelThinkingLevels", {})
+    if not isinstance(current_levels, dict):
+        raise ValueError("modelThinkingLevels must be an object")
+    planner = roles["planner"]
+    settings.update(defaultProvider=planner["provider"], defaultModel=planner["model"],
+                    defaultThinkingLevel=planner["thinking"],
+                    modelThinkingLevels={**current_levels, **levels})
+    # Explicit opt-in owns this edit, not the rest of the settings file.
+    # Plan preflights, backs up and rolls back the combined policy/config writes.
+    plan.stage(path, encoded(settings), before)
 
 
 def main() -> None:
@@ -58,11 +119,22 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("--remove", action="store_true")
+    parser.add_argument("--adaptive", action="store_true",
+                        help="refresh only owned Pi workflow policy, not unrelated legacy resources")
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--remove", action="store_true")
+    selection.add_argument("--preset", choices=("economy",),
+                           help="explicitly apply role and native startup model preferences")
     args = parser.parse_args()
+    if args.adaptive and args.remove:
+        parser.error("--adaptive cannot be combined with --remove")
     plan = Plan()
     root = Path(os.environ.get("PI_CODING_AGENT_DIR", Path.home() / ".pi/agent"))
+    if args.adaptive:
+        stage_adaptive_policy(plan, root, SOURCE)
     stage_model_policy(plan, root, SOURCE, args.remove)
+    if args.preset:
+        stage_preset(plan, root, SOURCE, args.preset)
     plan.apply(args.check)
 
 

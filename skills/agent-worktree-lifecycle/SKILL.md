@@ -1,109 +1,286 @@
 ---
 name: agent-worktree-lifecycle
-description: Deliver verified task work from managed worktrees to the agreed branch; main promotion requires explicit approval.
+description: Coordinate one folder/task across isolated Git-repo worktrees, verified dev delivery and separately approved main promotion.
 managed-by: megai
 ---
 
-# Agent worktree lifecycle
+# Hybrid task workspace lifecycle
 
-The parent owns integration. Use one writer per registered managed worktree; readers may share that worktree read-only. Select Pi explicitly and verify the returned harness/model/thinking before task context; follow `megai`'s Pi-only delegation contract. Children never create agents, mutate trackers or integrate branches.
+One existing Paseo folder/project and one Plane task coordinate the work. Git
+source writers use separate managed worktrees; non-Git configuration uses a local
+owned scope. Workspaces do not imply new project/repository registration. Parents
+own integration; children never delegate, mutate Plane, merge or promote.
+
+## Pi verification mode
+
+For Pi, `megai` selects routine or guarded verification before edits. Below,
+independent review and formal acceptance apply to guarded work or stricter project
+rules; routine work uses actual focused tests and parent self-review. Multi-repo
+delivery and concurrency/shared-state changes are guarded. Workspace isolation,
+backups, target reservations and approval boundaries apply in both modes. Load this
+workflow for workspace/delivery operations, not on every implementation step.
 
 ## Existing projects only
 
-Work inside the user's existing Paseo project: project → task workspace → agent
-tabs. "Canonical" means resolving that existing identity, not creating a project
-named canonical or regrouping/renaming the user's projects. This applies to every
-project, not only MEGAI. Missing or ambiguous identity is BLOCKED: ask the user to
-select/reconcile the existing project, rather than registering a replacement.
+Run `megai workspace --root FOLDER` to resolve the existing projectId. Unregistered
+child repositories inherit the nearest registered containing folder. Linked Git
+worktrees retain their primary identity. Missing/ambiguous identity, overlapping
+registered projects, unreadable paths or broken metadata require reconciliation.
 Project creation or reorganization needs a separate explicit user request.
 
-## One primary workspace at rest
+## Plan the complete task
 
-Before creating a task workspace, run `megai workspace --root CURRENT_CHECKOUT`.
-It resolves the Git **primary** checkout and its unique existing Paseo project ID,
-even when called from a linked worktree. Same remote URL alone is not identity.
-Missing/ambiguous registration is BLOCKED; do not create another project to bypass it.
+Each new task records its affected repositories and non-Git configuration scopes
+in the same Plane item. Use documented mapping (ADAM workspace/components use
+`ADAM full`), not one new Plane/Paseo project per repository. Pick one lowercase
+task slug, e.g. `adam-123`, and use `task/adam-123` in every affected Git repo.
+One repo in a monorepo means one worktree; three independent backend/frontend/mobile
+repos mean three worktrees with the same task name under their own repository roots.
+Do not scan/copy unrelated repos or create an umbrella Git repo.
 
-1. Each new task gets a distinct branch and managed worktree workspace from `dev`.
-   Use structured Paseo `create_workspace` with `isolation: "worktree"`, the resolved
-   **canonical `projectId`**, and explicit branch/base/title. Omit `path`. The daemon
-   chooses its managed location. Reuse only for a refinement of the same task,
-   after confirming idle writer ownership; the primary remains the delivery checkout.
-2. Check the returned project ID, workspace ID and Git primary/common directory.
-   Never pass a sibling checkout path as a new local project. Do not clone or run
-   direct `git worktree add ../PROJECT-task` for agent work.
-3. Open agent tabs with `create_agent` and that explicit `workspaceId`; never rely
-   on implicit top-level workspace creation. Writers use non-overlapping scopes. Readers share
-   a managed workspace read-only, not a second project registration.
-4. Keep one primary workspace at rest. Additional workspaces represent unfinished
-   isolated tasks, not permanent copies of the project. A separately approved
-   persistent branch is an explicit retention exception, never a sibling project.
-5. Match subagents to scope: the parent handles a bounded known change directly;
-   use scoped Pi workers for independent implementation and read-only reviewers
-   for independent evidence. Readers share the task workspace; simultaneous writers
-   each own a distinct managed worktree. Child workspaces close with the parent task.
+Record the repo primary/common-directory identity, base dev commit, task branch,
+workspaceId/path, owned files, dependencies and acceptance per repo. This is a
+technical delivery manifest/evidence in Plane, not another execution tracker.
+Re-use it and the same task workspaces for refinements. Multiple workspaces are normal.
+Reserve distinct ports, containers and test databases where runtime work needs them;
+worktrees isolate files/indexes, not shared Git refs, services, secrets or an OS process.
 
-The receipt-owned `megai-workspace-guard` enforces canonical project identity and
-managed worktree isolation in Pi creation calls. It does not enforce branch/base/title
-policy or task uniqueness; the parent verifies those separately. Lookup is read-only
-and on demand; models, auth, settings and input arguments remain unchanged. This is
-not an OS sandbox: external clients, arbitrary scripts and excluded extensions are
-outside its boundary. Report an unavailable guard rather than claim enforcement.
+## Git source isolation
 
-For existing duplicates, inventory branches, dirty/untracked data, agents and
-terminals first. Obtain writer release before moving anything. Use supported Paseo
-operations; never rewrite a running daemon's registry. Archive only completed,
-safely delivered workspaces with retained history; never archive an active/dirty
-workspace merely to hide duplication. If lossless reparenting is unavailable,
-report that blocker and agree the archive/recreation or maintenance boundary.
+1. Resolve every affected primary repo and its current `dev` base. Fetch an agreed
+   remote when remote delivery is in scope; reconcile stale/diverged refs safely,
+   without switching or resetting another session's checkout. Missing dev is BLOCKED,
+   not permission to branch from main. An explicit delivery/base exception such as
+   MEGAI's retained `pi` takes precedence and must be recorded.
+2. Create each workspace through native Paseo, with the **same umbrella projectId**:
 
-## Delivery contract
-
-Resolve the target before edits. Default: task branch from `dev`, then verified integration to `dev`. **An explicit persistent-branch request overrides that default:** push only the named branch, retain its branch/worktree, and do not merge into `dev`/`main`, call `finish`, or archive the retained workspace.
-
-Before delivery, inspect the diff and prove task acceptance with relevant tests; use independent review for security/data-integrity risks or consequential cross-module changes. Commit only task-owned changes. Stop on dirty/ambiguous target ownership, conflicts, failed checks, authentication failures or uncertain push results; never force-push or force-delete work.
-
-For Paseo-managed dev delivery, separate integration from destructive cleanup.
-The legacy `finish` helper removes the checkout itself; use the ordered primary-dev
-sequence below so it cannot delete ignored artifacts or a reviewer's active cwd.
-
-1. Release all task writers and owned terminals. Reserve the clean primary `dev`
-   checkout; verify its local/remote head is the reviewed base. Inventory tracked,
-   untracked and ignored files in every retiring workspace. Reconcile dirty work,
-   preserve required drafts, refs and session/evidence bytes in verified private
-   backups, and stop on an unknown owner or unresolved data. Read-only verification
-   may continue only while its checkout remains retained.
-2. Commit and verify the candidate against the current dev base in its task
-   workspace, including tests and independent review. With a source-current PASS,
-   use integration-only commands from the parent (replace placeholders):
-
-   ```bash
-   git -C PRIMARY merge --ff-only TASK_BRANCH
-   git -C PRIMARY push origin dev
+   ```json
+   {"isolation":"worktree","projectId":"EXISTING_UMBRELLA_ID",
+    "path":"/absolute/umbrella/backend","baseBranch":"dev",
+    "branchName":"task/adam-123","worktreeSlug":"adam-123"}
    ```
 
-   The primary must still be clean, on `dev`, and at the reserved base before the
-   fast-forward. Stop on divergence or an uncertain push; verify the exact remote
-   dev head. These commands leave task worktrees and branches intact.
-3. Capture fresh source-bound verification at the delivered primary and obtain
-   source-current independent review before retiring its task checkout. Old receipt
-   cwd values cannot be rewritten to transfer evidence. Keep historical raw logs.
-4. Release every remaining reviewer. Recheck each retiring workspace's data and
-   merged ancestry immediately before supported Paseo archival; never edit the live
-   registry. Archive only a released, clean, safely delivered child and verify its
-   worktree is gone. Delete only safely merged redundant task branches, including
-   published task refs when retirement is authorized. Never force-delete unmerged
-   work. An external read-only parent may verify the final live layout without
-   resurrecting an archived task workspace.
-5. Verify no completed child workspace remains active and only the primary remains
-   when no unfinished task or explicit retention exception exists. Another parent's
-   active task is not a cleanup target. Hand off the same Plane item at started
-   `In Review` only after verified delivery and cleanup; only the user marks `Done`.
+   Repeat for frontend/mobile only if affected. `path` is that repo's primary
+   checkout, not a subdirectory, clone or another worktree. Paseo manages placement;
+   no child project registration or direct unmanaged `git worktree add` is needed.
+   Verify returned projectId/workspaceId, real Git primary/common directory, branch,
+   base HEAD and owned worktree path before writing. Same-name collisions or uncertain
+   creation are reconciled by lookup; never delete or adopt an unknown owner's work.
+3. Open agent tabs with `create_agent`, each repo's verified workspaceId, explicit
+   Pi model and supported thinking; perform neutral/native launch verification.
+   One writer per worktree; read-only reviewers may share it. Parallel task writers
+   get different task branches/worktrees even within one repo. Cross-repo tasks can
+   implement independently, while integration reserves shared target resources.
 
-Main stays unchanged until the user explicitly approves promotion of the reviewed dev head:
+## Non-Git local work
 
-```bash
-megai promote --approved
-```
+Use `create_workspace` with `isolation: "local"`, the existing folder projectId and
+optional exact folder path, without branch/worktree fields. Coordination/readers
+may also use this local workspace when the folder itself is Git. Writers use
+`labels: {"megai.access": "write", "megai.writeScope": "infra/service-config"}`;
+readers use `labels: {"megai.access": "read-only"}`. Local Git writers are rejected.
 
-Never infer approval from an implementation request, enable deferred auto-merge, or drain another task after acceptance.
+Local workspaces are **not isolated filesystem copies**. Inspect agents/terminals
+across matching folders and reserve one writer per overlapping scope. Back up existing files privately,
+preserving permissions and unrelated data. Scope must be an existing non-symlink
+configuration directory containing no Git metadata/symlinks (bounded to 10,000
+entries); `"."` is valid only for such a complete Git-free folder, not a multi-repo
+umbrella. Labels are **not a filesystem sandbox** or lock. Absence of Git alone
+needs no new infra repo or `git init`. Keep complete owned configuration acceptance
+and private backups outside source; no invented commit/branch/push for these files.
+Production deployment, secrets and destructive migrations retain separate approval.
+
+## All-repo readiness and dev delivery
+
+1. Preserve mode-appropriate review and actual acceptance for **all affected repos and
+   configuration scopes before the first dev mutation**: routine Pi uses focused tests
+   and parent self-review; guarded Pi (including multi-repo delivery) requires the
+   independent formal gate. Other harnesses retain their required independent review. Commit only owned changes
+   when Git delivery is agreed, then capture source-current evidence per worktree.
+   Include cross-repo/API compatibility tests and runtime resource ownership when
+   relevant; one green repository does not make the multi-repo task ready.
+2. Release all task writers before integration. Reserve **all target repo resources
+   atomically** through `megai queue`. Read the separately delivered contract at
+   `$MEGAI_HOME/pi-skill/integration-queue.md` (`MEGAI_HOME` defaults to `~/.megai`;
+   repository source: `pi-skill/integration-queue.md`). Use `plan` with the same Plane
+   identity and repeated `--repo PRIMARY_PATH CANDIDATE_REF`, then `enqueue` the private
+   request. `claim` with a unique executor checks the target base vector; keep its token
+   private and maintain its lease with `heartbeat`. Keep queue position while waiting;
+   `refresh` with new evidence retains FIFO after revalidation; stale owners need
+   explicit `reconcile` with owner-stopped evidence, not timeout-based lock stealing.
+   The shared queue journal is coordination, not a Plane replacement or main/push
+   approval. If queue support is unavailable, integration is BLOCKED; isolated
+   implementation may continue.
+3. Under the reservation, preflight every source/destination commit, clean target
+   checkout and remote policy before mutating any repo. Record the exact source/dev
+   commit vector. Integrate each ready task into its own existing dev checkout:
+   `git -C DEV_CHECKOUT merge --ff-only task/adam-123`. Do not switch a shared checkout.
+   A moved dev requires integrating that new base into the owned task worktree and
+   fresh tests/review; conflicts stay isolated, never force/reset another task.
+4. Push only if explicitly included in delivery scope, using normal non-force pushes
+   and exact remote-head verification. For Pi, only approved `main` pushes publish
+   GitHub release notes, plus Forgejo only for ADAM (see Release notes for main
+   pushes (Pi)). Other branch pushes do not create releases. Recheck source/target vectors between steps.
+   Multi-repo delivery is **not atomic**: journal each completed repo; on conflict,
+   test/push failure or uncertain result stop the remaining integrations, preserve
+   every worktree/ref/evidence and reconcile actual refs before resuming. Never
+   blindly replay a merge/push, automatically roll back published commits, or report
+   whole-task success for partial delivery. Use `hold` for uncertain/partial outcomes;
+   reconcile evidence before retry/resume. `reconcile --outcome resume` requires
+   stopped-owner evidence and a new executor; every head must be the recorded base
+   or candidate, all resources stay reserved, the token rotates, and only returned
+   remaining repositories may proceed. Never replay already-delivered repositories.
+   Only `finish --outcome completed` after
+   actual delivery checks the candidate vector; it never substitutes for mode-appropriate
+   current acceptance (independent formal evidence for guarded Pi; focused tests and
+   self-review for routine Pi). Queue release/recovery follows its contract.
+5. Verify the delivered dev vector and task-wide behavior, then run **Post-merge
+   cleanup** below before handoff In Review, never Done. Capture actual evidence;
+   historical receipt cwd values stay unchanged.
+
+## Release notes for main pushes (Pi)
+
+Pi delivery policy: release notes are **main-only**. Only an approved push to
+`refs/heads/main` triggers the release workflow below. Pushes to `pi`, `dev` and
+`task/...`, any other branch, or tags alone do not create releases, release notes
+or snapshot tags, and need no release-specific preflight. For mixed-ref pushes,
+only the `main` ref gets a release. Normal push approval and remote-head verification
+still apply to every pushed ref. Preserve existing releases and historical journals;
+do not backfill non-main releases.
+
+Push approval names the exact destinations, refs and the release/tag publication
+authority; this rule grants no main/push approval. Required release destinations are
+GitHub for every project, plus Forgejo only for ADAM and its component repositories.
+Resolve ADAM membership from the verified existing umbrella project identity and
+documented repository mapping (`ADAM full` in Plane); component repositories and
+linked worktrees inherit that identity. Never infer ADAM membership from a branch
+name, checkout basename or remote alias. Ambiguous identity is BLOCKED before
+selecting destinations.
+
+Non-ADAM projects (including SPMAPP and MEGAI) use GitHub only under this rule;
+missing Forgejo does not block them. Do not preflight, create or register Forgejo
+resources for non-ADAM projects. This scope rule grants no new push destination.
+
+**Notes-only releases are sufficient.** Publish only the release body; do not upload
+release assets. Do not build, package or upload binaries, archives, checksums or
+evidence bundles solely to populate release
+assets; missing attachments are not a blocker. Required tests and commit/tag/release
+verification below still apply. Forge-generated source archives may appear
+without manual uploads; leave them and any existing release assets unchanged.
+
+Before a qualifying main push, preflight only the required destinations for authenticated access
+and the existing target repo identity/remote, then draft the notes. A missing, unmapped or
+unauthorized required forge is BLOCKED; never treat it as success, invent a
+project/remote or expose private code to a new host. A queue reservation is not push
+approval; the existing main/push approval boundary is unchanged.
+
+1. Publish a **Release** for the same pinned commit on every required destination -
+   release bodies, not merely commit or PR text. Record each destination's old/new
+   full SHA and ref and summarize the actual verified pushed range. On a new ref, push
+   from an explicitly selected baseline or a clearly identified initial-history scope;
+   never assume `HEAD^`. A no-op (`old == new`) skips a new release but still
+   reconciles any previously pending note.
+2. Main pushes publish a notes-only **prerelease** snapshot, never latest. Tags
+   follow the agreed release convention; never guess or increment a semantic version.
+   The branch snapshot tag is
+   `push/<ref-digest>/<full-new-commit-SHA>`, where `ref-digest` is the full 64
+   lowercase hex SHA-256 of the exact fully qualified ref name's UTF-8 bytes (e.g.
+   `refs/heads/main` -> `f921bd05e68b03740c450e565e0e6173e546193170b2dd404ddb6f153e9b5bf3`),
+   with no newline, truncation or normalization. Look up an existing release by tag
+   before creating; a conflicting tag identity is BLOCKED.
+3. Group the whole approved push under one persisted push journal ID, created before
+   any mutation and reused on every retry. Inside it keep one deterministic per-ref
+   publication identity for `refs/heads/main`: the exact fully qualified ref plus
+   its intended peeled commit, using the main snapshot tag above. Non-main refs in
+   the same push have no release publication entry.
+   Reuse that same per-ref identity on all required destinations and every retry; never mint a fresh
+   ID for missing-side recovery.
+4. Verify the remote ref first, then publish and read back the exact target commit,
+   release bodies, status, the tag's peeled commit and URLs. A tag's peeled commit
+   must equal the intended immutable commit; only a branch/ref target may move. An
+   uncertain release create is reconciled by tag lookup before any retry.
+5. Write short, simple release notes in plain language. Use a few brief bullets
+   with meaningful emoji labels: ✨ changes, 🐛 fixes, ✅ actual tests, ⚠️ breaking
+   changes/migration or risks, and 🔗 safe source links when useful. Include only
+   relevant items; omit empty sections, boilerplate and long technical narratives.
+   Emojis accompany clear text, never replace it. Preserve material warnings and
+   required migration steps even when brevity needs an exception. Keep full SHA
+   vectors and operational logs in the push journal rather than bloating the notes.
+   Never copy secrets, PII or private tracker content into release notes.
+6. An uncertain or partial push/publication stops and reconciles read-only: preserve
+   the journal and queue, keep any published success on one forge, report push success
+   separately from release failure, never roll back a successful push, and resume only
+   the missing required destination without re-pushing successful refs, duplicating releases or
+   overwriting human-written text.
+
+This is agent instruction, not enforcement: MEGAI installs no git hook, and manual
+pushes outside this workflow are not intercepted.
+
+## Main promotion and cleanup
+
+Main promotion is a **separate explicit user approval** of the exact reviewed repo
+list and dev/main commit vector. Reacquire target reservations, recheck all approved
+refs and tests, then promote those dev commits to their own main branches. A moved
+ref, extra repo or changed scope invalidates approval: show the new vector and ask
+again. Neither task creation, dev delivery, queue acquisition nor a previous approval
+silently authorizes main, push or production deployment. Partial promotion follows
+the same journal/stop/reconcile rules; no automatic rollback across repositories.
+
+## Post-merge cleanup
+
+Cleanup is part of delivery, not optional polish. Run it after verified task-to-dev
+integration, and again for remaining task resources after separately approved
+main promotion. Do not keep a delivered task workspace merely to wait for main:
+its commit and evidence must already be preserved in dev and private artifacts.
+An explicitly named persistent target such as MEGAI `pi` uses the same procedure
+after verified delivery to that target; retain `pi` itself and any explicitly
+retained workspace. This procedure grants no merge, main, push or remote-deletion
+approval. It is agent workflow, not a Git hook or background cleanup service.
+
+1. **Scope and preserve.** Use the same Plane task's recorded repo/workspace/ref
+   vector, not a global merged-branch sweep. Protect primary workspaces, `dev`,
+   `main`, `master`, named persistent branches and explicit retention exceptions.
+   Confirm all-repo delivery and required push/release results first; partial,
+   failed or uncertain delivery retains every task resource for reconciliation.
+   Inventory tracked, untracked and ignored files, and preserve required drafts,
+   logs, session/evidence bytes and recovery refs in verified private backups
+   outside retiring paths. A clean `git status` alone does not cover ignored data.
+2. **Release owners.** Finish mode-appropriate verification before retirement;
+   release task writers, reviewers, owned terminals and workspace services. Check
+   current Paseo agents/terminals and Git worktree ownership. An idle agent is not
+   proof of release; active, unknown or another task's owners require retention.
+   Never archive the current parent workspace from inside its own retiring cwd:
+   hand cleanup to a parent in the retained primary workspace. Keep historical
+   receipt paths unchanged; retain the checkout if a pending check still needs it.
+3. **Prove safe retirement.** Immediately before each mutation, recheck exact
+   projectId/workspaceId, path/common-directory identity, branch tip, clean data
+   inventory and released ownership. Require the recorded task tip to be an
+   ancestor of every target required by this delivery stage, using
+   `git merge-base --is-ancestor TASK_SHA TARGET_SHA`; recheck the target refs too.
+   For dev-only delivery, verified dev is sufficient; approved main promotion
+   requires the recorded promoted commit in main as well. Squash/rebase delivery
+   without ancestry proof is retained for explicit reconciliation, not force
+   deletion. Keep the applicable integration reservation through retirement;
+   if already released, reacquire it and revalidate before deleting refs.
+4. **Archive, then delete.** Use supported Paseo `archive_workspace` only for the
+   released, clean, safely delivered task workspace. Describe its current schema
+   first; preserve required session/evidence bytes before archival. Verify it is
+   inactive and its managed worktree is absent from both Git and the filesystem
+   before deleting its task branch. Local-workspace archival is bookkeeping,
+   not permission to delete shared folders/files. Never edit Paseo's registry
+   or use `rm -rf`, force worktree removal or `git branch -D` as a fallback.
+   Delete only the recorded safely merged local task branch with `git branch -d -- NAME`
+   from a retained checkout; if Git refuses, retain and report it. Published task
+   refs need explicit remote-deletion approval, fresh exact remote-tip/ancestry
+   checks and race-protected deletion of that ref only; absent approval, keep them.
+5. **Read back and hand off.** Recheck Paseo workspaces, Git worktrees and local
+   (and authorized remote) refs. Record removed resources and retained resources
+   with concrete reasons in the same Plane item. Leave one primary workspace at rest
+   when this task has no unfinished work or retention exception; other tasks stay
+   untouched. If archival/deletion fails or its result is uncertain, stop cleanup,
+   preserve remaining resources and reconcile read-only before retrying. Report
+   verified delivery separately from blocked cleanup; never claim cleanup complete
+   with unexplained leftovers. Hand off In Review, never Done, with that outcome.
+
+The guard validates paths/provenance, not task-wide readiness, queue locking,
+branch/base/title policy, user approval or post-launch filesystem writes.

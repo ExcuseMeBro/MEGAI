@@ -114,6 +114,74 @@ class Slim(unittest.TestCase):
         self.assertFalse((target / "index.ts").exists())
         self.assertFalse((target / "identity.mjs").exists())
 
+    def test_directory_review_policy(self):
+        self.wire()
+        pi = self.home / ".pi/agent"
+        lifecycle = (pi / "skills/agent-worktree-lifecycle/SKILL.md").read_text()
+        for clause in ("## Non-Git local work", '`isolation: "local"`',
+                       '`labels: {"megai.access": "read-only"}`', "not a filesystem sandbox",
+                       "Git source isolation", "same task name", "ADAM full",
+                       "Preserve mode-appropriate", "Multiple workspaces are normal",
+                       "not permission to delete", "no new infra repo"):
+            self.assertIn(clause.lower(), lifecycle.lower())
+        self.assertEqual(lifecycle, (ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text())
+        normalized = " ".join(lifecycle.split())
+        for clause in ("same task name", "all affected repos", "megai queue",
+                       "queue position", "stale owners", "integration is BLOCKED",
+                       "not atomic", "separate explicit user approval", "commit vector"):
+            self.assertIn(clause, normalized)
+        self.assertLess(normalized.index("all affected repos"),
+                        normalized.index("git -C DEV_CHECKOUT merge --ff-only"))
+        policy = (pi / "AGENTS.md").read_text()
+        self.assertIn("isolated worktrees for each affected Git repo", policy)
+        self.assertIn("No child repository registration", policy)
+        task = (pi / "skills/megai-task-flow/SKILL.md").read_text()
+        self.assertIn("existing registered folder", task)
+        self.assertIn("explicit documented Plane project mapping", task)
+        self.assertIn("ADAM full", task)
+        self.assertIn("missing states or ambiguity block edits", task)
+        self.assertIn("unavailable", task.lower())
+        self.assertIn("In Review", task)
+        before = self.snapshot()
+        self.wire()
+        self.assertEqual(self.snapshot(), before)
+
+    def test_directory_writer_policy(self):
+        self.wire()
+        pi = self.home / ".pi/agent"
+        lifecycle = (pi / "skills/agent-worktree-lifecycle/SKILL.md").read_text()
+        for clause in ('"megai.access": "write"', '"megai.writeScope"',
+                       "one writer", "Back up existing files privately", "not isolated filesystem copies",
+                       "not a filesystem sandbox", "no invented", "absence of Git alone",
+                       "Production deployment", "complete owned configuration"):
+            self.assertIn(clause.lower(), lifecycle.lower())
+        acceptance = (pi / "skills/megai-acceptance/SKILL.md").read_text()
+        self.assertIn("Non-Git configuration has no commit step", acceptance)
+        self.assertIn("source-current PASS", acceptance)
+        reference = (pi / "skills/megai-acceptance/reference.md").read_text()
+        self.assertIn("10,000 entries and 64 MiB", reference)
+        self.assertIn("No `.gitignore`", reference)
+        delegation = (pi / "skills/megai/delegation.md").read_text()
+        self.assertEqual(delegation, (ROOT / "pi-skill/delegation.md").read_text())
+        for text in (delegation, (pi / "AGENTS.md").read_text(),
+                     (ROOT / "prompts/paseo-orchestrator.md").read_text(),
+                     (ROOT / "skills/model-composition/routing.md").read_text()):
+            self.assertIn("non-Git configuration", text)
+            self.assertIn("scoped", text)
+            self.assertIn("agent-worktree-lifecycle", text)
+            self.assertIn("hybrid", text)
+            self.assertIn("worktree", text)
+            self.assertIn("megai queue", text)
+            self.assertNotIn("writers still require managed isolated worktrees", " ".join(text.split()))
+            self.assertNotIn("Writers use managed isolated worktrees", " ".join(text.split()))
+        result = self.run_cmd(sys.executable, "-B", str(self.megai / "lib/acceptance_gate.py"),
+                              "snapshot", "--root", str(self.project))
+        self.assertRegex(json.loads(result.stdout)["snapshot"], r"^[a-f0-9]{64}$")
+        self.assertFalse((self.project / ".git").exists())
+        before = self.snapshot()
+        self.wire()
+        self.assertEqual(self.snapshot(), before)
+
     def test_custom_workspace_guard_preserved_before_any_write(self):
         self.write(self.home / ".pi/agent/extensions/megai-workspace-guard/index.ts",
                    "user-owned workspace guard")
@@ -240,7 +308,7 @@ class Slim(unittest.TestCase):
                     self.assertTrue((path.parent / link).is_file(), f"{path}: {link}")
         skill = (source / "SKILL.md").read_text()
         for required in ("Expo / React Native", "not for generic web UI", "explicit authorization",
-                         "MCP is optional", "five-minute", "Pi-only", "BLOCKED", "installed versions",
+                         "MCP is optional", "independently verifiable outcomes", "Pi-only", "BLOCKED", "installed versions",
                          "VoiceOver/TalkBack", "payments", "Reduce Motion"):
             self.assertIn(required, skill)
         self.assertIn("dd5caaec3d5d50ad7fc0324da238119c6b7c3707", (source / "PROVENANCE.md").read_text())
@@ -263,17 +331,19 @@ class Slim(unittest.TestCase):
         self.assertFalse((self.home / "calls").exists())
 
     def test_task_workspaces_return_to_primary_after_delivery(self):
-        policy = (ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text()
+        policy = " ".join((ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text().split())
         for clause in ("Each new task", "one primary workspace at rest",
                        "same task", "safely merged", "read-only reviewers"):
             self.assertIn(clause, policy)
         self.assertNotIn("megai finish --verified", policy)
         self.assertLess(policy.index("Release all task writers"),
-                        policy.index("git -C PRIMARY merge --ff-only"))
-        self.assertIn("does not enforce branch/base/title", policy)
+                        policy.index("git -C DEV_CHECKOUT merge --ff-only"))
+        self.assertIn("branch/base/title policy", policy)
         self.wire()
-        self.assertIn("one primary workspace after verified delivery",
+        self.assertIn("agent-worktree-lifecycle",
                       (self.home / ".pi/agent/AGENTS.md").read_text())
+        self.assertIn("one primary workspace at rest",
+                      " ".join((self.home / ".pi/agent/skills/agent-worktree-lifecycle/SKILL.md").read_text().split()))
 
     def test_user_config_and_policy_text_survive(self):
         files = {
@@ -724,15 +794,70 @@ assert first.read_bytes()==b'concurrent after publish'
         self.run_cmd("bash", "-c", '. "$MEGAI_HOME/lib/state.sh"; state_set .tools.test "{}"', ok=False)
         self.assertEqual((self.megai / "state.json").read_text(), "not-json")
 
+    def test_plane_label_policy(self):
+        policy = (ROOT / "task-flow/skills/megai-task-flow/SKILL.md").read_text()
+        types, areas = policy.split("### Classification\n", 1)[1].split(
+            "Choose one or more affected areas", 1)
+        self.assertEqual(re.findall(r"^\| `([^`]+)` \|", types, re.M),
+                         ["bug", "feature", "refactor", "docs", "test", "chore", "research"])
+        self.assertEqual(re.findall(r"^\| `([^`]+)` \|", areas, re.M),
+                         ["backend", "frontend", "mobile", "desktop", "infra", "data",
+                          "design", "tooling"])
+        for clause in ("exactly one primary type", "task start and resume/refinement",
+                       "before creating/updating the item", "every project label page",
+                       "trimmed, case-insensitive equality", "documented project mapping",
+                       "Multiple matches", "failed/incomplete pages", "missing\n   label permissions",
+                       "complete lookup proves zero matches", "only\n   labels needed by this task",
+                       "uncertain create", "never blindly retry", "Preserve unrelated/custom",
+                       "ask for reconciliation", "additive `manage_label`", "missing UUIDs only",
+                       "never replace\n   the whole `labels` array", "Read back the item",
+                       "prior labels remain", "bulk backfill", "API hook"):
+            self.assertIn(clause, policy)
+
+    def test_plane_label_policy_installation(self):
+        pi = self.home / ".pi/agent"
+        settings = {"defaultProvider": "custom-provider", "defaultModel": "user-model",
+                    "defaultThinkingLevel": "low", "userSetting": {"keep": True}}
+        self.write(pi / "settings.json", json.dumps(settings))
+        auth = self.write(pi / "auth.json", '{"fixture":"not-a-real-secret"}\n')
+        auth_before = auth.read_bytes()
+        self.write(pi / "AGENTS.md", "# User policy\nKeep my custom instructions.\n")
+        command = (sys.executable, "-B", str(self.megai / "lib/slim_wiring.py"), "pi")
+        self.run_cmd(*command)
+        target = pi / "skills/megai-task-flow/SKILL.md"
+        source = ROOT / "task-flow/skills/megai-task-flow/SKILL.md"
+        self.assertEqual(target.read_bytes(), source.read_bytes())
+        receipt = json.loads((self.megai / "slim-wiring.json").read_text())
+        self.assertEqual(receipt[str(target)], hashlib.sha256(source.read_bytes()).hexdigest())
+        before = self.snapshot()
+        self.run_cmd(*command)
+        self.run_cmd(*command, "--verify")
+        self.assertEqual(self.snapshot(), before)
+        installed_settings = json.loads((pi / "settings.json").read_text())
+        for key, value in settings.items():
+            self.assertEqual(installed_settings[key], value)
+        self.assertEqual(auth.read_bytes(), auth_before)
+        self.assertTrue((pi / "AGENTS.md").read_text().startswith(
+            "# User policy\nKeep my custom instructions.\n"))
+        target.write_text(target.read_text() + "\nUser-owned label customisation.\n")
+        before = self.snapshot()
+        failure = self.run_cmd(*command, ok=False)
+        self.assertIn("custom/legacy asset preserved", failure.stderr)
+        self.assertEqual(self.snapshot(), before)
+
     def test_policy_guards_and_public_branch(self):
         policy = (ROOT / "task-flow/skills/megai-task-flow/SKILL.md").read_text()
-        for required in ("every Plane project page", "every workflow-state page", "group=started", "automatically create exactly one item without asking for approval", "In Progress", "In Review", "Only the user", "independent review", "persistent branch", "unavailable", "before retrying"):
+        for required in ("every Plane project page", "every workflow-state page", "group=started", "automatically create exactly one item without asking for approval", "In Progress", "In Review", "Only the user", "independent review", "same task branch/slug", "unavailable", "before retrying"):
             self.assertIn(required.lower(), policy.lower())
         for active in (ROOT / "pi-skill/SKILL.md", ROOT / "skills/agent-worktree-lifecycle/SKILL.md", ROOT / "task-flow/skills/megai-task-flow/SKILL.md"):
             self.assertNotIn(".todos", active.read_text())
             self.assertNotIn("MiniMax", active.read_text())
-        self.assertIn('MEGAI_REF="${MEGAI_REF:-main}"', (ROOT / "install.sh").read_text())
-        self.assertNotIn('MEGAI_REF="${MEGAI_REF:-slim}"', (ROOT / "install.sh").read_text())
+        # The installer must pin one persistent branch explicitly; this checkout
+        # delivers the `pi` profile, while `main` keeps its own default there.
+        installer = (ROOT / "install.sh").read_text()
+        self.assertTrue(any(f'MEGAI_REF="${{MEGAI_REF:-{branch}}}"' in installer
+                            for branch in ("main", "pi")))
+        self.assertNotIn('MEGAI_REF="${MEGAI_REF:-slim}"', installer)
         for flag in ("--no-fix", "--no-fix-only", "--no-cache", "ruff format --check"):
             self.assertIn(flag, (ROOT / "pi-skill/SKILL.md").read_text())
 

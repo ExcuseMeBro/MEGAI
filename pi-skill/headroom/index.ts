@@ -2,12 +2,25 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 
 const MAX_OUTPUT = 3_000_000;
 const root = () => process.env.MEGAI_HOME || join(homedir(), ".megai");
+const agentRoot = () => process.env.PI_CODING_AGENT_DIR || join(homedir(), ".pi/agent");
+const PROFILE_FILE = "megai-token-profile.json";
+
+/** The opt-in max profile owns chat terseness, so Headroom's duplicate style steering steps aside. */
+export function profileState(root: string): "max" | "baseline" | "invalid" {
+  try {
+    const parsed = JSON.parse(readFileSync(join(root, PROFILE_FILE), "utf8"));
+    return parsed?.schema === 1 && parsed?.profile === "max" ? "max" : "invalid";
+  } catch (error: any) {
+    return error?.code === "ENOENT" ? "baseline" : "invalid";
+  }
+}
 
 /** Only data on stdin. In particular no provider auth environment reaches Python. */
 export function request(action: Record<string, unknown>, cwd: string, signal?: AbortSignal): Promise<any> {
@@ -85,6 +98,7 @@ export default function headroom(pi: ExtensionAPI) {
   let verbosity: number = 2;
   let steering: string | undefined;
   let warned = false;
+  let profileWarned = false;
   const enabled = () => process.env.MEGAI_HEADROOM !== "0";
   const warn = (ctx: any) => {
     if (!warned) {
@@ -93,10 +107,19 @@ export default function headroom(pi: ExtensionAPI) {
       else process.stderr.write("Headroom unavailable: using raw context. Run megai headroom doctor.\n");
     }
   };
-  pi.on("session_start", () => {
-    compressed.clear(); steering = undefined; warned = false;
+  pi.on("session_start", (_event, ctx) => {
+    compressed.clear(); steering = undefined; warned = false; profileWarned = false;
     const level = Number(process.env.MEGAI_HEADROOM_VERBOSITY ?? "2");
     verbosity = Number.isInteger(level) && level >= 0 && level <= 4 ? level : 2;
+    const profile = profileState(agentRoot());
+    if (profile === "invalid" && !profileWarned) {
+      profileWarned = true;
+      const message = "Token profile unreadable; keeping the default Headroom style.";
+      if (ctx.hasUI) ctx.ui.notify(message, "warning");
+      else process.stderr.write(message + "\n");
+    }
+    // Explicit MEGAI_HEADROOM_VERBOSITY and /headroom-verbosity always win over the profile.
+    if (profile === "max" && process.env.MEGAI_HEADROOM_VERBOSITY === undefined) verbosity = 0;
   });
   pi.on("session_shutdown", () => { compressed.clear(); steering = undefined; });
   pi.registerCommand("headroom-verbosity", {

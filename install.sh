@@ -4,9 +4,8 @@
 set -euo pipefail
 
 MEGAI_REPO="${MEGAI_REPO:-ExcuseMeBro/MEGAI}"
-# The public installer follows the integrated main distribution. Set
-# MEGAI_REF explicitly when adopting another branch by choice.
-MEGAI_REF="${MEGAI_REF:-main}"
+# This installer belongs to the persistent pi branch.
+MEGAI_REF="${MEGAI_REF:-pi}"
 MEGAI_HOME="${MEGAI_HOME:-$HOME/.megai}"
 MEGAI_TARBALL="https://codeload.github.com/${MEGAI_REPO}/tar.gz/refs/heads/${MEGAI_REF}"
 
@@ -43,11 +42,11 @@ say "fetching $MEGAI_TARBALL"
 curl -fsSL "$MEGAI_TARBALL" | tar -xz -C "$tmp" --strip-components=1
 ok "source extracted -> $tmp"
 
-# 2. Fail migration conflicts before replacing even the distribution source.
-# The transaction journals source plus all selected client wiring and rolls back
-# publication on any downstream failure. Inactive dependencies remain available
-# for explicit recovery rather than being guessed away.
-export MEGAI_HOME PYTHONDONTWRITEBYTECODE=1
-python3 -c 'import tomllib' || die "Python 3.11+ required"
-MEGAI_SOURCE="$tmp" python3 "$tmp/lib/install_transaction.py" "$tmp"
-ok "source installed with private recovery manifest"
+# 2. The pi branch installs the clean profile without legacy recovery/wiring.
+# Reset is explicit because it destroys Pi authentication and session history.
+export PYTHONDONTWRITEBYTECODE=1
+args=()
+[ "${MEGAI_PI_RESET:-0}" != 1 ] || args+=(--reset)
+[ "${MEGAI_REMOVE_OMP:-0}" != 1 ] || args+=(--remove-omp)
+python3 "$tmp/pi-defaults/install.py" "${args[@]}"
+ok "Pi defaults installed (no backups)"

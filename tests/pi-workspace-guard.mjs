@@ -29,7 +29,7 @@ try {
     { projectId: 'prj-duplicate', rootPath: sibling, archivedAt: null },
   ];
   const workspaces = [
-    { workspaceId: 'wks-managed', projectId: 'prj-main', cwd: managed, worktreeRoot: managed, kind: 'worktree', isPaseoOwnedWorktree: true, archivedAt: null },
+    { workspaceId: 'wks-managed', projectId: 'prj-main', cwd: managed, worktreeRoot: managed, mainRepoRoot: root, kind: 'worktree', isPaseoOwnedWorktree: true, archivedAt: null },
     { workspaceId: 'wks-primary', projectId: 'prj-main', cwd: root, kind: 'local_checkout', isPaseoOwnedWorktree: false, archivedAt: null },
     { workspaceId: 'wks-duplicate', projectId: 'prj-duplicate', cwd: sibling, kind: 'worktree', isPaseoOwnedWorktree: false, archivedAt: null },
   ];
@@ -68,7 +68,7 @@ try {
     await check('mcp__paseo', { tool: 'create-workspace', args: JSON.stringify(valid) }, false, cwd);
     await check('paseo_create_workspace', { ...valid, projectId: 'prj-duplicate' }, true, cwd);
   }
-  for (const args of [{}, { isolation: 'worktree' }, { ...valid, path: root }, { ...valid, worktreeSlug: '../escape' }, { ...valid, worktreeSlug: '/tmp/escape' }]) {
+  for (const args of [{}, { isolation: 'worktree' }, { ...valid, path: sibling }, { ...valid, worktreeSlug: '../escape' }, { ...valid, worktreeSlug: '/tmp/escape' }]) {
     await check('paseo_create_workspace', args, true);
     await check('mcp', { server: 'paseo', tool: 'create_workspace', args: JSON.stringify(args) }, true);
   }

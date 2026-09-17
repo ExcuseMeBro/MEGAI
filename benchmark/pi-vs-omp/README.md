@@ -75,7 +75,16 @@ registered in `~/.pi/agent/models.json`) and a third arm, **`hybrid`**: the
 using `prompts/review.md` and may fix it. Both stages are measured separately in
 `stages`, the worker's own acceptance is evaluated before the reviewer runs, and
 `reviewer_changed` compares the two diffs. Requires that provider to be reachable;
-the other arms are unaffected.
+the other arms are unaffected. The reviewer model is selectable with
+`--reviewer MODEL` (default `HYBRID_REVIEWER`) on both `trial` and `matrix`; a
+non-default reviewer is part of the trial id, so both mixing directions can be
+recorded in one results file.
+
+A paid-model follow-up (`results/minimax-hybrid.md`) adds `minimax/MiniMax-M3` to
+`MODELS` and runs all five arms — each model alone, both mixing directions, and the
+deepseek/deepseek review control — to measure what the second paid model adds. It
+is the same `hybrid` arm as the local-model run, only with a different worker and
+reviewer.
 
 Arm order alternates per task (Pi first for bugfix/refactor, OMP first for
 feature) to reduce order bias. Trials run sequentially: concurrency would

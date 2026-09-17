@@ -1,0 +1,223 @@
+{
+  "schema": 1,
+  "scope": "Three retrospective repository tasks, not a controlled model/policy benchmark.",
+  "limitations": [
+    "Task58 parent interval includes task57; its single-task latency is unknown.",
+    "Parent usage only. Cache counters are separate; not unique context tokens or billed cost.",
+    "No pause subtraction, child token totals, user-intervention inference or before/after causal claim.",
+    "All measured parents used GPT; these samples do not establish MiniMax coding quality.",
+    "Final verification excludes earlier failing attempts; failures must be discussed separately."
+  ],
+  "samples": [
+    {
+      "task": "provider-progress-58",
+      "sample_kind": "retrospective_real_repository_task",
+      "start_event_id": "837b6131",
+      "end_event_id": "fb6ef3f0",
+      "start": "2026-09-12T13:38:07.752Z",
+      "end": "2026-09-12T14:12:07.861Z",
+      "interval_seconds": 2040.109,
+      "contains_other_task_work": true,
+      "single_task_wall_seconds": null,
+      "parent_assistant_messages": 63,
+      "parent_usage_messages": 63,
+      "parent_usage_reported": {
+        "input": 72798,
+        "output": 37976,
+        "cacheRead": 9264640,
+        "cacheWrite": 0,
+        "totalTokens": 9375414
+      },
+      "parent_models": {
+        "openai-codex/gpt-6-astra": 63
+      },
+      "parent_tool_calls": {
+        "mcp": 19,
+        "bash": 29,
+        "write": 5,
+        "edit": 6,
+        "read": 21
+      },
+      "event_interval_sha256": "00f27a1be0d1d79aad7581ab5fd8d73d6889f03631debb9d21ca3c325a7d6d97",
+      "final_verification_seconds": 6.622989416064229,
+      "checks": [
+        {
+          "id": "progress-regression",
+          "exit_code": 0,
+          "duration_seconds": 1.763217292027548,
+          "receipt_sha256": "feb09637155f978a5f681e25683afaa95b484e655171489a09e0e7f96c58b54e",
+          "log_sha256": "0d8f801242797e156d55e9db315d5eb27d7bbd6ecbd9d0b21d5c3709c140b7c9"
+        },
+        {
+          "id": "native-safety",
+          "exit_code": 0,
+          "duration_seconds": 2.960315291013103,
+          "receipt_sha256": "a9214bdf8a0fde11e7a18e853278a8715ce3d26f620bb7dd13c40141d9e83b06",
+          "log_sha256": "b2a77cbbf3e831a836d3a2fb8f45459d894b245a96d23af740a5ab53a5649a95"
+        },
+        {
+          "id": "policy-preservation",
+          "exit_code": 0,
+          "duration_seconds": 1.524902250035666,
+          "receipt_sha256": "0e781f9f4d40f85583d68b2285490ec6444abf7ec1d33bf5e36a0c5035fdec42",
+          "log_sha256": "f0b43fa7aa30e0c67fffb4aa9f3f68af70da0843b69feb87ac691a8b5de71989"
+        },
+        {
+          "id": "diagnostics",
+          "exit_code": 0,
+          "duration_seconds": 0.374554582987912,
+          "receipt_sha256": "61f72e142e1eca167bc2346a52a342faf028473d0ace92cf58e6f08bde0c5f4e",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "independent_final_verdict": "PASS",
+      "final_evidence_sha256": "b60c517cefc2d5cffe31c8db0cc5ffbb7ed94ad2ae31862db9df4c66fa9ef9d5",
+      "child_usage": null,
+      "provider_wait_seconds": null,
+      "human_interventions": null
+    },
+    {
+      "task": "megai-59",
+      "sample_kind": "retrospective_real_repository_task",
+      "start_event_id": "a2ba02b1",
+      "end_event_id": "cb395527",
+      "start": "2026-09-12T14:59:48.310Z",
+      "end": "2026-09-12T15:21:34.971Z",
+      "interval_seconds": 1306.661,
+      "contains_other_task_work": false,
+      "single_task_wall_seconds": 1306.661,
+      "parent_assistant_messages": 69,
+      "parent_usage_messages": 69,
+      "parent_usage_reported": {
+        "input": 281455,
+        "output": 20912,
+        "cacheRead": 6173056,
+        "cacheWrite": 0,
+        "totalTokens": 6475423
+      },
+      "parent_models": {
+        "openai-codex/gpt-6-astra": 69
+      },
+      "parent_tool_calls": {
+        "read": 35,
+        "bash": 39,
+        "headroom_memory": 1,
+        "mcp": 47,
+        "write": 5,
+        "edit": 3
+      },
+      "event_interval_sha256": "75b4fd2c5376e09c4083ae31fd06d90be52ecc13ac155a5c46d557ef5ddfcf4f",
+      "final_verification_seconds": 59.18061250005849,
+      "checks": [
+        {
+          "id": "queue-regressions",
+          "exit_code": 0,
+          "duration_seconds": 0.40434750000713393,
+          "receipt_sha256": "aa1346805fe0de9fb198f69bc8ee8a34002edae0ec5c91c72b767b27d81f15b3",
+          "log_sha256": "d1a54548e6b443b1ef0c7dfe03328cf38c131bedc1a852057140600bff32e6d3"
+        },
+        {
+          "id": "queue-cli",
+          "exit_code": 0,
+          "duration_seconds": 57.99227879202226,
+          "receipt_sha256": "937aa9d9b274669777f047df1cbc7edf92bcbf5f222e389ce0e0702273a3d519",
+          "log_sha256": "e689d4afb8d14193d2b61fed1f138de0e5a92cd48398cd9dea474cab3aae975e"
+        },
+        {
+          "id": "python-diagnostics",
+          "exit_code": 0,
+          "duration_seconds": 0.23904883302748203,
+          "receipt_sha256": "0222cf5cc6ed6f4f7279b2122163380e9a39cbadcf0db102c1301b3a16b95cd9",
+          "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+        },
+        {
+          "id": "diff-hygiene",
+          "exit_code": 0,
+          "duration_seconds": 0.2557742499629967,
+          "receipt_sha256": "b165dc1a33ab983e535cd9c50b6e4a98fdbba18552b5ae1656edc71dc7921fc5",
+          "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "id": "distribution-scope",
+          "exit_code": 0,
+          "duration_seconds": 0.28916312503861263,
+          "receipt_sha256": "252fc3cafbb72bcc8ca2753f9e292bc8ef1b7002a5640c3d5002ad31203e4a6a",
+          "log_sha256": "e34fa7fc5132a6d82d1b0e191380f65e538235686bb4c19b80f706f2c0026607"
+        }
+      ],
+      "independent_final_verdict": "PASS",
+      "final_evidence_sha256": "00967429e3e598d4b7cda8692f40e4dfbc45c016f2eb99a94d1d6cef259b2615",
+      "child_usage": null,
+      "provider_wait_seconds": null,
+      "human_interventions": null
+    },
+    {
+      "task": "megai-60",
+      "sample_kind": "retrospective_real_repository_task",
+      "start_event_id": "f9abe5fa",
+      "end_event_id": "a139f3e1",
+      "start": "2026-09-12T15:08:31.615Z",
+      "end": "2026-09-12T15:36:27.634Z",
+      "interval_seconds": 1676.019,
+      "contains_other_task_work": false,
+      "single_task_wall_seconds": 1676.019,
+      "parent_assistant_messages": 94,
+      "parent_usage_messages": 94,
+      "parent_usage_reported": {
+        "input": 341752,
+        "output": 36866,
+        "cacheRead": 8902272,
+        "cacheWrite": 0,
+        "totalTokens": 9280890
+      },
+      "parent_models": {
+        "openai-codex/gpt-6-astra": 94
+      },
+      "parent_tool_calls": {
+        "read": 26,
+        "bash": 38,
+        "mcp": 38,
+        "headroom_memory": 1,
+        "write": 11,
+        "edit": 25
+      },
+      "event_interval_sha256": "b304e36be0273d17f5e4840c08550e5935fc596014ec9f14de5cf93d6efa1516",
+      "final_verification_seconds": 27.838327041012235,
+      "checks": [
+        {
+          "id": "adaptive-policy",
+          "exit_code": 0,
+          "duration_seconds": 2.2452334580011666,
+          "receipt_sha256": "8267520f339bbd261639bf097ecdf09c9dcff8a193374c34d38ae8ba083a7345",
+          "log_sha256": "d8420b3c24c8da6ae156f51cbfe56279b0e31f9af8c3b6f5f388cfdac4fe0eeb"
+        },
+        {
+          "id": "wiring-regressions",
+          "exit_code": 0,
+          "duration_seconds": 23.735383125022054,
+          "receipt_sha256": "40c7374cb3d4124f7f176be8ec210317817a65f89f2ea0d91e311cc88d96debf",
+          "log_sha256": "11f4083faa18a1185b36e9e3c5d736a7b0b6e659fceaf3c5fe737ccd78a9603a"
+        },
+        {
+          "id": "mixed-compatibility",
+          "exit_code": 0,
+          "duration_seconds": 1.61955762503203,
+          "receipt_sha256": "83c36d07a1cb42c2e03c49ea9f56118cf7421c357095e5d984a7736c0bb2de43",
+          "log_sha256": "1360093409b2630d4b6568a6fba8e1208b0be7fbafc639db4e5ead666f82dd47"
+        },
+        {
+          "id": "diagnostics",
+          "exit_code": 0,
+          "duration_seconds": 0.23815283295698464,
+          "receipt_sha256": "473d3d5272b41b1e45d24a0b22817090a7a6d8886a052318df8af228870924f4",
+          "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+        }
+      ],
+      "independent_final_verdict": "PASS",
+      "final_evidence_sha256": "4ce30ee21d1c3eabf3ba1613cfbfb9c83193558b1581b7caeb04b6a065b7c503",
+      "child_usage": null,
+      "provider_wait_seconds": null,
+      "human_interventions": null
+    }
+  ]
+}

@@ -1,0 +1,1910 @@
+[
+  {
+    "trial_id": "pi__deepseek-flash__high__bugfix",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "reviewer": null,
+    "thinking": "high",
+    "task": "bugfix",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "fceab194089742a9dcd9c6fad82967ca449db6f4855c6752b7c0eebac3ae2b6c",
+    "prompt_chars": 1773,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T15:42:02+0500",
+    "wall_seconds": 15.098,
+    "budget_seconds": 300,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 7,
+    "usage": {
+      "input": 13780,
+      "output": 2033,
+      "cache_read": 137728,
+      "reasoning": 503,
+      "total": 153541,
+      "cost_usd": 0.0074
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 1776,
+    "diff_sha256": "7ee8ab134781fb6b99fb16e818172eb492ec6a7e965a3c9961dc33b05f8e86a7",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 4,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_input_is_not_reordered_in_place (test_participant.MergeIntervalsRegression.test_input_is_not_reordered_in_place) ... ok\ntest_nested_interval_does_not_shrink_outer (test_participant.MergeIntervalsRegression.test_nested_interval_does_not_shrink_outer) ... ok\ntest_nested_interval_keeps_outer_end_for_later_merge (test_participant.MergeIntervalsRegression.test_nested_interval_keeps_outer_end_for_later_merge) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 15.087,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 7,
+        "usage": {
+          "input": 13780,
+          "output": 2033,
+          "cache_read": 137728,
+          "reasoning": 503,
+          "total": 153541,
+          "cost_usd": 0.0074
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": null,
+    "reviewer_changed": null,
+    "budget_seconds_total": 300,
+    "valid": true
+  },
+  {
+    "trial_id": "pi__deepseek-flash__high__feature",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "reviewer": null,
+    "thinking": "high",
+    "task": "feature",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "d107ea68cf6d5f93bcc9b561cbd90b4be714af08f9099b15cfb89e18c962eed6",
+    "prompt_chars": 1723,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T15:45:44+0500",
+    "wall_seconds": 29.314,
+    "budget_seconds": 1200,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 9,
+    "usage": {
+      "input": 14547,
+      "output": 4861,
+      "cache_read": 196736,
+      "reasoning": 2689,
+      "total": 216144,
+      "cost_usd": 0.011378
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 3434,
+    "diff_sha256": "3ca4764e61b5651c23978990d696aee54bb89d89344bf6cb13947ccd6eb0db20",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 12,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 6,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_validated_at_call_before_consuming_source (test_participant.ChunkedParticipantTests.test_size_validated_at_call_before_consuming_source) ... ok\ntest_source_exception_propagates_unchanged (test_participant.ChunkedParticipantTests.test_source_exception_propagates_unchanged) ... ok\ntest_values_kept_by_identity_in_fresh_lists (test_participant.ChunkedParticipantTests.test_values_kept_by_identity_in_fresh_lists) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 29.29,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 9,
+        "usage": {
+          "input": 14547,
+          "output": 4861,
+          "cache_read": 196736,
+          "reasoning": 2689,
+          "total": 216144,
+          "cost_usd": 0.011378
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": null,
+    "reviewer_changed": null,
+    "budget_seconds_total": 1200,
+    "valid": true
+  },
+  {
+    "trial_id": "pi__deepseek-flash__high__refactor",
+    "arm": "pi",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "reviewer": null,
+    "thinking": "high",
+    "task": "refactor",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "a9662c4ecae03d69b9c45bb0fe48044e100ff3d3fcb28b22a77390f125de3b04",
+    "prompt_chars": 1856,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T15:51:24+0500",
+    "wall_seconds": 32.293,
+    "budget_seconds": 1200,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 11,
+    "usage": {
+      "input": 15219,
+      "output": 5623,
+      "cache_read": 251520,
+      "reasoning": 2172,
+      "total": 272362,
+      "cost_usd": 0.012822
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py",
+      "capy/benchmark/cases/refactor/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 4672,
+    "diff_sha256": "e85ecc2cbf5195225b2af6dad0264f0a63732302146834b3fc7d875afcc35648",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 3,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_input_untouched (test_participant.RefactorGuard.test_input_untouched) ... ok\ntest_invalid_input_rejected_in_both_styles (test_participant.RefactorGuard.test_invalid_input_rejected_in_both_styles) ... ok\ntest_styles_agree_on_counts (test_participant.RefactorGuard.test_styles_agree_on_counts) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 32.267,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 11,
+        "usage": {
+          "input": 15219,
+          "output": 5623,
+          "cache_read": 251520,
+          "reasoning": 2172,
+          "total": 272362,
+          "cost_usd": 0.012822
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": null,
+    "reviewer_changed": null,
+    "budget_seconds_total": 1200,
+    "valid": true
+  },
+  {
+    "trial_id": "pi__minimax-m3__high__bugfix",
+    "arm": "pi",
+    "model": "minimax/MiniMax-M3",
+    "model_short": "minimax-m3",
+    "reviewer": null,
+    "thinking": "high",
+    "task": "bugfix",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "789d34ab323cdbbcf9c444db82d81a85e6cd5c478b39a9a7731791098b0ea0d0",
+    "prompt_chars": 1768,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T15:42:34+0500",
+    "wall_seconds": 46.849,
+    "budget_seconds": 1200,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 12,
+    "usage": {
+      "input": 26276,
+      "output": 3396,
+      "cache_read": 258575,
+      "reasoning": 1546,
+      "total": 288247,
+      "cost_usd": 0.027472
+    },
+    "reported_models": [
+      "minimax/MiniMax-M3"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 1769,
+    "diff_sha256": "648a5f5766f1280a553dfc28165e8d223ce6d602e084fe509097dda41829f854",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 2,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nested_interval_does_not_shrink_outer (test_participant.IntervalParticipantRegression.test_nested_interval_does_not_shrink_outer) ... ok\ntest_nesting_then_outer_extension_bridges_through_nest (test_participant.IntervalParticipantRegression.test_nesting_then_outer_extension_bridges_through_nest) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "minimax/MiniMax-M3",
+        "wall_seconds": 46.839,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 12,
+        "usage": {
+          "input": 26276,
+          "output": 3396,
+          "cache_read": 258575,
+          "reasoning": 1546,
+          "total": 288247,
+          "cost_usd": 0.027472
+        },
+        "reported_models": [
+          "minimax/MiniMax-M3"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": null,
+    "reviewer_changed": null,
+    "budget_seconds_total": 1200,
+    "valid": true
+  },
+  {
+    "trial_id": "pi__minimax-m3__high__feature",
+    "arm": "pi",
+    "model": "minimax/MiniMax-M3",
+    "model_short": "minimax-m3",
+    "reviewer": null,
+    "thinking": "high",
+    "task": "feature",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "f40fd95ff52beb44664d5ce4f1dbafa509500032bb74b55e04909a714a53f61b",
+    "prompt_chars": 1718,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T15:46:13+0500",
+    "wall_seconds": 84.28,
+    "budget_seconds": 1200,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 9,
+    "usage": {
+      "input": 25734,
+      "output": 3772,
+      "cache_read": 169088,
+      "reasoning": 0,
+      "total": 198594,
+      "cost_usd": 0.022392
+    },
+    "reported_models": [
+      "minimax/MiniMax-M3"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 4421,
+    "diff_sha256": "0fde3b8212f48c24aed02c1a8a93f3c4297823267577b14d2ad4d5577be3709c",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 12,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one_single_pass_iterator (test_participant.ChunkedParticipant.test_size_one_single_pass_iterator) ... ok\ntest_size_validation_does_not_consume_source (test_participant.ChunkedParticipant.test_size_validation_does_not_consume_source) ... ok\ntest_source_exception_surfaces_during_first_batch (test_participant.ChunkedParticipant.test_source_exception_surfaces_during_first_batch) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "minimax/MiniMax-M3",
+        "wall_seconds": 84.271,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 9,
+        "usage": {
+          "input": 25734,
+          "output": 3772,
+          "cache_read": 169088,
+          "reasoning": 0,
+          "total": 198594,
+          "cost_usd": 0.022392
+        },
+        "reported_models": [
+          "minimax/MiniMax-M3"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": null,
+    "reviewer_changed": null,
+    "budget_seconds_total": 1200,
+    "valid": true
+  },
+  {
+    "trial_id": "pi__minimax-m3__high__refactor",
+    "arm": "pi",
+    "model": "minimax/MiniMax-M3",
+    "model_short": "minimax-m3",
+    "reviewer": null,
+    "thinking": "high",
+    "task": "refactor",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "1aa382cbe4a03256bae5af189ebbbe625d9ae98ff6ddbd7c10f8c334631c0473",
+    "prompt_chars": 1851,
+    "harness_version": "0.85.1",
+    "started_at": "2026-09-17T15:51:57+0500",
+    "wall_seconds": 52.714,
+    "budget_seconds": 1200,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 17,
+    "usage": {
+      "input": 54343,
+      "output": 5174,
+      "cache_read": 344194,
+      "reasoning": 0,
+      "total": 403711,
+      "cost_usd": 0.043163
+    },
+    "reported_models": [
+      "minimax/MiniMax-M3"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py",
+      "capy/benchmark/cases/refactor/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 4441,
+    "diff_sha256": "514dcb4064cd4f3ebe2fc0e13514a905b689f22829b0b3c4e00f08fe3b3411d3",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 3,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_counts_match_statuses_json (test_participant.ReportParticipant.test_counts_match_statuses_json) ... ok\ntest_counts_match_statuses_text (test_participant.ReportParticipant.test_counts_match_statuses_text) ... ok\ntest_counts_sum_to_total (test_participant.ReportParticipant.test_counts_sum_to_total) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "minimax/MiniMax-M3",
+        "wall_seconds": 52.71,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 17,
+        "usage": {
+          "input": 54343,
+          "output": 5174,
+          "cache_read": 344194,
+          "reasoning": 0,
+          "total": 403711,
+          "cost_usd": 0.043163
+        },
+        "reported_models": [
+          "minimax/MiniMax-M3"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": null,
+    "reviewer_changed": null,
+    "budget_seconds_total": 1200,
+    "valid": true
+  },
+  {
+    "trial_id": "hybrid__minimax-m3__high__bugfix",
+    "arm": "hybrid",
+    "model": "minimax/MiniMax-M3",
+    "model_short": "minimax-m3",
+    "reviewer": "deepseek/deepseek-flash",
+    "thinking": "high",
+    "task": "bugfix",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "789d34ab323cdbbcf9c444db82d81a85e6cd5c478b39a9a7731791098b0ea0d0",
+    "prompt_chars": 1768,
+    "harness_version": "not-installed",
+    "started_at": "2026-09-17T15:43:21+0500",
+    "wall_seconds": 54.07,
+    "budget_seconds": 1200,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 20,
+    "usage": {
+      "input": 38674,
+      "output": 5101,
+      "cache_read": 401506,
+      "reasoning": 1184,
+      "total": 445281,
+      "cost_usd": 0.035268
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash",
+      "minimax/MiniMax-M3"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 1697,
+    "diff_sha256": "41f9fec2fd69b033b9bd54454a7f38210f1d0b65406e2ecac24e5f557f423bc7",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 2,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nested_inside_outer_then_disjoint (test_participant.IntervalRegression.test_nested_inside_outer_then_disjoint) ... ok\ntest_nested_then_extending_keeps_outer_end (test_participant.IntervalRegression.test_nested_then_extending_keeps_outer_end) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "minimax/MiniMax-M3",
+        "wall_seconds": 35.26,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 14,
+        "usage": {
+          "input": 24231,
+          "output": 2180,
+          "cache_read": 280290,
+          "reasoning": 0,
+          "total": 306701,
+          "cost_usd": 0.026703
+        },
+        "reported_models": [
+          "minimax/MiniMax-M3"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ],
+        "acceptance": {
+          "present": true,
+          "ok": true,
+          "tests": 10,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+        },
+        "participant": {
+          "present": true,
+          "ok": true,
+          "tests": 2,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_nested_inside_outer_then_disjoint (test_participant.IntervalRegression.test_nested_inside_outer_then_disjoint) ... ok\ntest_nested_then_extending_keeps_outer_end (test_participant.IntervalRegression.test_nested_then_extending_keeps_outer_end) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK"
+        }
+      },
+      {
+        "role": "reviewer",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 18.602,
+        "exit_status": 0,
+        "harness_log": "harness-2.jsonl",
+        "requests": 6,
+        "usage": {
+          "input": 14443,
+          "output": 2921,
+          "cache_read": 121216,
+          "reasoning": 1184,
+          "total": 138580,
+          "cost_usd": 0.008565
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": 1697,
+    "reviewer_changed": false,
+    "budget_seconds_total": 2400,
+    "valid": true
+  },
+  {
+    "trial_id": "hybrid__minimax-m3__high__feature",
+    "arm": "hybrid",
+    "model": "minimax/MiniMax-M3",
+    "model_short": "minimax-m3",
+    "reviewer": "deepseek/deepseek-flash",
+    "thinking": "high",
+    "task": "feature",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "f40fd95ff52beb44664d5ce4f1dbafa509500032bb74b55e04909a714a53f61b",
+    "prompt_chars": 1718,
+    "harness_version": "not-installed",
+    "started_at": "2026-09-17T15:47:38+0500",
+    "wall_seconds": 85.574,
+    "budget_seconds": 1200,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 31,
+    "usage": {
+      "input": 44585,
+      "output": 9373,
+      "cache_read": 724480,
+      "reasoning": 1077,
+      "total": 778438,
+      "cost_usd": 0.058249
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash",
+      "minimax/MiniMax-M3"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 4616,
+    "diff_sha256": "1e5a21ab987054abc196266327e12e4136ece1a229b43eb5987f0cc2beea13e2",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 12,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 7,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_subclass_int_size_is_accepted (test_participant.ChunkedParticipantTests.test_subclass_int_size_is_accepted) ... ok\ntest_valid_size_does_not_touch_source (test_participant.ChunkedParticipantTests.test_valid_size_does_not_touch_source) ... ok\ntest_works_with_generator_expression (test_participant.ChunkedParticipantTests.test_works_with_generator_expression) ... ok\n\n----------------------------------------------------------------------\nRan 7 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "minimax/MiniMax-M3",
+        "wall_seconds": 62.527,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 23,
+        "usage": {
+          "input": 27724,
+          "output": 5674,
+          "cache_read": 542208,
+          "reasoning": 0,
+          "total": 575606,
+          "cost_usd": 0.047658
+        },
+        "reported_models": [
+          "minimax/MiniMax-M3"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ],
+        "acceptance": {
+          "present": true,
+          "ok": true,
+          "tests": 12,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+        },
+        "participant": {
+          "present": true,
+          "ok": true,
+          "tests": 7,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_subclass_int_size_is_accepted (test_participant.ChunkedParticipantTests.test_subclass_int_size_is_accepted) ... ok\ntest_valid_size_does_not_touch_source (test_participant.ChunkedParticipantTests.test_valid_size_does_not_touch_source) ... ok\ntest_works_with_generator_expression (test_participant.ChunkedParticipantTests.test_works_with_generator_expression) ... ok\n\n----------------------------------------------------------------------\nRan 7 tests in 0.000s\n\nOK"
+        }
+      },
+      {
+        "role": "reviewer",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 22.821,
+        "exit_status": 0,
+        "harness_log": "harness-2.jsonl",
+        "requests": 8,
+        "usage": {
+          "input": 16861,
+          "output": 3699,
+          "cache_read": 182272,
+          "reasoning": 1077,
+          "total": 202832,
+          "cost_usd": 0.010591
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": 4616,
+    "reviewer_changed": false,
+    "budget_seconds_total": 2400,
+    "valid": true
+  },
+  {
+    "trial_id": "hybrid__minimax-m3__high__refactor",
+    "arm": "hybrid",
+    "model": "minimax/MiniMax-M3",
+    "model_short": "minimax-m3",
+    "reviewer": "deepseek/deepseek-flash",
+    "thinking": "high",
+    "task": "refactor",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "1aa382cbe4a03256bae5af189ebbbe625d9ae98ff6ddbd7c10f8c334631c0473",
+    "prompt_chars": 1851,
+    "harness_version": "not-installed",
+    "started_at": "2026-09-17T15:52:50+0500",
+    "wall_seconds": 140.931,
+    "budget_seconds": 1200,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 24,
+    "usage": {
+      "input": 37616,
+      "output": 11497,
+      "cache_read": 523264,
+      "reasoning": 2200,
+      "total": 572377,
+      "cost_usd": 0.045604
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash",
+      "minimax/MiniMax-M3"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 2696,
+    "diff_sha256": "c827040fe23b3c56e4463dabaf68f139f739aebae1dd0e97743de5a84f9f3b4d",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": false,
+      "ok": null,
+      "tests": null,
+      "exit_status": null
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "minimax/MiniMax-M3",
+        "wall_seconds": 110.766,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 15,
+        "usage": {
+          "input": 22117,
+          "output": 6391,
+          "cache_read": 321920,
+          "reasoning": 0,
+          "total": 350428,
+          "cost_usd": 0.033619
+        },
+        "reported_models": [
+          "minimax/MiniMax-M3"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ],
+        "acceptance": {
+          "present": true,
+          "ok": true,
+          "tests": 10,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+        },
+        "participant": {
+          "present": false,
+          "ok": null,
+          "tests": null,
+          "exit_status": null
+        }
+      },
+      {
+        "role": "reviewer",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 29.981,
+        "exit_status": 0,
+        "harness_log": "harness-2.jsonl",
+        "requests": 9,
+        "usage": {
+          "input": 15499,
+          "output": 5106,
+          "cache_read": 201344,
+          "reasoning": 2200,
+          "total": 221949,
+          "cost_usd": 0.011985
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": 2693,
+    "reviewer_changed": true,
+    "budget_seconds_total": 2400,
+    "valid": true
+  },
+  {
+    "trial_id": "hybrid__deepseek-flash__high__bugfix__r-minimax-m3",
+    "arm": "hybrid",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "reviewer": "minimax/MiniMax-M3",
+    "thinking": "high",
+    "task": "bugfix",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "fceab194089742a9dcd9c6fad82967ca449db6f4855c6752b7c0eebac3ae2b6c",
+    "prompt_chars": 1773,
+    "harness_version": "not-installed",
+    "started_at": "2026-09-17T15:44:16+0500",
+    "wall_seconds": 53.403,
+    "budget_seconds": 1200,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 22,
+    "usage": {
+      "input": 39199,
+      "output": 4499,
+      "cache_read": 440066,
+      "reasoning": 1541,
+      "total": 483764,
+      "cost_usd": 0.03607
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash",
+      "minimax/MiniMax-M3"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 1722,
+    "diff_sha256": "04a22ce698a05a942d130a48494941091656905d00733d121feed6d1b49ee594",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 4,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nested_then_overlapping_later_range_stays_merged (test_participant.NestedIntervalRegression.test_nested_then_overlapping_later_range_stays_merged) ... ok\ntest_regression_case_does_not_mutate_input (test_participant.NestedIntervalRegression.test_regression_case_does_not_mutate_input) ... ok\ntest_unsorted_nested_interval_keeps_widest_end (test_participant.NestedIntervalRegression.test_unsorted_nested_interval_keeps_widest_end) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 16.355,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 7,
+        "usage": {
+          "input": 13911,
+          "output": 2457,
+          "cache_read": 138752,
+          "reasoning": 645,
+          "total": 155120,
+          "cost_usd": 0.007954
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ],
+        "acceptance": {
+          "present": true,
+          "ok": true,
+          "tests": 10,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+        },
+        "participant": {
+          "present": true,
+          "ok": true,
+          "tests": 4,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_nested_then_overlapping_later_range_stays_merged (test_participant.NestedIntervalRegression.test_nested_then_overlapping_later_range_stays_merged) ... ok\ntest_regression_case_does_not_mutate_input (test_participant.NestedIntervalRegression.test_regression_case_does_not_mutate_input) ... ok\ntest_unsorted_nested_interval_keeps_widest_end (test_participant.NestedIntervalRegression.test_unsorted_nested_interval_keeps_widest_end) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK"
+        }
+      },
+      {
+        "role": "reviewer",
+        "model": "minimax/MiniMax-M3",
+        "wall_seconds": 36.863,
+        "exit_status": 0,
+        "harness_log": "harness-2.jsonl",
+        "requests": 15,
+        "usage": {
+          "input": 25288,
+          "output": 2042,
+          "cache_read": 301314,
+          "reasoning": 896,
+          "total": 328644,
+          "cost_usd": 0.028116
+        },
+        "reported_models": [
+          "minimax/MiniMax-M3"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": 1722,
+    "reviewer_changed": false,
+    "budget_seconds_total": 2400,
+    "valid": true
+  },
+  {
+    "trial_id": "hybrid__deepseek-flash__high__feature__r-minimax-m3",
+    "arm": "hybrid",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "reviewer": "minimax/MiniMax-M3",
+    "thinking": "high",
+    "task": "feature",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "d107ea68cf6d5f93bcc9b561cbd90b4be714af08f9099b15cfb89e18c962eed6",
+    "prompt_chars": 1723,
+    "harness_version": "not-installed",
+    "started_at": "2026-09-17T15:49:04+0500",
+    "wall_seconds": 86.745,
+    "budget_seconds": 1200,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 21,
+    "usage": {
+      "input": 32718,
+      "output": 6348,
+      "cache_read": 431744,
+      "reasoning": 2283,
+      "total": 470810,
+      "cost_usd": 0.032672
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash",
+      "minimax/MiniMax-M3"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 3496,
+    "diff_sha256": "ecd20c009681dbb9597371ba1c8f2175e6708a0ec14efd7a65bdddd438da2792",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 12,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 4,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_no_lookahead_between_batches (test_participant.ChunkedParticipant.test_no_lookahead_between_batches) ... ok\ntest_size_valid_call_does_not_iterate_yet (test_participant.ChunkedParticipant.test_size_valid_call_does_not_iterate_yet) ... ok\ntest_validation_never_starts_the_source (test_participant.ChunkedParticipant.test_validation_never_starts_the_source) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 27.158,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 9,
+        "usage": {
+          "input": 14559,
+          "output": 4352,
+          "cache_read": 197504,
+          "reasoning": 2283,
+          "total": 216415,
+          "cost_usd": 0.010775
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ],
+        "acceptance": {
+          "present": true,
+          "ok": true,
+          "tests": 12,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+        },
+        "participant": {
+          "present": true,
+          "ok": true,
+          "tests": 4,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_no_lookahead_between_batches (test_participant.ChunkedParticipant.test_no_lookahead_between_batches) ... ok\ntest_size_valid_call_does_not_iterate_yet (test_participant.ChunkedParticipant.test_size_valid_call_does_not_iterate_yet) ... ok\ntest_validation_never_starts_the_source (test_participant.ChunkedParticipant.test_validation_never_starts_the_source) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK"
+        }
+      },
+      {
+        "role": "reviewer",
+        "model": "minimax/MiniMax-M3",
+        "wall_seconds": 59.391,
+        "exit_status": 0,
+        "harness_log": "harness-2.jsonl",
+        "requests": 12,
+        "usage": {
+          "input": 18159,
+          "output": 1996,
+          "cache_read": 234240,
+          "reasoning": 0,
+          "total": 254395,
+          "cost_usd": 0.021897
+        },
+        "reported_models": [
+          "minimax/MiniMax-M3"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": 3496,
+    "reviewer_changed": false,
+    "budget_seconds_total": 2400,
+    "valid": true
+  },
+  {
+    "trial_id": "hybrid__deepseek-flash__high__refactor__r-minimax-m3",
+    "arm": "hybrid",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "reviewer": "minimax/MiniMax-M3",
+    "thinking": "high",
+    "task": "refactor",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "a9662c4ecae03d69b9c45bb0fe48044e100ff3d3fcb28b22a77390f125de3b04",
+    "prompt_chars": 1856,
+    "harness_version": "not-installed",
+    "started_at": "2026-09-17T15:55:12+0500",
+    "wall_seconds": 60.037,
+    "budget_seconds": 1200,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 20,
+    "usage": {
+      "input": 41680,
+      "output": 7664,
+      "cache_read": 419806,
+      "reasoning": 3361,
+      "total": 469150,
+      "cost_usd": 0.036279
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash",
+      "minimax/MiniMax-M3"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py",
+      "capy/benchmark/cases/refactor/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 5662,
+    "diff_sha256": "fea7734742406341c508716d99c4ce43ffea0c4bff762ce8af99d00ff113d126",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 6,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_json_round_trip (test_participant.RefactorCharacterization.test_json_round_trip) ... ok\ntest_total_is_check_count_not_status_sum (test_participant.RefactorCharacterization.test_total_is_check_count_not_status_sum) ... ok\ntest_unknown_style_raises_even_with_bad_status (test_participant.RefactorCharacterization.test_unknown_style_raises_even_with_bad_status) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 28.621,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 9,
+        "usage": {
+          "input": 15318,
+          "output": 5188,
+          "cache_read": 196480,
+          "reasoning": 1994,
+          "total": 216986,
+          "cost_usd": 0.012
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ],
+        "acceptance": {
+          "present": true,
+          "ok": true,
+          "tests": 10,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+        },
+        "participant": {
+          "present": true,
+          "ok": true,
+          "tests": 6,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_json_round_trip (test_participant.RefactorCharacterization.test_json_round_trip) ... ok\ntest_total_is_check_count_not_status_sum (test_participant.RefactorCharacterization.test_total_is_check_count_not_status_sum) ... ok\ntest_unknown_style_raises_even_with_bad_status (test_participant.RefactorCharacterization.test_unknown_style_raises_even_with_bad_status) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.000s\n\nOK"
+        }
+      },
+      {
+        "role": "reviewer",
+        "model": "minimax/MiniMax-M3",
+        "wall_seconds": 31.188,
+        "exit_status": 0,
+        "harness_log": "harness-2.jsonl",
+        "requests": 11,
+        "usage": {
+          "input": 26362,
+          "output": 2476,
+          "cache_read": 223326,
+          "reasoning": 1367,
+          "total": 252164,
+          "cost_usd": 0.024279
+        },
+        "reported_models": [
+          "minimax/MiniMax-M3"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": 5662,
+    "reviewer_changed": false,
+    "budget_seconds_total": 2400,
+    "valid": true
+  },
+  {
+    "trial_id": "hybrid__deepseek-flash__high__bugfix",
+    "arm": "hybrid",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "reviewer": "deepseek/deepseek-flash",
+    "thinking": "high",
+    "task": "bugfix",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "fceab194089742a9dcd9c6fad82967ca449db6f4855c6752b7c0eebac3ae2b6c",
+    "prompt_chars": 1773,
+    "harness_version": "not-installed",
+    "started_at": "2026-09-17T15:45:10+0500",
+    "wall_seconds": 33.245,
+    "budget_seconds": 1200,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 14,
+    "usage": {
+      "input": 21598,
+      "output": 4904,
+      "cache_read": 304896,
+      "reasoning": 1034,
+      "total": 331398,
+      "cost_usd": 0.014193
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/bugfix/intervals.py",
+      "capy/benchmark/cases/bugfix/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 1900,
+    "diff_sha256": "5f1145dbe19b2e4af8c466f6231fc74e8c73048f3ec0cc0b261a65b00cbac68b",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 4,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nested_interval_keeps_span_and_later_overlap (test_participant.IntervalRegression.test_nested_interval_keeps_span_and_later_overlap) ... ok\ntest_nested_later_interval_does_not_shrink_outer (test_participant.IntervalRegression.test_nested_later_interval_does_not_shrink_outer) ... ok\ntest_nesting_after_sorted_order_preserves_end (test_participant.IntervalRegression.test_nesting_after_sorted_order_preserves_end) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 18.533,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 8,
+        "usage": {
+          "input": 16483,
+          "output": 2612,
+          "cache_read": 172032,
+          "reasoning": 607,
+          "total": 191127,
+          "cost_usd": 0.009111
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ],
+        "acceptance": {
+          "present": true,
+          "ok": true,
+          "tests": 10,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_reversed_interval_is_rejected (test_acceptance.IntervalAcceptance.test_reversed_interval_is_rejected) ... ok\ntest_shared_endpoint_merges (test_acceptance.IntervalAcceptance.test_shared_endpoint_merges) ... ok\ntest_transitive_unsorted_overlap (test_acceptance.IntervalAcceptance.test_transitive_unsorted_overlap) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+        },
+        "participant": {
+          "present": true,
+          "ok": true,
+          "tests": 4,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_nested_interval_keeps_span_and_later_overlap (test_participant.IntervalRegression.test_nested_interval_keeps_span_and_later_overlap) ... ok\ntest_nested_later_interval_does_not_shrink_outer (test_participant.IntervalRegression.test_nested_later_interval_does_not_shrink_outer) ... ok\ntest_nesting_after_sorted_order_preserves_end (test_participant.IntervalRegression.test_nesting_after_sorted_order_preserves_end) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.000s\n\nOK"
+        }
+      },
+      {
+        "role": "reviewer",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 14.508,
+        "exit_status": 0,
+        "harness_log": "harness-2.jsonl",
+        "requests": 6,
+        "usage": {
+          "input": 5115,
+          "output": 2292,
+          "cache_read": 132864,
+          "reasoning": 427,
+          "total": 140271,
+          "cost_usd": 0.005082
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": 1900,
+    "reviewer_changed": false,
+    "budget_seconds_total": 2400,
+    "valid": true
+  },
+  {
+    "trial_id": "hybrid__deepseek-flash__high__feature",
+    "arm": "hybrid",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "reviewer": "deepseek/deepseek-flash",
+    "thinking": "high",
+    "task": "feature",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "d107ea68cf6d5f93bcc9b561cbd90b4be714af08f9099b15cfb89e18c962eed6",
+    "prompt_chars": 1723,
+    "harness_version": "not-installed",
+    "started_at": "2026-09-17T15:50:32+0500",
+    "wall_seconds": 52.147,
+    "budget_seconds": 1200,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 20,
+    "usage": {
+      "input": 23657,
+      "output": 7837,
+      "cache_read": 464640,
+      "reasoning": 2655,
+      "total": 496134,
+      "cost_usd": 0.019289
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/feature/batching.py",
+      "capy/benchmark/cases/feature/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 4015,
+    "diff_sha256": "d93ae5e475f36dead733354cf3c6abdeb34be75147ea5ce5c98fe273acc7fb82",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 12,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 5,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_single_pass_and_empty_sources (test_participant.ChunkedParticipant.test_single_pass_and_empty_sources) ... ok\ntest_source_exception_propagates_unchanged (test_participant.ChunkedParticipant.test_source_exception_propagates_unchanged) ... ok\ntest_validation_happens_before_source_is_touched (test_participant.ChunkedParticipant.test_validation_happens_before_source_is_touched) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 29.906,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 11,
+        "usage": {
+          "input": 14957,
+          "output": 4603,
+          "cache_read": 245760,
+          "reasoning": 1820,
+          "total": 265320,
+          "cost_usd": 0.011485
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ],
+        "acceptance": {
+          "present": true,
+          "ok": true,
+          "tests": 12,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_size_one (test_acceptance.BatchAcceptance.test_size_one) ... ok\ntest_source_exception_propagates_unchanged (test_acceptance.BatchAcceptance.test_source_exception_propagates_unchanged) ... ok\ntest_wrong_size_type_rejected_at_call (test_acceptance.BatchAcceptance.test_wrong_size_type_rejected_at_call) ... ok\n\n----------------------------------------------------------------------\nRan 12 tests in 0.000s\n\nOK"
+        },
+        "participant": {
+          "present": true,
+          "ok": true,
+          "tests": 5,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_single_pass_and_empty_sources (test_participant.ChunkedParticipant.test_single_pass_and_empty_sources) ... ok\ntest_source_exception_propagates_unchanged (test_participant.ChunkedParticipant.test_source_exception_propagates_unchanged) ... ok\ntest_validation_happens_before_source_is_touched (test_participant.ChunkedParticipant.test_validation_happens_before_source_is_touched) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK"
+        }
+      },
+      {
+        "role": "reviewer",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 22.024,
+        "exit_status": 0,
+        "harness_log": "harness-2.jsonl",
+        "requests": 9,
+        "usage": {
+          "input": 8700,
+          "output": 3234,
+          "cache_read": 218880,
+          "reasoning": 835,
+          "total": 230814,
+          "cost_usd": 0.007804
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": 4015,
+    "reviewer_changed": false,
+    "budget_seconds_total": 2400,
+    "valid": true
+  },
+  {
+    "trial_id": "hybrid__deepseek-flash__high__refactor",
+    "arm": "hybrid",
+    "model": "deepseek/deepseek-flash",
+    "model_short": "deepseek-flash",
+    "reviewer": "deepseek/deepseek-flash",
+    "thinking": "high",
+    "task": "refactor",
+    "baseline_sha": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "prompt_sha256": "a9662c4ecae03d69b9c45bb0fe48044e100ff3d3fcb28b22a77390f125de3b04",
+    "prompt_chars": 1856,
+    "harness_version": "not-installed",
+    "started_at": "2026-09-17T15:56:12+0500",
+    "wall_seconds": 48.643,
+    "budget_seconds": 1200,
+    "exit_status": 0,
+    "timed_out": false,
+    "requests": 17,
+    "usage": {
+      "input": 20415,
+      "output": 8060,
+      "cache_read": 373632,
+      "reasoning": 2688,
+      "total": 402107,
+      "cost_usd": 0.018038
+    },
+    "reported_models": [
+      "deepseek/deepseek-flash"
+    ],
+    "model_matches_request": true,
+    "stop_reasons": [
+      "toolUse",
+      "toolUse",
+      "stop"
+    ],
+    "provider_error": false,
+    "changed_paths": [
+      "capy/benchmark/cases/refactor/reporting.py",
+      "capy/benchmark/cases/refactor/test_participant.py"
+    ],
+    "scope_ok": true,
+    "diff_bytes": 5193,
+    "diff_sha256": "e32c97254576e294253eaebd4481747ee3452b26d7dbcf8d2cb696725f8dd104",
+    "acceptance": {
+      "present": true,
+      "ok": true,
+      "tests": 10,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+    },
+    "participant": {
+      "present": true,
+      "ok": true,
+      "tests": 5,
+      "failures": null,
+      "exit_status": 0,
+      "output_tail": "test_invalid_status_rejected_without_output_in_both_styles (test_participant.RenderChecksCharacterization.test_invalid_status_rejected_without_output_in_both_styles) ... ok\ntest_style_checked_before_any_rendering (test_participant.RenderChecksCharacterization.test_style_checked_before_any_rendering) ... ok\ntest_unicode_and_escaping_survive_refactor (test_participant.RenderChecksCharacterization.test_unicode_and_escaping_survive_refactor) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK"
+    },
+    "stderr_bytes": 0,
+    "stages": [
+      {
+        "role": "worker",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 29.491,
+        "exit_status": 0,
+        "harness_log": "harness.jsonl",
+        "requests": 11,
+        "usage": {
+          "input": 15065,
+          "output": 4768,
+          "cache_read": 240128,
+          "reasoning": 1617,
+          "total": 259961,
+          "cost_usd": 0.011682
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ],
+        "acceptance": {
+          "present": true,
+          "ok": true,
+          "tests": 10,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_nonmutation_in_both_styles (test_acceptance.ReportAcceptance.test_nonmutation_in_both_styles) ... ok\ntest_unknown_status_rejected_in_both_styles (test_acceptance.ReportAcceptance.test_unknown_status_rejected_in_both_styles) ... ok\ntest_unknown_style_rejected (test_acceptance.ReportAcceptance.test_unknown_style_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.000s\n\nOK"
+        },
+        "participant": {
+          "present": true,
+          "ok": true,
+          "tests": 5,
+          "failures": null,
+          "exit_status": 0,
+          "output_tail": "test_invalid_status_rejected_without_output_in_both_styles (test_participant.RenderChecksCharacterization.test_invalid_status_rejected_without_output_in_both_styles) ... ok\ntest_style_checked_before_any_rendering (test_participant.RenderChecksCharacterization.test_style_checked_before_any_rendering) ... ok\ntest_unicode_and_escaping_survive_refactor (test_participant.RenderChecksCharacterization.test_unicode_and_escaping_survive_refactor) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK"
+        }
+      },
+      {
+        "role": "reviewer",
+        "model": "deepseek/deepseek-flash",
+        "wall_seconds": 18.924,
+        "exit_status": 0,
+        "harness_log": "harness-2.jsonl",
+        "requests": 6,
+        "usage": {
+          "input": 5350,
+          "output": 3292,
+          "cache_read": 133504,
+          "reasoning": 1071,
+          "total": 142146,
+          "cost_usd": 0.006356
+        },
+        "reported_models": [
+          "deepseek/deepseek-flash"
+        ],
+        "stop_reasons": [
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "toolUse",
+          "stop"
+        ]
+      }
+    ],
+    "worker_diff_bytes": 5193,
+    "reviewer_changed": false,
+    "budget_seconds_total": 2400,
+    "valid": true
+  }
+]

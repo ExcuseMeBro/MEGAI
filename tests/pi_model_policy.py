@@ -12,10 +12,11 @@ class ModelPolicy(Slim):
         self.wire()
         agent = self.home / ".pi/agent"
         policy = (agent / "AGENTS.md").read_text()
-        for model in ("gpt-6-astra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-5.6-terra"):
-            self.assertIn("openai-codex/" + model, policy)
-        self.assertTrue((agent / "extensions/megai-model-guard/index.ts").is_file())
+        self.assertIn("no model allowlist", policy)
+        self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
         self.assertTrue((agent / "extensions/megai-provider-guard/index.ts").is_file())
+        self.assertTrue((agent / "extensions/megai-role-routing/index.ts").is_file())
+        self.assertTrue((agent / "extensions/megai-jev/index.ts").is_file())
         before = self.snapshot()
         self.wire()
         self.assertEqual(self.snapshot(), before)
@@ -23,25 +24,116 @@ class ModelPolicy(Slim):
         self.assertNotIn("megai:subagent-models:begin", (agent / "AGENTS.md").read_text())
         self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-provider-guard/index.ts").exists())
+        self.assertFalse((agent / "extensions/megai-role-routing/index.ts").exists())
+        self.assertFalse((agent / "extensions/megai-jev/index.ts").exists())
 
-    def test_timebox_and_escalation_policy_reaches_both_entrypoints(self):
+    def test_role_routing_asset_installs_idempotently_and_preserves_collision(self):
+        self.wire()
+        agent = self.home / ".pi/agent"
+        target = agent / "extensions/megai-role-routing/index.ts"
+        self.assertEqual(target.read_bytes(), (self.megai / "pi-skill/role-routing/index.ts").read_bytes())
+        jev = agent / "extensions/megai-jev/index.ts"
+        self.assertEqual(jev.read_bytes(), (self.megai / "pi-skill/jev/index.ts").read_bytes())
+        before = self.snapshot()
+        self.wire()
+        self.assertEqual(self.snapshot(), before)
+        self.wire("--verify")
+        self.wire("--remove")
+        self.assertFalse(target.exists())
+        self.write(target, "user-owned role routing")
+        before = self.snapshot()
+        self.assertIn("custom/legacy asset preserved", self.wire(ok=False).stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_jev_asset_preserves_a_user_owned_collision(self):
+        self.wire()
+        target = self.home / ".pi/agent/extensions/megai-jev/index.ts"
+        self.write(target, "user-owned jev tool")
+        before = self.snapshot()
+        self.assertIn("custom/legacy asset preserved", self.wire(ok=False).stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_owned_legacy_guard_retired_on_upgrade(self):
+        import hashlib
+
+        self.wire()
+        agent = self.home / ".pi/agent"
+        guard = agent / "extensions/megai-model-guard/index.ts"
+        self.write(guard, "legacy model guard")
+        receipt_path = self.megai / "slim-wiring.json"
+        receipt = json.loads(receipt_path.read_text())
+        receipt[str(guard)] = hashlib.sha256(guard.read_bytes()).hexdigest()
+        receipt_path.write_text(json.dumps(receipt))
+        command = (sys.executable, str(self.megai / "lib/pi_model_policy.py"))
+        before = self.snapshot()
+        self.run_cmd(*command, "--check")
+        self.assertEqual(self.snapshot(), before)
+        self.run_cmd(*command)
+        self.assertFalse(guard.exists())
+        self.assertNotIn(str(guard), json.loads(receipt_path.read_text()))
+        self.assertTrue((agent / "extensions/megai-provider-guard/index.ts").is_file())
+        after = self.snapshot()
+        self.run_cmd(*command)
+        self.assertEqual(self.snapshot(), after)
+
+    def test_source_publication_retires_owned_guard_source(self):
+        import hashlib
+        from slim_distribution import ROOT
+
+        guard = self.megai / "pi-skill/model-guard/index.ts"
+        self.write(guard, "legacy source guard")
+        receipt_path = self.megai / "slim-wiring.json"
+        receipt_path.write_text(json.dumps({str(guard): hashlib.sha256(guard.read_bytes()).hexdigest()}))
+        self.run_cmd(sys.executable, str(self.megai / "lib/install_slim_source.py"), str(ROOT))
+        self.assertFalse(guard.exists())
+        self.assertNotIn(str(guard), json.loads(receipt_path.read_text()))
+        backups = self.megai / "backups"
+        self.assertTrue(any(p.is_file() and p.read_bytes() == b"legacy source guard" for p in backups.rglob("*")))
+
+    def test_execution_and_escalation_policy_reaches_both_entrypoints(self):
         self.wire()
         agent = self.home / ".pi/agent"
         source = (self.megai / "pi-skill/delegation.md").read_text()
         installed = (agent / "skills/megai/delegation.md").read_text()
         self.assertEqual(installed, source)
-        self.assertIn(source.rstrip(), (agent / "AGENTS.md").read_text())
+        bootstrap = (agent / "AGENTS.md").read_text()
+        self.assertNotIn(source.rstrip(), bootstrap)
+        self.assertIn("megai/delegation.md", bootstrap)
         for rule in (
-            "5 minutes (300 seconds)",
-            "including model/tool waits",
+            "not according to a fixed duration",
+            "Continue while making progress toward acceptance",
             "same-model retry loop",
-            "Luna -> Terra -> Sol -> Astra",
-            "at most two escalation transitions per slice",
+            "suitable, available alternative",
+            "at most two escalation transitions per blocker",
             "Confirm the old writer has stopped",
-            "not a runtime watchdog",
+            "rather than killing or replaying a mutation",
         ):
             with self.subTest(rule=rule):
                 self.assertIn(rule, installed)
+
+    def test_no_fixed_duration_in_reachable_policies(self):
+        from slim_distribution import ROOT
+
+        self.wire()
+        relative_paths = (
+            "pi-skill/SKILL.md", "pi-skill/delegation.md",
+            "pi-skill/acceptance/SKILL.md", "pi-skill/acceptance/reference.md",
+            "pi-skill/integration-queue.md", "skills/model-composition/routing.md",
+            "skills/appllama-app-design-skill/SKILL.md",
+        )
+        paths = [ROOT / name for name in relative_paths]
+        paths += [self.megai / name for name in relative_paths]
+        agent = self.home / ".pi/agent"
+        paths += [agent / "AGENTS.md"]
+        for name in ("megai/SKILL.md", "megai/delegation.md", "megai-acceptance/SKILL.md",
+                     "megai-acceptance/reference.md", "appllama-app-design-skill/SKILL.md"):
+            paths.append(agent / "skills" / name)
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertNotRegex(path.read_text().lower(),
+                                    r"five[ -]minute|5 minutes|300 seconds|slice clock|slice budget")
+        self.assertIn("five-minute hard runtime", (ROOT / "skills/smart-development-orchestrator/SKILL.md").read_text())
+        self.assertIn("Keep a lease alive", (ROOT / "pi-skill/integration-queue.md").read_text())
 
     def test_standalone_preserves_local_resources(self):
         agent = self.home / ".pi/agent"
@@ -102,16 +194,23 @@ class ModelPolicy(Slim):
         self.wire()
         source = self.megai / "pi-skill/delegation.md"
         source.write_text(source.read_text() + "\nTest updated routing.\n")
-        wiring = self.megai / "lib/slim_wiring.py"
-        wiring.write_text(wiring.read_text().replace("Raw acceptance tests", "Updated raw acceptance tests"))
+        bootstrap = self.megai / "pi-skill/bootstrap.md"
+        bootstrap.write_text(bootstrap.read_text().replace("Raw acceptance tests", "Updated raw acceptance tests"))
         self.wire()
         instructions = (self.home / ".pi/agent/AGENTS.md").read_text()
         self.assertIn("Updated raw acceptance tests", instructions)
-        self.assertIn("Test updated routing.", instructions)
+        self.assertNotIn("Test updated routing.", instructions)
+        self.assertIn("Test updated routing.",
+                      (self.home / ".pi/agent/skills/megai/delegation.md").read_text())
         self.assertEqual(instructions.count("megai:subagent-models:begin"), 1)
         receipt = json.loads((self.megai / "slim-wiring.json").read_text())
         self.assertIn(str(self.home / ".pi/agent/AGENTS.md") + "#subagent-models", receipt)
         self.wire("--verify")
+
+
+def load_tests(loader, tests, pattern):
+    # ModelPolicy inherits the distribution cases; do not run imported Slim twice.
+    return loader.loadTestsFromTestCase(ModelPolicy)
 
 
 if __name__ == "__main__":

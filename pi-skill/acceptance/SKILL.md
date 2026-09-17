@@ -1,10 +1,19 @@
 ---
 name: megai-acceptance
-description: Freeze task acceptance, reproduce bugs, collect source-current evidence and obtain independent Pi review before handoff. Use for implementation, bug fixes, review findings and blocked or stale verification.
+description: Formal Pi acceptance for guarded risks or explicitly requested assurance; freeze criteria, collect evidence and obtain independent review.
 managed-by: megai
 ---
 
 # Pi acceptance gate
+
+Use for **guarded** work selected by `megai`, explicit formal assurance, or an
+existing frozen contract. Routine Pi tasks use focused verification and self-review
+without loading this workflow. Once selected, this gate is mandatory: urgency or a
+failed check cannot downgrade it. Changes to safety/acceptance/installer behavior
+or enforcement are guarded, including instruction-only changes to approval or
+validation requirements. Harmless prose edits and installation of already-reviewed
+policy bytes do not trigger this gate by filename alone; classify their actual
+risk with `megai`.
 
 Parent owns the contract and Plane identity; leaves inherit both, never delegate,
 mutate Plane or integrate. Load this workflow once per task; reuse it at handoff.
@@ -12,6 +21,12 @@ Read [reference.md](reference.md) when preparing contracts, recording a regressi
 collecting evidence or assembling review. This gate is not a sandbox or tracker.
 
 ## 1. Freeze the task
+
+For non-Git configuration work, use the complete owned configuration directory as
+`--root`; the CLI fingerprints all entries without Git or ignore rules. Follow the
+scoped local-workspace/backup/one-writer procedure in `agent-worktree-lifecycle`.
+Contracts, evidence and backups stay outside that source root. Git absence alone
+is not BLOCKED; unreadable/unsupported source, missing tests or review still are.
 
 Start/reuse the linked Plane item. Name observable outcomes, error cases and
 regression boundaries; bind each to a bounded command that asserts the outcome.
@@ -32,8 +47,14 @@ to criteria/tests require parent reconciliation and fresh red evidence, not a wa
 ## 2. Fix and collect
 
 Use the narrowest root-cause fix and task-relevant checks. One writer, no mandatory
-scout or duplicate reviewer. Commit the candidate before final capture when a later
-commit would invalidate its snapshot. Keep artifacts outside the source checkout.
+scout or duplicate reviewer. Git source tasks use isolated per-repo worktrees via
+`agent-worktree-lifecycle`. Commit before final Git delivery capture. For a multi-repo
+task, freeze the full affected repo/commit vector and require every repo plus cross-repo
+checks to pass before any dev integration. A moved base or candidate needs fresh
+source-current evidence; one repository's PASS never substitutes for another's.
+Non-Git configuration has no commit step;
+finish writes and freeze the directory fingerprint before final capture. Keep artifacts
+outside the source root.
 
 Run `megai acceptance collect` with the frozen contract and hash retrieved from
 Plane. It captures commands once, in order, into a new private directory; a failure
@@ -46,10 +67,15 @@ screenshots, coverage, exit zero or LLM scores alone do not prove behavior.
 
 ## 3. Review, decide, stop
 
-Use one fresh independent Pi verifier through the approved route: neutral READY,
+Use one fresh independent Pi verifier, not an automatic scout/writer/reviewer team.
+Give it the existing raw receipts; repeat a passing check only for a concrete
+unresolved risk. Editorial preferences are nonblocking unless they violate the
+frozen contract or create a demonstrated safety/correctness failure.
+Launch through the approved route: neutral READY,
 verify Pi/exact model/effective high thinking, then send the frozen contract/hash,
 candidate diff/snapshot and raw evidence, not the implementer's reasoning transcript.
-Prefer Sol/high. Give read-only authority and a bounded deadline. Reviewer checks
+Use a configured model suitable for independent review. Give read-only authority
+and a bounded deadline. Reviewer checks
 every criterion, root cause, red/green validity, regressions and runtime provenance;
 reports severity, `path:line`, impact and reproduction for actionable findings.
 Hash the actual review/status artifact. Unavailable verifier means BLOCKED.
@@ -59,10 +85,11 @@ review. Any source/index/commit change invalidates the entire prior snapshot: fi
 capture and review must match the delivered candidate. Reuse the healthy reviewer
 for bounded corrections, with no unbounded repair loop or repeated discovery.
 
-Run `megai acceptance check` with the Plane-approved hash. Only PASS permits agreed
-branch delivery and Plane **In Review**, never Done or unapproved main promotion.
+Run `megai acceptance check` with the Plane-approved hash. Only a source-current PASS
+permits agreed delivery (Git branch or non-Git configuration files) and Plane
+**In Review**, never Done or unapproved main promotion.
 Report criterion → command/action → observed result → artifact. FAIL needs a fix;
-BLOCKED needs the named evidence/prerequisite. Stop at acceptance. Keep five-minute
-slice checkpoints, user resource exclusions and native provider settings intact.
+BLOCKED needs the named evidence/prerequisite. Stop at acceptance. Keep user
+resource exclusions and native provider settings intact.
 Credentials/private data stay out of argv and public artifacts; raw logs remain
 private, and sanitized exports need their own hashes.

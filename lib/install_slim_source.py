@@ -12,7 +12,7 @@ plan = Plan()
 stage_retirements(plan)
 # These legacy entrypoints are intentionally absent from the active source
 # publication; their receipt-owned bytes are archived by the same plan.
-for relative in ("lib/install_agent_memory.sh", "lib/install_rtk.sh", "lib/install_caveman.sh", "pi-skill/extensions/memory.sh"):
+for relative in ("lib/install_agent_memory.sh", "lib/install_rtk.sh", "lib/install_caveman.sh", "pi-skill/extensions/memory.sh", "pi-skill/model-guard/index.ts"):
     plan.retire(MEGAI / relative)
 executables = []
 for folder in ("bin", "lib", "pi-skill", "omp-skill", "task-flow", "skills"):
@@ -23,7 +23,8 @@ for folder in ("bin", "lib", "pi-skill", "omp-skill", "task-flow", "skills"):
             continue
         relative = path.relative_to(source)
         if relative.as_posix() in RETIRED_PATHS or relative.as_posix() in {
-            "lib/install_agent_memory.sh", "lib/install_rtk.sh", "lib/install_caveman.sh", "pi-skill/extensions/memory.sh"
+            "lib/install_agent_memory.sh", "lib/install_rtk.sh", "lib/install_caveman.sh", "pi-skill/extensions/memory.sh",
+            "pi-skill/model-guard/index.ts"
         }:
             continue
         target = MEGAI / relative

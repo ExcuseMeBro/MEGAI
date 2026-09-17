@@ -11,7 +11,9 @@ assert.ok(packageRoot, 'Set PI_PACKAGE_ROOT to the installed @earendil-works/pi-
 const { DefaultResourceLoader, SettingsManager } = await import(pathToFileURL(join(packageRoot, 'dist/index.js')));
 const temporary = mkdtempSync(join(tmpdir(), 'headroom-extension-'));
 const originalRoot = process.env.MEGAI_HOME;
+const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
 process.env.MEGAI_HOME = temporary;
+process.env.PI_CODING_AGENT_DIR = join(temporary, 'agent'); // Keep the opt-in token profile out of this fixture.
 process.env.PI_OFFLINE = '1';
 process.env.OPENAI_API_KEY = 'synthetic-never-forward';
 const binary = join(temporary, 'venv/headroom/bin/python');
@@ -131,5 +133,6 @@ try {
  console.log('PASS: actual Pi loader; immutable sessions, raw patches, stable prefix, opt-out/inactive detection, failure fallback, bridge and custom-extension auth isolation');
 } finally {
  if (originalRoot === undefined) delete process.env.MEGAI_HOME; else process.env.MEGAI_HOME = originalRoot;
+ if (originalAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR; else process.env.PI_CODING_AGENT_DIR = originalAgentDir;
  rmSync(temporary, { recursive: true, force: true });
 }
