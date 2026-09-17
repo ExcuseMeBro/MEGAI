@@ -102,10 +102,11 @@ function render(config: Config): string {
   }
   const eligible = ROLE_KEYS.filter((key) => ELIGIBLE.has(key) && identity(config.roles[key]) === DEEPSEEK_FLASH);
   if (eligible.length > 0) {
+    const perRole = eligible.map((key) => `${key} ${config.roles[key].thinking}`).join(", ");
     parts.push(
       `Fallback for ${eligible.join("/")} whose configured primary is ${DEEPSEEK_FLASH}, ` +
-        `only after an actual provider or model-specific failure: keep the configured ` +
-        `primary thinking level, then ${FALLBACK}, with fallback levels high, at most ` +
+        `only after an actual provider or model-specific failure: keep the role's configured ` +
+        `thinking level (${perRole}), then ${FALLBACK}, at most ` +
         "two transitions. Confirm the old writer has stopped before replacing it; " +
         "carry the existing diff, evidence and verification; no speculative standby " +
         "agents and no retry loop. Auth/permission failures, shared outages and " +

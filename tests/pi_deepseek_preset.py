@@ -16,10 +16,11 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 FLASH = {"provider": "deepseek", "model": "deepseek-flash", "thinking": "high"}
+EXECUTOR = {"provider": "deepseek", "model": "deepseek-flash", "thinking": "low"}
 EXPECTED = {
     "planner": dict(FLASH),
-    "scout": dict(FLASH),
-    "worker": dict(FLASH),
+    "scout": dict(EXECUTOR),
+    "worker": dict(EXECUTOR),
     "reviewer": {"provider": "openai-codex", "model": "gpt-5.6-sol", "thinking": "high"},
 }
 
@@ -82,10 +83,14 @@ class Preset(unittest.TestCase):
         roles = json.loads((self.agent / "megai-roles.json").read_text())
         self.assertEqual(roles, {"schema": 1, "preset": "economy", "roles": EXPECTED})
         settings = json.loads((self.agent / "settings.json").read_text())
+        native = {}
+        for role in EXPECTED.values():
+            # The planner is declared first and owns the native startup level of a
+            # model that several roles share.
+            native.setdefault(role["provider"] + "/" + role["model"], role["thinking"])
         wanted = dict(original, defaultProvider="deepseek", defaultModel="deepseek-flash",
                       defaultThinkingLevel="high", modelThinkingLevels={
-                          **original["modelThinkingLevels"],
-                          **{r["provider"] + "/" + r["model"]: r["thinking"] for r in EXPECTED.values()},
+                          **original["modelThinkingLevels"], **native,
                       })
         self.assertEqual(settings, wanted)
         for path, data in protected.items():
@@ -100,18 +105,18 @@ class Preset(unittest.TestCase):
         self.assertEqual(self.snapshot(), after)
         self.assertTrue(any(p.name == "manifest.json" for p in (self.home / ".megai/backups").rglob("*")))
 
-    def test_preset_is_exact_deepseek_roles_and_consistent_levels(self):
+    def test_preset_is_exact_deepseek_roles_and_role_levels(self):
         config = json.loads((ROOT / "pi-skill/presets/economy.json").read_text())
         self.assertEqual(config, {"schema": 1, "preset": "economy", "roles": EXPECTED})
-        levels = {}
         for role in config["roles"].values():
             identity = role["provider"] + "/" + role["model"]
             self.assertNotIn("minimax", identity.lower())
-            self.assertEqual(levels.setdefault(identity, role["thinking"]), role["thinking"])
-        self.assertEqual(levels["deepseek/deepseek-flash"], "high")
-        self.assertEqual(config["roles"]["scout"], FLASH)
-        self.assertEqual(config["roles"]["worker"], FLASH)
+        # One cheap model plans with judgment and executes cheaply: a shared model
+        # keeps a per-role level in megai-roles.json, and the planner's level is the
+        # unambiguous native startup level in settings.json.
         self.assertEqual(config["roles"]["planner"], FLASH)
+        self.assertEqual(config["roles"]["scout"], EXECUTOR)
+        self.assertEqual(config["roles"]["worker"], EXECUTOR)
 
     def test_retired_mixed_preset_is_refused_and_absent(self):
         self.assertFalse((ROOT / "pi-skill/presets/mixed.json").exists())
@@ -258,6 +263,16 @@ class Preset(unittest.TestCase):
         (self.agent / "megai-roles.json").write_text('{"custom":true}')
         before = self.snapshot()
         self.run_cli("--remove", ok=False)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_unsupported_thinking_level_is_refused_before_any_write(self):
+        # The whitelist validates the level name only. A name no model maps to a real
+        # level is still refused, because nothing downstream can tell it from a typo.
+        roles = {name: dict(role) for name, role in EXPECTED.items()}
+        roles["scout"]["thinking"] = "turbo"
+        self.env["MEGAI_SOURCE"] = str(self.legacy_source(roles))
+        before = self.snapshot()
+        self.run_cli("--preset", "economy", ok=False)
         self.assertEqual(self.snapshot(), before)
 
     def test_invalid_or_conflicting_options_are_read_only(self):

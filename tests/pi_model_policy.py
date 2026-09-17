@@ -107,6 +107,10 @@ class ModelPolicy(Slim):
             "at most two escalation transitions per blocker",
             "Confirm the old writer has stopped",
             "rather than killing or replaying a mutation",
+            "One context handoff per task, ideally zero",
+            "gathers its\n  own evidence in its own trace",
+            "Judge the run end to end",
+            "Cost is per delivered change, not per agent token",
         ):
             with self.subTest(rule=rule):
                 self.assertIn(rule, installed)

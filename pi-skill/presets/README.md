@@ -6,9 +6,16 @@ planner, scout, worker and reviewer. This is a user-selected default, not a mode
 allowlist or a guarantee that economy routing wins on other tasks. The three-task
 pilot found scope and reporting errors even when functional tests passed.
 
-`deepseek/deepseek-flash` (V4.1-Flash) with high thinking covers planner, scout and
-worker; the reviewer stays on GPT. Shared model roles use one consistent startup
-thinking level. Existing GPT role selections are retained. To upgrade an owned
+`deepseek/deepseek-flash` (V4.1-Flash) covers planner at high thinking and scout and
+worker at low; the reviewer stays on GPT. A three-task rerun of the frozen acceptance
+suites held 3/3 at both levels while low cut wall time and reported cost against high
+(see [`benchmark/pi-vs-omp/results/thinking-levels.md`](../../benchmark/pi-vs-omp/results/thinking-levels.md)).
+Roles that share a model may differ in thinking: `megai-roles.json` keeps the per-role
+level, and `settings.json` keeps the planner's level as the unambiguous native startup
+default. Write levels the model actually accepts: the installer validates the level name,
+not model support, and `deepseek-flash` maps `minimal` and `medium` to no thinking
+parameter at all, so `low`, `high` and `max` are its real levels. Existing GPT role
+selections are retained. To upgrade an owned
 older preset, explicitly reapply the same preset; ordinary wiring preserves it.
 Historical model-specific settings remain user-owned and are not active role
 routing. No credentials or provider registrations are removed.
@@ -48,7 +55,7 @@ Paseo may report `xhigh` while the native Pi session actually uses `high`.
 ## Subagent-only fallback, parent unchanged
 
 The delegation policy keeps configured DeepSeek planner/scout/worker roles primary
-and uses `openai-codex/gpt-5.6-luna` (high) for a permitted model-failure fallback or
+and uses `openai-codex/gpt-5.6-luna` (at the role's configured thinking level) for a permitted model-failure fallback or
 confirmed DeepSeek `402: Insufficient Balance`. For that billing error, the parent
 continues unfinished child work on that fallback without retrying DeepSeek or waiting
 for a top-up; see the

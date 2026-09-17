@@ -7,6 +7,33 @@ roles first and reserve GPT for guarded review or a concrete model-specific fail
 Role preferences do not require launching agents: a healthy DeepSeek parent does its
 own routine work. Keep GPT review bounded to the diff, criteria and test evidence.
 
+## Handoffs — fewer agents, not cheaper agents
+
+The agent that gathers the evidence should be the agent that acts on it. Every
+summary passed between agents is context the next agent never gets, and a writer
+holding only a plan fixes symptoms instead of the root cause. Measured on a
+comparable autofix pipeline after replacing triage + coordinator + up to 15
+hypothesis agents + coding agent with one agent: median issue-to-PR 2.2 h -> 35 min,
+p90 nine days -> under two hours, issues ending in a PR 0.6% -> 4.2%, spend per PR
+$111 -> ~$18. Treat those as that system's numbers, not a prediction here.
+
+- One context handoff per task, ideally zero. No planner/scout stage whose only
+  output is a plan for the writer; a parent already holding the seam and evidence
+  writes it.
+- A delegated writer gets goal, acceptance, paths and authority, then gathers its
+  own evidence in its own trace. Never a parent-written plan or summary as its
+  primary context, and never a re-read of what the parent already read.
+- Review verifies a delivered artifact (diff plus tests on that diff), not a second
+  investigation stage.
+- Judge the run end to end: per-stage green checks pass while the handoff fails.
+- Cost is per delivered change, not per agent token; cutting writer tokens by adding
+  a handoff is a loss until measured.
+- Keep one trace per writer; a failed writer's diff, evidence and trace transfer to
+  the replacement instead of restarting discovery.
+
+Local handoff cost is measurable from Pi session logs with
+`benchmark/handoff-cost/measure.py`; measure before claiming an improvement.
+
 ## Task scope and progress
 
 Define acceptance and the smallest observable result before execution. Split work
@@ -72,9 +99,9 @@ Read-only checks use `python3 -B` and Ruff with
 ## DeepSeek-first subagent fallback
 
 For delegated planner/scout/worker roles whose configured primary is
-`deepseek/deepseek-flash` (high), keep DeepSeek first. After a confirmed
+`deepseek/deepseek-flash`, keep DeepSeek first. After a confirmed
 provider/model-specific failure, timeout, reasoning dead-end or unavailable
-primary, use this exact chain, all at high thinking:
+primary, use this exact chain, keeping each role's configured thinking level:
 `deepseek/deepseek-flash` -> `openai-codex/gpt-5.6-luna`.
 Explicit task model/provider restrictions override this preference; do not replace
 other configured primaries or the independent reviewer's configured model.
@@ -108,7 +135,7 @@ fallback trigger, even when the payload says `type=unknown_error` and
 broad type/code fields alone or a quoted error in repository/tool/test output.
 
 For this confirmed case, the parent routes the unfinished subagent task to the next
-provider in the chain — `openai-codex/gpt-5.6-luna` (high) — after the stopped-writer
+provider in the chain — `openai-codex/gpt-5.6-luna` (the role's configured thinking level) — after the stopped-writer
 and verified-launch checks. Notify the user briefly and continue without requesting
 the same fallback
 approval again, retrying DeepSeek, sleeping or waiting for a balance top-up. Carry
@@ -190,7 +217,8 @@ Moved out of the always-loaded `AGENTS.md` so the parent pays for it only when i
 delegates or escalates.
 
 A confirmed DeepSeek provider timeout means no resend to DeepSeek and no second long
-wait: use the approved `openai-codex/gpt-5.6-luna` (high) fallback once and report the
+wait: use the approved `openai-codex/gpt-5.6-luna` (the role's configured thinking
+level) fallback once and report the
 model that actually ran. A native wait timeout alone is not a provider failure.
 For a suspected stall, do one bounded native wait of at most 180 seconds and inspect
 progress/errors once — never repeated 600-second waits and never routine polling. If
