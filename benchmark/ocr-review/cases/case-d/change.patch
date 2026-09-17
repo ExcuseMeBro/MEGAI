@@ -1,0 +1,29 @@
+diff --git a/lib/asana_plane_import.py b/lib/asana_plane_import.py
+index 2183fcb..365f567 100644
+--- a/lib/asana_plane_import.py
++++ b/lib/asana_plane_import.py
+@@ -1017,14 +1017,22 @@ class Importer:
+         self.state_meta[key] = (mapped["name"], mapped["group"], origin)
+         return current
+ 
++    @staticmethod
++    def _member_identity(member: dict[str, Any]) -> tuple[Any, Any]:
++        nested = member.get("member") if isinstance(member.get("member"), dict) else None
++        if nested is None:
++            return member.get("email"), member.get("id")
++        email = member.get("email") or nested.get("email")
++        member_id = member.get("id") or member.get("member_id") or nested.get("id")
++        return email, member_id
++
+     def _member_ids(self) -> dict[str, str]:
+         if self.members is not None:
+             return self.members
+         result = self.client.list_pages(f"/api/v1/workspaces/{self.client.slug}/members/")
+         self.members = {}
+         for member in result:
+-            email = member.get("email") or member.get("member", {}).get("email") if isinstance(member.get("member"), dict) else member.get("email")
+-            member_id = member.get("id") or member.get("member_id") or member.get("member", {}).get("id") if isinstance(member.get("member"), dict) else member.get("id")
++            email, member_id = self._member_identity(member)
+             if email and member_id:
+                 self.members[str(email).lower()] = str(member_id)
+         return self.members

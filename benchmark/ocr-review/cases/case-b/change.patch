@@ -1,0 +1,26 @@
+diff --git a/lib/asana_plane_import.py b/lib/asana_plane_import.py
+index 2183fcb..3182b69 100644
+--- a/lib/asana_plane_import.py
++++ b/lib/asana_plane_import.py
+@@ -773,19 +773,13 @@ def _verify_identity(record: Any, external_id: str, source: str = EXTERNAL_SOURC
+ 
+ def _verify_owned_payload(kind: str, payload: dict[str, Any], current: dict[str, Any]) -> None:
+     for field in FINGERPRINT_FIELDS.get(kind, ()):
+-        if field not in payload:
++        if field not in payload or field not in current:
+             continue
+-        if field not in current:
+-            raise MigrationError(f"Plane readback omitted submitted {kind} field {field}")
+         expected = payload[field]
+         actual = current[field]
+-        if isinstance(expected, dict):
++        if isinstance(expected, dict) and isinstance(actual, dict):
+             expected = expected.get("id") or expected
+-        if isinstance(actual, dict):
+             actual = actual.get("id") or actual
+-        if isinstance(expected, list) and isinstance(actual, list):
+-            expected = [item.get("id") if isinstance(item, dict) else item for item in expected]
+-            actual = [item.get("id") if isinstance(item, dict) else item for item in actual]
+         if expected != actual:
+             raise MigrationError(f"Plane readback mismatch for {kind} field {field}")
+ 

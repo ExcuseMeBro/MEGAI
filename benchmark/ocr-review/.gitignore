@@ -1,0 +1,8 @@
+# Installed artifacts (task-local OCR CLI, materialized case repos, private
+# answer key and logs) are reproducible from the frozen snapshots/patches and
+# the recorded OCR version, so they are never committed.  In particular the
+# private ground truth must not reach a reviewer-visible branch.
+tools/
+work/
+private/
+__pycache__/
