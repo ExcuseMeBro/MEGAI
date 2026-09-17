@@ -11,6 +11,7 @@ table. Requested comparison: **Pi + MEGAI (`pi` branch)** against **OMP + MEGAI
 | --- | --- | --- | --- |
 | `pi` | `pi` 0.85.1 | `~/.pi/agent` (MEGAI Pi profile, `remove_omp` installer → `pi` branch) | Pi-only profile |
 | `omp` | `omp/18.2.0` | `~/.omp/agent` (MEGAI `megai:slim` rules + `megai`, `megai-task-flow`, `agent-worktree-lifecycle` skills) | Profile that keeps OMP installed |
+| `hybrid` | `pi` (two stages) | same as `pi` | Pi-only profile |
 
 The two branches differ by one commit each from their common base: `pi` adds
 Pi-side context/usage tooling, `omp` drops the Pi installer's OMP-removal path.
@@ -65,6 +66,16 @@ A profile follow-up (`results/typesafe-skill.md`) runs the Pi arm twice over the
 `deepseek-flash` cells, once with the TypeSafe agent skill present in
 `~/.pi/agent/skills/` and once with that directory parked. It changes no harness
 code: the varied variable is the profile, not the matrix or the prompt.
+
+A local-model follow-up (`results/qwen-hybrid.md`) adds a self-hosted
+`qwen38-local/qwen3.8-35b-a3b-distill` provider (a `llama-server` on the tailnet,
+registered in `~/.pi/agent/models.json`) and a third arm, **`hybrid`**: the
+`--model` value works the task first, then `HYBRID_REVIEWER`
+(`deepseek/deepseek-flash`) reviews the uncommitted diff in the same trial checkout
+using `prompts/review.md` and may fix it. Both stages are measured separately in
+`stages`, the worker's own acceptance is evaluated before the reviewer runs, and
+`reviewer_changed` compares the two diffs. Requires that provider to be reachable;
+the other arms are unaffected.
 
 Arm order alternates per task (Pi first for bugfix/refactor, OMP first for
 feature) to reduce order bias. Trials run sequentially: concurrency would
