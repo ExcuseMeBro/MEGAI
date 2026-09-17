@@ -109,9 +109,10 @@ A confirmed provider-specific insufficient balance or unavailability permits the
 next user-approved provider in this chain; do not stop at the first failed provider
 while a safe, configured alternative remains.
 
-This is parent-driven **subagent-only** routing, not a Pi runtime failover setting.
-Keep the parent model, native startup defaults, model-thinking settings, credentials
-and provider catalog unchanged. Keep primary roles in `megai-roles.json`; do not
+This is parent-driven **child** routing. It is separate from the Pi runtime provider
+fallback below, which belongs to the failing parent session. Keep the parent's
+native startup defaults, model-thinking settings, credentials and provider catalog
+unchanged. Keep primary roles in `megai-roles.json`; do not
 reapply a preset merely to enable this fallback, because `--preset` also changes
 native startup defaults.
 
@@ -125,6 +126,29 @@ unless its balance is already known to be exhausted in this parent session (belo
 a healthy fallback child may handle the same task's refinements. Auth/permission
 failures, shared quota/outages and uncertain writes still require reconciliation,
 not blind fallback. Use completion notifications, not sleep polling.
+
+### Pi runtime provider fallback
+
+The installed `megai-model-fallback` extension continues a parent session that ended
+on a provider-level failure on the other configured provider:
+`deepseek/deepseek-flash` <-> `openai-codex/gpt-5.6-sol`. It swaps at most once per
+failed model in a session — a partner that also fails is never swapped back to the
+first, so failures cannot cycle between providers — then notifies the user, records a
+`megai-model-fallback` session entry and continues the unfinished task in the same
+session. Authorization/permission, shared-quota and context-overflow errors never
+trigger it: those need reconciliation or compaction, not a different provider.
+
+The pair comes from `model-fallback.json` in the Pi agent directory; the built-in
+pair applies when the file is missing or unusable, and an empty map disables the
+swap:
+
+```json
+{"fallbacks": {"deepseek/deepseek-flash": "openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-sol": "deepseek/deepseek-flash"}}
+```
+
+Editing that file needs no reinstall. The extension changes no role, credential,
+tool or thinking level, and it reports every swap, so a switched model is never
+silent.
 
 ### Confirmed DeepSeek balance exhaustion
 
