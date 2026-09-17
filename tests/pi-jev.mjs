@@ -49,8 +49,8 @@ const server = createServer((request, response) => {
   request.on('end', () => {
     calls.push({ url: request.url, authorization: request.headers.authorization, body: JSON.parse(body) });
     if (reply) {
-      response.writeHead(reply.status, { 'content-type': 'application/json' });
-      response.end(JSON.stringify(reply.body));
+      response.writeHead(reply.status ?? 200, { 'content-type': 'application/json' });
+      response.end(reply.raw ?? JSON.stringify(reply.body));
       return;
     }
     response.writeHead(200, { 'content-type': 'application/json' });
@@ -94,7 +94,6 @@ try {
   mkdirSync(join(temp, 'bin'), { recursive: true });
   writeFileSync(join(temp, 'bin/security'), '#!/bin/sh\nexit 44\n');
   chmodSync(join(temp, 'bin/security'), 0o755);
-  const path = process.env.PATH;
   process.env.PATH = join(temp, 'bin') + ':' + (path ?? '');
   delete process.env.TYPESAFE_API_KEY;
   delete process.env.TYPESAFE_ENDPOINT;
@@ -134,10 +133,25 @@ try {
   assert.match(broken.error, /HTTP 500/);
   assert.ok(!broken.error.includes('synthetic-only'));
 
+  // Every other failure shape stays a bounded, key-free ok:false.
+  reply = { status: 200, raw: 'not json at all' };
+  const nonJson = read(await jev.execute('call-5', { state: 'fix the flaky test', questions }, undefined, undefined, ctx));
+  assert.equal(nonJson.ok, false);
+  assert.match(nonJson.error, /was not JSON/);
+  reply = { status: 200, body: { model: 'jev-1.13.0' } };
+  const noAnswers = read(await jev.execute('call-6', { state: 'fix the flaky test', questions }, undefined, undefined, ctx));
+  assert.equal(noAnswers.ok, false);
+  assert.match(noAnswers.error, /carried no answers/);
+  reply = { status: 200, raw: JSON.stringify({ answers: { padding: 'x'.repeat(300_000) } }) };
+  const oversized = read(await jev.execute('call-7', { state: 'fix the flaky test', questions }, undefined, undefined, ctx));
+  assert.equal(oversized.ok, false);
+  assert.match(oversized.error, /too large/);
+
   install('--remove');
   assert.ok(!existsSync(installed), 'the installer must remove its own asset');
-  console.log('PASS: real installer and Pi loader; jev tool registered, request shape exact, key never leaked, '
-    + 'missing-key and HTTP-error paths fail open without touching the network');
+  console.log('PASS: real installer and Pi loader; jev tool registered, request shape exact, key never leaked, and '
+    + 'missing-key, invalid-question, HTTP-error, non-JSON, no-answers and oversized-body paths all fail open '
+    + 'without touching the network');
 } finally {
   server.close();
   for (const [name, value] of Object.entries(savedEnv)) {

@@ -40,11 +40,13 @@ function keychainKey(): string | undefined {
   }
 }
 
-/** Environment first, then the macOS keychain; only a found key is remembered. */
+/** Environment first, then the macOS keychain. A miss is remembered too, so a
+ * keychain-less session spawns `security` at most once. */
 function apiKey(): string | undefined {
   const provided = process.env.TYPESAFE_API_KEY?.trim();
   if (provided) return provided;
-  return cachedKey ??= keychainKey();
+  if (cachedKey === undefined) cachedKey = keychainKey() ?? "";
+  return cachedKey || undefined;
 }
 
 function criteria(value: unknown, id: string): string[] | Record<string, string | null> {
@@ -122,7 +124,9 @@ export default function jev(pi: ExtensionAPI) {
           Type.Array(Type.String({ maxLength: 200 }), { maxItems: MAX_CRITERIA }),
           Type.Record(Type.String(), Type.Union([Type.String({ maxLength: 200 }), Type.Null()])),
         ], { description: "choice labels, score levels (0..n-1), or noul true/false meanings" })),
-      })),
+      }), {
+        description: "Questions and criteria are sent to the API with `state`: no secrets, credentials or personal data",
+      }),
     }),
     async execute(_id, params, signal) {
       let questions: Record<string, unknown>;

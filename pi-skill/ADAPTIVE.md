@@ -46,7 +46,8 @@ and never authorizes a reserved user decision (main promotion, deletion,
 credentials or permissions, software install or removal). If the call returns
 `ok: false` — no key, timeout, network, non-200 — decide with your own judgment,
 say the call failed once, and continue; never retry in a loop. A missing-key
-failure holds for the whole session, so decide directly after the first one.
+failure holds for the whole session — the tool remembers the miss — so decide
+directly after the first one.
 
 ## Three-step default
 

@@ -45,6 +45,14 @@ class ModelPolicy(Slim):
         self.assertIn("custom/legacy asset preserved", self.wire(ok=False).stderr)
         self.assertEqual(self.snapshot(), before)
 
+    def test_jev_asset_preserves_a_user_owned_collision(self):
+        self.wire()
+        target = self.home / ".pi/agent/extensions/megai-jev/index.ts"
+        self.write(target, "user-owned jev tool")
+        before = self.snapshot()
+        self.assertIn("custom/legacy asset preserved", self.wire(ok=False).stderr)
+        self.assertEqual(self.snapshot(), before)
+
     def test_owned_legacy_guard_retired_on_upgrade(self):
         import hashlib
 
