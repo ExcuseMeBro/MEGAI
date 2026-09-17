@@ -145,7 +145,7 @@ try {
   reply = { status: 200, raw: JSON.stringify({ answers: { padding: 'x'.repeat(300_000) } }) };
   const oversized = read(await jev.execute('call-7', { state: 'fix the flaky test', questions }, undefined, undefined, ctx));
   assert.equal(oversized.ok, false);
-  assert.match(oversized.error, /too large/);
+  assert.equal(oversized.error, 'Jev response too large');
 
   install('--remove');
   assert.ok(!existsSync(installed), 'the installer must remove its own asset');

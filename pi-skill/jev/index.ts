@@ -40,8 +40,8 @@ function keychainKey(): string | undefined {
   }
 }
 
-/** Environment first, then the macOS keychain. A miss is remembered too, so a
- * keychain-less session spawns `security` at most once. */
+/** Environment first, then the macOS keychain. A miss is remembered too (as
+ * `""`), so a keychain-less macOS session spawns `security` at most once. */
 function apiKey(): string | undefined {
   const provided = process.env.TYPESAFE_API_KEY?.trim();
   if (provided) return provided;
