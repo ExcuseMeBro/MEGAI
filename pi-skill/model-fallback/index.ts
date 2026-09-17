@@ -7,12 +7,17 @@
  * for the session: a partner that also fails is never swapped back to the first,
  * so failures cannot ping-pong between providers.
  *
- * Auth/permission, shared-quota and context-overflow errors never trigger a swap —
- * those need reconciliation or compaction, not a different provider. The pair comes
+ * Authorization/permission and context-overflow errors never trigger a swap: those
+ * need reconciliation or compaction, not a different provider. Provider-specific
+ * exhaustion is deliberately *not* on that list — an exhausted balance or plan limit
+ * is exactly what the partner provider is for. The pair comes
  * from `model-fallback.json` in the Pi agent directory when that file is readable
  * and valid, otherwise from `DEFAULT_FALLBACKS`; an empty `fallbacks` object
  * disables the swap. Nothing else changes: no role, credential, tool or
  * thinking-level edit, and the user always sees a notification and a session entry.
+ *
+ * The continuation is queued as a follow-up while the run is still alive, because a
+ * prompt sent after the run settles is dropped in headless (`--print`) sessions.
  */
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { readFileSync, statSync } from "node:fs";
@@ -27,12 +32,15 @@ const MAX_CONFIG_BYTES = 32 * 1024;
 const MAX_PAIRS = 16;
 const IDENTITY = /^[A-Za-z0-9._:-]{1,64}\/[A-Za-z0-9._:\/-]{1,96}$/;
 /**
- * Failures another provider cannot fix: authorization, shared quota and context
- * overflow need reconciliation or compaction instead. `invalid_request` is
- * deliberately absent — DeepSeek reports its 402 balance error under that code.
+ *
+ * Failures another provider cannot fix: authorization, permission and a quota the
+ * providers share need reconciliation, and a context overflow needs compaction.
+ * `invalid_request` is deliberately absent — DeepSeek reports its 402 balance error
+ * under that code — and so are 429, plan limits and balance errors: those are
+ * provider-specific exhaustion, which the partner exists to cover.
  */
 const NOT_PROVIDER =
-  /\b(401|403|429)\b|unauthorized|forbidden|permission denied|api[- ]?key|authentication|rate.?limit|too many requests|quota|context.{0,16}(length|window|overflow)|too many tokens|maximum context/i;
+  /\b(401|403)\b|unauthorized|forbidden|permission denied|api[- ]?key|authentication|shared.{0,16}(quota|outage|limit)|context[_ ]|\bcontext\b.{0,32}(length|window|overflow|size|limit)|prompt (?:is )?too long|too long for requested model|request_too_large|maximum prompt length|reduce the length of the messages|exceeds (?:the )?(?:maximum|limit)|too large for model|too many tokens|token limit|range of input length/i;
 const CONTINUE =
   "The previous provider request failed before this task finished. Continue the unfinished work " +
   "from the existing context, diff and evidence, and verify what actually completed instead of " +
@@ -85,8 +93,9 @@ export default function modelFallback(pi: ExtensionAPI) {
       : undefined;
   });
 
-  // agent_settled means no retry, compaction or follow-up will continue this run.
-  pi.on("agent_settled", async (_event, ctx: ExtensionContext) => {
+  // The run is still alive here, so the continuation must be queued as a follow-up.
+  // After agent_settled a headless session is already finishing and drops the prompt.
+  pi.on("agent_end", async (_event, ctx: ExtensionContext) => {
     const failure = pending;
     pending = undefined;
     if (!failure) return;
@@ -101,6 +110,7 @@ export default function modelFallback(pi: ExtensionAPI) {
     if (ctx.hasUI) {
       ctx.ui.notify(`MEGAI: ${failure.from} failed (${failure.reason}); continuing on ${partner}.`, "warning");
     }
-    pi.sendUserMessage(`${CONTINUE}\n\nFailed provider: ${failure.from} — ${failure.reason}`);
+    pi.sendUserMessage(`${CONTINUE}\n\nFailed provider: ${failure.from} — ${failure.reason}`,
+      { deliverAs: "followUp" });
   });
 }

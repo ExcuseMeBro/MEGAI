@@ -135,8 +135,10 @@ on a provider-level failure on the other configured provider:
 failed model in a session — a partner that also fails is never swapped back to the
 first, so failures cannot cycle between providers — then notifies the user, records a
 `megai-model-fallback` session entry and continues the unfinished task in the same
-session. Authorization/permission, shared-quota and context-overflow errors never
-trigger it: those need reconciliation or compaction, not a different provider.
+session. Authorization/permission errors and a quota shared across the pair never
+trigger it — those need reconciliation — and neither does a context overflow, which
+needs compaction: a different provider does not shrink the prompt. An exhausted
+balance, plan limit or 429 does trigger it, because that is what the partner is for.
 
 The pair comes from `model-fallback.json` in the Pi agent directory; the built-in
 pair applies when the file is missing or unusable, and an empty map disables the
@@ -146,9 +148,12 @@ swap:
 {"fallbacks": {"deepseek/deepseek-flash": "openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-sol": "deepseek/deepseek-flash"}}
 ```
 
-Editing that file needs no reinstall. The extension changes no role, credential,
-tool or thinking level, and it reports every swap, so a switched model is never
-silent.
+Editing that file needs no reinstall. The continuation is queued as a follow-up into
+the still-live run, so it also reaches headless (`pi -p`) sessions. With native Pi
+auto-retry enabled (`retry.enabled`, which the MEGAI profile disables), a transient
+error that a retry already recovered still receives that continuation turn. The
+extension changes no role, credential, tool or thinking level, and it reports every
+swap, so a switched model is never silent.
 
 ### Confirmed DeepSeek balance exhaustion
 
