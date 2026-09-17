@@ -102,8 +102,9 @@ def pi_prompt(policy: dict, request: str) -> str:
     )
 
 
-def jev_ask(state: dict, key: str) -> dict:
-    body = json.dumps({"state": state, "model": JEV_MODEL, "questions": jev_questions()}).encode()
+def jev_ask(state: dict, key: str, questions: dict | None = None) -> dict:
+    body = json.dumps({"state": state, "model": JEV_MODEL,
+                       "questions": questions or jev_questions()}).encode()
     request = urllib.request.Request(
         JEV_URL,
         data=body,
