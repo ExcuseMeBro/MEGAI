@@ -40,7 +40,8 @@ The `jev` tool answers typed decision questions (`choice`, `score`, `noul`) in a
 a second for a fraction of a cent. Use it by default for the classification this
 flow already asks for — routine/guarded mode, task type and effort, and whether a
 request needs user approval — instead of asking a model, and record the answer in
-the task item. Send only the text the decision needs: never secrets, credentials,
+the task item. Give `choice` and `noul` a label→meaning map and `score` an ordered
+level list (a bare label list is accepted for `choice`/`noul` and sent as labels). Send only the text the decision needs: never secrets, credentials,
 tokens, or personal data. Every answer is advisory: `noul` returns a probability
 and never authorizes a reserved user decision (main promotion, deletion,
 credentials or permissions, software install or removal). If the call returns

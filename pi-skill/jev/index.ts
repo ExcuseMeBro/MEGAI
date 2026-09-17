@@ -91,6 +91,16 @@ function criteria(value: unknown, id: string): string[] | Record<string, string 
   return shaped;
 }
 
+/** The live API takes an ordered level list for `score` and a label→meaning map
+ * for `choice`/`noul`. Its other accepted shape is converted here, never forwarded
+ * blind: a wrong shape comes back as HTTP 422, which used to make every `choice`
+ * call with a plain label list fail. */
+function shapedCriteria(type: string, value: unknown, id: string): string[] | Record<string, string | null> {
+  const parsed = criteria(value, id);
+  if (type === "score") return Array.isArray(parsed) ? parsed : Object.keys(parsed);
+  return Array.isArray(parsed) ? Object.fromEntries(parsed.map((label) => [label, null])) : parsed;
+}
+
 /** Validate the caller's questions; a malformed question never reaches the network. */
 function questionPayload(questions: Record<string, unknown>): Record<string, unknown> {
   const entries = Object.entries(questions ?? {});
@@ -103,9 +113,17 @@ function questionPayload(questions: Record<string, unknown>): Record<string, unk
     if (!KINDS.includes(question.type as string)) throw new Error(`invalid question type for "${id}"`);
     const instructions = typeof question.instructions === "string" ? question.instructions.trim() : "";
     if (!instructions || instructions.length > 2_000) throw new Error(`invalid instructions for "${id}"`);
-    payload[id] = question.criteria === undefined
-      ? { type: question.type, instructions }
-      : { type: question.type, instructions, criteria: criteria(question.criteria, id) };
+    if (question.criteria === undefined) {
+      if (question.type === "choice" || question.type === "score")
+        throw new Error(`criteria required for "${id}" (${question.type})`);
+      payload[id] = { type: question.type, instructions };
+    } else {
+      payload[id] = {
+        type: question.type,
+        instructions,
+        criteria: shapedCriteria(question.type as string, question.criteria, id),
+      };
+    }
   }
   return payload;
 }
@@ -145,7 +163,7 @@ export default function jev(pi: ExtensionAPI) {
         criteria: Type.Optional(Type.Union([
           Type.Array(Type.String({ maxLength: 200 }), { maxItems: MAX_CRITERIA }),
           Type.Record(Type.String(), Type.Union([Type.String({ maxLength: 200 }), Type.Null()])),
-        ], { description: "choice labels, score levels (0..n-1), or noul true/false meanings" })),
+        ], { description: "choice/noul: label→meaning map (a bare label list is accepted too); score: ordered level list" })),
       }), {
         description: "Questions and criteria are sent to the API with `state`: no secrets, credentials or personal data",
       }),

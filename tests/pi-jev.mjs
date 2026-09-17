@@ -143,12 +143,39 @@ try {
   assert.match(invalid.error, /invalid criteria for "effort"/);
   assert.equal(calls.length, beforeInvalid, 'invalid questions must not reach the network');
 
-  // A real call: exact request shape, answers passed through, key never echoed.
-  const result = await jev.execute('call-5', { state: 'fix the flaky test', questions }, undefined, undefined, ctx);
+  // The live API takes an ordered level list for `score` and a label→meaning map
+  // for `choice`/`noul`; the other accepted shape is normalized before the request.
+  const shape = read(await jev.execute('call-shape', {
+    state: 'fix the flaky test',
+    questions: {
+      task_type: { type: 'choice', instructions: 'Which type?', criteria: ['bug', 'chore'] },
+      effort: { type: 'score', instructions: 'How much?', criteria: { one: 'one file', few: 'few files' } },
+      needs_approval: { type: 'noul', instructions: 'Is this reserved?', criteria: ['no', 'yes'] },
+    },
+  }, undefined, undefined, ctx));
+  assert.equal(shape.ok, true);
   assert.equal(calls.length, beforeInvalid + 1);
-  assert.equal(calls[beforeInvalid].url, '/v1/systemone');
-  assert.equal(calls[beforeInvalid].authorization, 'Bearer synthetic-only');
-  assert.deepEqual(calls[beforeInvalid].body, { state: 'fix the flaky test', model: 'jev-latest', questions });
+  assert.deepEqual(calls.at(-1).body.questions, {
+    task_type: { type: 'choice', instructions: 'Which type?', criteria: { bug: null, chore: null } },
+    effort: { type: 'score', instructions: 'How much?', criteria: ['one', 'few'] },
+    needs_approval: { type: 'noul', instructions: 'Is this reserved?', criteria: { no: null, yes: null } },
+  });
+  // Criteria the API requires are never sent missing.
+  const noCriteria = read(await jev.execute('call-shape-2', {
+    state: 'fix the flaky test',
+    questions: { task_type: { type: 'choice', instructions: 'Which type?' } },
+  }, undefined, undefined, ctx));
+  assert.equal(noCriteria.ok, false);
+  assert.match(noCriteria.error, /criteria required for "task_type"/);
+  assert.equal(calls.length, beforeInvalid + 1, 'a question missing required criteria must not reach the network');
+
+  // A real call: exact request shape, answers passed through, key never echoed.
+  const beforeReal = calls.length;
+  const result = await jev.execute('call-5', { state: 'fix the flaky test', questions }, undefined, undefined, ctx);
+  assert.equal(calls.length, beforeReal + 1);
+  assert.equal(calls[beforeReal].url, '/v1/systemone');
+  assert.equal(calls[beforeReal].authorization, 'Bearer synthetic-only');
+  assert.deepEqual(calls[beforeReal].body, { state: 'fix the flaky test', model: 'jev-latest', questions });
   assert.equal(read(result).ok, true);
   assert.equal(read(result).answers.needs_approval.noul, 0.04);
   assert.equal(read(result).model, 'jev-1.13.0');
