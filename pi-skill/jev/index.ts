@@ -147,11 +147,14 @@ export default function jev(pi: ExtensionAPI) {
     name: "jev",
     label: "TypeSafe decision",
     description: "TypeSafe System One typed decision call: 1-8 `choice`, `score` or `noul` " +
-      "questions about supplied state, answered in about a second with probabilities. Use it by " +
-      "default for triage decisions — routine/guarded classification, task type and effort, and " +
-      "whether a request needs user approval — instead of asking a model. Send only the request " +
+      "questions about supplied state, answered in about a second with probabilities. Use it " +
+      "for every workflow step decision — triage mode/type/effort/approval, Plane labels, " +
+      "isolation, delegation and role, verification depth, verdict, delivery readiness and " +
+      "handoff — one call per decision boundary with that step's independent questions " +
+      "bundled, instead of asking a model. Send only the request " +
       "text needed for the decision: no secrets, credentials or personal data. Answers are " +
-      "advisory and never authorize a reserved user decision. On ok:false, decide yourself.",
+      "advisory, never authorize a reserved user decision, and belong on the task item. " +
+      "On ok:false, decide yourself.",
     parameters: Type.Object({
       state: Type.String({
         minLength: 1, maxLength: MAX_STATE,
