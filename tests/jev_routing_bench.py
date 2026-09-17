@@ -99,6 +99,18 @@ class RoutingBench(unittest.TestCase):
         self.assertIn("router picked a fully-correct fixed arm: 3/3", output)
         self.assertIn("routed cost is", output)
 
+    def test_report_reads_a_published_json_array_too(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            items_path = Path(tmp) / "items.json"
+            items_path.write_text(json.dumps({"policy": {}, "items": ITEMS}))
+            results_path = Path(tmp) / "trials.json"
+            results_path.write_text(json.dumps(fixture()))
+            stream = io.StringIO()
+            with contextlib.redirect_stdout(stream):
+                status = bench.report(items_path, results_path)
+        self.assertEqual(status, 0)
+        self.assertIn("items with all three arms: 3/3", stream.getvalue())
+
     def test_route_state_carries_policy_and_request(self):
         state = bench.route_state({"type": "policy"}, "do the thing")
         self.assertEqual(state["request"], "do the thing")
