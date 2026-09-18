@@ -14,9 +14,12 @@ the live branch and the call itself.
   answer must never deadlock work the model is sure about.
 - `JEV_GATE_BLOCK=0` downgrades a block to a report, `JEV_GATE=0` turns the gate off
   for the session. The `jev` tool itself is never gated — that question recurses.
-- Fail open, no retry: no key, HTTP error, non-JSON, a judgment slower than
-  `JEV_GATE_TIMEOUT_MS` (default 5 s) or an agent abort all let the call through. A
-  missing or unreadable session only drops the goal from the state.
+- Fail open, one attempt per failure: no key, HTTP error, non-JSON, a judgment slower
+  than `JEV_GATE_TIMEOUT_MS` (default 5 s) or an agent abort all let the call through. A
+  missing or unreadable session only drops the goal from the state. HTTP 429 and 529 are
+  the exception — they only mean the provider is throttling this caller, so `jevPost`
+  retries them twice (0.5 s then 1 s) before the gate fails open; a caller abort during a
+  backoff wait ends the retry at once.
 - It shares `apiKey()` and `jevPost` with the tool and the compaction extension, so
   key resolution, the session-dialog key and the never-echoed-key rule are one path.
 
@@ -61,4 +64,9 @@ Verify offline through the real loader and the real hook:
 
 ```bash
 PI_PACKAGE_ROOT=<installed pi-coding-agent> node tests/pi-jev.mjs
+PI_PACKAGE_ROOT=<installed pi-coding-agent> node tests/pi-jev-retry.mjs
 ```
+
+The first covers the tool, the gate and the key path against a local endpoint; the
+second covers the 429/529 retry and pins the 500, malformed-body, timeout and
+cancellation paths to exactly one attempt.

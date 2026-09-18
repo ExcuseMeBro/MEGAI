@@ -39,7 +39,9 @@ The test installs through the real installer, loads through the real Pi resource
 loader (so the relative import of the `jev` extension is exercised), drives the real
 `session_before_compact` hook against a local fake TypeSafe endpoint, and asserts the
 keep/drop outcomes, the request shape, batching, and every deferral path offline.
-`tests/pi-jev.mjs` covers the shared `jevPost`/key path the two extensions share.
+`tests/pi-jev.mjs` covers the shared `jevPost`/key path the two extensions share, and
+`tests/pi-jev-retry.mjs` covers the 429/529 retry that path now applies to compaction
+and the tool alike.
 
 Thresholds and budgets are constants at the top of the extension; change them in
 `pi-skill/jev-compaction/index.ts` and re-run the installer.
