@@ -96,6 +96,13 @@ planner and reviewer are read-only; a worker gets only its assigned managed path
 Read-only checks use `python3 -B` and Ruff with
 `--no-fix --no-fix-only --force-exclude --no-cache`; avoid cache-producing checks.
 
+When the `jev` tool is available, delegation, role, fallback and timeout are each one
+call on the task state (`delegate`, `role`, `fallback` and `timeout_action` choices,
+with a `noul` for whether escalation is required), recorded on the same Plane item.
+The answers are advisory: the configured roles, quota rules and fallback chain above
+still decide, and a low-confidence answer means look at the evidence again, not swap
+models silently.
+
 ## DeepSeek-first subagent fallback
 
 For delegated planner/scout/worker roles whose configured primary is
@@ -109,9 +116,10 @@ A confirmed provider-specific insufficient balance or unavailability permits the
 next user-approved provider in this chain; do not stop at the first failed provider
 while a safe, configured alternative remains.
 
-This is parent-driven **subagent-only** routing, not a Pi runtime failover setting.
-Keep the parent model, native startup defaults, model-thinking settings, credentials
-and provider catalog unchanged. Keep primary roles in `megai-roles.json`; do not
+This is parent-driven **child** routing. It is separate from the Pi runtime provider
+fallback below, which belongs to the failing parent session. Keep the parent's
+native startup defaults, model-thinking settings, credentials and provider catalog
+unchanged. Keep primary roles in `megai-roles.json`; do not
 reapply a preset merely to enable this fallback, because `--preset` also changes
 native startup defaults.
 
@@ -125,6 +133,34 @@ unless its balance is already known to be exhausted in this parent session (belo
 a healthy fallback child may handle the same task's refinements. Auth/permission
 failures, shared quota/outages and uncertain writes still require reconciliation,
 not blind fallback. Use completion notifications, not sleep polling.
+
+### Pi runtime provider fallback
+
+The installed `megai-model-fallback` extension continues a parent session that ended
+on a provider-level failure on the other configured provider:
+`deepseek/deepseek-flash` <-> `openai-codex/gpt-5.6-sol`. It swaps at most once per
+failed model in a session — a partner that also fails is never swapped back to the
+first, so failures cannot cycle between providers — then notifies the user, records a
+`megai-model-fallback` session entry and continues the unfinished task in the same
+session. Authorization/permission errors and a quota shared across the pair never
+trigger it — those need reconciliation — and neither does a context overflow, which
+needs compaction: a different provider does not shrink the prompt. An exhausted
+balance, plan limit or 429 does trigger it, because that is what the partner is for.
+
+The pair comes from `model-fallback.json` in the Pi agent directory; the built-in
+pair applies when the file is missing or unusable, and an empty map disables the
+swap:
+
+```json
+{"fallbacks": {"deepseek/deepseek-flash": "openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-sol": "deepseek/deepseek-flash"}}
+```
+
+Editing that file needs no reinstall. The continuation is queued as a follow-up into
+the still-live run, so it also reaches headless (`pi -p`) sessions. With native Pi
+auto-retry enabled (`retry.enabled`, which the MEGAI profile disables), a transient
+error that a retry already recovered still receives that continuation turn. The
+extension changes no role, credential, tool or thinking level, and it reports every
+swap, so a switched model is never silent.
 
 ### Confirmed DeepSeek balance exhaustion
 

@@ -34,13 +34,26 @@ behavior requires it, in either mode; exit zero alone is insufficient. A bug nee
 an observed failing reproduction and passing regression, even in routine mode.
 No formal-gate claim without running that gate. Existing stricter repo/user rules win.
 
-### TypeSafe Jev for classification
+### TypeSafe Jev at every decision step
 
 The `jev` tool answers typed decision questions (`choice`, `score`, `noul`) in about
-a second for a fraction of a cent. Use it by default for the classification this
-flow already asks for — routine/guarded mode, task type and effort, and whether a
-request needs user approval — instead of asking a model, and record the answer in
-the task item. Give `choice` and `noul` a label→meaning map and `score` an ordered
+a second for a fraction of a cent. Every decision this flow names is one `jev` call
+on the supplied state instead of a model prompt, recorded with its probabilities on
+the task item:
+
+| Step | Decision | Questions |
+| --- | --- | --- |
+| Triage, once at start/resume | mode, type, areas, effort, approval, delegation, review | `mode` choice (routine/guarded), `task_type` choice, `area` choice plus a `noul` per open secondary area, `effort` score (0 one file – 3 architecture), `needs_approval` `noul`, `delegate` choice (parent/one worker), `review` `noul` |
+| Task flow | the Plane labels and a scope change | `label_type` choice, `label_area` choice, `reconcile` choice on a contradiction (reuse/create/ask), `reclassify` `noul` on resume |
+| Isolation | commit target and cleanup | `isolation` choice (managed worktree/clean checkout/blocked), `delivery_target` choice, `cleanup` choice (archive/retain/blocked) |
+| Delegation | whether, who, fallback | `delegate` choice, `role` choice among the configured roles, `fallback` choice, `timeout_action` choice |
+| Verification | the smallest sufficient check and the verdict | `check` choice, `sufficiency` choice (sufficient/gap), `verdict` choice (PASS/PASS WITH FINDINGS/BLOCKED), `escalate` `noul` |
+| Delivery and handoff | readiness and state | `delivery_ready` choice, `handoff_state` choice (In Review/blocked) |
+
+One call per decision boundary, bundling that step's independent questions (they run
+in parallel and cannot see each other's answers); a second call only when a later
+question needs an earlier answer, within the 8-question limit. Give `choice` and
+`noul` a label→meaning map and `score` an ordered
 level list (a bare label list is accepted for `choice`/`noul` and sent as labels). Send only the text the decision needs: never secrets, credentials,
 tokens, or personal data. Every answer is advisory: `noul` returns a probability
 and never authorizes a reserved user decision (main promotion, deletion,
@@ -51,6 +64,12 @@ say the call failed once, and continue; never retry in a loop. When neither
 keeps it for the session: enter it in that plain-text dialog (the keychain and
 `TYPESAFE_API_KEY` routes are never visible, and the tool never echoes the key
 back) or decline and decide directly.
+
+A low-confidence answer, a distribution split across acceptable alternatives or an
+answer that contradicts the table above is a signal to inspect the seam, widen
+evidence or ask — not a silent override. Explicit user or task instructions and every
+existing gate outrank an answer: Jev never replaces a check, a reviewer verdict, an
+evidence requirement or a reserved user decision.
 
 ## Three-step default
 

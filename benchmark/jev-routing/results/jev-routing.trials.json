@@ -1,0 +1,2738 @@
+[
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t01",
+  "label": {
+   "type": "bug",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "bug",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 214,
+  "output_tokens": 23,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.000206,
+  "wall_seconds": 1.846,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"bug\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "9329543e094ed87a39e638cd1a5fb9e92093cbe33a1ee48e2005a250428d076b"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t01",
+  "label": {
+   "type": "bug",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "bug",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 1,
+  "output_tokens": 147,
+  "cache_read_tokens": 18798,
+  "cost_usd": 0.001305,
+  "wall_seconds": 1.959,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"bug\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "9329543e094ed87a39e638cd1a5fb9e92093cbe33a1ee48e2005a250428d076b"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t01",
+  "label": {
+   "type": "bug",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "bug",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 214,
+  "output_tokens": 156,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.000397374,
+  "wall_seconds": 3.415,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"bug\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.97,
+   "probabilities": {
+    "MiniMax-M3": 0.01,
+    "either": 0.01,
+    "deepseek-flash": 0.98
+   },
+   "hard": 0.28
+  },
+  "router_cost_usd": 3.1374e-05,
+  "router_wall_seconds": 0.749,
+  "request_sha256": "9329543e094ed87a39e638cd1a5fb9e92093cbe33a1ee48e2005a250428d076b"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t02",
+  "label": {
+   "type": "bug",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "bug",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 459,
+  "output_tokens": 665,
+  "cache_read_tokens": 38784,
+  "cost_usd": 0.001168,
+  "wall_seconds": 6.502,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"bug\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "1d11ff7d470ee6fb8ae6de36a12ccd3b9dd43d10f8a8c3749206253843257c67"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t02",
+  "label": {
+   "type": "bug",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "bug",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 18556,
+  "output_tokens": 276,
+  "cache_read_tokens": 245,
+  "cost_usd": 0.005913,
+  "wall_seconds": 4.497,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"bug\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "1d11ff7d470ee6fb8ae6de36a12ccd3b9dd43d10f8a8c3749206253843257c67"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t02",
+  "label": {
+   "type": "bug",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "bug",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 386,
+  "output_tokens": 574,
+  "cache_read_tokens": 38912,
+  "cost_usd": 0.001069458,
+  "wall_seconds": 6.69,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"bug\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.73,
+   "probabilities": {
+    "deepseek-flash": 0.82,
+    "either": 0.04,
+    "MiniMax-M3": 0.14
+   },
+   "hard": 0.51
+  },
+  "router_cost_usd": 3.1458e-05,
+  "router_wall_seconds": 0.754,
+  "request_sha256": "1d11ff7d470ee6fb8ae6de36a12ccd3b9dd43d10f8a8c3749206253843257c67"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t03",
+  "label": {
+   "type": "bug",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "bug",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 212,
+  "output_tokens": 624,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.000927,
+  "wall_seconds": 4.6,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"bug\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "05504dbcca8eaa7ff8676305d1d418eb50ad2fa0012846600eab602fcc06acbd"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t03",
+  "label": {
+   "type": "bug",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "bug",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 1,
+  "output_tokens": 122,
+  "cache_read_tokens": 18796,
+  "cost_usd": 0.001274,
+  "wall_seconds": 2.451,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"bug\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "05504dbcca8eaa7ff8676305d1d418eb50ad2fa0012846600eab602fcc06acbd"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t03",
+  "label": {
+   "type": "bug",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "bug",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 464,
+  "output_tokens": 647,
+  "cache_read_tokens": 38912,
+  "cost_usd": 0.001180332,
+  "wall_seconds": 7.041,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"bug\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.31,
+   "probabilities": {
+    "MiniMax-M3": 0.43,
+    "deepseek-flash": 0.53,
+    "either": 0.04
+   },
+   "hard": 0.57
+  },
+  "router_cost_usd": 3.1332e-05,
+  "router_wall_seconds": 0.778,
+  "request_sha256": "05504dbcca8eaa7ff8676305d1d418eb50ad2fa0012846600eab602fcc06acbd"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t04",
+  "label": {
+   "type": "bug",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "bug",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 362,
+  "output_tokens": 453,
+  "cache_read_tokens": 38784,
+  "cost_usd": 0.000885,
+  "wall_seconds": 5.28,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"bug\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "9a66d2e56f859d92279d867c19fd133ed602fff3bd6533cdb2bff007b120190e"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t04",
+  "label": {
+   "type": "bug",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "bug",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 111,
+  "output_tokens": 142,
+  "cache_read_tokens": 18688,
+  "cost_usd": 0.001325,
+  "wall_seconds": 2.871,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"bug\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "9a66d2e56f859d92279d867c19fd133ed602fff3bd6533cdb2bff007b120190e"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t04",
+  "label": {
+   "type": "bug",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "bug",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 214,
+  "output_tokens": 23,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.000237416,
+  "wall_seconds": 2.957,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"bug\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.97,
+   "probabilities": {
+    "MiniMax-M3": 0.01,
+    "either": 0.02,
+    "deepseek-flash": 0.97
+   },
+   "hard": 0.2
+  },
+  "router_cost_usd": 3.1416e-05,
+  "router_wall_seconds": 0.745,
+  "request_sha256": "9a66d2e56f859d92279d867c19fd133ed602fff3bd6533cdb2bff007b120190e"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t05",
+  "label": {
+   "type": "feature",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "feature",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": 1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 424,
+  "output_tokens": 978,
+  "cache_read_tokens": 39040,
+  "cost_usd": 0.001535,
+  "wall_seconds": 7.316,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"feature\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "2e52443a74210095a68be5e42ba02853c663e4c2b961e5c65a26a09ea3e59667"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t05",
+  "label": {
+   "type": "feature",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "feature",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 18667,
+  "output_tokens": 146,
+  "cache_read_tokens": 128,
+  "cost_usd": 0.005783,
+  "wall_seconds": 2.515,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"feature\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "2e52443a74210095a68be5e42ba02853c663e4c2b961e5c65a26a09ea3e59667"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t05",
+  "label": {
+   "type": "feature",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "feature",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": 1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 398,
+  "output_tokens": 478,
+  "cache_read_tokens": 38784,
+  "cost_usd": 0.000957206,
+  "wall_seconds": 5.952,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"feature\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.88,
+   "probabilities": {
+    "MiniMax-M3": 0.04,
+    "deepseek-flash": 0.92,
+    "either": 0.04
+   },
+   "hard": 0.3
+  },
+  "router_cost_usd": 3.1206e-05,
+  "router_wall_seconds": 0.783,
+  "request_sha256": "2e52443a74210095a68be5e42ba02853c663e4c2b961e5c65a26a09ea3e59667"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t06",
+  "label": {
+   "type": "feature",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": false,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 211,
+  "output_tokens": 464,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.000735,
+  "wall_seconds": 4.129,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "b67d751315a736192a3dc446a49a0d710ffe74288855bd3fac4dfac696902dac"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t06",
+  "label": {
+   "type": "feature",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "test",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": false,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 18600,
+  "output_tokens": 336,
+  "cache_read_tokens": 196,
+  "cost_usd": 0.005995,
+  "wall_seconds": 5.602,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"test\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "b67d751315a736192a3dc446a49a0d710ffe74288855bd3fac4dfac696902dac"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t06",
+  "label": {
+   "type": "feature",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": false,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 466,
+  "output_tokens": 659,
+  "cache_read_tokens": 38912,
+  "cost_usd": 0.001195248,
+  "wall_seconds": 7.059,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.92,
+   "probabilities": {
+    "either": 0.02,
+    "MiniMax-M3": 0.03,
+    "deepseek-flash": 0.95
+   },
+   "hard": 0.41
+  },
+  "router_cost_usd": 3.1248e-05,
+  "router_wall_seconds": 0.743,
+  "request_sha256": "b67d751315a736192a3dc446a49a0d710ffe74288855bd3fac4dfac696902dac"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t07",
+  "label": {
+   "type": "feature",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "feature",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 500,
+  "output_tokens": 971,
+  "cache_read_tokens": 39040,
+  "cost_usd": 0.001549,
+  "wall_seconds": 7.511,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"feature\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "985050eda7fd62b6e3fc729b6739cf8e0e498a78c4720899c865306d069c8034"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t07",
+  "label": {
+   "type": "feature",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "docs",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": false,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 109,
+  "output_tokens": 112,
+  "cache_read_tokens": 18688,
+  "cost_usd": 0.001288,
+  "wall_seconds": 4.736,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"docs\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "985050eda7fd62b6e3fc729b6739cf8e0e498a78c4720899c865306d069c8034"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t07",
+  "label": {
+   "type": "feature",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "docs",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": false,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 213,
+  "output_tokens": 199,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.00044829,
+  "wall_seconds": 3.6,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"docs\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.91,
+   "probabilities": {
+    "either": 0.05,
+    "MiniMax-M3": 0.02,
+    "deepseek-flash": 0.9299999999999999
+   },
+   "hard": 0.33
+  },
+  "router_cost_usd": 3.129e-05,
+  "router_wall_seconds": 0.843,
+  "request_sha256": "985050eda7fd62b6e3fc729b6739cf8e0e498a78c4720899c865306d069c8034"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t08",
+  "label": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 216,
+  "output_tokens": 24,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.000208,
+  "wall_seconds": 2.298,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"refactor\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "6a719efedb4fb8f1d6b32f13013955ebbf358bd10ae3336cec4b72d19b6dfefa"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t08",
+  "label": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 112,
+  "output_tokens": 85,
+  "cache_read_tokens": 18688,
+  "cost_usd": 0.001257,
+  "wall_seconds": 2.861,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"refactor\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "6a719efedb4fb8f1d6b32f13013955ebbf358bd10ae3336cec4b72d19b6dfefa"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t08",
+  "label": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 429,
+  "output_tokens": 715,
+  "cache_read_tokens": 39040,
+  "cost_usd": 0.001252458,
+  "wall_seconds": 7.274,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"refactor\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.37,
+   "probabilities": {
+    "either": 0.11,
+    "deepseek-flash": 0.58,
+    "MiniMax-M3": 0.31
+   },
+   "hard": 0.43
+  },
+  "router_cost_usd": 3.1458e-05,
+  "router_wall_seconds": 0.741,
+  "request_sha256": "6a719efedb4fb8f1d6b32f13013955ebbf358bd10ae3336cec4b72d19b6dfefa"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t09",
+  "label": {
+   "type": "refactor",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 419,
+  "output_tokens": 583,
+  "cache_read_tokens": 38912,
+  "cost_usd": 0.001059,
+  "wall_seconds": 5.982,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"refactor\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "48eeb596dcfb8837bcaab51bf44e47a591a287e8e3301a4ba16040c2e3f50928"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t09",
+  "label": {
+   "type": "refactor",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 18065,
+  "output_tokens": 103,
+  "cache_read_tokens": 128,
+  "cost_usd": 0.005551,
+  "wall_seconds": 3.779,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"refactor\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "48eeb596dcfb8837bcaab51bf44e47a591a287e8e3301a4ba16040c2e3f50928"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t09",
+  "label": {
+   "type": "refactor",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 459,
+  "output_tokens": 524,
+  "cache_read_tokens": 38784,
+  "cost_usd": 0.0010305,
+  "wall_seconds": 5.979,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"refactor\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.72,
+   "probabilities": {
+    "deepseek-flash": 0.81,
+    "either": 0.09,
+    "MiniMax-M3": 0.1
+   },
+   "hard": 0.46
+  },
+  "router_cost_usd": 3.15e-05,
+  "router_wall_seconds": 0.796,
+  "request_sha256": "48eeb596dcfb8837bcaab51bf44e47a591a287e8e3301a4ba16040c2e3f50928"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t10",
+  "label": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "refactor",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": 1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 509,
+  "output_tokens": 741,
+  "cache_read_tokens": 38784,
+  "cost_usd": 0.001275,
+  "wall_seconds": 6.895,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"refactor\", \"effort\": 2, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "809d891a21da9b980cced6b7fb749f6ce38c70deb97087f7b110027ebfbc8f63"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t10",
+  "label": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 18669,
+  "output_tokens": 276,
+  "cache_read_tokens": 128,
+  "cost_usd": 0.00594,
+  "wall_seconds": 3.793,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"refactor\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "809d891a21da9b980cced6b7fb749f6ce38c70deb97087f7b110027ebfbc8f63"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t10",
+  "label": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "refactor",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": 1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 524,
+  "output_tokens": 666,
+  "cache_read_tokens": 38784,
+  "cost_usd": 0.001220374,
+  "wall_seconds": 6.741,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"refactor\", \"effort\": 2, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.76,
+   "probabilities": {
+    "MiniMax-M3": 0.09,
+    "deepseek-flash": 0.84,
+    "either": 0.07
+   },
+   "hard": 0.37
+  },
+  "router_cost_usd": 3.1374e-05,
+  "router_wall_seconds": 0.739,
+  "request_sha256": "809d891a21da9b980cced6b7fb749f6ce38c70deb97087f7b110027ebfbc8f63"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t11",
+  "label": {
+   "type": "refactor",
+   "effort": 3,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -2,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 445,
+  "output_tokens": 786,
+  "cache_read_tokens": 39040,
+  "cost_usd": 0.001311,
+  "wall_seconds": 6.65,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"refactor\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "de755c03260c7c31be3cad0887fe93c78a6d26f3edb0efd28467a06a16773c7b"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t11",
+  "label": {
+   "type": "refactor",
+   "effort": 3,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -2,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 267,
+  "output_tokens": 166,
+  "cache_read_tokens": 17920,
+  "cost_usd": 0.001354,
+  "wall_seconds": 3.694,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"refactor\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "de755c03260c7c31be3cad0887fe93c78a6d26f3edb0efd28467a06a16773c7b"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t11",
+  "label": {
+   "type": "refactor",
+   "effort": 3,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "refactor",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -2,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 139,
+  "output_tokens": 479,
+  "cache_read_tokens": 18048,
+  "cost_usd": 0.001730164,
+  "wall_seconds": 7.621,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"refactor\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": {
+   "choice": "MiniMax-M3",
+   "confidence": 0.43,
+   "probabilities": {
+    "either": 0.05,
+    "deepseek-flash": 0.33,
+    "MiniMax-M3": 0.62
+   },
+   "hard": 0.63
+  },
+  "router_cost_usd": 3.1164e-05,
+  "router_wall_seconds": 0.735,
+  "request_sha256": "de755c03260c7c31be3cad0887fe93c78a6d26f3edb0efd28467a06a16773c7b"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t12",
+  "label": {
+   "type": "docs",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "docs",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 214,
+  "output_tokens": 177,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.000391,
+  "wall_seconds": 3.072,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"docs\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "cf3bf104851bef3b29523cfd6f68bc077ca343e0a06d970b12109d5cd3f90ff3"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t12",
+  "label": {
+   "type": "docs",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "docs",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 18553,
+  "output_tokens": 166,
+  "cache_read_tokens": 245,
+  "cost_usd": 0.00578,
+  "wall_seconds": 2.296,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"docs\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "cf3bf104851bef3b29523cfd6f68bc077ca343e0a06d970b12109d5cd3f90ff3"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t12",
+  "label": {
+   "type": "docs",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "docs",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 214,
+  "output_tokens": 36,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.000253332,
+  "wall_seconds": 2.752,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"docs\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.99,
+   "probabilities": {
+    "either": 0.01,
+    "deepseek-flash": 0.99,
+    "MiniMax-M3": 0.0
+   },
+   "hard": 0.13
+  },
+  "router_cost_usd": 3.1332e-05,
+  "router_wall_seconds": 0.815,
+  "request_sha256": "cf3bf104851bef3b29523cfd6f68bc077ca343e0a06d970b12109d5cd3f90ff3"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t13",
+  "label": {
+   "type": "docs",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "docs",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 211,
+  "output_tokens": 23,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.000205,
+  "wall_seconds": 2.077,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"docs\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "691552e9805986d7b5471bef35e4d1eb92b12bc1fccdbc8afe13f82361cd250e"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t13",
+  "label": {
+   "type": "docs",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "docs",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 18550,
+  "output_tokens": 85,
+  "cache_read_tokens": 245,
+  "cost_usd": 0.005682,
+  "wall_seconds": 2.836,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"docs\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "691552e9805986d7b5471bef35e4d1eb92b12bc1fccdbc8afe13f82361cd250e"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t13",
+  "label": {
+   "type": "docs",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "docs",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 211,
+  "output_tokens": 23,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.000236206,
+  "wall_seconds": 3.058,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"docs\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.96,
+   "probabilities": {
+    "MiniMax-M3": 0.0,
+    "either": 0.02,
+    "deepseek-flash": 0.98
+   },
+   "hard": 0.34
+  },
+  "router_cost_usd": 3.1206e-05,
+  "router_wall_seconds": 0.859,
+  "request_sha256": "691552e9805986d7b5471bef35e4d1eb92b12bc1fccdbc8afe13f82361cd250e"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t14",
+  "label": {
+   "type": "test",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "test",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 213,
+  "output_tokens": 23,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.000206,
+  "wall_seconds": 2.194,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"test\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "4442e527ac6406d271f42af5ec6ab624944e48ec99645ada57511896459dab6e"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t14",
+  "label": {
+   "type": "test",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "test",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 18670,
+  "output_tokens": 124,
+  "cache_read_tokens": 128,
+  "cost_usd": 0.005757,
+  "wall_seconds": 4.313,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"test\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "4442e527ac6406d271f42af5ec6ab624944e48ec99645ada57511896459dab6e"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t14",
+  "label": {
+   "type": "test",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "test",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 213,
+  "output_tokens": 23,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.000237332,
+  "wall_seconds": 2.74,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"test\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.97,
+   "probabilities": {
+    "either": 0.01,
+    "deepseek-flash": 0.98,
+    "MiniMax-M3": 0.01
+   },
+   "hard": 0.37
+  },
+  "router_cost_usd": 3.1332e-05,
+  "router_wall_seconds": 0.777,
+  "request_sha256": "4442e527ac6406d271f42af5ec6ab624944e48ec99645ada57511896459dab6e"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t15",
+  "label": {
+   "type": "test",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "test",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 494,
+  "output_tokens": 699,
+  "cache_read_tokens": 38912,
+  "cost_usd": 0.00122,
+  "wall_seconds": 6.261,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"test\", \"effort\": 2, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "f432f38ede2479b10cb8e7fc89af47b54842b9ee901190c3e96ce90f14184a3e"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t15",
+  "label": {
+   "type": "test",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "test",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 18669,
+  "output_tokens": 106,
+  "cache_read_tokens": 128,
+  "cost_usd": 0.005736,
+  "wall_seconds": 2.216,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"test\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "f432f38ede2479b10cb8e7fc89af47b54842b9ee901190c3e96ce90f14184a3e"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t15",
+  "label": {
+   "type": "test",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "test",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 427,
+  "output_tokens": 859,
+  "cache_read_tokens": 38912,
+  "cost_usd": 0.001423332,
+  "wall_seconds": 7.868,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"test\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.88,
+   "probabilities": {
+    "MiniMax-M3": 0.05,
+    "deepseek-flash": 0.92,
+    "either": 0.03
+   },
+   "hard": 0.43
+  },
+  "router_cost_usd": 3.1332e-05,
+  "router_wall_seconds": 0.801,
+  "request_sha256": "f432f38ede2479b10cb8e7fc89af47b54842b9ee901190c3e96ce90f14184a3e"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t16",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 464,
+  "output_tokens": 893,
+  "cache_read_tokens": 39168,
+  "cost_usd": 0.001446,
+  "wall_seconds": 6.894,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "7803f6b3cf13118363b86a61935ed413d4d556cb9ef881b92b177478e207dc23"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t16",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 18605,
+  "output_tokens": 150,
+  "cache_read_tokens": 197,
+  "cost_usd": 0.005773,
+  "wall_seconds": 3.038,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "7803f6b3cf13118363b86a61935ed413d4d556cb9ef881b92b177478e207dc23"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t16",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 1642,
+  "output_tokens": 1243,
+  "cache_read_tokens": 59136,
+  "cost_usd": 0.002370542,
+  "wall_seconds": 10.258,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.99,
+   "probabilities": {
+    "MiniMax-M3": 0.0,
+    "deepseek-flash": 0.99,
+    "either": 0.01
+   },
+   "hard": 0.24
+  },
+  "router_cost_usd": 3.1542e-05,
+  "router_wall_seconds": 0.866,
+  "request_sha256": "7803f6b3cf13118363b86a61935ed413d4d556cb9ef881b92b177478e207dc23"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t17",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 412,
+  "output_tokens": 898,
+  "cache_read_tokens": 39168,
+  "cost_usd": 0.001436,
+  "wall_seconds": 7.916,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 0, \"needs_approval\": true}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "d7408bd1728c1c039bc57e1c136ec38bde49dd5b26e9e1a0cc1cec2af7460234"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t17",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 18572,
+  "output_tokens": 88,
+  "cache_read_tokens": 219,
+  "cost_usd": 0.00569,
+  "wall_seconds": 2.629,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 0, \"needs_approval\": true}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "d7408bd1728c1c039bc57e1c136ec38bde49dd5b26e9e1a0cc1cec2af7460234"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t17",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 2,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": 2,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 467,
+  "output_tokens": 679,
+  "cache_read_tokens": 38912,
+  "cost_usd": 0.001219038,
+  "wall_seconds": 7.343,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 2, \"needs_approval\": true}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.52,
+   "probabilities": {
+    "deepseek-flash": 0.6900000000000001,
+    "either": 0.12,
+    "MiniMax-M3": 0.19
+   },
+   "hard": 0.55
+  },
+  "router_cost_usd": 3.1038e-05,
+  "router_wall_seconds": 0.822,
+  "request_sha256": "d7408bd1728c1c039bc57e1c136ec38bde49dd5b26e9e1a0cc1cec2af7460234"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t18",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 1,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": 1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 443,
+  "output_tokens": 643,
+  "cache_read_tokens": 38912,
+  "cost_usd": 0.001138,
+  "wall_seconds": 6.035,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 1, \"needs_approval\": true}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "f8d076941f156f55645f0875429e849df084a1a78cdb631b3032a4d8e7af630c"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t18",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 265,
+  "output_tokens": 79,
+  "cache_read_tokens": 17920,
+  "cost_usd": 0.001249,
+  "wall_seconds": 4.71,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 0, \"needs_approval\": true}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "f8d076941f156f55645f0875429e849df084a1a78cdb631b3032a4d8e7af630c"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t18",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 208,
+  "output_tokens": 187,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.00043208,
+  "wall_seconds": 3.661,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 0, \"needs_approval\": true}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.58,
+   "probabilities": {
+    "deepseek-flash": 0.72,
+    "either": 0.07,
+    "MiniMax-M3": 0.21
+   },
+   "hard": 0.4
+  },
+  "router_cost_usd": 3.108e-05,
+  "router_wall_seconds": 0.78,
+  "request_sha256": "f8d076941f156f55645f0875429e849df084a1a78cdb631b3032a4d8e7af630c"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t19",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 218,
+  "output_tokens": 263,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.000495,
+  "wall_seconds": 3.238,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 0, \"needs_approval\": true}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "221d3f4390fd07c12f4cef3b5662a12042d7e7de7e579454143a208f414ab6b0"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t19",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 113,
+  "output_tokens": 91,
+  "cache_read_tokens": 18688,
+  "cost_usd": 0.001264,
+  "wall_seconds": 2.385,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 0, \"needs_approval\": true}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "221d3f4390fd07c12f4cef3b5662a12042d7e7de7e579454143a208f414ab6b0"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t19",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 413,
+  "output_tokens": 991,
+  "cache_read_tokens": 38912,
+  "cost_usd": 0.001578416,
+  "wall_seconds": 8.893,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 0, \"needs_approval\": true}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.89,
+   "probabilities": {
+    "deepseek-flash": 0.93,
+    "either": 0.04,
+    "MiniMax-M3": 0.03
+   },
+   "hard": 0.22
+  },
+  "router_cost_usd": 3.1416e-05,
+  "router_wall_seconds": 0.828,
+  "request_sha256": "221d3f4390fd07c12f4cef3b5662a12042d7e7de7e579454143a208f414ab6b0"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t20",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 1,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": 1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 213,
+  "output_tokens": 276,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.00051,
+  "wall_seconds": 3.097,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 1, \"needs_approval\": true}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "57fad1ca4c95ca87135b76f3d2283c99fde57c9005050bcf39ef3372c0542260"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t20",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 1,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": 1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 109,
+  "output_tokens": 159,
+  "cache_read_tokens": 18688,
+  "cost_usd": 0.001345,
+  "wall_seconds": 4.222,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 1, \"needs_approval\": true}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "57fad1ca4c95ca87135b76f3d2283c99fde57c9005050bcf39ef3372c0542260"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t20",
+  "label": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 1,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": 1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 213,
+  "output_tokens": 142,
+  "cache_read_tokens": 19072,
+  "cost_usd": 0.000380332,
+  "wall_seconds": 3.394,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 1, \"needs_approval\": true}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.53,
+   "probabilities": {
+    "either": 0.03,
+    "deepseek-flash": 0.68,
+    "MiniMax-M3": 0.29
+   },
+   "hard": 0.54
+  },
+  "router_cost_usd": 3.1332e-05,
+  "router_wall_seconds": 0.767,
+  "request_sha256": "57fad1ca4c95ca87135b76f3d2283c99fde57c9005050bcf39ef3372c0542260"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t21",
+  "label": {
+   "type": "chore",
+   "effort": 1,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 436,
+  "output_tokens": 506,
+  "cache_read_tokens": 38784,
+  "cost_usd": 0.000971,
+  "wall_seconds": 5.659,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 0, \"needs_approval\": true}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "31e1f18ab7912b6bb0edb3700a2133af065b4230798273e9fde6ed93f0c1c009"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t21",
+  "label": {
+   "type": "chore",
+   "effort": 1,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 18598,
+  "output_tokens": 187,
+  "cache_read_tokens": 196,
+  "cost_usd": 0.005816,
+  "wall_seconds": 19.774,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 0, \"needs_approval\": true}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "31e1f18ab7912b6bb0edb3700a2133af065b4230798273e9fde6ed93f0c1c009"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t21",
+  "label": {
+   "type": "chore",
+   "effort": 1,
+   "needs_approval": true
+  },
+  "parsed": {
+   "type": "chore",
+   "effort": 0,
+   "needs_approval": true
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 396,
+  "output_tokens": 597,
+  "cache_read_tokens": 38912,
+  "cost_usd": 0.001100164,
+  "wall_seconds": 6.748,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"chore\", \"effort\": 0, \"needs_approval\": true}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.55,
+   "probabilities": {
+    "MiniMax-M3": 0.18,
+    "either": 0.12,
+    "deepseek-flash": 0.7
+   },
+   "hard": 0.53
+  },
+  "router_cost_usd": 3.1164e-05,
+  "router_wall_seconds": 0.776,
+  "request_sha256": "31e1f18ab7912b6bb0edb3700a2133af065b4230798273e9fde6ed93f0c1c009"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t22",
+  "label": {
+   "type": "research",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "research",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 526,
+  "output_tokens": 750,
+  "cache_read_tokens": 38912,
+  "cost_usd": 0.001291,
+  "wall_seconds": 6.651,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"research\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "0d1ce252ca04763a0eb9f33dcd6bc70df4e1f782a923e1583d59ca13bf884b1f"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t22",
+  "label": {
+   "type": "research",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "research",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 277,
+  "output_tokens": 132,
+  "cache_read_tokens": 17920,
+  "cost_usd": 0.001317,
+  "wall_seconds": 4.427,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"research\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "0d1ce252ca04763a0eb9f33dcd6bc70df4e1f782a923e1583d59ca13bf884b1f"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t22",
+  "label": {
+   "type": "research",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "research",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 449,
+  "output_tokens": 634,
+  "cache_read_tokens": 38912,
+  "cost_usd": 0.001160584,
+  "wall_seconds": 6.695,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"research\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.28,
+   "probabilities": {
+    "either": 0.1,
+    "MiniMax-M3": 0.38,
+    "deepseek-flash": 0.52
+   },
+   "hard": 0.78
+  },
+  "router_cost_usd": 3.1584e-05,
+  "router_wall_seconds": 0.798,
+  "request_sha256": "0d1ce252ca04763a0eb9f33dcd6bc70df4e1f782a923e1583d59ca13bf884b1f"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t23",
+  "label": {
+   "type": "research",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "research",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": 1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 403,
+  "output_tokens": 1293,
+  "cache_read_tokens": 39296,
+  "cost_usd": 0.001908,
+  "wall_seconds": 9.527,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"research\", \"effort\": 2, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "46d5aca874bc2a025535d3e02b4545c8329e43e83f1769638da775737f9d0cd4"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t23",
+  "label": {
+   "type": "research",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "research",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 116,
+  "output_tokens": 236,
+  "cache_read_tokens": 18688,
+  "cost_usd": 0.001439,
+  "wall_seconds": 5.794,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"research\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "46d5aca874bc2a025535d3e02b4545c8329e43e83f1769638da775737f9d0cd4"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t23",
+  "label": {
+   "type": "research",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "research",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 469,
+  "output_tokens": 962,
+  "cache_read_tokens": 39040,
+  "cost_usd": 0.001560626,
+  "wall_seconds": 8.354,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"research\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": {
+   "choice": "deepseek-flash",
+   "confidence": 0.32,
+   "probabilities": {
+    "either": 0.13,
+    "deepseek-flash": 0.54,
+    "MiniMax-M3": 0.33
+   },
+   "hard": 0.81
+  },
+  "router_cost_usd": 3.1626e-05,
+  "router_wall_seconds": 0.795,
+  "request_sha256": "46d5aca874bc2a025535d3e02b4545c8329e43e83f1769638da775737f9d0cd4"
+ },
+ {
+  "arm": "pi:deepseek/deepseek-flash",
+  "item_id": "t24",
+  "label": {
+   "type": "research",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "research",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": true,
+  "effort_delta": 0,
+  "approval_ok": true,
+  "all_ok": true,
+  "input_tokens": 687,
+  "output_tokens": 921,
+  "cache_read_tokens": 39040,
+  "cost_usd": 0.001546,
+  "wall_seconds": 7.237,
+  "reported_models": [
+   "deepseek/deepseek-flash"
+  ],
+  "raw_answer": "{\"type\": \"research\", \"effort\": 2, \"needs_approval\": false}",
+  "chosen_arm": "pi:deepseek/deepseek-flash",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "c4523fdad76ca66ad049d728f5aaf2c55d0d2d93a1c1a4ee17baabb648c44dcb"
+ },
+ {
+  "arm": "pi:minimax/MiniMax-M3",
+  "item_id": "t24",
+  "label": {
+   "type": "research",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "research",
+   "effort": 1,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -1,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 18605,
+  "output_tokens": 173,
+  "cache_read_tokens": 196,
+  "cost_usd": 0.005801,
+  "wall_seconds": 3.527,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"research\", \"effort\": 1, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": null,
+  "router_cost_usd": 0.0,
+  "router_wall_seconds": 0.0,
+  "request_sha256": "c4523fdad76ca66ad049d728f5aaf2c55d0d2d93a1c1a4ee17baabb648c44dcb"
+ },
+ {
+  "arm": "jev-route",
+  "item_id": "t24",
+  "label": {
+   "type": "research",
+   "effort": 2,
+   "needs_approval": false
+  },
+  "parsed": {
+   "type": "research",
+   "effort": 0,
+   "needs_approval": false
+  },
+  "parse_error": "",
+  "error": null,
+  "type_ok": true,
+  "effort_ok": false,
+  "effort_delta": -2,
+  "approval_ok": true,
+  "all_ok": false,
+  "input_tokens": 1,
+  "output_tokens": 104,
+  "cache_read_tokens": 18800,
+  "cost_usd": 0.001284626,
+  "wall_seconds": 3.19,
+  "reported_models": [
+   "minimax/MiniMax-M3"
+  ],
+  "raw_answer": "{\"type\": \"research\", \"effort\": 0, \"needs_approval\": false}",
+  "chosen_arm": "pi:minimax/MiniMax-M3",
+  "route": {
+   "choice": "MiniMax-M3",
+   "confidence": 0.34,
+   "probabilities": {
+    "deepseek-flash": 0.37,
+    "MiniMax-M3": 0.56,
+    "either": 0.07
+   },
+   "hard": 0.85
+  },
+  "router_cost_usd": 3.1626e-05,
+  "router_wall_seconds": 0.774,
+  "request_sha256": "c4523fdad76ca66ad049d728f5aaf2c55d0d2d93a1c1a4ee17baabb648c44dcb"
+ }
+]

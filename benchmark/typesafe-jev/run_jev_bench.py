@@ -102,8 +102,9 @@ def pi_prompt(policy: dict, request: str) -> str:
     )
 
 
-def jev_ask(state: dict, key: str) -> dict:
-    body = json.dumps({"state": state, "model": JEV_MODEL, "questions": jev_questions()}).encode()
+def jev_ask(state: dict, key: str, questions: dict | None = None) -> dict:
+    body = json.dumps({"state": state, "model": JEV_MODEL,
+                       "questions": questions or jev_questions()}).encode()
     request = urllib.request.Request(
         JEV_URL,
         data=body,
@@ -309,7 +310,10 @@ def run_item(arm: str, policy: dict, item: dict, cwd: Path, key: str | None) -> 
 def load(path: Path) -> list[dict]:
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    text = path.read_text().strip()
+    if text.startswith("["):  # a published array of the same records
+        return json.loads(text)
+    return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
 def report(items_path: Path, results_path: Path) -> int:

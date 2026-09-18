@@ -199,6 +199,25 @@ class Adaptive(Slim):
                 self.assertIn("routine", text)
                 self.assertIn("guarded", text)
 
+    def test_jev_reaches_every_decision_step(self):
+        policy = (ROOT / "pi-skill/ADAPTIVE.md").read_text().lower()
+        self.assertIn("### typesafe jev at every decision step", policy)
+        for step in ("triage", "task flow", "isolation", "delegation", "verification",
+                     "delivery and handoff"):
+            self.assertIn(step, policy)
+        self.assertIn("one call per decision boundary", policy)
+        self.assertIn("never replaces a check", policy)
+        for path in ("pi-defaults/skills/pi-workflow/SKILL.md",
+                     "task-flow/skills/megai-task-flow/SKILL.md",
+                     "pi-skill/acceptance/SKILL.md", "pi-skill/delegation.md",
+                     "skills/agent-worktree-lifecycle/SKILL.md"):
+            with self.subTest(path=path):
+                self.assertIn("`jev`", (ROOT / path).read_text().lower())
+        self.assertIn("`jev`", (ROOT / "pi-defaults/AGENTS.md").read_text().lower())
+        tool = (ROOT / "pi-skill/jev/index.ts").read_text()
+        self.assertIn("every workflow step decision", tool)
+        self.assertIn("one call per decision boundary", tool)
+
 
 def load_tests(loader, tests, pattern):
     # Reuse sandbox helpers, not the entire inherited distribution suite twice.
