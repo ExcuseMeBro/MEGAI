@@ -9,6 +9,8 @@
  * agent falls back to its own judgment instead of retrying, blocking, or guessing
  * about the service. `TYPESAFE_ENDPOINT` overrides the public endpoint and
  * `TYPESAFE_TIMEOUT_MS` the 30 s deadline, for a proxy or an offline test.
+ * HTTP 429 and 529 are retried with exponential backoff because they only mean the
+ * provider is throttling this caller; every other failure stays one bounded attempt.
  *
  * The same key and `jevPost` drive the tool-call gate below: every tool call the
  * model emits — built-in, `mcp`, `mcpScript`, all of them — gets one Jev judgment
@@ -24,6 +26,14 @@ const DEFAULT_ENDPOINT = "https://api.typesafe.ai/v1/systemone";
 const MODEL = "jev-latest";
 const SERVICE = "typesafe.ai";
 const TIMEOUT_MS = Math.max(0, Number(process.env.TYPESAFE_TIMEOUT_MS)) || 30_000;
+/** Attempts after the first when the provider answers 429 or 529: two retries, 0.5 s
+ * then 1 s, cover a throttled burst without holding a caller for long.
+ * ponytail: fixed backoff, no `Retry-After`; parse the header only if the public
+ * endpoint ever sends a hint longer than this. */
+const RETRY_MAX = 2;
+const RETRY_BASE_MS = 500;
+/** 429 rate limit and 529 overloaded. A 500 is a real failure and stays single-attempt. */
+const RETRY_STATUS = new Set([429, 529]);
 const DIALOG_MS = 120_000;
 const MAX_STATE = 24_000;
 const MAX_BODY = 256 * 1024;
@@ -198,18 +208,21 @@ function failed(reason: string) {
   };
 }
 
+/** What the single attempt and the retrying wrapper both return. `status` is set
+ * only for a non-2xx HTTP answer, so the retry can tell throttling from a failure. */
+type JevResult =
+  | { ok: true; answers: Record<string, unknown>; model: string; usage: unknown }
+  | { ok: false; error: string; status?: number };
+
 /** One Jev POST, shared by the `jev` tool and any companion extension. Validation
  * stays with the caller; a network or protocol failure comes back as `ok: false`
  * with a one-line reason instead of throwing, so a caller falls back on its own. */
-export async function jevPost(
+async function jevAttempt(
   key: string,
   state: string,
   questions: Record<string, unknown>,
   signal?: AbortSignal,
-): Promise<
-  | { ok: true; answers: Record<string, unknown>; model: string; usage: unknown }
-  | { ok: false; error: string }
-> {
+): Promise<JevResult> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   const abort = () => controller.abort();
@@ -221,7 +234,9 @@ export async function jevPost(
       body: JSON.stringify({ state, model: MODEL, questions }),
       signal: controller.signal,
     });
-    if (!response.ok) return { ok: false, error: `Jev returned HTTP ${response.status}` };
+    if (!response.ok) {
+      return { ok: false, error: `Jev returned HTTP ${response.status}`, status: response.status };
+    }
     const text = await response.text();
     if (text.length > MAX_BODY) return { ok: false, error: "Jev response too large" };
     let payload: any;
@@ -246,6 +261,40 @@ export async function jevPost(
     clearTimeout(timer);
     signal?.removeEventListener("abort", abort);
   }
+}
+
+/** Wait out one backoff step, but yield at once to a caller's cancellation so a
+ * pending retry never delays the abort the tool and the gate both depend on. */
+function backoff(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    let timer: ReturnType<typeof setTimeout>;
+    const finish = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", finish);
+      resolve();
+    };
+    timer = setTimeout(finish, ms);
+    signal?.addEventListener("abort", finish, { once: true });
+  });
+}
+
+/** `jevAttempt` plus the throttling retry, shared by the `jev` tool and the
+ * tool-call gate. Only 429 and 529 are retried; a 500, a timeout and a caller
+ * cancellation stay one attempt, which the tool and gate contracts pin down. */
+export async function jevPost(
+  key: string,
+  state: string,
+  questions: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<JevResult> {
+  let result: JevResult = await jevAttempt(key, state, questions, signal);
+  for (let retry = 0; !result.ok && retry < RETRY_MAX; retry += 1) {
+    if (signal?.aborted || !RETRY_STATUS.has(result.status ?? 0)) break;
+    await backoff(RETRY_BASE_MS * 2 ** retry, signal);
+    if (signal?.aborted) return { ok: false, error: "Jev call timed out or was cancelled" };
+    result = await jevAttempt(key, state, questions, signal);
+  }
+  return result;
 }
 
 export default function jev(pi: ExtensionAPI) {
