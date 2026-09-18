@@ -10,10 +10,21 @@ the live branch and the call itself.
   wrong target, a destructive or irreversible step, a contradiction of the request
   or policy, or work already done. At `0.65` or above the hook returns
   `{ block: true, reason }`, so the model re-reads the target and the request.
+- `route` — *"the smallest correct next move"*, the skill and MCP half of the gate:
+  whenever the cached catalog holds a skill or an MCP tool that shares a word with the
+  goal or the call, the same request carries one extra `choice` question (`as_written`
+  plus up to six skills and three MCP tools). A pick at `0.7` or above that is not
+  `as_written` blocks once with the move to make — *"load skill \"megai\" before
+  repeating this call"* — and the identical retry runs. The catalog is the loaded
+  skills and tool snippets `before_agent_start` already hands over, filtered to MCP
+  tools, so routing adds no request of its own; `JEV_ROUTE=0` drops just this
+  question. Its `0.7` is **not** measured the way `object`'s `0.65` is: no route pick
+  has been sampled yet, so it stays at the old gate threshold until one is.
 - A call the gate already refused is reported and runs on an identical retry: a Jev
   answer must never deadlock work the model is sure about.
-- `JEV_GATE_BLOCK=0` downgrades a block to a report, `JEV_GATE=0` turns the gate off
-  for the session. The `jev` tool itself is never gated — that question recurses.
+- `JEV_GATE_BLOCK=0` downgrades either block — objection or route — to a report,
+  `JEV_GATE=0` turns the gate off for the session and `JEV_ROUTE=0` drops only the
+  route question. The `jev` tool itself is never gated — that question recurses.
 - Fail open, one attempt per failure: no key, HTTP error, non-JSON, a judgment slower
   than `JEV_GATE_TIMEOUT_MS` (default 5 s) or an agent abort all let the call through. A
   missing or unreadable session only drops the goal from the state. HTTP 429 and 529 are
@@ -58,7 +69,8 @@ every other repository, and that mismatch itself raised objections. The numbers 
 use each session's own `cwd`.
 
 Cost per judged call: one Jev request with one `noul` question, ~0.8 s p50 added on
-the tool-call path.
+ the tool-call path; a route question rides that same request, so routing costs no
+ extra round trip and only a few hundred tokens of state.
 
 Verify offline through the real loader and the real hook:
 
@@ -70,3 +82,9 @@ PI_PACKAGE_ROOT=<installed pi-coding-agent> node tests/pi-jev-retry.mjs
 The first covers the tool, the gate and the key path against a local endpoint; the
 second covers the 429/529 retry and pins the 500, malformed-body, timeout and
 cancellation paths to exactly one attempt.
+
+The live route request shape (a real endpoint call, keychain or `TYPESAFE_API_KEY`):
+
+```bash
+node tests/pi-jev-route-live.mjs
+```

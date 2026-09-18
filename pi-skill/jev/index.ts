@@ -14,8 +14,10 @@
  *
  * The same key and `jevPost` drive the tool-call gate below: every tool call the
  * model emits — built-in, `mcp`, `mcpScript`, all of them — gets one Jev judgment
- * before it runs. A strong objection blocks it, and `JEV_GATE=0` / `JEV_GATE_BLOCK=0`
- * turn the gate off or back to advice.
+ * before it runs, plus a `route` question whenever the cached skill or MCP catalog
+ * holds a better next move than the call. A strong objection or a strong route pick
+ * blocks it, and `JEV_GATE=0` / `JEV_GATE_BLOCK=0` / `JEV_ROUTE=0` turn the gate off,
+ * back to reports, or drop just the route question.
  */
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
@@ -45,6 +47,14 @@ const KINDS = ["choice", "score", "noul"];
  * hand-written dangerous calls land at 0.65-0.96, so the block keys on the top
  * of the legitimate range. A blocked call the model repeats unchanged still runs. */
 const GATE_OBJECT_THRESHOLD = 0.65;
+/** `route` probability at or above which the gate blocks with the picked move. Not
+ * measured the way `object` is — no route pick has been sampled yet — so it stays at
+ * the old gate threshold instead of inheriting 0.65 with no evidence behind it. */
+const GATE_ROUTE_THRESHOLD = 0.7;
+/** Catalog caps: `as_written` plus these stay inside the API's 12-criteria limit. */
+const ROUTE_SKILLS = 6;
+const ROUTE_TOOLS = 3;
+const ROUTE_DESC_CHARS = 120;
 const GATE_TIMEOUT_MS = Math.max(0, Number(process.env.JEV_GATE_TIMEOUT_MS)) || 5_000;
 const GATE_ARGS_CHARS = 800;
 const GATE_GOAL_CHARS = 1_200;
@@ -90,6 +100,60 @@ function goalOf(ctx: ExtensionContext): string {
 function probability(answer: unknown): number | undefined {
   const value = (answer as any)?.noul ?? answer;
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+/** The probability a `choice` answer gave the label it picked, when it reports one. */
+function choiceWeight(answer: unknown, label: string): number | undefined {
+  const value = (answer as any)?.probabilities?.[label];
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+/** One move the route question may name: a skill to load or an MCP tool to use. */
+type Move = { label: string; text: string; words: string[] };
+
+/** The moves this session has, cached from `before_agent_start` so naming one costs
+ * no discovery request of the gate's own. An unreadable catalog stays empty, which
+ * is also how routing is switched off. */
+let catalog: { skills: Move[]; tools: Move[] } = { skills: [], tools: [] };
+
+function words(text: string): string[] {
+  return [...new Set(text.toLowerCase().match(/[a-z0-9][a-z0-9_-]{2,}/g) ?? [])];
+}
+
+function catalogEntry(label: string, description: unknown): Move {
+  const text = clip(typeof description === "string" ? description.trim() : "", ROUTE_DESC_CHARS);
+  return { label, text, words: words(`${label} ${text}`) };
+}
+
+/** Pi hands the loaded skills and tool snippets over as either a list of named
+ * entries or a name→description map; both become the same catalog. */
+function entries(value: unknown, prefix: string): Move[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => {
+      const record = (item ?? {}) as Record<string, unknown>;
+      const name = typeof item === "string" ? item : String(record.name ?? "");
+      return catalogEntry(`${prefix}${name}`, typeof item === "string" ? "" : record.description);
+    }).filter((move) => move.label !== prefix);
+  }
+  if (value && typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([name, description]) => catalogEntry(`${prefix}${name}`, description));
+  }
+  return [];
+}
+
+/** The moves worth offering for this call: the ones sharing a word with the goal or
+ * the call, best first. Nothing relevant means no route question at all, so an
+ * unrelated catalog never changes what the gate asks. */
+function routable(goal: string, call: string): Move[] {
+  const asked = new Set(words(`${goal} ${call}`));
+  const rank = (list: Move[], limit: number) => list
+    .map((move) => ({ move, score: move.words.filter((word) => asked.has(word)).length }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((entry) => entry.move);
+  return [...rank(catalog.skills, ROUTE_SKILLS), ...rank(catalog.tools, ROUTE_TOOLS)];
 }
 
 /** The gate's deadline, whichever comes first: the agent's own abort or its own. */
@@ -350,15 +414,34 @@ export default function jev(pi: ExtensionAPI) {
     },
   });
 
+  /** The routing catalog: the skills and MCP tools Pi already put in the prompt,
+   * cached once per turn so the gate can name a move without a discovery request of
+   * its own. Any unexpected shape leaves the catalog empty, which turns routing off. */
+  pi.on("before_agent_start", (event) => {
+    try {
+      const options = (event.systemPromptOptions ?? {}) as Record<string, unknown>;
+      catalog = {
+        skills: entries(options.skills, "skill:"),
+        tools: entries(options.toolSnippets ?? options.selectedTools, "tool:")
+          .filter((move) => move.label.startsWith("tool:mcp")),
+      };
+    } catch {
+      catalog = { skills: [], tools: [] };
+    }
+  });
+
   /** The gate: one Jev judgment per tool call the model emits, before the tool runs.
    * One `noul` question — is there a concrete reason this call must not run as
-   * written. A strong objection (>= 0.65) blocks the call with the reason; an
-   * objection the gate may not block still runs and is reported. Every failure (no
+   * written — plus, whenever the cached catalog holds an on-topic skill or MCP tool,
+   * one `route` choice. A strong objection (>= 0.65) or a strong route pick that is
+   * not `as_written` (>= 0.7) blocks the call with the reason; anything the gate may
+   * not block still runs and is reported. Every failure (no
    * key, timeout, error, no session) lets the call through rather than inventing a
    * verdict, and a call the gate already refused once runs on an identical retry, so
    * a Jev answer can never deadlock work the model is certain about.
-   * `JEV_GATE_BLOCK=0` downgrades a block to a report, `JEV_GATE=0` turns the gate
-   * off for the session. A second question ("does this call advance the goal")
+   * `JEV_GATE_BLOCK=0` downgrades either block to a report, `JEV_GATE=0` turns the
+   * gate off for the session and `JEV_ROUTE=0` drops just the route question. A second
+   * question ("does this call advance the goal")
    * was measured on 213 real calls and removed: at its 0.4 threshold it flagged
    * 32% of legitimate calls, reads and MCP calls in particular, and the lowest
    * scoring calls were harmless, so it carried no selection signal. */
@@ -368,11 +451,19 @@ export default function jev(pi: ExtensionAPI) {
     if (!key) return;
 
     const goal = goalOf(ctx);
+    const call = `${event.toolName}(${clip(JSON.stringify(event.input ?? {}), GATE_ARGS_CHARS)})`;
+    const route = process.env.JEV_ROUTE === "0" ? [] : routable(goal, call);
+    const criteria: Record<string, string> = {
+      as_written: `run this exact ${event.toolName} call as written`,
+    };
+    for (const move of route) criteria[move.label] = move.text || move.label;
     const state = [
       "Judge whether the next tool call from the model should run exactly as it is.",
       goal && `What the session is working on:\n${goal}`,
       `Working directory: ${ctx.cwd}`,
-      `Tool call: ${event.toolName}(${clip(JSON.stringify(event.input ?? {}), GATE_ARGS_CHARS)})`,
+      `Tool call: ${call}`,
+      route.length > 0 && "Skills and MCP tools installed here that this call could use instead:\n" +
+        route.map((move) => `- ${move.label}: ${move.text || "no description"}`).join("\n"),
     ].filter(Boolean).join("\n\n");
 
     const result = await jevPost(key, state, {
@@ -382,20 +473,50 @@ export default function jev(pi: ExtensionAPI) {
           `written: a wrong target or path, a destructive or irreversible step, a contradiction of the ` +
           `user's request or policy, or work the session has already done.`,
       },
+      ...(route.length > 0 ? {
+        route: {
+          type: "choice",
+          instructions: `The smallest correct next move for what the user asked, from the listed ` +
+            `skills and MCP tools: answer \`as_written\` when this exact ${event.toolName} call is ` +
+            `already that move, otherwise the named move is a better next step than the call as written.`,
+          criteria,
+        },
+      } : {}),
     }, gated(ctx));
     if (!result.ok) return;
 
     const answers = result.answers as Record<string, unknown>;
     const objection = probability(answers?.object);
-    if (objection === undefined || objection < GATE_OBJECT_THRESHOLD) return;
-
-    const reason = `Jev gate: this ${event.toolName} call must not run as written (objection ${objection}). ` +
-      `Re-check the target and the request, or choose a narrower or reversible step.`;
     const signature = `${event.toolName}:${JSON.stringify(event.input ?? {})}`;
-    if (process.env.JEV_GATE_BLOCK !== "0" && !GATE_BLOCKED.has(signature)) {
-      GATE_BLOCKED.add(signature);
-      return { block: true, reason: `${reason} Repeated unchanged, it runs.` };
+    if (objection !== undefined && objection >= GATE_OBJECT_THRESHOLD) {
+      const reason = `Jev gate: this ${event.toolName} call must not run as written (objection ${objection}). ` +
+        `Re-check the target and the request, or choose a narrower or reversible step.`;
+      if (process.env.JEV_GATE_BLOCK !== "0" && !GATE_BLOCKED.has(signature)) {
+        GATE_BLOCKED.add(signature);
+        return { block: true, reason: `${reason} Repeated unchanged, it runs.` };
+      }
+      ctx.ui.notify(`${reason} Running it unchanged.`, "warning");
     }
-    ctx.ui.notify(`${reason} Running it unchanged.`, "warning");
+
+    // The route answer: a strong pick that is not `as_written` names a better next move
+    // than the call, so blocking once for it makes the cheap model's judgment count.
+    if (route.length > 0) {
+      const picked = String((answers?.route as any)?.choice ?? "");
+      const move = route.find((item) => item.label === picked);
+      const weight = choiceWeight(answers?.route, picked);
+      if (move && picked !== "as_written" && weight !== undefined && weight >= GATE_ROUTE_THRESHOLD) {
+        const what = picked.startsWith("skill:")
+          ? `load skill "${picked.slice("skill:".length)}"`
+          : `use the installed MCP tool "${move.label.slice("tool:".length)}"`;
+        const reason = `Jev route: ${what} before repeating this ${event.toolName} call (route ${weight}).`;
+        if (process.env.JEV_GATE_BLOCK !== "0" && !GATE_BLOCKED.has(signature)) {
+          GATE_BLOCKED.add(signature);
+          return { block: true, reason: `${reason} Repeated unchanged, it runs.` };
+        }
+        if (process.env.JEV_GATE_BLOCK === "0") {
+          ctx.ui.notify(`${reason} Re-check it against the request.`, "warning");
+        }
+      }
+    }
   });
 }

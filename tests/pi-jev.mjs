@@ -344,13 +344,137 @@ try {
   assert.match(calls.at(-1).body.state, /Tool call: read\(\{"path":"a.ts"\}\)/);
   reply = null;
 
+  // The route question: the gate offers the skills and MCP tools Pi already loaded,
+  // and blocks once when a cheap model's Jev pick is a better next move than the call.
+  const jevExtension = extensions.find((item) => item.path.endsWith('extensions/megai-jev/index.ts'));
+  const routeCatalog = jevExtension.handlers.get('before_agent_start')?.[0];
+  assert.equal(typeof routeCatalog, 'function', 'the extension must cache the routing catalog');
+  const routing = (choice, probability, object = 0.05) => ({
+    body: { answers: {
+      object: { type: 'noul', noul: object },
+      route: { choice, probabilities: { [choice]: probability }, confidence: probability },
+    } },
+  });
+
+  delete process.env.JEV_ROUTE;
+  routeCatalog({
+    systemPromptOptions: {
+      skills: [
+        { name: 'megai', description: 'focused verification for a flaky test' },
+        { name: 'ponytail', description: 'laziest solution for any coding task' },
+      ],
+      toolSnippets: { mcp: 'MCP gateway: install, status, search, describe, auth', bash: 'run a shell command' },
+    },
+  }, gating);
+
+  // An on-topic skill pick rides the existing request and blocks once with the move to
+  // make; the identical retry runs, so a route pick can never deadlock the work.
+  reply = routing('skill:megai', 0.83);
+  before = calls.length;
+  let seen = noticed.length;
+  const routeBlocked = await judged('bash', { command: 'node tools/run-flaky.mjs' });
+  assert.equal(calls.length, before + 1, 'routing must not add a second request');
+  assert.deepEqual(Object.keys(calls.at(-1).body.questions), ['object', 'route']);
+  assert.equal(calls.at(-1).body.questions.route.type, 'choice');
+  assert.equal(calls.at(-1).body.questions.route.criteria.as_written, 'run this exact bash call as written');
+  assert.match(calls.at(-1).body.questions.route.criteria['skill:megai'], /flaky test/);
+  assert.equal(calls.at(-1).body.questions.route.criteria['skill:ponytail'], undefined,
+    'an unrelated catalog entry is not offered');
+  assert.equal(calls.at(-1).body.questions.route.criteria['tool:mcp'], undefined,
+    'an unrelated MCP tool is not offered');
+  assert.match(calls.at(-1).body.state, /- skill:megai: focused verification for a flaky test/);
+  assert.equal(routeBlocked.block, true);
+  assert.match(routeBlocked.reason, /Jev route: load skill "megai" before repeating this bash call \(route 0\.83\)/);
+  assert.match(routeBlocked.reason, /Repeated unchanged, it runs/);
+  assert.equal(noticed.length, seen, 'a route block is its own report');
+  assert.equal(await judged('bash', { command: 'node tools/run-flaky.mjs' }), undefined,
+    'a repeated identical call must run rather than deadlock');
+  assert.equal(noticed.length, seen, 'the route retry is silent');
+
+  // `as_written` needs no action, a pick below the route threshold is not worth a round
+  // trip, and a strong objection still wins over a route pick.
+  reply = routing('as_written', 0.95);
+  before = calls.length;
+  seen = noticed.length;
+  assert.equal(await judged('bash', { command: 'node tools/run-flaky.mjs 2' }), undefined,
+    'the call as written runs');
+  assert.ok(Object.keys(calls.at(-1).body.questions).includes('route'), 'the question is still asked');
+  reply = routing('skill:megai', 0.69);
+  assert.equal(await judged('bash', { command: 'node tools/run-flaky.mjs 3' }), undefined,
+    '0.69 does not block');
+  reply = routing('skill:megai', 0.7, 0.9);
+  const objectionFirst = await judged('bash', { command: 'node tools/run-flaky.mjs 4' });
+  assert.match(objectionFirst.reason, /must not run as written \(objection 0\.9\)/,
+    'a strong objection is reported before the route');
+  assert.equal(noticed.length, seen, 'neither the weak pick nor the objection block reports');
+
+  // A missing route answer, JEV_ROUTE=0 and JEV_GATE_BLOCK=0 all leave the call alone.
+  reply = { body: { answers: { object: { type: 'noul', noul: 0.05 } } } };
+  assert.equal(await judged('bash', { command: 'node tools/run-flaky.mjs 5' }), undefined,
+    'an unanswered route must not block');
+  reply = routing('skill:megai', 0.99);
+  process.env.JEV_ROUTE = '0';
+  before = calls.length;
+  assert.equal(await judged('bash', { command: 'node tools/run-flaky.mjs 6' }), undefined);
+  assert.deepEqual(Object.keys(calls.at(-1).body.questions), ['object'],
+    'JEV_ROUTE=0 asks the objection question only');
+  assert.doesNotMatch(calls.at(-1).body.state, /could use instead/);
+  delete process.env.JEV_ROUTE;
+  seen = noticed.length;
+  process.env.JEV_GATE_BLOCK = '0';
+  assert.equal(await judged('bash', { command: 'node tools/run-flaky.mjs 7' }), undefined,
+    'JEV_GATE_BLOCK=0 keeps the route advice and drops the block');
+  assert.equal(noticed.length, seen + 1);
+  assert.match(noticed.at(-1)[0], /Jev route: load skill "megai".*Re-check it against the request/);
+  delete process.env.JEV_GATE_BLOCK;
+
+  // The MCP half of the catalog: an on-topic gateway tool is offered for a discovery
+  // call, and picked it routes the model there instead.
+  const discovery = {
+    ...gating,
+    sessionManager: { getBranch: () => [
+      { type: 'message', message: { role: 'user', content: 'find the code that builds the parser report' } },
+    ] },
+  };
+  routeCatalog({
+    systemPromptOptions: {
+      skills: [],
+      toolSnippets: {
+        'mcp__graft': 'code discovery: find code and trace callers through the lazy graft server',
+        mcp: 'MCP gateway: install, status, search, describe, auth',
+        bash: 'run a shell command',
+      },
+    },
+  }, discovery);
+  reply = routing('tool:mcp__graft', 0.78);
+  const mcpBlocked = await gate({ toolName: 'bash', toolCallId: 't3', input: { command: 'rg parser' } }, discovery);
+  assert.equal(mcpBlocked.block, true);
+  assert.match(mcpBlocked.reason,
+    /Jev route: use the installed MCP tool "mcp__graft" before repeating this bash call/);
+
+  // The catalog caps what is offered: 20 on-topic skills still fit the API limit.
+  routeCatalog({
+    systemPromptOptions: {
+      skills: Array.from({ length: 20 }, (_, index) => ({
+        name: `parser-skill-${index}`, description: 'parser report work',
+      })),
+    },
+  }, discovery);
+  reply = routing('as_written', 0.9);
+  before = calls.length;
+  assert.equal(await gate({ toolName: 'bash', toolCallId: 't4', input: { command: 'rg parser report' } }, discovery), undefined);
+  const offered = Object.keys(calls.at(-1).body.questions.route.criteria);
+  assert.deepEqual(offered.slice(0, 1), ['as_written']);
+  assert.equal(offered.length, 7, 'as_written plus the six best skills');
+
   install('--remove');
   assert.ok(!existsSync(installed), 'the installer must remove its own asset');
   console.log('PASS: real installer and Pi loader; jev tool registered, request shape exact, key never leaked, the '
     + 'missing key asks the user once and honours a decline, and invalid-question, HTTP-error, non-JSON, no-answers, '
     + 'oversized-body, cancelled and timed-out paths all fail open without retrying or touching the network; the '
     + 'tool-call gate judges every call, blocks a strong objection once and fails open on '
-    + 'timeout or error');
+    + 'timeout or error, and its route question blocks once on an on-topic skill or MCP pick while staying silent '
+    + 'on as_written, a weak pick, a missing answer, JEV_ROUTE=0 and JEV_GATE_BLOCK=0');
 } finally {
   server.close();
   for (const [name, value] of Object.entries(savedEnv)) {
