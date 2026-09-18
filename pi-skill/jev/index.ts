@@ -22,7 +22,7 @@ const TIMEOUT_MS = Math.max(0, Number(process.env.TYPESAFE_TIMEOUT_MS)) || 30_00
 const DIALOG_MS = 120_000;
 const MAX_STATE = 24_000;
 const MAX_BODY = 256 * 1024;
-const MAX_QUESTIONS = 8;
+export const MAX_QUESTIONS = 8;
 const MAX_CRITERIA = 12;
 const KINDS = ["choice", "score", "noul"];
 
@@ -45,7 +45,7 @@ function keychainKey(): string | undefined {
 
 /** Environment first, then the macOS keychain. A miss is remembered too (as
  * `""`), so a keychain-less macOS session spawns `security` at most once. */
-function apiKey(): string | undefined {
+export function apiKey(): string | undefined {
   const provided = process.env.TYPESAFE_API_KEY?.trim();
   if (provided) return provided;
   if (cachedKey === undefined) cachedKey = keychainKey() ?? "";
@@ -142,6 +142,56 @@ function failed(reason: string) {
   };
 }
 
+/** One Jev POST, shared by the `jev` tool and any companion extension. Validation
+ * stays with the caller; a network or protocol failure comes back as `ok: false`
+ * with a one-line reason instead of throwing, so a caller falls back on its own. */
+export async function jevPost(
+  key: string,
+  state: string,
+  questions: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<
+  | { ok: true; answers: Record<string, unknown>; model: string; usage: unknown }
+  | { ok: false; error: string }
+> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const abort = () => controller.abort();
+  signal?.addEventListener("abort", abort, { once: true });
+  try {
+    const response = await fetch(process.env.TYPESAFE_ENDPOINT || DEFAULT_ENDPOINT, {
+      method: "POST",
+      headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+      body: JSON.stringify({ state, model: MODEL, questions }),
+      signal: controller.signal,
+    });
+    if (!response.ok) return { ok: false, error: `Jev returned HTTP ${response.status}` };
+    const text = await response.text();
+    if (text.length > MAX_BODY) return { ok: false, error: "Jev response too large" };
+    let payload: any;
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      return { ok: false, error: "Jev response was not JSON" };
+    }
+    if (!payload?.answers || typeof payload.answers !== "object") {
+      return { ok: false, error: "Jev response carried no answers" };
+    }
+    return { ok: true, answers: payload.answers, model: payload.model ?? MODEL, usage: payload.usage ?? null };
+  } catch (error: any) {
+    const kind = [error?.name, error?.code].filter(Boolean).join(" ") || "unknown";
+    return {
+      ok: false,
+      error: controller.signal.aborted
+        ? "Jev call timed out or was cancelled"
+        : `Jev call failed (${kind})`,
+    };
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
+  }
+}
+
 export default function jev(pi: ExtensionAPI) {
   pi.registerTool({
     name: "jev",
@@ -183,45 +233,15 @@ export default function jev(pi: ExtensionAPI) {
         return failed("no TypeSafe key: enter one when asked, set TYPESAFE_API_KEY, or store one with " +
           "`security add-generic-password -s typesafe.ai -a \"$USER\" -w`");
       }
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-      const abort = () => controller.abort();
-      signal?.addEventListener("abort", abort, { once: true });
-      try {
-        const response = await fetch(process.env.TYPESAFE_ENDPOINT || DEFAULT_ENDPOINT, {
-          method: "POST",
-          headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-          body: JSON.stringify({ state: params.state, model: MODEL, questions }),
-          signal: controller.signal,
-        });
-        if (!response.ok) return failed(`Jev returned HTTP ${response.status}`);
-        const text = await response.text();
-        if (text.length > MAX_BODY) return failed("Jev response too large");
-        let payload: any;
-        try {
-          payload = JSON.parse(text);
-        } catch {
-          return failed("Jev response was not JSON");
-        }
-        if (!payload?.answers || typeof payload.answers !== "object") {
-          return failed("Jev response carried no answers");
-        }
-        return {
-          content: [{
-            type: "text" as const,
-            text: JSON.stringify({ ok: true, model: payload.model ?? MODEL, answers: payload.answers, usage: payload.usage ?? null }),
-          }],
-          details: {},
-        };
-      } catch (error: any) {
-        const kind = [error?.name, error?.code].filter(Boolean).join(" ") || "unknown";
-        return failed(controller.signal.aborted
-          ? "Jev call timed out or was cancelled"
-          : `Jev call failed (${kind})`);
-      } finally {
-        clearTimeout(timer);
-        signal?.removeEventListener("abort", abort);
-      }
+      const result = await jevPost(key, params.state, questions, signal);
+      if (!result.ok) return failed(result.error);
+      return {
+        content: [{
+          type: "text" as const,
+          text: JSON.stringify({ ok: true, model: result.model, answers: result.answers, usage: result.usage }),
+        }],
+        details: {},
+      };
     },
   });
 }
