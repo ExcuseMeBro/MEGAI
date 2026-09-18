@@ -7,7 +7,9 @@ on the same strict-JSON prompt.
 
 Published run: [results/jev-decisions.md](results/jev-decisions.md) with the
 sanitized per-call records in
-[results/jev-decisions.trials.json](results/jev-decisions.trials.json).
+[results/jev-decisions.trials.json](results/jev-decisions.trials.json). Jev alone is
+measured in [results/micro-bench.md](results/micro-bench.md): latency, cost, state
+and question scaling, and repeat consistency.
 
 ## Files
 
@@ -15,7 +17,8 @@ sanitized per-call records in
 | --- | --- |
 | `items.json` | The 24 requests with their author labels, plus the label policy text every arm receives verbatim |
 | `run_jev_bench.py` | Runner and report; raw responses stay in the private `--root` directory |
-| `results/` | Published summary and sanitized records |
+| `micro_bench.py` | Jev-only runner and report for the micro-benchmark; same private `--root` rule |
+| `results/` | Published summaries and sanitized records |
 
 ## Run
 
