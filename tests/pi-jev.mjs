@@ -15,7 +15,8 @@ process.env.PI_OFFLINE = '1';
 const ROOT = resolve('.');
 const temp = mkdtempSync(join(tmpdir(), 'pi-jev-'));
 const agent = join(temp, 'agent');
-const KEPT = ['TYPESAFE_API_KEY', 'TYPESAFE_ENDPOINT', 'TYPESAFE_TIMEOUT_MS', 'JEV_GATE_TIMEOUT_MS'];
+const KEPT = ['TYPESAFE_API_KEY', 'TYPESAFE_ENDPOINT', 'TYPESAFE_TIMEOUT_MS', 'JEV_GATE_TIMEOUT_MS',
+  'JEV_GATE', 'JEV_GATE_BLOCK'];
 const savedEnv = Object.fromEntries(KEPT.map((name) => [name, process.env[name]]));
 // A short deadline keeps the timeout case fast; the extension reads it at load.
 process.env.TYPESAFE_TIMEOUT_MS = '150';
@@ -233,8 +234,10 @@ try {
   reply = null;
 
   // The gate: one Jev judgment per tool call the model emits — `mcp`, `mcpScript`,
-  // built-ins, all of them — before the tool runs. Advisory by default, blocked
-  // only when asked, and every failure lets the call through untouched.
+  // built-ins, all of them — before the tool runs. A strong objection blocks it, weak
+  // support is reported, and every failure lets the call through untouched.
+  delete process.env.JEV_GATE;
+  delete process.env.JEV_GATE_BLOCK;
   const noticed = [];
   const gating = {
     ...ctx,
@@ -246,54 +249,66 @@ try {
     ui: { notify: (text, level) => noticed.push([text, level]) },
   };
   const judged = (name, input) => gate({ toolName: name, toolCallId: 't1', input }, gating);
+  const answering = (advance, object) => ({
+    body: { answers: { advance: { type: 'noul', noul: advance }, object: { type: 'noul', noul: object } } },
+  });
 
-  reply = { body: { answers: { should_run: { type: 'noul', noul: 0.2 } } } };
+  reply = answering(0.8, 0.05);
   let before = calls.length;
   assert.equal(await judged('mcp', { tool: 'plane_workitem', args: { action: 'list' } }), undefined,
-    'an advisory judgment must not block the call');
+    'a supported call runs');
   assert.equal(calls.length, before + 1, 'exactly one request per tool call');
   assert.equal(calls.at(-1).url, '/v1/systemone');
   assert.equal(calls.at(-1).authorization, 'Bearer synthetic-only');
   assert.equal(calls.at(-1).body.model, 'jev-latest');
-  assert.deepEqual(Object.keys(calls.at(-1).body.questions), ['should_run']);
-  assert.equal(calls.at(-1).body.questions.should_run.type, 'noul');
-  assert.match(calls.at(-1).body.questions.should_run.instructions, /exact mcp call/);
+  assert.deepEqual(Object.keys(calls.at(-1).body.questions), ['advance', 'object']);
+  assert.equal(calls.at(-1).body.questions.advance.type, 'noul');
+  assert.match(calls.at(-1).body.questions.advance.instructions, /exact mcp call advances/);
+  assert.match(calls.at(-1).body.questions.object.instructions, /must not run as written/);
   assert.match(calls.at(-1).body.state, /fix the flaky parser test/, 'the judgment carries the goal');
   assert.match(calls.at(-1).body.state, /Tool call: mcp\(\{"tool":"plane_workitem"/, 'and the call itself');
+  assert.equal(noticed.length, 0, 'a supported call is silent');
+
+  // Weak support is reported, never blocked.
+  reply = answering(0.2, 0.05);
+  assert.equal(await judged('read', { path: 'a.ts' }), undefined);
   assert.equal(noticed.length, 1);
   assert.equal(noticed[0][1], 'warning');
-  assert.match(noticed[0][0], /Jev gate: this mcp call is questionable/);
-  assert.ok(!noticed[0][0].includes('synthetic-only'), 'the key must never be reported');
+  assert.match(noticed[0][0], /barely advances the current goal \(advance 0\.2, objection 0\.05\)/);
 
-  // A confident call is silent, a Jev failure is not a verdict, and neither retries.
-  reply = { body: { answers: { should_run: { noul: 0.9 } } } };
-  assert.equal(await judged('read', { path: 'a.ts' }), undefined);
-  assert.equal(noticed.length, 1, 'a confident call must not be reported');
+  // A strong objection blocks once, with the reason. The identical retry runs, so a
+  // Jev answer can never deadlock work the model is certain about.
+  reply = answering(0.1, 0.9);
+  const blocked = await judged('bash', { command: 'rm -rf src' });
+  assert.equal(blocked.block, true);
+  assert.match(blocked.reason, /this bash call must not run as written \(objection 0\.9\)/);
+  assert.match(blocked.reason, /Repeated unchanged, it runs/);
+  assert.equal(noticed.length, 1, 'a block replaces the warning');
+  assert.equal(await judged('bash', { command: 'rm -rf src' }), undefined,
+    'a repeated identical call must run rather than deadlock');
+  assert.equal(noticed.length, 2, 'the retry is reported, not blocked');
+
+  // JEV_GATE_BLOCK=0 keeps the judgment and drops the block.
+  reply = answering(0.1, 0.95);
+  process.env.JEV_GATE_BLOCK = '0';
+  assert.equal(await judged('write', { path: 'a.ts', content: 'x' }), undefined);
+  assert.match(noticed.at(-1)[0], /barely advances the current goal/);
+  delete process.env.JEV_GATE_BLOCK;
+
+  // A failed or unanswered judgment is not a verdict, and is not retried.
   reply = { status: 500, body: { error: 'upstream' } };
   before = calls.length;
   assert.equal(await judged('bash', { command: 'ls' }), undefined, 'a failed judgment must not block the call');
   assert.equal(calls.length, before + 1, 'a failed judgment is not retried');
-  assert.equal(noticed.length, 1, 'a failure is not a verdict');
-
-  // A judgment nobody answers in time neither holds nor blocks the call.
-  reply = { delayMs: 400, body: { answers: { should_run: { type: 'noul', noul: 0.2 } } } };
+  assert.equal(noticed.length, 3, 'a failure is not a verdict');
+  reply = { delayMs: 400, body: answering(0.1, 0.9).body };
   before = calls.length;
-  assert.equal(await judged('write', { path: 'a.ts', content: 'x' }), undefined,
+  assert.equal(await judged('edit', { path: 'a.ts' }), undefined,
     'a judgement slower than the gate deadline must fail open');
   assert.ok(calls.length <= before + 1, 'a timed-out judgment is not retried');
-  assert.equal(noticed.length, 1);
+  assert.equal(noticed.length, 3);
   await new Promise((tick) => setTimeout(tick, 400));
   reply = null;
-
-  // JEV_GATE_BLOCK=1 turns the same judgment into a block the model can read.
-  reply = { body: { answers: { should_run: { type: 'noul', noul: 0.2 } } } };
-  process.env.JEV_GATE_BLOCK = '1';
-  const blocked = await judged('write', { path: 'a.ts', content: 'x' });
-  assert.equal(blocked.block, true);
-  assert.match(blocked.reason, /Jev gate: this write call is questionable/);
-  assert.match(blocked.reason, /should_run 0\.2/);
-  assert.equal(noticed.length, 1, 'a block replaces the advisory warning');
-  delete process.env.JEV_GATE_BLOCK;
 
   // JEV_GATE=0, the `jev` tool itself and a missing key never reach the network.
   before = calls.length;
@@ -322,7 +337,8 @@ try {
   console.log('PASS: real installer and Pi loader; jev tool registered, request shape exact, key never leaked, the '
     + 'missing key asks the user once and honours a decline, and invalid-question, HTTP-error, non-JSON, no-answers, '
     + 'oversized-body, cancelled and timed-out paths all fail open without retrying or touching the network; the '
-    + 'tool-call gate judges every call, advises by default, blocks on request and fails open on timeout or error');
+    + 'tool-call gate judges every call, blocks a strong objection once, reports weak support and fails open on '
+    + 'timeout or error');
 } finally {
   server.close();
   for (const [name, value] of Object.entries(savedEnv)) {

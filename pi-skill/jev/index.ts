@@ -11,9 +11,9 @@
  * `TYPESAFE_TIMEOUT_MS` the 30 s deadline, for a proxy or an offline test.
  *
  * The same key and `jevPost` drive the tool-call gate below: every tool call the
- * model emits — built-in, `mcp`, `mcpScript`, all of them — gets one `noul`
- * judgment before it runs. Advisory by default, `JEV_GATE_BLOCK=1` to block,
- * `JEV_GATE=0` to switch the gate off, and always fail open.
+ * model emits — built-in, `mcp`, `mcpScript`, all of them — gets one Jev judgment
+ * before it runs. A strong objection blocks it, weak support is reported, and
+ * `JEV_GATE=0` / `JEV_GATE_BLOCK=0` turn the gate off or back to advice.
  */
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
@@ -30,13 +30,18 @@ const MAX_BODY = 256 * 1024;
 export const MAX_QUESTIONS = 8;
 const MAX_CRITERIA = 12;
 const KINDS = ["choice", "score", "noul"];
-/** `noul` probability at or above which a judged tool call runs unquestioned. */
-const GATE_THRESHOLD = 0.5;
+/** `noul` probability at or above which the gate blocks a judged tool call. */
+const GATE_OBJECT_THRESHOLD = 0.7;
+/** `advance` probability below which a judged tool call is reported instead. */
+const GATE_WARN_THRESHOLD = 0.4;
 const GATE_TIMEOUT_MS = Math.max(0, Number(process.env.JEV_GATE_TIMEOUT_MS)) || 5_000;
 const GATE_ARGS_CHARS = 800;
 const GATE_GOAL_CHARS = 1_200;
 /** The gate never judges itself: a Jev question about the `jev` call would recurse. */
 const GATE_SKIP = new Set(["jev"]);
+/** Call signatures the gate already refused once: a second identical attempt is the
+ * model insisting, and a Jev answer must never deadlock a call the model can repeat. */
+const GATE_BLOCKED = new Set<string>();
 
 let cachedKey: string | undefined;
 
@@ -295,11 +300,14 @@ export default function jev(pi: ExtensionAPI) {
     },
   });
 
-  /** The gate: one Jev `noul` judgment per tool call the model emits, before the
-   * tool runs. Advisory by default — a doubtful call is reported and still runs —
-   * and every failure (no key, timeout, error, no session) lets the call through
-   * rather than inventing a verdict. `JEV_GATE_BLOCK=1` blocks the call and tells
-   * the model why; `JEV_GATE=0` turns the gate off for a session. */
+  /** The gate: one Jev judgment per tool call the model emits, before the tool runs.
+   * Two bundled `noul` questions — does this call advance the request, is there a
+   * concrete reason it must not run as written. A strong objection (>= 0.7) blocks
+   * the call with the reason; weak support (< 0.4) is reported and the call still
+   * runs. Every failure (no key, timeout, error, no session) lets the call through
+   * rather than inventing a verdict, and a call the gate already refused once runs
+   * with a warning the second time. `JEV_GATE_BLOCK=0` downgrades a block to a
+   * warning, `JEV_GATE=0` turns the gate off for the session. */
   pi.on("tool_call", async (event, ctx) => {
     if (process.env.JEV_GATE === "0" || GATE_SKIP.has(event.toolName)) return;
     const key = apiKey();
@@ -314,20 +322,36 @@ export default function jev(pi: ExtensionAPI) {
     ].filter(Boolean).join("\n\n");
 
     const result = await jevPost(key, state, {
-      should_run: {
+      advance: {
         type: "noul",
-        instructions: `This exact ${event.toolName} call is the right next step for what the session ` +
-          `is working on and should run unchanged, rather than a different, narrower or no call.`,
+        instructions: `This exact ${event.toolName} call advances what the user asked the session to do.`,
+      },
+      object: {
+        type: "noul",
+        instructions: `There is a concrete reason this exact ${event.toolName} call must not run as ` +
+          `written: a wrong target or path, a destructive or irreversible step, a contradiction of the ` +
+          `user's request or policy, or work the session has already done.`,
       },
     }, gated(ctx));
     if (!result.ok) return;
 
-    const confidence = probability((result.answers as Record<string, unknown>)?.should_run);
-    if (confidence === undefined || confidence >= GATE_THRESHOLD) return;
-
-    const reason = `Jev gate: this ${event.toolName} call is questionable for the current goal ` +
-      `(should_run ${confidence}). Re-check it against the request, narrow it, or say why it is needed.`;
-    if (process.env.JEV_GATE_BLOCK === "1") return { block: true, reason };
-    ctx.ui.notify(reason, "warning");
+    const answers = result.answers as Record<string, unknown>;
+    const objection = probability(answers?.object);
+    const support = probability(answers?.advance);
+    const signature = `${event.toolName}:${JSON.stringify(event.input ?? {})}`;
+    if (objection !== undefined && objection >= GATE_OBJECT_THRESHOLD
+        && process.env.JEV_GATE_BLOCK !== "0" && !GATE_BLOCKED.has(signature)) {
+      GATE_BLOCKED.add(signature);
+      return {
+        block: true,
+        reason: `Jev gate: this ${event.toolName} call must not run as written (objection ` +
+          `${objection}). Re-check the target and the request, choose a narrower or reversible step, ` +
+          `or tell the user why this call is needed. Repeated unchanged, it runs.`,
+      };
+    }
+    if (support !== undefined && support < GATE_WARN_THRESHOLD) {
+      ctx.ui.notify(`Jev gate: this ${event.toolName} call barely advances the current goal ` +
+        `(advance ${support}, objection ${objection ?? "?"}). Re-check it against the request.`, "warning");
+    }
   });
 }
