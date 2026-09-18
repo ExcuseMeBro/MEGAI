@@ -234,8 +234,8 @@ try {
   reply = null;
 
   // The gate: one Jev judgment per tool call the model emits — `mcp`, `mcpScript`,
-  // built-ins, all of them — before the tool runs. A strong objection blocks it, weak
-  // support is reported, and every failure lets the call through untouched.
+  // built-ins, all of them — before the tool runs. A strong objection blocks it once,
+  // and every failure lets the call through untouched.
   delete process.env.JEV_GATE;
   delete process.env.JEV_GATE_BLOCK;
   const noticed = [];
@@ -249,50 +249,56 @@ try {
     ui: { notify: (text, level) => noticed.push([text, level]) },
   };
   const judged = (name, input) => gate({ toolName: name, toolCallId: 't1', input }, gating);
-  const answering = (advance, object) => ({
-    body: { answers: { advance: { type: 'noul', noul: advance }, object: { type: 'noul', noul: object } } },
+  const answering = (object) => ({
+    body: { answers: { object: { type: 'noul', noul: object } } },
   });
 
-  reply = answering(0.8, 0.05);
+  reply = answering(0.05);
   let before = calls.length;
   assert.equal(await judged('mcp', { tool: 'plane_workitem', args: { action: 'list' } }), undefined,
-    'a supported call runs');
+    'a call Jev does not object to runs');
   assert.equal(calls.length, before + 1, 'exactly one request per tool call');
   assert.equal(calls.at(-1).url, '/v1/systemone');
   assert.equal(calls.at(-1).authorization, 'Bearer synthetic-only');
   assert.equal(calls.at(-1).body.model, 'jev-latest');
-  assert.deepEqual(Object.keys(calls.at(-1).body.questions), ['advance', 'object']);
-  assert.equal(calls.at(-1).body.questions.advance.type, 'noul');
-  assert.match(calls.at(-1).body.questions.advance.instructions, /exact mcp call advances/);
+  assert.deepEqual(Object.keys(calls.at(-1).body.questions), ['object'], 'one question per call');
+  assert.equal(calls.at(-1).body.questions.object.type, 'noul');
   assert.match(calls.at(-1).body.questions.object.instructions, /must not run as written/);
   assert.match(calls.at(-1).body.state, /fix the flaky parser test/, 'the judgment carries the goal');
   assert.match(calls.at(-1).body.state, /Tool call: mcp\(\{"tool":"plane_workitem"/, 'and the call itself');
-  assert.equal(noticed.length, 0, 'a supported call is silent');
+  assert.equal(noticed.length, 0, 'a call Jev does not object to is silent');
 
-  // Weak support is reported, never blocked.
-  reply = answering(0.2, 0.05);
+  // Below the block threshold nothing is reported: the gate used to warn on an
+  // `advance` below 0.4, which flagged a third of all real calls.
+  reply = answering(0.64);
   assert.equal(await judged('read', { path: 'a.ts' }), undefined);
-  assert.equal(noticed.length, 1);
-  assert.equal(noticed[0][1], 'warning');
-  assert.match(noticed[0][0], /barely advances the current goal \(advance 0\.2, objection 0\.05\)/);
+  assert.equal(noticed.length, 0, 'a soft objection runs silently');
 
   // A strong objection blocks once, with the reason. The identical retry runs, so a
   // Jev answer can never deadlock work the model is certain about.
-  reply = answering(0.1, 0.9);
+  reply = answering(0.9);
   const blocked = await judged('bash', { command: 'rm -rf src' });
   assert.equal(blocked.block, true);
   assert.match(blocked.reason, /this bash call must not run as written \(objection 0\.9\)/);
   assert.match(blocked.reason, /Repeated unchanged, it runs/);
-  assert.equal(noticed.length, 1, 'a block replaces the warning');
+  assert.equal(noticed.length, 0, 'the block is its own report');
   assert.equal(await judged('bash', { command: 'rm -rf src' }), undefined,
     'a repeated identical call must run rather than deadlock');
-  assert.equal(noticed.length, 2, 'the retry is reported, not blocked');
+  assert.equal(noticed.length, 1, 'the retry is reported and runs');
+  assert.match(noticed.at(-1)[0], /objection 0\.9.*Running it unchanged/);
+
+  // The threshold is the measured one, not an old 0.7: 0.6 passes, 0.66 blocks.
+  reply = answering(0.6);
+  assert.equal(await judged('edit', { path: 'a.ts', edits: [] }), undefined, '0.6 does not block');
+  reply = answering(0.66);
+  assert.equal((await judged('edit', { path: 'a.ts', edits: [] })).block, true,
+    'the block threshold is 0.65');
 
   // JEV_GATE_BLOCK=0 keeps the judgment and drops the block.
-  reply = answering(0.1, 0.95);
+  reply = answering(0.95);
   process.env.JEV_GATE_BLOCK = '0';
   assert.equal(await judged('write', { path: 'a.ts', content: 'x' }), undefined);
-  assert.match(noticed.at(-1)[0], /barely advances the current goal/);
+  assert.match(noticed.at(-1)[0], /objection 0\.95.*Running it unchanged/);
   delete process.env.JEV_GATE_BLOCK;
 
   // A failed or unanswered judgment is not a verdict, and is not retried.
@@ -300,13 +306,13 @@ try {
   before = calls.length;
   assert.equal(await judged('bash', { command: 'ls' }), undefined, 'a failed judgment must not block the call');
   assert.equal(calls.length, before + 1, 'a failed judgment is not retried');
-  assert.equal(noticed.length, 3, 'a failure is not a verdict');
-  reply = { delayMs: 400, body: answering(0.1, 0.9).body };
+  assert.equal(noticed.length, 2, 'a failure is not a verdict');
+  reply = { delayMs: 400, body: answering(0.9).body };
   before = calls.length;
   assert.equal(await judged('edit', { path: 'a.ts' }), undefined,
     'a judgement slower than the gate deadline must fail open');
   assert.ok(calls.length <= before + 1, 'a timed-out judgment is not retried');
-  assert.equal(noticed.length, 3);
+  assert.equal(noticed.length, 2);
   await new Promise((tick) => setTimeout(tick, 400));
   reply = null;
 
@@ -337,7 +343,7 @@ try {
   console.log('PASS: real installer and Pi loader; jev tool registered, request shape exact, key never leaked, the '
     + 'missing key asks the user once and honours a decline, and invalid-question, HTTP-error, non-JSON, no-answers, '
     + 'oversized-body, cancelled and timed-out paths all fail open without retrying or touching the network; the '
-    + 'tool-call gate judges every call, blocks a strong objection once, reports weak support and fails open on '
+    + 'tool-call gate judges every call, blocks a strong objection once and fails open on '
     + 'timeout or error');
 } finally {
   server.close();
