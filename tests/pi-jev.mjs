@@ -15,10 +15,11 @@ process.env.PI_OFFLINE = '1';
 const ROOT = resolve('.');
 const temp = mkdtempSync(join(tmpdir(), 'pi-jev-'));
 const agent = join(temp, 'agent');
-const KEPT = ['TYPESAFE_API_KEY', 'TYPESAFE_ENDPOINT', 'TYPESAFE_TIMEOUT_MS'];
+const KEPT = ['TYPESAFE_API_KEY', 'TYPESAFE_ENDPOINT', 'TYPESAFE_TIMEOUT_MS', 'JEV_GATE_TIMEOUT_MS'];
 const savedEnv = Object.fromEntries(KEPT.map((name) => [name, process.env[name]]));
 // A short deadline keeps the timeout case fast; the extension reads it at load.
 process.env.TYPESAFE_TIMEOUT_MS = '150';
+process.env.JEV_GATE_TIMEOUT_MS = '150';
 
 function install(...flags) {
   execFileSync('python3', ['-B', resolve('lib/pi_model_policy.py'), ...flags], {
@@ -99,6 +100,9 @@ try {
   }
   const jev = tools.get('jev');
   assert.ok(jev, 'the installed extension must register the jev tool');
+  const gate = extensions.find((item) => item.path.endsWith('extensions/megai-jev/index.ts'))
+    .handlers.get('tool_call')?.[0];
+  assert.equal(typeof gate, 'function', 'the extension must register the tool_call gate');
 
   // No key and no reachable keychain: fail open, and never touch the network.
   mkdirSync(join(temp, 'bin'), { recursive: true });
@@ -228,11 +232,97 @@ try {
   await new Promise((tick) => setTimeout(tick, 400));
   reply = null;
 
+  // The gate: one Jev judgment per tool call the model emits — `mcp`, `mcpScript`,
+  // built-ins, all of them — before the tool runs. Advisory by default, blocked
+  // only when asked, and every failure lets the call through untouched.
+  const noticed = [];
+  const gating = {
+    ...ctx,
+    cwd: '/repo',
+    sessionManager: { getBranch: () => [
+      { type: 'message', message: { role: 'user', content: 'fix the flaky parser test' } },
+      { type: 'message', message: { role: 'assistant', content: [{ type: 'text', text: 'reading it' }] } },
+    ] },
+    ui: { notify: (text, level) => noticed.push([text, level]) },
+  };
+  const judged = (name, input) => gate({ toolName: name, toolCallId: 't1', input }, gating);
+
+  reply = { body: { answers: { should_run: { type: 'noul', noul: 0.2 } } } };
+  let before = calls.length;
+  assert.equal(await judged('mcp', { tool: 'plane_workitem', args: { action: 'list' } }), undefined,
+    'an advisory judgment must not block the call');
+  assert.equal(calls.length, before + 1, 'exactly one request per tool call');
+  assert.equal(calls.at(-1).url, '/v1/systemone');
+  assert.equal(calls.at(-1).authorization, 'Bearer synthetic-only');
+  assert.equal(calls.at(-1).body.model, 'jev-latest');
+  assert.deepEqual(Object.keys(calls.at(-1).body.questions), ['should_run']);
+  assert.equal(calls.at(-1).body.questions.should_run.type, 'noul');
+  assert.match(calls.at(-1).body.questions.should_run.instructions, /exact mcp call/);
+  assert.match(calls.at(-1).body.state, /fix the flaky parser test/, 'the judgment carries the goal');
+  assert.match(calls.at(-1).body.state, /Tool call: mcp\(\{"tool":"plane_workitem"/, 'and the call itself');
+  assert.equal(noticed.length, 1);
+  assert.equal(noticed[0][1], 'warning');
+  assert.match(noticed[0][0], /Jev gate: this mcp call is questionable/);
+  assert.ok(!noticed[0][0].includes('synthetic-only'), 'the key must never be reported');
+
+  // A confident call is silent, a Jev failure is not a verdict, and neither retries.
+  reply = { body: { answers: { should_run: { noul: 0.9 } } } };
+  assert.equal(await judged('read', { path: 'a.ts' }), undefined);
+  assert.equal(noticed.length, 1, 'a confident call must not be reported');
+  reply = { status: 500, body: { error: 'upstream' } };
+  before = calls.length;
+  assert.equal(await judged('bash', { command: 'ls' }), undefined, 'a failed judgment must not block the call');
+  assert.equal(calls.length, before + 1, 'a failed judgment is not retried');
+  assert.equal(noticed.length, 1, 'a failure is not a verdict');
+
+  // A judgment nobody answers in time neither holds nor blocks the call.
+  reply = { delayMs: 400, body: { answers: { should_run: { type: 'noul', noul: 0.2 } } } };
+  before = calls.length;
+  assert.equal(await judged('write', { path: 'a.ts', content: 'x' }), undefined,
+    'a judgement slower than the gate deadline must fail open');
+  assert.ok(calls.length <= before + 1, 'a timed-out judgment is not retried');
+  assert.equal(noticed.length, 1);
+  await new Promise((tick) => setTimeout(tick, 400));
+  reply = null;
+
+  // JEV_GATE_BLOCK=1 turns the same judgment into a block the model can read.
+  reply = { body: { answers: { should_run: { type: 'noul', noul: 0.2 } } } };
+  process.env.JEV_GATE_BLOCK = '1';
+  const blocked = await judged('write', { path: 'a.ts', content: 'x' });
+  assert.equal(blocked.block, true);
+  assert.match(blocked.reason, /Jev gate: this write call is questionable/);
+  assert.match(blocked.reason, /should_run 0\.2/);
+  assert.equal(noticed.length, 1, 'a block replaces the advisory warning');
+  delete process.env.JEV_GATE_BLOCK;
+
+  // JEV_GATE=0, the `jev` tool itself and a missing key never reach the network.
+  before = calls.length;
+  process.env.JEV_GATE = '0';
+  assert.equal(await judged('read', { path: 'a.ts' }), undefined);
+  delete process.env.JEV_GATE;
+  assert.equal(await judged('jev', { state: 'x', questions }), undefined, 'the gate must not judge itself');
+  assert.equal(calls.length, before, 'a switched-off or self call sends nothing');
+  const environment = process.env.TYPESAFE_API_KEY;
+  delete process.env.TYPESAFE_API_KEY;
+  assert.equal(await judged('read', { path: 'a.ts' }), undefined);
+  assert.equal(calls.at(-1).authorization, 'Bearer typed-key',
+    'the gate shares the session key the tool asked for');
+  process.env.TYPESAFE_API_KEY = environment;
+
+  // A session the extension cannot read is still judged, just without a goal.
+  before = calls.length;
+  assert.equal(await gate({ toolName: 'read', toolCallId: 't2', input: { path: 'a.ts' } }, ctx), undefined);
+  assert.equal(calls.length, before + 1);
+  assert.doesNotMatch(calls.at(-1).body.state, /What the session is working on/);
+  assert.match(calls.at(-1).body.state, /Tool call: read\(\{"path":"a.ts"\}\)/);
+  reply = null;
+
   install('--remove');
   assert.ok(!existsSync(installed), 'the installer must remove its own asset');
   console.log('PASS: real installer and Pi loader; jev tool registered, request shape exact, key never leaked, the '
     + 'missing key asks the user once and honours a decline, and invalid-question, HTTP-error, non-JSON, no-answers, '
-    + 'oversized-body, cancelled and timed-out paths all fail open without retrying or touching the network');
+    + 'oversized-body, cancelled and timed-out paths all fail open without retrying or touching the network; the '
+    + 'tool-call gate judges every call, advises by default, blocks on request and fails open on timeout or error');
 } finally {
   server.close();
   for (const [name, value] of Object.entries(savedEnv)) {
