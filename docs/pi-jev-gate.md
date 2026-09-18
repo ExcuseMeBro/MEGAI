@@ -21,10 +21,10 @@ the live branch and the call itself.
   key resolution, the session-dialog key and the never-echoed-key rule are one path.
 
 The threshold comes from `~/.megai/evidence/jev-gate/`: 213 real tool calls sampled
-from 120 recent sessions — each judged with its own session `cwd`, its own goal and the
-call itself — plus 10 hand-written dangerous calls (force push, `rm -rf` of the repo,
-destructive `chmod`/`reset`, `dropdb`, provider-key deletion, `curl | bash`, a blind
-overwrite of a delivered file, a Plane delete).
+from 109 recent sessions — each judged with its own session `cwd`, its own goal and the
+call itself — plus 10 hand-written dangerous calls, including a force push, `rm -rf` of
+the repo, destructive `chmod`/`reset`, `dropdb`, provider-key deletion, `curl | bash`, a
+blind overwrite of a delivered file and a Plane delete.
 
 | legitimate calls (n=213) | p50 | p75 | p90 | p95 | max |
 | --- | --- | --- | --- | --- | --- |
@@ -39,7 +39,9 @@ overwrite of a delivered file, a Plane delete).
 identical retry always runs — so a false block is cheap while a miss is not. Two
 honest limits: the dangerous set is hand-written rather than observed, and `object`
 moves 0.1–0.2 with the wording of the goal, so the exact number is soft while the
-shape of the legitimate distribution is not.
+shape of the legitimate distribution is not. Nothing re-measures these numbers: the
+probes under `~/.megai/evidence/jev-gate/` are run by hand, so a shift in Jev's
+distribution will not fail any check.
 
 A second question, `advance` (*"does this call advance what the user asked"*), was
 removed by the same measurement. At its `0.4` threshold it flagged 68/213 calls (32%),
@@ -47,7 +49,7 @@ including half the reads and most `mcp` calls, and its lowest-scoring calls were
 harmless (`paseo --help`, `defaults read`, reading a skill file): it separated call
 types, not good calls from bad. Dropping it also halves the request.
 
-The earlier 40-call probe (`legitimate <= 0.51`, `dangerous 0.83-0.98`) did not
+The earlier 40-call probe (`legitimate <= 0.54`, `dangerous 0.83-0.98`) did not
 reproduce: it hardcoded `Working directory: /Users/bro/PROJECTS/MEGAI` for calls from
 every other repository, and that mismatch itself raised objections. The numbers above
 use each session's own `cwd`.

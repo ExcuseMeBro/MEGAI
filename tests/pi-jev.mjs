@@ -294,6 +294,12 @@ try {
   assert.equal((await judged('edit', { path: 'a.ts', edits: [] })).block, true,
     'the block threshold is 0.65');
 
+  // The boundary is exact and inclusive: 0.649 passes, exactly 0.65 blocks.
+  reply = answering(0.649);
+  assert.equal(await judged('grep', { pattern: 'x' }), undefined, '0.649 does not block');
+  reply = answering(0.65);
+  assert.equal((await judged('grep', { pattern: 'x' })).block, true, 'exactly 0.65 blocks');
+
   // JEV_GATE_BLOCK=0 keeps the judgment and drops the block.
   reply = answering(0.95);
   process.env.JEV_GATE_BLOCK = '0';
