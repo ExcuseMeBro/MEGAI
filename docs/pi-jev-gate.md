@@ -72,16 +72,39 @@ Cost per judged call: one Jev request with one `noul` question, ~0.8 s p50 added
  the tool-call path; a route question rides that same request, so routing costs no
  extra round trip and only a few hundred tokens of state.
 
+## File screen (`sift`)
+
+The same asset also registers `sift`, the same idea in the other direction: instead of
+handing text over, the model hands over candidate paths and the tool reads them. Up to
+12 paths are resolved with `realpath` and confined to the working, home and temp
+directories; each file becomes one `noul` question (*"does this file help with the
+query"*) and only `path: yes/no (P=…)` comes back. A batch of candidate logs, docs or
+evidence costs one line each instead of their contents.
+
+- A file longer than 16 000 + 7 900 characters is sent as head plus tail and marked
+  `[head and tail only]`: the end of a log is where the failure is, and a head-only
+  screen would confidently call it irrelevant.
+- A per-file failure never fails the batch. A credential-shaped path (`.env`, `id_rsa`,
+  `*.pem`, `.ssh/…`), a directory, a binary, a file over 2 MB or a path outside the
+  roots comes back as `unread, <reason>`, with no request and nothing sent.
+- Four files are in flight at once, input order is output order, and the key, retry and
+  cancellation rules are the `jev` tool's.
+- The answer is advisory like any other Jev answer: an unread or truncated file is not
+  evidence of irrelevance, and a score near 0.5 still deserves a look.
+
 Verify offline through the real loader and the real hook:
 
 ```bash
 PI_PACKAGE_ROOT=<installed pi-coding-agent> node tests/pi-jev.mjs
 PI_PACKAGE_ROOT=<installed pi-coding-agent> node tests/pi-jev-retry.mjs
+PI_PACKAGE_ROOT=<installed pi-coding-agent> node tests/pi-sift.mjs
 ```
 
 The first covers the tool, the gate and the key path against a local endpoint; the
 second covers the 429/529 retry and pins the 500, malformed-body, timeout and
-cancellation paths to exactly one attempt.
+cancellation paths to exactly one attempt; the third covers the file screen — what
+reaches the provider, input order, head-and-tail truncation and every refused path,
+with nothing sent for a refused file.
 
 The live route request shape (a real endpoint call, keychain or `TYPESAFE_API_KEY`):
 
