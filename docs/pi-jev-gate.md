@@ -33,10 +33,11 @@ the live branch and the call itself.
   backoff wait ends the retry at once.
 - Every call appends one JSONL line — the model that answered, each question's
   answer, confidence and probabilities, never the state or the key — to
-  `~/.megai/jev-calls.jsonl` (`JEV_LOG` moves it, `JEV_LOG=0` turns it off). That is
-  what retunes the `0.65`/`0.7` bands: read the splits, then move the number.
-  `JEV_MODEL` pins the model id those bands were measured against, instead of
-  tracking `jev-latest` and silently shifting under them.
+  `~/.megai/jev-calls.jsonl` (`JEV_LOG` moves it, `JEV_LOG=0` turns it off). Each line
+  also carries a short record id and the caller's `source` (`tool`, `sift`, `gate`,
+  `compaction`). That is what retunes the `0.65`/`0.7` bands: read the splits, then
+  move the number. `JEV_MODEL` pins the model id those bands were measured against,
+  instead of tracking `jev-latest` and silently shifting under them.
 - It shares `apiKey()` and `jevPost` with the tool and the compaction extension, so
   key resolution, the session-dialog key and the never-echoed-key rule are one path.
 
@@ -104,6 +105,7 @@ Verify offline through the real loader and the real hook:
 PI_PACKAGE_ROOT=<installed pi-coding-agent> node tests/pi-jev.mjs
 PI_PACKAGE_ROOT=<installed pi-coding-agent> node tests/pi-jev-retry.mjs
 PI_PACKAGE_ROOT=<installed pi-coding-agent> node tests/pi-sift.mjs
+python3 -m unittest tests.jev_shadow
 ```
 
 The first covers the tool, the gate and the key path against a local endpoint; the
@@ -117,3 +119,30 @@ The live route request shape (a real endpoint call, keychain or `TYPESAFE_API_KE
 ```bash
 node tests/pi-jev-route-live.mjs
 ```
+
+## Reading the ledger back
+
+`lib/jev_shadow.py` is the other half of that JSONL line. The tool prints a short
+record id; labeling what actually happened for that id is what turns ordinary traffic
+into a test set instead of a request log.
+
+```bash
+python3 lib/jev_shadow.py note --id 4f0a12cd --actual guarded
+python3 lib/jev_shadow.py note --id 4f0a12cd --question mode --actual routine
+python3 lib/jev_shadow.py report
+```
+
+`report` prints what the raw ledger cannot say on its own:
+
+- per question, how often Jev's answer matched the labeled outcome, and the mean
+  probability it gave when it was right versus wrong;
+- for `noul` questions, how many labeled cases each candidate cutoff (0.5 to 0.9)
+  would have caught and how often those were yes — the evidence behind "low limit for
+  reading data, 0.85+ for anything you cannot undo";
+- the rows where Jev and the outcome disagreed. Those are the next test set, and
+  normal traffic builds it for free.
+
+`note` refuses an id the ledger never recorded and a question id that call never
+asked, so a typo cannot write an unjoinable row. Nothing here reads the state: the
+ledger never stores it, only the model, the question ids, the answers and their
+probabilities.

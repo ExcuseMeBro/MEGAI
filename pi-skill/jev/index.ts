@@ -11,7 +11,9 @@
  * `TYPESAFE_TIMEOUT_MS` the 30 s deadline and `JEV_MODEL` the model id — pin the
  * release the thresholds are tuned on instead of tracking `jev-latest`. Every call
  * leaves one line of model, answers and probabilities in `~/.megai/jev-calls.jsonl`
- * (`JEV_LOG` moves that file, `JEV_LOG=0` turns it off).
+ * (`JEV_LOG` moves that file, `JEV_LOG=0` turns it off), carrying a short record id
+ * and the caller's `source` so `lib/jev_shadow.py` can label what actually happened
+ * and read the disagreements back.
  * HTTP 429 and 529 are retried with exponential backoff because they only mean the
  * provider is throttling this caller; every other failure stays one bounded attempt.
  *
@@ -29,6 +31,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { readFile, realpath, stat } from "node:fs/promises";
 import { homedir, platform, tmpdir } from "node:os";
@@ -331,7 +334,7 @@ function failed(reason: string) {
 /** What the single attempt and the retrying wrapper both return. `status` is set
  * only for a non-2xx HTTP answer, so the retry can tell throttling from a failure. */
 type JevResult =
-  | { ok: true; answers: Record<string, unknown>; model: string; usage: unknown }
+  | { ok: true; answers: Record<string, unknown>; model: string; usage: unknown; id: string }
   | { ok: false; error: string; status?: number };
 
 /** One Jev POST, shared by the `jev` tool and any companion extension. Validation
@@ -341,6 +344,7 @@ async function jevAttempt(
   key: string,
   state: string,
   questions: Record<string, unknown>,
+  meta: { id: string; source: string },
   signal?: AbortSignal,
 ): Promise<JevResult> {
   const controller = new AbortController();
@@ -369,7 +373,7 @@ async function jevAttempt(
       return { ok: false, error: "Jev response carried no answers" };
     }
     const model = payload.model ?? jevModel();
-    jevLog({ model, answers: payload.answers, usage: payload.usage ?? null });
+    jevLog({ id: meta.id, source: meta.source, model, answers: payload.answers, usage: payload.usage ?? null });
     return { ok: true, answers: payload.answers, model, usage: payload.usage ?? null };
   } catch (error: any) {
     const kind = [error?.name, error?.code].filter(Boolean).join(" ") || "unknown";
@@ -408,16 +412,20 @@ export async function jevPost(
   state: string,
   questions: Record<string, unknown>,
   signal?: AbortSignal,
+  source = "other",
 ): Promise<JevResult> {
-  let result: JevResult = await jevAttempt(key, state, questions, signal);
+  const meta = { id: randomUUID().slice(0, 8), source };
+  let result: JevResult = await jevAttempt(key, state, questions, meta, signal);
   for (let retry = 0; !result.ok && retry < RETRY_MAX; retry += 1) {
     if (signal?.aborted || !RETRY_STATUS.has(result.status ?? 0)) break;
     await backoff(RETRY_BASE_MS * 2 ** retry, signal);
     if (signal?.aborted) return { ok: false, error: "Jev call timed out or was cancelled" };
-    result = await jevAttempt(key, state, questions, signal);
+    result = await jevAttempt(key, state, questions, meta, signal);
   }
-  if (!result.ok) jevLog({ model: jevModel(), error: result.error, status: result.status ?? null });
-  return result;
+  if (!result.ok) {
+    jevLog({ id: meta.id, source, model: jevModel(), error: result.error, status: result.status ?? null });
+  }
+  return result.ok ? { ...result, id: meta.id } : result;
 }
 
 /** The roots a screen may read: the session's working directory, the home
@@ -502,12 +510,12 @@ export default function jev(pi: ExtensionAPI) {
         return failed("no TypeSafe key: enter one when asked, set TYPESAFE_API_KEY, or store one with " +
           "`security add-generic-password -s typesafe.ai -a \"$USER\" -w`");
       }
-      const result = await jevPost(key, params.state, questions, signal);
+      const result = await jevPost(key, params.state, questions, signal, "tool");
       if (!result.ok) return failed(result.error);
       return {
         content: [{
           type: "text" as const,
-          text: JSON.stringify({ ok: true, model: result.model, answers: result.answers, usage: result.usage }),
+          text: JSON.stringify({ ok: true, id: result.id, model: result.model, answers: result.answers, usage: result.usage }),
         }],
         details: {},
       };
@@ -561,7 +569,7 @@ export default function jev(pi: ExtensionAPI) {
           const path = params.paths[index];
           try {
             const file = await siftRead(path, ctx.cwd, roots);
-            const result = await jevPost(key, file.text, questions, signal);
+            const result = await jevPost(key, file.text, questions, signal, "sift");
             if (!result.ok) throw new Error(result.error);
             const score = probability(result.answers?.relevant);
             lines[index] = `${path}: ${score === undefined ? "unscored" : score >= 0.5 ? "yes" : "no"}` +
@@ -653,7 +661,7 @@ export default function jev(pi: ExtensionAPI) {
           criteria,
         },
       } : {}),
-    }, gated(ctx));
+    }, gated(ctx), "gate");
     if (!result.ok) return;
 
     const answers = result.answers as Record<string, unknown>;

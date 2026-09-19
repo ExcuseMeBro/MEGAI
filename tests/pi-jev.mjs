@@ -202,6 +202,9 @@ try {
   assert.equal(pinned.model, 'jev-1.13.0', 'the caller sees the model that answered');
   const logged = readFileSync(log, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
   const last = logged.at(-1);
+  assert.match(last.id, /^[0-9a-f]{8}$/, 'every logged line carries a record id');
+  assert.equal(last.source, 'tool', 'the ledger names the call site');
+  assert.equal(pinned.id, last.id, 'the id the caller sees is the logged record');
   assert.equal(last.model, 'jev-1.13.0');
   assert.equal(last.answers.task_type.answer, 'bug');
   assert.equal(last.answers.task_type.confidence, 0.91);
@@ -214,6 +217,7 @@ try {
   assert.equal(loggedFailure.ok, false);
   const failure = JSON.parse(readFileSync(log, 'utf8').trim().split('\n').at(-1));
   assert.match(failure.error, /HTTP 500/);
+  assert.equal(failure.source, 'tool');
   assert.ok(!failure.error.includes('synthetic-only'), 'the log must not carry the key');
   reply = null;
   // `JEV_LOG=0` is off: the next call appends no line at all.
