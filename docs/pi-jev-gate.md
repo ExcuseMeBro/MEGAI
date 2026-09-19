@@ -31,6 +31,12 @@ the live branch and the call itself.
   the exception — they only mean the provider is throttling this caller, so `jevPost`
   retries them twice (0.5 s then 1 s) before the gate fails open; a caller abort during a
   backoff wait ends the retry at once.
+- Every call appends one JSONL line — the model that answered, each question's
+  answer, confidence and probabilities, never the state or the key — to
+  `~/.megai/jev-calls.jsonl` (`JEV_LOG` moves it, `JEV_LOG=0` turns it off). That is
+  what retunes the `0.65`/`0.7` bands: read the splits, then move the number.
+  `JEV_MODEL` pins the model id those bands were measured against, instead of
+  tracking `jev-latest` and silently shifting under them.
 - It shares `apiKey()` and `jevPost` with the tool and the compaction extension, so
   key resolution, the session-dialog key and the never-echoed-key rule are one path.
 

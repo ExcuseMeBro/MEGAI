@@ -7,8 +7,11 @@
  * kept in memory for the session; it is never logged, returned, or written into
  * tool output. Every failure returns `ok: false` with a one-line reason, so the
  * agent falls back to its own judgment instead of retrying, blocking, or guessing
- * about the service. `TYPESAFE_ENDPOINT` overrides the public endpoint and
- * `TYPESAFE_TIMEOUT_MS` the 30 s deadline, for a proxy or an offline test.
+ * about the service. `TYPESAFE_ENDPOINT` overrides the public endpoint,
+ * `TYPESAFE_TIMEOUT_MS` the 30 s deadline and `JEV_MODEL` the model id — pin the
+ * release the thresholds are tuned on instead of tracking `jev-latest`. Every call
+ * leaves one line of model, answers and probabilities in `~/.megai/jev-calls.jsonl`
+ * (`JEV_LOG` moves that file, `JEV_LOG=0` turns it off).
  * HTTP 429 and 529 are retried with exponential backoff because they only mean the
  * provider is throttling this caller; every other failure stays one bounded attempt.
  *
@@ -26,13 +29,47 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { execFileSync } from "node:child_process";
+import { appendFileSync, mkdirSync } from "node:fs";
 import { readFile, realpath, stat } from "node:fs/promises";
 import { homedir, platform, tmpdir } from "node:os";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 const DEFAULT_ENDPOINT = "https://api.typesafe.ai/v1/systemone";
 const MODEL = "jev-latest";
 const SERVICE = "typesafe.ai";
+/** The model id for the next request: `JEV_MODEL` pins the release the thresholds
+ * below were measured against, instead of drifting with `jev-latest`. */
+function jevModel(): string {
+  return process.env.JEV_MODEL?.trim() || MODEL;
+}
+
+const LOG_FILE = join(homedir(), ".megai", "jev-calls.jsonl");
+
+/** One JSONL line per provider call: the model that answered, and each question's
+ * answer, confidence and probabilities. That is what retunes the bands below and
+ * what shows the questions that keep splitting — never the state, the key or any
+ * file text. `JEV_LOG` moves the file, `JEV_LOG=0` turns it off, and a failed write
+ * never fails a decision. */
+function jevLog(entry: Record<string, any>): void {
+  const target = (process.env.JEV_LOG ?? "").trim();
+  if (target === "0") return;
+  const answers: Record<string, unknown> = {};
+  for (const [name, answer] of Object.entries(entry.answers ?? {})) {
+    const item = answer as Record<string, any>;
+    answers[name] = {
+      type: item?.type,
+      answer: item?.choice ?? item?.score ?? item?.noul,
+      confidence: item?.confidence,
+      probabilities: item?.probabilities,
+    };
+  }
+  const line = `${JSON.stringify({ ...entry, answers, t: new Date().toISOString() })}\n`;
+  try {
+    const path = target || LOG_FILE;
+    mkdirSync(dirname(path), { recursive: true });
+    appendFileSync(path, line);
+  } catch { /* a log write never fails a decision */ }
+}
 const TIMEOUT_MS = Math.max(0, Number(process.env.TYPESAFE_TIMEOUT_MS)) || 30_000;
 /** Attempts after the first when the provider answers 429 or 529: two retries, 0.5 s
  * then 1 s, cover a throttled burst without holding a caller for long.
@@ -314,7 +351,7 @@ async function jevAttempt(
     const response = await fetch(process.env.TYPESAFE_ENDPOINT || DEFAULT_ENDPOINT, {
       method: "POST",
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-      body: JSON.stringify({ state, model: MODEL, questions }),
+      body: JSON.stringify({ state, model: jevModel(), questions }),
       signal: controller.signal,
     });
     if (!response.ok) {
@@ -331,7 +368,9 @@ async function jevAttempt(
     if (!payload?.answers || typeof payload.answers !== "object") {
       return { ok: false, error: "Jev response carried no answers" };
     }
-    return { ok: true, answers: payload.answers, model: payload.model ?? MODEL, usage: payload.usage ?? null };
+    const model = payload.model ?? jevModel();
+    jevLog({ model, answers: payload.answers, usage: payload.usage ?? null });
+    return { ok: true, answers: payload.answers, model, usage: payload.usage ?? null };
   } catch (error: any) {
     const kind = [error?.name, error?.code].filter(Boolean).join(" ") || "unknown";
     return {
@@ -377,6 +416,7 @@ export async function jevPost(
     if (signal?.aborted) return { ok: false, error: "Jev call timed out or was cancelled" };
     result = await jevAttempt(key, state, questions, signal);
   }
+  if (!result.ok) jevLog({ model: jevModel(), error: result.error, status: result.status ?? null });
   return result;
 }
 

@@ -16,11 +16,15 @@ const ROOT = resolve('.');
 const temp = mkdtempSync(join(tmpdir(), 'pi-jev-'));
 const agent = join(temp, 'agent');
 const KEPT = ['TYPESAFE_API_KEY', 'TYPESAFE_ENDPOINT', 'TYPESAFE_TIMEOUT_MS', 'JEV_GATE_TIMEOUT_MS',
-  'JEV_GATE', 'JEV_GATE_BLOCK'];
+  'JEV_GATE', 'JEV_GATE_BLOCK', 'JEV_MODEL', 'JEV_LOG'];
 const savedEnv = Object.fromEntries(KEPT.map((name) => [name, process.env[name]]));
 // A short deadline keeps the timeout case fast; the extension reads it at load.
 process.env.TYPESAFE_TIMEOUT_MS = '150';
 process.env.JEV_GATE_TIMEOUT_MS = '150';
+// `JEV_LOG=0` keeps the suite out of the real ~/.megai/jev-calls.jsonl; the log case
+// below points JEV_LOG at the temp directory instead.
+process.env.JEV_LOG = '0';
+delete process.env.JEV_MODEL;
 
 function install(...flags) {
   execFileSync('python3', ['-B', resolve('lib/pi_model_policy.py'), ...flags], {
@@ -185,6 +189,38 @@ try {
   assert.equal(read(result).answers.needs_approval.noul, 0.04);
   assert.equal(read(result).model, 'jev-1.13.0');
   assert.ok(!result.content[0].text.includes('synthetic-only'), 'the key must never appear in tool output');
+
+  // A pinned model changes the request's model id only, and the response's own id
+  // still wins; every call then leaves one local line of probabilities behind,
+  // without the state, and a failure is logged once with no key in it.
+  const log = join(temp, 'jev-calls.jsonl');
+  process.env.JEV_MODEL = 'jev-9.9.9';
+  process.env.JEV_LOG = log;
+  const pinned = read(await jev.execute('call-6', { state: 'fix the flaky test', questions }, undefined, undefined, ctx));
+  assert.equal(pinned.ok, true);
+  assert.equal(calls.at(-1).body.model, 'jev-9.9.9', 'JEV_MODEL must pin the request model');
+  assert.equal(pinned.model, 'jev-1.13.0', 'the caller sees the model that answered');
+  const logged = readFileSync(log, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
+  const last = logged.at(-1);
+  assert.equal(last.model, 'jev-1.13.0');
+  assert.equal(last.answers.task_type.answer, 'bug');
+  assert.equal(last.answers.task_type.confidence, 0.91);
+  assert.deepEqual(last.answers.task_type.probabilities, { bug: 0.91 });
+  assert.equal(last.answers.effort.answer, 0.9);
+  assert.match(last.t, /^\d{4}-\d\d-\d\dT/);
+  assert.ok(!readFileSync(log, 'utf8').includes('fix the flaky test'), 'the state must never be logged');
+  reply = { status: 500, body: { error: 'upstream' } };
+  const loggedFailure = read(await jev.execute('call-7', { state: 'fix the flaky test', questions }, undefined, undefined, ctx));
+  assert.equal(loggedFailure.ok, false);
+  const failure = JSON.parse(readFileSync(log, 'utf8').trim().split('\n').at(-1));
+  assert.match(failure.error, /HTTP 500/);
+  assert.ok(!failure.error.includes('synthetic-only'), 'the log must not carry the key');
+  reply = null;
+  // `JEV_LOG=0` is off: the next call appends no line at all.
+  process.env.JEV_LOG = '0';
+  await jev.execute('call-8', { state: 'fix the flaky test', questions }, undefined, undefined, ctx);
+  assert.equal(readFileSync(log, 'utf8').trim().split('\n').length, logged.length + 1);
+  delete process.env.JEV_MODEL;
 
   // A provider error is a bounded, key-free failure.
   reply = { status: 500, body: { error: 'upstream' } };
@@ -474,7 +510,9 @@ try {
     + 'oversized-body, cancelled and timed-out paths all fail open without retrying or touching the network; the '
     + 'tool-call gate judges every call, blocks a strong objection once and fails open on '
     + 'timeout or error, and its route question blocks once on an on-topic skill or MCP pick while staying silent '
-    + 'on as_written, a weak pick, a missing answer, JEV_ROUTE=0 and JEV_GATE_BLOCK=0');
+    + 'on as_written, a weak pick, a missing answer, JEV_ROUTE=0 and JEV_GATE_BLOCK=0; JEV_MODEL pins the request '
+    + 'model and every call leaves one JSONL line of probabilities — with the state and the key absent, and '
+    + 'JEV_LOG=0 silent');
 } finally {
   server.close();
   for (const [name, value] of Object.entries(savedEnv)) {
