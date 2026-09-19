@@ -36,8 +36,10 @@ the live branch and the call itself.
   `~/.megai/jev-calls.jsonl` (`JEV_LOG` moves it, `JEV_LOG=0` turns it off). Each line
   also carries a short record id and the caller's `source` (`tool`, `sift`, `gate`,
   `compaction`). That is what retunes the `0.65`/`0.7` bands: read the splits, then
-  move the number. `JEV_MODEL` pins the model id those bands were measured against,
-  instead of tracking `jev-latest` and silently shifting under them.
+  move the number. The file only grows — trim it by hand when it gets in the way.
+  `JEV_MODEL` pins the model id those bands were measured against, instead of
+  tracking `jev-latest` and silently shifting under them. Every offline suite sets
+  `JEV_LOG=0`, so synthetic calls never land in that file.
 - It shares `apiKey()` and `jevPost` with the tool and the compaction extension, so
   key resolution, the session-dialog key and the never-echoed-key rule are one path.
 

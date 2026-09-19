@@ -17,8 +17,12 @@ process.env.PI_OFFLINE = '1';
 const ROOT = resolve('.');
 const temp = mkdtempSync(join(tmpdir(), 'pi-sift-'));
 const agent = join(temp, 'agent');
-const KEPT = ['TYPESAFE_API_KEY', 'TYPESAFE_ENDPOINT', 'JEV_GATE', 'JEV_GATE_BLOCK'];
+const KEPT = ['TYPESAFE_API_KEY', 'TYPESAFE_ENDPOINT', 'JEV_GATE', 'JEV_GATE_BLOCK', 'JEV_LOG'];
 const savedEnv = Object.fromEntries(KEPT.map((name) => [name, process.env[name]]));
+// The screened files are fixtures, not a real question: offline runs must not append
+// synthetic lines to the live `~/.megai/jev-calls.jsonl` the gate thresholds are
+// retuned from.
+process.env.JEV_LOG = '0';
 
 function install(...flags) {
   execFileSync('python3', ['-B', resolve('lib/pi_model_policy.py'), ...flags], {
