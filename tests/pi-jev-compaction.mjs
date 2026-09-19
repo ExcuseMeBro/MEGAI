@@ -15,9 +15,12 @@ process.env.PI_OFFLINE = '1';
 const ROOT = resolve('.');
 const temp = mkdtempSync(join(tmpdir(), 'pi-jev-compaction-'));
 const agent = join(temp, 'agent');
-const KEPT = ['TYPESAFE_API_KEY', 'TYPESAFE_ENDPOINT', 'TYPESAFE_TIMEOUT_MS'];
+const KEPT = ['TYPESAFE_API_KEY', 'TYPESAFE_ENDPOINT', 'TYPESAFE_TIMEOUT_MS', 'JEV_LOG'];
 const savedEnv = Object.fromEntries(KEPT.map((name) => [name, process.env[name]]));
 const path = process.env.PATH;
+// Synthetic transcripts are not real Jev calls: offline runs must not append lines to
+// the live `~/.megai/jev-calls.jsonl` the gate thresholds are retuned from.
+process.env.JEV_LOG = '0';
 
 function install(...flags) {
   execFileSync('python3', ['-B', resolve('lib/pi_model_policy.py'), ...flags], {

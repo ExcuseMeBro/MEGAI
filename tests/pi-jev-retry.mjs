@@ -17,11 +17,15 @@ const ROOT = resolve('.');
 const temp = mkdtempSync(join(tmpdir(), 'pi-jev-retry-'));
 const agent = join(temp, 'agent');
 const KEPT = ['TYPESAFE_API_KEY', 'TYPESAFE_ENDPOINT', 'TYPESAFE_TIMEOUT_MS',
-  'JEV_GATE_TIMEOUT_MS', 'JEV_GATE', 'JEV_GATE_BLOCK'];
+  'JEV_GATE_TIMEOUT_MS', 'JEV_GATE', 'JEV_GATE_BLOCK', 'JEV_LOG'];
 const savedEnv = Object.fromEntries(KEPT.map((name) => [name, process.env[name]]));
 // A short deadline keeps the timeout case fast; the extension reads it at load.
 process.env.TYPESAFE_TIMEOUT_MS = '150';
 process.env.JEV_GATE_TIMEOUT_MS = '150';
+// A scripted 429 or 500 is not a real Jev call: offline runs must not append
+// synthetic lines to the live `~/.megai/jev-calls.jsonl` the gate thresholds are
+// retuned from.
+process.env.JEV_LOG = '0';
 
 const questions = {
   task_type: { type: 'choice', instructions: 'Which type?', criteria: { bug: 'a defect', chore: null } },

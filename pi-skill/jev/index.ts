@@ -49,7 +49,8 @@ const LOG_FILE = join(homedir(), ".megai", "jev-calls.jsonl");
  * answer, confidence and probabilities. That is what retunes the bands below and
  * what shows the questions that keep splitting — never the state, the key or any
  * file text. `JEV_LOG` moves the file, `JEV_LOG=0` turns it off, and a failed write
- * never fails a decision. */
+ * never fails a decision. ponytail: the file only grows, so trim it by hand; rotation
+ * waits until a reader actually needs the history. */
 function jevLog(entry: Record<string, any>): void {
   const target = (process.env.JEV_LOG ?? "").trim();
   if (target === "0") return;
