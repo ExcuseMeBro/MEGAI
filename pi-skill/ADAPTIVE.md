@@ -50,9 +50,11 @@ the task item:
 | Verification | the smallest sufficient check and the verdict | `check` choice, `sufficiency` choice (sufficient/gap), `verdict` choice (PASS/PASS WITH FINDINGS/BLOCKED), `escalate` `noul` |
 | Delivery and handoff | readiness and state | `delivery_ready` choice, `handoff_state` choice (In Review/blocked) |
 
-One call per decision boundary, bundling that step's independent questions (they run
-in parallel and cannot see each other's answers); a second call only when a later
-question needs an earlier answer, within the 8-question limit. Give `choice` and
+One call per decision boundary bundles that step's questions, which run in parallel
+and cannot see each other's answers (8-question limit). When every branch's follow-up
+is judgeable from the state in hand, bundle those too and use only the selected
+branch's answer; a second call is needed only when the follow-up depends on state the
+branch itself produces. Give `choice` and
 `noul` a label→meaning map and `score` an ordered
 level list (a bare label list is accepted for `choice`/`noul` and sent as labels). Send only the text the decision needs: never secrets, credentials,
 tokens, or personal data. Every answer is advisory: `noul` returns a probability

@@ -470,8 +470,8 @@ export default function jev(pi: ExtensionAPI) {
       "questions about supplied state, answered in about a second with probabilities. Use it " +
       "for every workflow step decision — triage mode/type/effort/approval, Plane labels, " +
       "isolation, delegation and role, verification depth, verdict, delivery readiness and " +
-      "handoff — one call per decision boundary with that step's independent questions " +
-      "bundled, instead of asking a model. Send only the request " +
+      "handoff — one call per decision boundary with that step's questions bundled, " +
+      "instead of asking a model. Send only the request " +
       "text needed for the decision: no secrets, credentials or personal data. Answers are " +
       "advisory, never authorize a reserved user decision, and belong on the task item. " +
       "On ok:false, decide yourself.",
