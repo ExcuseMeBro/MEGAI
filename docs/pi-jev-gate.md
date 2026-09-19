@@ -57,6 +57,9 @@ use each session's own `cwd`.
 Cost per judged call: one Jev request with one `noul` question, ~0.8 s p50 added on
 the tool-call path.
 
+A decision cache in front of this path was considered and declined; `docs/jevcache.md`
+records the reasoning, the pinned install and what the CLI is still good for.
+
 Verify offline through the real loader and the real hook:
 
 ```bash
