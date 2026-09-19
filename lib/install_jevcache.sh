@@ -44,8 +44,9 @@ curl --proto '=https' --proto-redir '=https' -fsSL --connect-timeout 10 --max-ti
   "https://github.com/hyperspaceai/jevcache/releases/download/v0.1.0/$asset" -o "$tmp/jevcache" \
   || skip "download failed; nothing installed"
 
-# The pinned digest is the identity: it is taken from the release's own .sha256 asset,
-# so a swapped or truncated download never reaches PATH.
+# The pinned digest is the identity. It was copied from the release's own .sha256
+# assets when v0.1.0 was adopted and is now a literal here — nothing is fetched at
+# install time — so a swapped or truncated download never reaches PATH.
 python3 - "$MEGAI_HOME/lib" "$tmp/jevcache" "$expected" "$target" <<'PY' || skip "checksum or destination check failed; nothing installed"
 import hashlib
 import os

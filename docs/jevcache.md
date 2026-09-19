@@ -10,7 +10,7 @@ same decision is never billed twice. `lib/install_jevcache.sh` installs it pinne
 | --- | --- |
 | version | `v0.1.0`, published 2026-09-19 |
 | artefact | one static Rust binary, 2.3–3.2 MB; this repository is distribution only, the source is closed |
-| verification | SHA-256 pinned per platform in the installer, from the release's own `.sha256` assets |
+| verification | SHA-256 pinned per platform as a literal in the installer, copied from the release's own `.sha256` assets when `v0.1.0` was adopted; nothing is fetched at install time |
 | platforms | macOS and Linux, arm64 and x64 |
 | on failure | warns and exits 0, so a missing binary never breaks a profile install |
 

@@ -56,12 +56,27 @@ class Jevcache(Slim):
                 self.assertEqual((self.megai / "state.json").read_text(), content)
 
     def test_leaves_an_existing_destination_untouched(self):
+        # An existing file is found by `command -v` (which reports non-executable files
+        # too), so this lands on the reuse branch. The destination guard below covers the
+        # case that branch cannot see.
         (self.megai / "bin").mkdir(parents=True, exist_ok=True)
         (self.megai / "bin/jevcache").write_text("user copy\n")
         self.stub("curl", 'exit 8\n')
         result = self.run_cmd("bash", str(self.megai / "lib/install_jevcache.sh"), env=self.isolated())
         self.assertIn("left untouched", result.stdout)
         self.assertEqual((self.megai / "bin/jevcache").read_text(), "user copy\n")
+        self.assertEqual(list((self.megai / "bin").glob(".jevcache.*")), [])
+        self.assertEqual(json.loads((self.megai / "state.json").read_text())["tools"], {})
+
+    def test_refuses_a_symlinked_destination(self):
+        (self.megai / "bin").mkdir(parents=True, exist_ok=True)
+        (self.megai / "bin/jevcache").symlink_to(self.home / "elsewhere")
+        self.stub("curl", 'exit 8\n')
+        result = self.run_cmd("bash", str(self.megai / "lib/install_jevcache.sh"), env=self.isolated())
+        self.assertIn("preserved; remove it by hand", result.stderr)
+        self.assertTrue((self.megai / "bin/jevcache").is_symlink())
+        self.assertEqual((self.megai / "bin/jevcache").readlink(), self.home / "elsewhere")
+        self.assertFalse((self.home / "calls").exists(), "download preceded the destination guard")
         self.assertEqual(list((self.megai / "bin").glob(".jevcache.*")), [])
         self.assertEqual(json.loads((self.megai / "state.json").read_text())["tools"], {})
 
