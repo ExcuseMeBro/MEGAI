@@ -183,7 +183,7 @@ async function decide(
   const answers = await Promise.all(
     batches.map(async (batch) => ({
       batch,
-      result: await jevPost(key, state, Object.assign({}, ...batch.map(questionsFor)), signal),
+      result: await jevPost(key, state, Object.assign({}, ...batch.map(questionsFor)), signal, "compaction"),
     })),
   );
   const decisions = new Map<number, Action>();

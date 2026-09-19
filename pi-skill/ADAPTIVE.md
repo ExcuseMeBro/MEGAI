@@ -65,6 +65,13 @@ keeps it for the session: enter it in that plain-text dialog (the keychain and
 `TYPESAFE_API_KEY` routes are never visible, and the tool never echoes the key
 back) or decline and decide directly.
 
+Every call now lands in `~/.megai/jev-calls.jsonl` with a short record id. Label the
+answers you actually consumed with what really happened —
+`python3 lib/jev_shadow.py note --id ID --actual LABEL` — so
+`python3 lib/jev_shadow.py report` can show the per-question agreement, the cutoff
+the probabilities support and the disagreements worth re-testing. An unlabeled
+ledger is only traffic.
+
 A low-confidence answer, a distribution split across acceptable alternatives or an
 answer that contradicts the table above is a signal to inspect the seam, widen
 evidence or ask — not a silent override. Explicit user or task instructions and every
