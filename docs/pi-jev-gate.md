@@ -34,12 +34,16 @@ the live branch and the call itself.
 - Every call appends one JSONL line — the model that answered, each question's
   answer, confidence and probabilities, never the state or the key — to
   `~/.megai/jev-calls.jsonl` (`JEV_LOG` moves it, `JEV_LOG=0` turns it off). Each line
-  also carries a short record id and the caller's `source` (`tool`, `sift`, `gate`,
-  `compaction`). That is what retunes the `0.65`/`0.7` bands: read the splits, then
-  move the number. The file only grows — trim it by hand when it gets in the way.
+  also carries a short record id, the caller's `source` (`tool`, `sift`, `gate`,
+  `compaction`) and the host that answered. That is what retunes the `0.65`/`0.7`
+  bands: read the splits, then move the number. One generation is capped at
+  `JEV_LOG_MAX_BYTES` (2 MB by default, `0` for one file that only grows): the whole
+  file moves to `<file>.1` before the append that would cross it, so `jev shadow`
+  reads the current generation and `--path` points it at the rolled one.
   `JEV_MODEL` pins the model id those bands were measured against, instead of
   tracking `jev-latest` and silently shifting under them. Every offline suite sets
-  `JEV_LOG=0`, so synthetic calls never land in that file.
+  `JEV_LOG=0` and then asserts the live file holds no loopback row, so a removed off
+  switch fails a test instead of landing in the calibration set.
 - It shares `apiKey()` and `jevPost` with the tool and the compaction extension, so
   key resolution, the session-dialog key and the never-echoed-key rule are one path.
 
