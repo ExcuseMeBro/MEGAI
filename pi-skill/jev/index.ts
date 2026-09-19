@@ -11,9 +11,11 @@
  * `TYPESAFE_TIMEOUT_MS` the 30 s deadline and `JEV_MODEL` the model id — pin the
  * release the thresholds are tuned on instead of tracking `jev-latest`. Every call
  * leaves one line of model, answers and probabilities in `~/.megai/jev-calls.jsonl`
- * (`JEV_LOG` moves that file, `JEV_LOG=0` turns it off), carrying a short record id
- * and the caller's `source` so `lib/jev_shadow.py` can label what actually happened
- * and read the disagreements back.
+ * (`JEV_LOG` moves that file, `JEV_LOG=0` turns it off), carrying a short record id,
+ * the caller's `source` and the host that answered so `lib/jev_shadow.py` can label
+ * what actually happened and read the disagreements back. The ledger rolls to
+ * `<file>.1` once it passes `JEV_LOG_MAX_BYTES` (2 MB by default, 0 for one unbounded
+ * file), so a long-lived profile cannot grow it without limit.
  * HTTP 429 and 529 are retried with exponential backoff because they only mean the
  * provider is throttling this caller; every other failure stays one bounded attempt.
  *
@@ -32,7 +34,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { Type } from "typebox";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { appendFileSync, mkdirSync } from "node:fs";
+import { appendFileSync, mkdirSync, renameSync, statSync } from "node:fs";
 import { readFile, realpath, stat } from "node:fs/promises";
 import { homedir, platform, tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -47,13 +49,33 @@ function jevModel(): string {
 }
 
 const LOG_FILE = join(homedir(), ".megai", "jev-calls.jsonl");
+/** One ledger generation before it rolls to `<file>.1`: a row is ~250 B, so 2 MB is
+ * roughly 8 000 calls. `JEV_LOG_MAX_BYTES=0` keeps one file that only grows. */
+const LOG_MAX_BYTES = 2 * 1024 * 1024;
+
+/** The host a call went to. A row from anywhere but the provider is not calibration
+ * data, and this is the field the offline suites assert on. */
+function endpointHost(): string {
+  try {
+    return new URL(process.env.TYPESAFE_ENDPOINT || DEFAULT_ENDPOINT).host;
+  } catch {
+    return "unknown";
+  }
+}
+
+/** The rollover cap from `JEV_LOG_MAX_BYTES`, where an explicit 0 means no cap. */
+function logMaxBytes(): number {
+  const raw = (process.env.JEV_LOG_MAX_BYTES ?? "").trim();
+  if (!raw) return LOG_MAX_BYTES;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value : LOG_MAX_BYTES;
+}
 
 /** One JSONL line per provider call: the model that answered, and each question's
  * answer, confidence and probabilities. That is what retunes the bands below and
  * what shows the questions that keep splitting — never the state, the key or any
- * file text. `JEV_LOG` moves the file, `JEV_LOG=0` turns it off, and a failed write
- * never fails a decision. ponytail: the file only grows, so trim it by hand; rotation
- * waits until a reader actually needs the history. */
+ * file text. `JEV_LOG` moves the file, `JEV_LOG=0` turns it off, the ledger rolls to
+ * `<file>.1` at `JEV_LOG_MAX_BYTES`, and a failed write never fails a decision. */
 function jevLog(entry: Record<string, any>): void {
   const target = (process.env.JEV_LOG ?? "").trim();
   if (target === "0") return;
@@ -67,10 +89,14 @@ function jevLog(entry: Record<string, any>): void {
       probabilities: item?.probabilities,
     };
   }
-  const line = `${JSON.stringify({ ...entry, answers, t: new Date().toISOString() })}\n`;
+  const line = `${JSON.stringify({ ...entry, endpoint: endpointHost(), answers, t: new Date().toISOString() })}\n`;
   try {
     const path = target || LOG_FILE;
     mkdirSync(dirname(path), { recursive: true });
+    const max = logMaxBytes();
+    if (max > 0 && (statSync(path, { throwIfNoEntry: false })?.size ?? 0) >= max) {
+      renameSync(path, `${path}.1`);
+    }
     appendFileSync(path, line);
   } catch { /* a log write never fails a decision */ }
 }
@@ -478,8 +504,8 @@ export default function jev(pi: ExtensionAPI) {
       "questions about supplied state, answered in about a second with probabilities. Use it " +
       "for every workflow step decision — triage mode/type/effort/approval, Plane labels, " +
       "isolation, delegation and role, verification depth, verdict, delivery readiness and " +
-      "handoff — one call per decision boundary with that step's independent questions " +
-      "bundled, instead of asking a model. Send only the request " +
+      "handoff — one call per decision boundary with that step's questions bundled, " +
+      "instead of asking a model. Send only the request " +
       "text needed for the decision: no secrets, credentials or personal data. Answers are " +
       "advisory, never authorize a reserved user decision, and belong on the task item. " +
       "On ok:false, decide yourself.",

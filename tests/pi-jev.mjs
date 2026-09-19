@@ -16,7 +16,7 @@ const ROOT = resolve('.');
 const temp = mkdtempSync(join(tmpdir(), 'pi-jev-'));
 const agent = join(temp, 'agent');
 const KEPT = ['TYPESAFE_API_KEY', 'TYPESAFE_ENDPOINT', 'TYPESAFE_TIMEOUT_MS', 'JEV_GATE_TIMEOUT_MS',
-  'JEV_GATE', 'JEV_GATE_BLOCK', 'JEV_MODEL', 'JEV_LOG'];
+  'JEV_GATE', 'JEV_GATE_BLOCK', 'JEV_MODEL', 'JEV_LOG', 'JEV_LOG_MAX_BYTES'];
 const savedEnv = Object.fromEntries(KEPT.map((name) => [name, process.env[name]]));
 // A short deadline keeps the timeout case fast; the extension reads it at load.
 process.env.TYPESAFE_TIMEOUT_MS = '150';
@@ -211,6 +211,7 @@ try {
   assert.deepEqual(last.answers.task_type.probabilities, { bug: 0.91 });
   assert.equal(last.answers.effort.answer, 0.9);
   assert.match(last.t, /^\d{4}-\d\d-\d\dT/);
+  assert.match(last.endpoint, /^127\.0\.0\.1:\d+$/, 'the row names the host that answered');
   assert.ok(!readFileSync(log, 'utf8').includes('fix the flaky test'), 'the state must never be logged');
   reply = { status: 500, body: { error: 'upstream' } };
   const loggedFailure = read(await jev.execute('call-7', { state: 'fix the flaky test', questions }, undefined, undefined, ctx));
@@ -219,11 +220,22 @@ try {
   assert.match(failure.error, /HTTP 500/);
   assert.equal(failure.source, 'tool');
   assert.ok(!failure.error.includes('synthetic-only'), 'the log must not carry the key');
+  assert.equal(failure.endpoint, last.endpoint, 'a failure names the same host as the call');
   reply = null;
   // `JEV_LOG=0` is off: the next call appends no line at all.
   process.env.JEV_LOG = '0';
   await jev.execute('call-8', { state: 'fix the flaky test', questions }, undefined, undefined, ctx);
   assert.equal(readFileSync(log, 'utf8').trim().split('\n').length, logged.length + 1);
+  // The ledger rolls over at the cap: the full generation moves to `<file>.1` and the
+  // call that crosses the cap opens a fresh file, so it cannot grow without bound.
+  process.env.JEV_LOG = log;
+  process.env.JEV_LOG_MAX_BYTES = '1';
+  await jev.execute('call-9', { state: 'fix the flaky test', questions }, undefined, undefined, ctx);
+  assert.equal(readFileSync(`${log}.1`, 'utf8').trim().split('\n').length, logged.length + 1,
+    'a ledger at the cap moves to <file>.1');
+  assert.equal(readFileSync(log, 'utf8').trim().split('\n').length, 1,
+    'the call that crosses the cap opens the new ledger');
+  delete process.env.JEV_LOG_MAX_BYTES;
   delete process.env.JEV_MODEL;
 
   // A provider error is a bounded, key-free failure.

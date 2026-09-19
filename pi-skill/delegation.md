@@ -60,14 +60,20 @@ timeouts and queue leases remain separate from task decomposition.
    parent turn with a short pending status and let the completion notification
    resume it. This is a yield, not task completion: keep the Plane item In Progress
    and the child's workspace intact. Do not keep the turn alive with shell
-   `sleep`, repeated status/activity/file reads, or a heartbeat/scheduled poll.
+   `sleep` or another fixed-duration timer (the native wait is in step 4),
+   repeated status/activity/file reads, or a heartbeat/scheduled poll.
 3. On notification, match it to the expected child and current dispatch; read the
    result/evidence once when needed. Finished, errored and permission-needed events
    are distinct: idle/finished alone is not acceptance. Reconcile errors or request
    the required permission without automatically approving it. Ignore stale or
    duplicate events for already-consumed work; never replay a task just to wait.
 4. Notifications require a supported delivery path to this parent; the flag alone
-   is not proof. If unavailable, use an advertised native wait tool, or select
+   is not proof. If unavailable, block on the child's state through Paseo's native
+   wait, `paseo agent wait <id>`: `--json` gives a machine-readable result, it
+   returns as soon as the child goes idle, and with `--timeout` it prints the last
+   activity items instead — so one bounded wait doubles as the single status read.
+   `paseo agent attach <id>` streams live output, and `paseo agent send` already
+   waits for its result unless `--no-wait`. Alternatively select
    `background: false` on the initial `send_agent_prompt` to use its synchronous
    result. There is no assumed Paseo `wait_agent` API. For an already-running child,
    never resend its prompt as a wait: one diagnostic status/activity read may

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -209,9 +209,15 @@ try {
 
   install('--remove');
   assert.ok(!existsSync(join(agent, 'extensions/megai-jev-compaction/index.ts')), 'the installer must remove its own asset');
+  // `JEV_LOG=0` above keeps these calls out of the live ledger, which is where the
+  // gate bands get retuned from; checking the real file means a removed off switch or
+  // a moved default path fails here instead of quietly polluting the calibration set.
+  const ledger = join(homedir(), '.megai', 'jev-calls.jsonl');
+  const offlineRows = existsSync(ledger) ? readFileSync(ledger, 'utf8').match(/"endpoint":"(?:127\.0\.0\.1|localhost|\[::1\])/g) : null;
+  assert.equal(offlineRows, null, `the live Jev ledger holds ${offlineRows?.length} offline row(s)`);
   console.log('PASS: real installer and Pi loader; Jev fast compaction keeps text, calls and wanted results verbatim, '
-    + 'drops stale ones through the hook, batches 8 questions per request, and every missing-key, provider-error, '
-    + 'nothing-dropped, focus-instruction and overflow path leaves the summary to Pi');
+    + 'drops stale ones through the hook, batches 8 questions per request, leaves every missing-key, provider-error, '
+    + 'nothing-dropped, focus-instruction and overflow path to Pi, and adds no row to the live Jev ledger');
 } finally {
   server.close();
   for (const [name, value] of Object.entries(savedEnv)) {
