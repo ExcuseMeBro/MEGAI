@@ -27,7 +27,6 @@ assert.ok(key, 'no TypeSafe key: set TYPESAFE_API_KEY or store one with '
 const criteria = {
   as_written: 'run this exact bash call as written',
   'skill:megai': 'focused verification for a flaky test',
-  'tool:mcp__graft': 'code discovery: find code and trace callers',
 };
 const questions = {
   object: {

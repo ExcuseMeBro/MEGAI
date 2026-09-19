@@ -133,7 +133,7 @@ class Plan:
             "Use tgrep for literal/regex discovery first, and only when a task-owned index is ready; its status is a readiness hint, not a freshness certificate. "
             "If tgrep is absent, fails, has no ready index, or differs from required semantics, use rg with the intended flags; a failed search is diagnostic, not zero matches. "
             "After edits, branch switches, ignore-rule changes or watcher warnings, use rg until a completed rebuild and restart is known to cover the current tree. "
-            "Use codedb for structure and zvec-grep for intent. Confirm absence and exhaustive impact claims with native rg. "
+            "Use codedb for structure. Confirm absence and exhaustive impact claims with native rg. "
             "Use Headroom recall for relevant prior decisions, and save only when persistence is requested. "
             "These are task-appropriate defaults, not mandatory extras; index on demand, never at startup. "
             "Preserve the chosen provider, model and thinking level; report unavailable tools instead of silently claiming use. "
@@ -435,35 +435,28 @@ class Plan:
                 servers_cache = cache.get("servers", {})
                 if not isinstance(servers_cache, dict):
                     raise ValueError(f"invalid MCP cache servers: {cache_path}")
-                for retired_name in ("rtk", "caveman", "agent-memory", "agentmemory", "agent_memory"):
+                for retired_name in ("rtk", "caveman", "agent-memory", "agentmemory", "agent_memory", "zvec_grep", "graft"):
                     servers_cache.pop(retired_name, None)
                 if cache != json.loads(cache_before):
                     self.stage(cache_path, encoded(cache), cache_before)
             config_path = root / "mcp.json"
             config_before = read(config_path)
             config = json.loads(config_before) if config_before else {}
-            zg = shutil.which("zg")
             servers = config.setdefault("mcpServers", {})
             if not isinstance(servers, dict):
                 raise ValueError(f"invalid mcpServers: {config_path}")
             if not remove:
-                for retired_name in ("rtk", "caveman", "agent-memory", "agentmemory", "agent_memory"):
+                for retired_name in ("rtk", "caveman", "agent-memory", "agentmemory", "agent_memory", "zvec_grep", "graft"):
                     if retired_name in servers:
                         raise ValueError(f"retired MCP server preserved: {retired_name}; back up and detach manually")
             key = str(config_path) + "#zvec_grep"
-            entry = servers.get("zvec_grep")
-            owned = entry is not None and self.prior_receipt.get(key) == digest(encoded(entry))
-            if not remove and entry is not None and not owned:
-                raise ValueError(f"unowned zvec_grep MCP preserved: {config_path}; reconcile manually")
-            if remove:
-                if owned:
+            if "zvec_grep" in servers:
+                if remove:
                     del servers["zvec_grep"]
                     self.receipt.pop(key, None)
                     self.stage(config_path, encoded(config), config_before)
-            elif zg and (entry is None or owned):
-                servers["zvec_grep"] = {"command": zg, "args": ["server", "--stdio"], "lifecycle": "lazy"}
-                self.receipt[key] = digest(encoded(servers["zvec_grep"]))
-                self.stage(config_path, encoded(config), config_before)
+                else:
+                    raise ValueError(f"zvec_grep MCP preserved: {config_path}; back up and detach manually")
         if name == "cc":
             load_json(HOME / ".claude.json")  # Existing MCP entries remain byte-identical.
 
@@ -596,8 +589,8 @@ def main() -> int:
             raise ValueError("codedb is missing; run megai install before using slim")
     if args.client in ("all", "path"):
         plan.shell_paths(args.remove)
-    if not args.check and not args.remove and args.client in ("all", "pi") and not shutil.which("zg"):
-        raise ValueError("zg is missing; run megai install before using slim")
+    if not args.check and not args.remove and args.client in ("all", "pi") and not shutil.which("codedb"):
+        raise ValueError("codedb is missing; run megai install before using slim")
     plan.apply(args.check or args.verify, args.verify)
     return 0
 

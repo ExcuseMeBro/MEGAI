@@ -48,7 +48,6 @@ python3 "$LIB/retire_legacy_sources.py"
 
 step 3 7 "Installing core search (indexing starts only on request)"
 bash "$LIB/install_tgrep.sh" || die "tgrep install failed"
-bash "$LIB/install_zvec_grep.sh" || die "zvec-grep install failed"
 bash "$LIB/install_codedb.sh" || die "codedb install failed"
 
 step 4 7 "Installing Ruff and requested skill kits"
@@ -71,7 +70,7 @@ bash "$LIB/wire_pi.sh"    || die "Pi wiring failed"
 bash "$LIB/wire_omp.sh"   || die "OMP wiring failed"
 bash "$LIB/wire_path.sh"  || warn "PATH wiring skipped"
 
-for tool in tgrep zg codedb ruff; do
+for tool in tgrep codedb ruff; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after installation; slim is not ready"
 done
 [ -f "$MEGAI_HOME/ux-ui-agent-skills/package.json" ] || die "UX/UI kit missing after installation"
@@ -98,6 +97,5 @@ echo "    megai cc|codex|pi|omp  # launch without service/index warmup"
 echo "    megai headroom doctor   # verify local compression and memory runtime"
 echo "    megai headroom recall 'query'      # explicit local memory"
 echo "    megai headroom save 'text'         # only when persistence is requested"
-echo "    megai reindex            # rebuild zvec explicitly when needed"
 echo "    Existing user config, project data, indexes, and credentials are preserved."
 echo

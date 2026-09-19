@@ -488,21 +488,6 @@ try {
       { type: 'message', message: { role: 'user', content: 'find the code that builds the parser report' } },
     ] },
   };
-  routeCatalog({
-    systemPromptOptions: {
-      skills: [],
-      toolSnippets: {
-        'mcp__graft': 'code discovery: find code and trace callers through the lazy graft server',
-        mcp: 'MCP gateway: install, status, search, describe, auth',
-        bash: 'run a shell command',
-      },
-    },
-  }, discovery);
-  reply = routing('tool:mcp__graft', 0.78);
-  const mcpBlocked = await gate({ toolName: 'bash', toolCallId: 't3', input: { command: 'rg parser' } }, discovery);
-  assert.equal(mcpBlocked.block, true);
-  assert.match(mcpBlocked.reason,
-    /Jev route: use the installed MCP tool "mcp__graft" before repeating this bash call/);
 
   // The catalog caps what is offered: 20 on-topic skills still fit the API limit.
   routeCatalog({

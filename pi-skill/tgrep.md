@@ -1,6 +1,6 @@
 # Tgrep text discovery
 
-Use native `tgrep` first for literal/regex discovery against a ready, task-owned index. Keep codedb for structure and zvec for intent; neither is replaced. This default applies to Pi parents and children. It does not rewrite shell commands, replace Pi tools, or change repository verification commands.
+Use native `tgrep` first for literal/regex discovery against a ready, task-owned index. Keep codedb for structure; it is not replaced. This default applies to Pi parents and children. It does not rewrite shell commands, replace Pi tools, or change repository verification commands.
 
 ## Query
 
