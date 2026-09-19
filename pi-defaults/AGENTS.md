@@ -137,6 +137,17 @@ substantial behavior changes still need the applicable design/spec workflow.
 - Keep required safety checks, independent review and safe task placement. No hard
   tool cap, no skipped evidence, no model/thinking change for speed.
 
+## Waits and pending decisions
+
+Never idle while a decision is yours to make: record the recommendation, continue
+with it and report it. Waiting on what you cannot resolve yourself — the user's
+answer, another session's delivery, an external system or a long-running process — is
+autonomous for five minutes at most; past that, ask the user for the decision or take
+a bounded path that finishes inside the budget. A sleep or poll loop is never how a
+wait is covered. Reserved user decisions (main promotion, destructive or irreversible
+actions, spending, publishing, user-owned scope) need explicit approval at any length.
+When a wait did happen, record what it was for and why it was not replaceable.
+
 ## User-approved DeepSeek execution / GPT review
 
 Implementation defaults to one native Paseo Pi agent for DeepSeek coding and focused
