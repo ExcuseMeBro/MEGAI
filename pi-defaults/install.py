@@ -173,7 +173,7 @@ def install(reset=False, remove_omp=False):
         )
     os.environ["PATH"] = f"{shared / 'bin'}:{local_bin}:" + os.environ.get("PATH", "")
     env = {**os.environ, "MEGAI_HOME": str(shared), "MEGAI_SOURCE": str(REPO)}
-    for name in ("ruff", "codedb", "tgrep", "headroom"):
+    for name in ("ruff", "codedb", "tgrep", "jevcache", "headroom"):
         run("bash", REPO / f"lib/install_{name}.sh", env=env)
     shutil.copytree(
         REPO / "pi-skill/headroom", shared / "pi-skill/headroom", dirs_exist_ok=True

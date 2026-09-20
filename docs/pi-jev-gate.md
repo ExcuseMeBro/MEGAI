@@ -127,6 +127,9 @@ evidence costs one line each instead of their contents.
 - The answer is advisory like any other Jev answer: an unread or truncated file is not
   evidence of irrelevance, and a score near 0.5 still deserves a look.
 
+A decision cache in front of this path was considered and declined; `docs/jevcache.md`
+records the reasoning, the pinned install and what the CLI is still good for.
+
 Verify offline through the real loader and the real hook:
 
 ```bash
