@@ -54,7 +54,7 @@ enabled = true
         self.put('.agents/plugins/marketplace.json', json.dumps({'name': 'mixed', 'plugins': [
             {'name': 'ix-memory', 'source': {'source': 'local', 'path': './.codex/plugins/ix-memory'}},
             {'name': 'keep', 'source': {'path': 'user-owned'}}]}))
-        self.put('.megai/state.json', '{"tools":{"ix":{},"codedb":{"bin":"codedb"},"zvec-grep":{"bin":"zg"}},"projects":{"keep":{}}}')
+        self.put('.megai/state.json', '{"tools":{"ix":{},"codedb":{"bin":"codedb"}},"projects":{"keep":{}}}')
         self.put('.megai/lib/install_ix.sh', '# Ix — persistent codebase map and system-memory CLI.\n')
         self.put('.megai/lib/ix_safety.py', '# Reapply narrow, version-shape-checked Ix safety fixes\n')
         self.put('.local/bin/ix', '#!/bin/sh\nexec ~/.ix/cli/ix "$@"\n')
@@ -102,7 +102,7 @@ enabled = true
         marketplace = json.loads((self.home / '.agents/plugins/marketplace.json').read_text())
         self.assertEqual(marketplace, {'name': 'mixed', 'plugins': [{'name': 'keep', 'source': {'path': 'user-owned'}}]})
         state = json.loads((self.megai / 'state.json').read_text())
-        self.assertEqual(set(state['tools']), {'codedb', 'zvec-grep'})
+        self.assertEqual(set(state['tools']), {'codedb'})
         self.assertEqual(state['projects'], {'keep': {}})
         self.assertFalse((self.megai / 'bin/ix').is_symlink())
         # A copied header is not evidence of ownership: these fixtures differ
@@ -208,9 +208,9 @@ enabled = true
         total = int(re.search(r'TOTAL=(\d+)', main)[1])
         self.assertEqual([int(n) for n in re.findall(r'^step (\d+) ', main, re.M)], list(range(1, total + 1)))
         self.assertIn('install_codedb.sh', main)
-        self.assertIn('install_zvec_grep.sh', main)
+        self.assertIn('install_codedb.sh', main)
         skill = (ROOT / 'pi-skill/SKILL.md').read_text()
-        for required in ('codedb', 'zvec-grep', '`rg`', 'native file tools', 'exact replacements'):
+        for required in ('codedb', '`rg`', 'native file tools', 'exact replacements'):
             self.assertIn(required, skill)
 
 

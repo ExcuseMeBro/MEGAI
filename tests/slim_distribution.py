@@ -36,7 +36,7 @@ class Slim(unittest.TestCase):
         for key in ("HOME", "MEGAI_HOME", "PI_CODING_AGENT_DIR", "CODEX_HOME"):
             self.assertTrue(Path(self.env[key]).is_relative_to(self.root))
         (self.bin / "python3").symlink_to(sys.executable)
-        for name in ("tgrep", "codedb", "zg", "ruff", "pi", "omp", "claude", "codex", "npm", "npx", "curl", "node"):
+        for name in ("tgrep", "codedb", "ruff", "pi", "omp", "claude", "codex", "npm", "npx", "curl", "node"):
             self.stub(name, 'printf "%s\\n" "$0 $*" >>"$HOME/calls"\nexit 0\n')
         (self.megai / "state.json").write_text('{"tools":{},"agents":{},"ports":{"agent-memory":3111},"keep":{"value":42}}\n')
         self.project = self.root / "project"
@@ -81,14 +81,18 @@ class Slim(unittest.TestCase):
         self.wire()
         self.assertEqual(self.snapshot(), before)
         self.wire("--verify")
-        proxy = json.loads((self.home / ".pi/agent/mcp.json").read_text())["mcpServers"]["zvec_grep"]
-        self.assertEqual(proxy["lifecycle"], "lazy")
+        mcp_path = self.home / ".pi/agent/mcp.json"
+        if mcp_path.exists():
+            servers = json.loads(mcp_path.read_text())["mcpServers"]
+            self.assertNotIn("zvec_grep", servers)
+            self.assertNotIn("graft", servers)
         self.assertTrue((self.home / ".agents/skills/megai-task-flow/SKILL.md").is_file())
         self.assertTrue(os.access(self.megai / "bin/megai-headroom", os.X_OK))
         self.assertFalse((self.home / ".claude/hooks").exists())
         self.assertEqual((self.legacy / "sentinel").read_text(), "historical private board, never touched\n")
         self.wire("--remove")
-        self.assertNotIn("zvec_grep", json.loads((self.home / ".pi/agent/mcp.json").read_text())["mcpServers"])
+        if mcp_path.exists():
+            self.assertNotIn("zvec_grep", json.loads(mcp_path.read_text())["mcpServers"])
         self.assertTrue((self.legacy / "sentinel").exists())
 
     def test_workspace_guard_assets_install_verify_and_remove(self):
@@ -228,7 +232,9 @@ class Slim(unittest.TestCase):
             self.assertEqual(data, (ROOT / "skills/appllama-app-design-skill" / name).read_bytes())
             self.assertEqual(receipt[str(target / name)], hashlib.sha256(data).hexdigest())
         self.assertFalse((self.home / ".pi/agent/skills/appllama-usage").exists())
-        self.assertNotIn("appllama", (self.home / ".pi/agent/mcp.json").read_text())
+        mcp_path = self.home / ".pi/agent/mcp.json"
+        if mcp_path.exists():
+            self.assertNotIn("appllama", mcp_path.read_text())
         before = self.snapshot()
         self.wire("--verify")
         self.wire()
@@ -432,16 +438,18 @@ class Slim(unittest.TestCase):
         self.assertEqual(path.read_text(), "user-owned")
 
     def test_missing_search_and_unowned_proxy_fail(self):
-        path = self.write(self.home / ".pi/agent/mcp.json", '{"mcpServers":{"zvec_grep":{"command":"custom-zg"},"plane":{"url":"https://example.invalid"}}}')
+        path = self.write(self.home / ".pi/agent/mcp.json", '{"mcpServers":{"zvec_grep":{"command":"custom-zg"},"graft":{"command":"custom-graft"},"plane":{"url":"https://example.invalid"}}}')
         before = self.snapshot()
         self.wire(ok=False)
         self.assertEqual(self.snapshot(), before)
         path.unlink()
-        (self.bin / "zg").unlink()
-        # Restrict PATH to prevent the host's installed zg from satisfying readiness.
+        # codedb is the only required search; with it on PATH wiring succeeds and
+        # the previous-generation zg proxy stays absent.
         env = dict(self.env, PATH=f"{self.bin}:/usr/bin:/bin")
-        self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), "all", ok=False, env=env)
-        self.assertFalse((self.megai / "slim-wiring.json").exists())
+        self.run_cmd(sys.executable, str(self.megai / "lib/slim_wiring.py"), "all", env=env)
+        mcp_path = self.home / ".pi/agent/mcp.json"
+        if mcp_path.exists():
+            self.assertNotIn("zvec_grep", json.loads(mcp_path.read_text())["mcpServers"])
 
     def test_all_harnesses_share_policy_and_pi_uses_native_headroom(self):
         self.wire()
@@ -479,7 +487,7 @@ class Slim(unittest.TestCase):
             self.run_cmd("bash", str(self.megai / "bin/megai"), client, "--version")
         self.run_cmd("bash", str(self.megai / "bin/megai"))
         calls = (self.home / "calls").read_text()
-        for name in ("zg", "npm", "npx", "curl", "node"):
+        for name in ("npm", "npx", "curl", "node"):
             self.assertNotIn(str(self.bin / name), calls)
         self.assertEqual(calls.count("branch-check"), 5)
         after = self.snapshot()
@@ -529,27 +537,24 @@ class Slim(unittest.TestCase):
         self.assertFalse((self.home / ".claude.json").exists())
         self.assertFalse((self.home / ".codedb").exists())
 
-    def test_explicit_zvec_reindex_does_not_rebuild_codedb(self):
+    def test_explicit_codedb_reindex_does_not_rebuild_state(self):
         self.run_cmd("bash", str(self.megai / "bin/megai"), "reindex")
         calls = (self.home / "calls").read_text()
-        self.assertIn("--embedding local/potion-code-16m-v2", calls)
-        self.write(self.project / ".zvec-grep/manifest.json", '{}')
-        self.run_cmd("bash", str(self.megai / "bin/megai"), "reindex")
-        self.assertIn("--rebuild", (self.home / "calls").read_text())
-        self.assertNotIn("codedb", (self.home / "calls").read_text())
+        self.assertIn("codedb", calls)
+        self.assertNotIn("--embedding", calls)
+        self.assertNotIn("--rebuild", calls)
 
-    def test_search_installer_pin_reuse_and_data_preservation(self):
-        (self.bin / "zg").unlink()
+    def test_codedb_installer_pin_reuse_and_data_preservation(self):
+        (self.bin / "codedb").unlink()
         (self.bin / "jq").symlink_to(shutil.which("jq"))
-        self.stub("npm", 'printf "%s\\n" "$*" >>"$HOME/npm-calls"\nprintf "#!/bin/sh\\necho zg-0.2.1\\n" >"$TEST_BIN/zg"\nchmod +x "$TEST_BIN/zg"\n')
+        self.stub("codedb", 'printf "%s\\n" "$*" >>"$HOME/codedb-calls"\necho "codedb 0.2.56"\n')
         self.write(self.megai / "venv/cocoindex/user-data", "retain unrelated data")
-        env = dict(self.env, TEST_BIN=str(self.bin), PATH=f"{self.bin}:/usr/bin:/bin")
-        installer = str(self.megai / "lib/install_zvec_grep.sh")
+        env = dict(self.env, PATH=f"{self.bin}:/usr/bin:/bin")
+        installer = str(self.megai / "lib/install_codedb.sh")
         self.run_cmd("bash", installer, env=env)
         self.run_cmd("bash", installer, env=dict(env, MEGAI_UPDATE="1"))
-        self.assertEqual((self.home / "npm-calls").read_text().splitlines(), ["install -g --ignore-scripts @zvec/zvec-grep@0.2.1"])
         self.assertEqual((self.megai / "venv/cocoindex/user-data").read_text(), "retain unrelated data")
-        self.assertFalse((self.project / ".zvec-grep").exists())
+        self.assertFalse((self.project / ".codedb").exists())
 
     def retired_artifacts(self):
         argent = self.write(self.home / ".agents/skills/argent/SKILL.md", "---\nmanaged-by: megai\n---\nlegacy\n")
@@ -566,7 +571,7 @@ class Slim(unittest.TestCase):
         self.wire()
         self.write(self.megai / "ux-ui-agent-skills/package.json", '{}')
         (self.megai / "mattpocock-skills/skills").mkdir(parents=True)
-        selected = ("headroom", "tgrep", "zvec_grep", "codedb", "ruff", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
+        selected = ("headroom", "tgrep", "codedb", "ruff", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
         for path in (self.megai / "lib").glob("install_*.sh"):
             name = path.stem.removeprefix("install_")
             self.write(path, f'#!/bin/sh\necho install:{name} >>"$HOME/install-calls"\n')

@@ -72,7 +72,7 @@ export function request(action: Record<string, unknown>, cwd: string, signal?: A
 export function discoveryCall(name: string, input: any): boolean {
   if (["ls", "find", "grep"].includes(name)) return true;
   if (name === "mcp" && typeof input?.tool === "string") {
-    return /^(?:zvec_grep[_/:])/.test(input.tool);
+    return false;
   }
   if (name !== "bash" || typeof input?.command !== "string") return false;
   const command = input.command.trim();
