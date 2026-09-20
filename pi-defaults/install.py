@@ -173,7 +173,7 @@ def install(reset=False, remove_omp=False):
         )
     os.environ["PATH"] = f"{shared / 'bin'}:{local_bin}:" + os.environ.get("PATH", "")
     env = {**os.environ, "MEGAI_HOME": str(shared), "MEGAI_SOURCE": str(REPO)}
-    for name in ("ruff", "codedb", "tgrep", "zvec_grep", "headroom"):
+    for name in ("ruff", "codedb", "tgrep", "jevcache", "headroom"):
         run("bash", REPO / f"lib/install_{name}.sh", env=env)
     shutil.copytree(
         REPO / "pi-skill/headroom", shared / "pi-skill/headroom", dirs_exist_ok=True
@@ -223,11 +223,6 @@ def install(reset=False, remove_omp=False):
                         ],
                     },
                 },
-                "zvec_grep": {
-                    "command": shutil.which("zg"),
-                    "args": ["server", "--stdio", "--listen", "127.0.0.1:17999"],
-                    "lifecycle": "lazy",
-                },
             },
         },
     )
@@ -249,7 +244,6 @@ def install(reset=False, remove_omp=False):
     bridge.chmod(0o755)
     for name, target in {
         "openspec": npm_root / "node_modules/.bin/openspec",
-        "zvec-grep": Path(shutil.which("zg")),
     }.items():
         link = local_bin / name
         if link.exists() or link.is_symlink():

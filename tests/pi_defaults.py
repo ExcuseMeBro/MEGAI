@@ -330,6 +330,17 @@ class Distribution(unittest.TestCase):
         ):
             self.assertIn(required, policy)
 
+    def test_waits_and_pending_decisions_policy(self):
+        policy = (DEFAULTS / "AGENTS.md").read_text()
+        for required in (
+            "## Waits and pending decisions",
+            "record the recommendation, continue",
+            "autonomous for five minutes at most",
+            "ask the user for the decision",
+            "Reserved user decisions",
+        ):
+            self.assertIn(required, policy)
+
     def test_end_of_task_agent_tab_cleanup_policy(self):
         policy = (DEFAULTS / "AGENTS.md").read_text()
         for required in (

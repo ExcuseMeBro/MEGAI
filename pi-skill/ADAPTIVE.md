@@ -48,6 +48,8 @@ the task item:
 | Isolation | commit target and cleanup | `isolation` choice (managed worktree/clean checkout/blocked), `delivery_target` choice, `cleanup` choice (archive/retain/blocked) |
 | Delegation | whether, who, fallback | `delegate` choice, `role` choice among the configured roles, `fallback` choice, `timeout_action` choice |
 | Verification | the smallest sufficient check and the verdict | `check` choice, `sufficiency` choice (sufficient/gap), `verdict` choice (PASS/PASS WITH FINDINGS/BLOCKED), `escalate` `noul` |
+| Loop control | is the task actually finished, and who decides next | `done` `noul`, `next` choice (continue/stop/escalate), `missing` `noul`, `human` `noul` |
+| First-pass judge | whether an output is good enough to keep or needs the expensive review | `keep` `noul`, `judge` choice (accept/expensive review/human) |
 | Delivery and handoff | readiness and state | `delivery_ready` choice, `handoff_state` choice (In Review/blocked) |
 
 One call per decision boundary bundles that step's questions, which run in parallel

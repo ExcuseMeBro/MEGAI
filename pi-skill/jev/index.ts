@@ -24,7 +24,8 @@
  * before it runs, plus a `route` question whenever the cached skill or MCP catalog
  * holds a better next move than the call. A strong objection or a strong route pick
  * blocks it, and `JEV_GATE=0` / `JEV_GATE_BLOCK=0` / `JEV_ROUTE=0` turn the gate off,
- * back to reports, or drop just the route question.
+ * back to reports, or drop just the route question. A call that came back as a
+ * failure gets one more: the next move, through the `tool_result` hook below.
  *
  * The same extension registers `sift`, which joins the other direction: candidate
  * local files are read by the tool and scored against the session's question, so
@@ -505,7 +506,9 @@ export default function jev(pi: ExtensionAPI) {
       "for every workflow step decision — triage mode/type/effort/approval, Plane labels, " +
       "isolation, delegation and role, verification depth, verdict, delivery readiness and " +
       "handoff — one call per decision boundary with that step's questions bundled, " +
-      "instead of asking a model. Send only the request " +
+      "instead of asking a model. Use it the same way for loop control (did the task " +
+      "actually finish, is another step needed, is missing information needed, is a human " +
+      "needed) and as a first-pass judge before an expensive review. Send only the request " +
       "text needed for the decision: no secrets, credentials or personal data. Answers are " +
       "advisory, never authorize a reserved user decision, and belong on the task item. " +
       "On ok:false, decide yourself.",
@@ -724,5 +727,69 @@ export default function jev(pi: ExtensionAPI) {
         }
       }
     }
+  });
+
+  /** Self-healing failed tool calls: a call whose result came back as an error gets
+   * one Jev question — the next move — instead of a whole reasoning turn spent on
+   * "the API returned 429, now what". It never blocks and never rewrites the tool's
+   * own output: the decision is appended as one extra line, so the raw failure stays
+   * the evidence the model reasons from. `isError` is set only when a tool throws,
+   * not on a non-zero exit code, so an ordinary "no matches" is not repaired.
+   * Fail-open and one attempt, like the gate; `JEV_REPAIR=0` turns it off. */
+  const REPAIR_MOVES: Record<string, string> = {
+    retry: "run the same call again unchanged",
+    wait: "pause briefly and then retry the same call",
+    change_parameters: "retry with corrected arguments",
+    switch_provider: "use a different tool, provider or model for this step",
+    escalate: "stop retrying and bring the user in",
+  };
+  /** How many times this exact call has failed in this session, so the judgment
+   * sees the attempt count the article's state carries. Bounded: a long session
+   * with many distinct failures starts the count over instead of growing forever. */
+  const REPAIR_ATTEMPTS = new Map<string, number>();
+  const REPAIR_ATTEMPT_CAP = 200;
+  const REPAIR_TAIL_CHARS = 600;
+
+  pi.on("tool_result", async (event, ctx) => {
+    if (process.env.JEV_REPAIR === "0" || !event.isError || GATE_SKIP.has(event.toolName)) return;
+    const key = apiKey();
+    if (!key) return;
+
+    const signature = `${event.toolName}:${JSON.stringify(event.input ?? {})}`;
+    if (REPAIR_ATTEMPTS.size >= REPAIR_ATTEMPT_CAP) REPAIR_ATTEMPTS.clear();
+    const attempts = (REPAIR_ATTEMPTS.get(signature) ?? 0) + 1;
+    REPAIR_ATTEMPTS.set(signature, attempts);
+
+    const parts = (Array.isArray(event.content) ? event.content : []) as any[];
+    const failure = clip(parts
+      .filter((part) => part?.type === "text" && typeof part.text === "string")
+      .map((part) => part.text).join("\n").trim(), REPAIR_TAIL_CHARS);
+    const goal = goalOf(ctx);
+    const state = [
+      `This ${event.toolName} call failed. Choose the next move for the agent.`,
+      goal && `What the session is working on:\n${goal}`,
+      `Working directory: ${ctx.cwd}`,
+      `Tool call: ${event.toolName}(${clip(JSON.stringify(event.input ?? {}), GATE_ARGS_CHARS)})`,
+      `Attempts on this exact call, including this one: ${attempts}`,
+      `Failure: ${failure || "(the tool reported an error with no text)"}`,
+    ].filter(Boolean).join("\n\n");
+
+    const result = await jevPost(key, state, {
+      next_move: {
+        type: "choice",
+        instructions: `The ${event.toolName} call above failed. What is the smallest ` +
+          `correct next move for the agent?`,
+        criteria: REPAIR_MOVES,
+      },
+    }, gated(ctx));
+    if (!result.ok) return;
+
+    const answer = (result.answers as any)?.next_move;
+    const move = typeof answer?.choice === "string" ? answer.choice : undefined;
+    if (!move || !(move in REPAIR_MOVES)) return;
+    const confidence = typeof answer?.confidence === "number" ? ` confidence ${answer.confidence}` : "";
+    const line = `Jev next move: ${move} — ${REPAIR_MOVES[move]}${confidence}.`;
+    ctx.ui.notify(line, "warning");
+    return { content: [...parts, { type: "text" as const, text: line }] };
   });
 }

@@ -68,7 +68,7 @@ class Tgrep(Slim):
         self.assertIn("tgrep for literal/regex discovery", policy)
         reference = self.home / ".agents/skills/megai/tgrep.md"
         self.assertEqual(reference.read_bytes(), (self.megai / "pi-skill/tgrep.md").read_bytes())
-        for phrase in ("tgrep", "rg", "codedb", "zvec", "freshness", "partial"):
+        for phrase in ("tgrep", "rg", "codedb", "freshness", "partial"):
             self.assertIn(phrase, skill)
         calls = (self.home / "calls").read_text() if (self.home / "calls").exists() else ""
         self.assertNotIn("tgrep", calls)

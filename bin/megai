@@ -21,15 +21,15 @@ megai
   budget [args]                 Opt-in native Pi context budget (apply needs --apply)
   queue [args]                  Durable integration reservations (no auto merge)
   workspace --root CHECKOUT     Resolve canonical Git/Paseo project (read-only)
-  reindex                       Explicit local zvec index/rebuild
+  reindex                       Explicit local codedb index/rebuild
   plane [args]                  Secure Plane connector setup/status/removal
   dev | finish | promote       Explicit branch lifecycle commands
   uninstall                     Detach owned wiring; retain tools and data
   version | help
 
-Stack: tgrep, codedb, zvec-grep, local Headroom, Plane-only task-flow, Ruff,
+Stack: tgrep, codedb, local Headroom, Plane-only task-flow, Ruff,
        agent-worktree-lifecycle, ux-ui-agent-skills, Matt Pocock's skills.
-Defaults: tgrep text (rg fallback), codedb structure, zvec intent.
+Defaults: tgrep text (rg fallback), codedb structure.
 EOF
 }
 
@@ -71,18 +71,18 @@ cmd_omp() {
 
 cmd_status() {
   local tool
-  for tool in tgrep codedb zg ruff git rg; do
+  for tool in tgrep codedb ruff git rg; do
     if command -v "$tool" >/dev/null 2>&1; then ok "$tool -> $(command -v "$tool")"; else warn "$tool missing"; fi
   done
   if [ -x "$MEGAI_HOME/bin/megai-headroom" ]; then ok "headroom -> $MEGAI_HOME/bin/megai-headroom"; else warn "headroom wiring missing"; fi
-  echo "Headroom, tgrep server/index and zvec indexes are explicit/on demand. Plane: megai plane status --client all"
+  echo "Headroom and tgrep server/index are explicit/on demand. Plane: megai plane status --client all"
 }
 
 cmd_doctor() {
   cmd_status
   python3 "$LIB/slim_wiring.py" all --verify
   local tool
-  for tool in python3 node jq git rg tgrep codedb zg ruff; do command -v "$tool" >/dev/null 2>&1 || die "$tool required"; done
+  for tool in python3 node jq git rg tgrep codedb ruff; do command -v "$tool" >/dev/null 2>&1 || die "$tool required"; done
   [ -x "$MEGAI_HOME/bin/megai-headroom" ] || die "Headroom CLI missing; run megai install"
   [ -f "$MEGAI_HOME/ux-ui-agent-skills/package.json" ] && [ -f "$MEGAI_HOME/ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md" ] || die "UX/UI kit is incomplete; run megai install"
   [ -d "$MEGAI_HOME/mattpocock-skills/skills" ] && find "$MEGAI_HOME/mattpocock-skills/skills" -type f -name SKILL.md -print -quit | grep -q . || die "Matt skill kit is incomplete; run megai install"
@@ -131,14 +131,9 @@ exec_lib_python() {
 }
 
 cmd_reindex() {
-  command -v zg >/dev/null 2>&1 || die "zvec-grep missing; run megai install"
-  local root embedding; root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-  if [ -f "$root/.zvec-grep/manifest.json" ]; then zg index "$root" --rebuild
-  else
-    embedding="${MEGAI_ZVEC_EMBEDDING:-local/potion-code-16m-v2}"
-    case "$embedding" in local/*) ;; *) die "remote embedding requires explicit separate authorization" ;; esac
-    zg index "$root" --embedding "$embedding"
-  fi
+  command -v codedb >/dev/null 2>&1 || die "codedb missing; run megai install"
+  local root; root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  codedb "$root" tree >/dev/null
 }
 
 cmd_uninstall() {
@@ -166,7 +161,7 @@ if [ -f "$HOME/.pi/agent/defaults/manifest.json" ]; then
       printf '%s\n' 'Pi clean defaults installed. Use pi, pi-workflow, and megai doctor.'
       exit 0 ;;
     doctor)
-      for tool in pi ruff tgrep openspec zg; do "$tool" --version; done
+      for tool in pi ruff tgrep openspec; do "$tool" --version; done
       "$MEGAI_HOME/bin/megai-headroom" doctor
       exec node "$HOME/.pi/agent/defaults/verify.mjs" ;;
     wire)

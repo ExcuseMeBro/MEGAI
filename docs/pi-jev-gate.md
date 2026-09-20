@@ -81,6 +81,28 @@ reproduce: it hardcoded `Working directory: /Users/bro/PROJECTS/MEGAI` for calls
 every other repository, and that mismatch itself raised objections. The numbers above
 use each session's own `cwd`.
 
+## Self-healing failed tool calls
+
+`pi-skill/jev/index.ts` also registers a `tool_result` handler for a call whose result
+came back as an error — `isError`, which Pi sets only when a tool throws; a non-zero
+exit code is ordinary output, so an `rg` that found no match is not repaired. It sends
+one `choice` question — `retry`, `wait`, `change_parameters`, `switch_provider`,
+`escalate` — with the same goal, the call, the failure text and the attempt count for
+that exact call, and appends one line to the tool result:
+
+```
+Jev next move: wait — pause briefly and then retry the same call confidence 0.71.
+```
+
+It never blocks and never rewrites the tool's own output, so the raw failure stays the
+evidence the model reasons from. Fail-open, one attempt and the same 5 s deadline as
+the gate; `JEV_REPAIR=0` turns it off.
+
+One number is not measured yet: how often a real session hits this hook. The gate's
+`advance` question was dropped *because* it was measured; this trigger is narrower,
+but "how often is a failure worth a Jev call" is still open. Measure it before
+widening the trigger.
+
 Cost per judged call: one Jev request with one `noul` question, ~0.8 s p50 added on
  the tool-call path; a route question rides that same request, so routing costs no
  extra round trip and only a few hundred tokens of state.
@@ -104,6 +126,9 @@ evidence costs one line each instead of their contents.
   cancellation rules are the `jev` tool's.
 - The answer is advisory like any other Jev answer: an unread or truncated file is not
   evidence of irrelevance, and a score near 0.5 still deserves a look.
+
+A decision cache in front of this path was considered and declined; `docs/jevcache.md`
+records the reasoning, the pinned install and what the CLI is still good for.
 
 Verify offline through the real loader and the real hook:
 

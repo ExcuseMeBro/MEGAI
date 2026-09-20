@@ -16,7 +16,7 @@ const ROOT = resolve('.');
 const temp = mkdtempSync(join(tmpdir(), 'pi-jev-'));
 const agent = join(temp, 'agent');
 const KEPT = ['TYPESAFE_API_KEY', 'TYPESAFE_ENDPOINT', 'TYPESAFE_TIMEOUT_MS', 'JEV_GATE_TIMEOUT_MS',
-  'JEV_GATE', 'JEV_GATE_BLOCK', 'JEV_MODEL', 'JEV_LOG', 'JEV_LOG_MAX_BYTES'];
+  'JEV_GATE', 'JEV_GATE_BLOCK', 'JEV_MODEL', 'JEV_LOG', 'JEV_LOG_MAX_BYTES', 'JEV_REPAIR'];
 const savedEnv = Object.fromEntries(KEPT.map((name) => [name, process.env[name]]));
 // A short deadline keeps the timeout case fast; the extension reads it at load.
 process.env.TYPESAFE_TIMEOUT_MS = '150';
@@ -488,21 +488,6 @@ try {
       { type: 'message', message: { role: 'user', content: 'find the code that builds the parser report' } },
     ] },
   };
-  routeCatalog({
-    systemPromptOptions: {
-      skills: [],
-      toolSnippets: {
-        'mcp__graft': 'code discovery: find code and trace callers through the lazy graft server',
-        mcp: 'MCP gateway: install, status, search, describe, auth',
-        bash: 'run a shell command',
-      },
-    },
-  }, discovery);
-  reply = routing('tool:mcp__graft', 0.78);
-  const mcpBlocked = await gate({ toolName: 'bash', toolCallId: 't3', input: { command: 'rg parser' } }, discovery);
-  assert.equal(mcpBlocked.block, true);
-  assert.match(mcpBlocked.reason,
-    /Jev route: use the installed MCP tool "mcp__graft" before repeating this bash call/);
 
   // The catalog caps what is offered: 20 on-topic skills still fit the API limit.
   routeCatalog({
@@ -519,6 +504,54 @@ try {
   assert.deepEqual(offered.slice(0, 1), ['as_written']);
   assert.equal(offered.length, 7, 'as_written plus the six best skills');
 
+  // Self-healing: a failed tool result gets one `next_move` question and one appended
+  // line. It never blocks and never rewrites the tool's own output.
+  delete process.env.JEV_REPAIR;
+  const repair = extensions.find((item) => item.path.endsWith('extensions/megai-jev/index.ts'))
+    .handlers.get('tool_result')?.[0];
+  assert.equal(typeof repair, 'function', 'the extension must register the self-healing hook');
+  const failedCall = (over = {}) => ({
+    toolName: 'bash', toolCallId: 'r1', isError: true, input: { command: 'gh pr create' },
+    content: [{ type: 'text', text: 'HTTP 429 from the forge' }], ...over,
+  });
+  reply = { body: { answers: { next_move: { choice: 'wait', confidence: 0.71 } } } };
+  before = calls.length;
+  const rescued = await repair(failedCall(), gating);
+  assert.equal(calls.length, before + 1, 'exactly one request per failed call');
+  assert.deepEqual(Object.keys(calls.at(-1).body.questions), ['next_move'], 'one question per repair');
+  assert.equal(calls.at(-1).body.questions.next_move.type, 'choice');
+  assert.deepEqual(Object.keys(calls.at(-1).body.questions.next_move.criteria),
+    ['retry', 'wait', 'change_parameters', 'switch_provider', 'escalate']);
+  assert.match(calls.at(-1).body.state, /fix the flaky parser test/, 'the repair carries the goal');
+  assert.match(calls.at(-1).body.state, /HTTP 429 from the forge/, 'and the failure text');
+  assert.match(calls.at(-1).body.state, /including this one: 1/);
+  assert.deepEqual(rescued.content.at(-1),
+    { type: 'text', text: 'Jev next move: wait — pause briefly and then retry the same call confidence 0.71.' });
+  assert.equal(rescued.content[0].text, 'HTTP 429 from the forge', 'the raw failure stays first');
+  assert.equal(rescued.block, undefined, 'the repair never blocks');
+
+  // The attempt count follows the exact call, not the session.
+  await repair(failedCall(), gating);
+  assert.match(calls.at(-1).body.state, /including this one: 2/);
+
+  // A successful result, a switched-off hook and the `jev` tool itself send nothing.
+  before = calls.length;
+  assert.equal(await repair(failedCall({ isError: false }), gating), undefined);
+  process.env.JEV_REPAIR = '0';
+  assert.equal(await repair(failedCall(), gating), undefined);
+  delete process.env.JEV_REPAIR;
+  assert.equal(await repair(failedCall({ toolName: 'jev' }), gating), undefined);
+  assert.equal(calls.length, before, 'only a real failure of another tool is repaired');
+
+  // A failed or unusable judgment leaves the result exactly as the tool returned it.
+  reply = { status: 500, body: { error: 'upstream' } };
+  before = calls.length;
+  assert.equal(await repair(failedCall(), gating), undefined, 'a failed judgment must not touch the result');
+  assert.equal(calls.length, before + 1, 'a failed judgment is not retried');
+  reply = { body: { answers: { next_move: { choice: 'nonsense' } } } };
+  assert.equal(await repair(failedCall(), gating), undefined, 'an unknown move is not reported');
+  reply = null;
+
   install('--remove');
   assert.ok(!existsSync(installed), 'the installer must remove its own asset');
   console.log('PASS: real installer and Pi loader; jev tool registered, request shape exact, key never leaked, the '
@@ -528,7 +561,8 @@ try {
     + 'timeout or error, and its route question blocks once on an on-topic skill or MCP pick while staying silent '
     + 'on as_written, a weak pick, a missing answer, JEV_ROUTE=0 and JEV_GATE_BLOCK=0; JEV_MODEL pins the request '
     + 'model and every call leaves one JSONL line of probabilities — with the state and the key absent, and '
-    + 'JEV_LOG=0 silent');
+    + 'JEV_LOG=0 silent; a failed tool result gets one next-move question appended without blocking or '
+    + 'rewriting the failure');
 } finally {
   server.close();
   for (const [name, value] of Object.entries(savedEnv)) {

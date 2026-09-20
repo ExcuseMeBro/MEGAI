@@ -203,7 +203,7 @@ class Adaptive(Slim):
         policy = (ROOT / "pi-skill/ADAPTIVE.md").read_text().lower()
         self.assertIn("### typesafe jev at every decision step", policy)
         for step in ("triage", "task flow", "isolation", "delegation", "verification",
-                     "delivery and handoff"):
+                     "loop control", "first-pass judge", "delivery and handoff"):
             self.assertIn(step, policy)
         self.assertIn("one call per decision boundary", policy)
         self.assertIn("never replaces a check", policy)

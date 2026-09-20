@@ -26,36 +26,28 @@ delivery readiness — with the answers recorded on the Plane item, advisory and
 replacing a gate or a reserved user decision (`megai` → TypeSafe Jev at every decision
 step).
 
-## Code discovery — Graft first
+## Code discovery — codedb default
 
-Graft FIRST in every Pi session, children included: find code, inspect file APIs,
-trace callers through the lazy `graft` MCP server — the Pi discovery default,
-overriding bundled tgrep-first or generic search routing; no separate user request
-needed. Task-driven: not a search per message or before every edit. Binary
-`~/.pi/agent/tools/graft/node_modules/.bin/graft` (0.18.0); discover its tools once
-with `mcp({server:"graft"})`, small limits/scopes. Root is the session cwd with cache
-`.pi/graft` there; it never follows a shell `cd` into another repository or worktree.
-If `.pi/graft/.graph/wiring.json` is absent there, build once in the safely owned task
-checkout:
-`DO_NOT_TRACK=1 GRAFT_NO_GITIGNORE=1 GRAFT_NO_IGNORE=1 ~/.pi/agent/tools/graft/node_modules/.bin/graft --dir .pi/graft build --no-gitignore --no-ignore .`
-Never build in a busy/shared checkout, non-repository parent or across projects. Keep
-`.pi/graft` local and out of commits; never overwrite tracked cache files. Queries
-refresh incrementally — no per-prompt rebuilds, no startup hooks. Another checkout →
-CLI with explicit cwd. No `graft init`, `--deep`, Brain/cloud connection or
-model/API-key configuration without explicit approval; telemetry stays off.
+codedb FIRST in every Pi session, children included: find code, inspect file APIs, and
+trace callers through the local `megai-codedb` wrapper (or the `codedb` CLI directly).
+codedb is the Pi discovery default; it indexes on demand and stays local. Discover its
+commands once via `megai-codedb help` and prefer small scopes. Root is the session cwd;
+no server, no MCP registration, no cross-project scan. Index only the safely owned task
+checkout, never a busy/shared checkout, a non-repository parent or an unrelated project.
+Rebuild with `megai-codedb index <path>` only when the current tree has changed
+materially. Keep `.codedb` local and out of commits; never overwrite tracked cache files.
+No startup hooks, no automatic re-indexing, no remote source or model/API-key
+configuration without explicit approval; telemetry stays off.
 
 Known path and source → native read/edit, no rediscovery. Unknown code → one scoped
-Graft query, reuse its paths/ranges. codedb find/outline for symbol/file structure;
-zvec-grep (`zg query`) for intent discovery when Graft is unavailable, missing, slow,
-stale, incomplete or unanswered. Never Graft → codedb → zvec mechanically for an
-answered question. Missing graph → the single safe build above; other failures →
-immediate fallback, no retry loop. Embeddings stay local; no ready zvec index → scoped
-native rg rather than blocking a small edit on a rebuild. tgrep for literal discovery,
-native rg for exact/exhaustive matching (indexes cover only indexed files), native read
-for source verification. Batch independent lookups/reads and reuse readiness/discovery
-evidence per cwd, refreshing only on a relevant change or error. Dart is broad-tier,
-not compiler-grade — verify caller coverage with rg. Never substitute graph summaries
-for source verification or test evidence. Index on task demand only.
+codedb query, reuse its paths/ranges. tgrep for literal/regex discovery when a task-owned
+index is ready; native rg with the intended flags for exact/exhaustive matching,
+freshness, absence claims, after edits, branch switches and watcher warnings. A failed
+search is diagnostic, not zero matches; preserve its exit code and stderr. Native read
+remains the source-of-truth for verification. Batch independent lookups/reads and reuse
+readiness/discovery evidence per cwd, refreshing only on a relevant change or error.
+Never substitute discovery summaries for source verification or test evidence. Index on
+task demand only; never at startup.
 
 Headroom compresses eligible successful discovery output; source reads, edits, full
 diffs, tests and failures stay raw. Never infer test success from compressed output.
@@ -64,7 +56,7 @@ Ruff on changed Python by default:
 repository formatting; never rewrite unrelated files.
 
 pi-web-access for public research; keep private repository text and credentials out of
-public queries. pi-mcp-adapter supplies lazy Plane and zvec tools. Use native Paseo agents
+public queries. pi-mcp-adapter supplies lazy Plane tools. Use native Paseo agents
 for bounded independent tasks or required independent review; otherwise work directly.
 Give children explicit cwd, scope and acceptance. Children are leaves: no Plane
 mutation, no branch integration, one writer per worktree. Completion notifications.
@@ -136,6 +128,17 @@ substantial behavior changes still need the applicable design/spec workflow.
   without timing.
 - Keep required safety checks, independent review and safe task placement. No hard
   tool cap, no skipped evidence, no model/thinking change for speed.
+
+## Waits and pending decisions
+
+Never idle while a decision is yours to make: record the recommendation, continue
+with it and report it. Waiting on what you cannot resolve yourself — the user's
+answer, another session's delivery, an external system or a long-running process — is
+autonomous for five minutes at most; past that, ask the user for the decision or take
+a bounded path that finishes inside the budget. A sleep or poll loop is never how a
+wait is covered. Reserved user decisions (main promotion, destructive or irreversible
+actions, spending, publishing, user-owned scope) need explicit approval at any length.
+When a wait did happen, record what it was for and why it was not replaceable.
 
 ## User-approved DeepSeek execution / GPT review
 
