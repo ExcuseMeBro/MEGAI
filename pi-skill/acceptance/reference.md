@@ -122,6 +122,14 @@ Required fields:
   the CLI cannot infer whether a diff actually fixes a bug. All types retain an
   independent review; scope its work instead of silently weakening the gate.
 
+- `reviewer` (optional, schema 2): freezes the exact independent reviewer policy as
+  `harness`, `model` (`provider/model`) and `thinking` (`low`, `medium` or `high`).
+  `collect` copies it into the review template and `check` requires those exact values;
+  `medium` or `low` review evidence is accepted only when the contract freezes that
+  level. Contracts without the field keep the required `pi` harness and `high` thinking,
+  with the reviewer model checked for `provider/model` syntax only. A partial, extra or
+  malformed `reviewer` object, and a schema-1 contract carrying one, are BLOCKED.
+
 - `plane`: `project_id` and `work_item_id` UUIDs of the existing task.
 - `implementer_session_id`: the real implementer's session identity.
 - `runtime`: `required`, `authorized`, `environment` (`local`, `staging`, `none`),
@@ -207,7 +215,9 @@ Missing commands and source changes cannot masquerade as successful execution.
 The review contains:
 
 - `session_id`: distinct from `implementer_session_id`.
-- `harness`: `pi`; `model`: the exact configured provider/model ID; `thinking`: `high`.
+- `harness`: `pi` (or the exact frozen harness); `model`: the exact configured
+  provider/model ID; `thinking`: `high` by default, or exactly the frozen level. When the
+  schema-2 contract freezes `reviewer`, all three must match it exactly.
 - `verdict`: `PASS`, `FAIL` or `BLOCKED`.
 - `snapshot` and `contract_sha256`: the same frozen candidate and contract.
 - `criteria`: every criterion ID exactly once.
