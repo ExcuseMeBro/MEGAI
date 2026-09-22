@@ -34,7 +34,7 @@ class Preset(unittest.TestCase):
         self.agent.mkdir(parents=True)
         self.env = dict(os.environ, HOME=str(self.home), MEGAI_HOME=str(self.home / ".megai"),
                         MEGAI_SOURCE=str(ROOT), PI_CODING_AGENT_DIR=str(self.agent),
-                        PYTHONDONTWRITEBYTECODE="1")
+                        PYTHONDONTWRITEBYTECODE="1", MEGAI_LAYA_CHECK="true")
         self.env.pop("MEGAI_TRANSACTION_LOG", None)
 
     def run_cli(self, *args, ok=True):

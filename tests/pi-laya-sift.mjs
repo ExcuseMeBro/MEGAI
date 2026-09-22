@@ -36,7 +36,8 @@ const read = (result) => result.content[0].text;
 function install(...flags) {
   execFileSync('python3', ['-B', resolve('lib/pi_model_policy.py'), ...flags], {
     stdio: 'pipe',
-    env: { ...process.env, HOME: temp, MEGAI_HOME: join(temp, 'megai'), MEGAI_SOURCE: ROOT, PI_CODING_AGENT_DIR: agent },
+    env: { ...process.env, HOME: temp, MEGAI_HOME: join(temp, 'megai'), MEGAI_SOURCE: ROOT, PI_CODING_AGENT_DIR: agent,
+      MEGAI_LAYA_CHECK: 'true' },
   });
   mkdirSync(agent, { recursive: true });
 }

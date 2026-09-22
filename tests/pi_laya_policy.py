@@ -117,6 +117,40 @@ class LayaPolicy(Slim):
         self.wire("--remove", env=dict(self.env, MEGAI_LAYA_CHECK="laya-check-fail"))
         self.assertFalse((self.home / ".pi/agent/extensions/megai-laya/index.ts").exists())
 
+    def owned_legacy(self, agent):
+        receipt = {}
+        for relative in LEGACY_ASSETS:
+            target = agent / relative
+            self.write(target, "owned hosted decision tool\n")
+            receipt[str(target)] = hashlib.sha256(target.read_bytes()).hexdigest()
+        (self.megai / "slim-wiring.json").write_text(json.dumps(receipt))
+
+    def test_a_missing_runtime_fails_preflight_without_writes(self):
+        # No runtime at all must still gate activation: previously the absent marker
+        # skipped verification and the retirement proceeded unverified.
+        agent = self.home / ".pi/agent"
+        self.owned_legacy(agent)
+        self.stub("laya-check-missing", 'printf "laya: no owned runtime\\n" >&2\nexit 1\n')
+        before = self.snapshot()
+        result = self.wire(ok=False, env=dict(self.env, MEGAI_LAYA_CHECK="laya-check-missing"))
+        self.assertIn("legacy decision assets are preserved", result.stderr)
+        self.assertEqual(self.snapshot(), before, "a missing runtime must write nothing")
+        for relative in LEGACY_ASSETS:
+            self.assertTrue((agent / relative).is_file())
+        self.assertFalse((agent / "extensions/megai-laya/index.ts").exists())
+
+    def test_an_unowned_runtime_fails_preflight_without_writes(self):
+        agent = self.home / ".pi/agent"
+        self.owned_legacy(agent)
+        foreign = self.write(self.megai / "venv/laya/foreign", "someone else's environment\n")
+        self.stub("laya-check-unowned", 'printf "laya: not owned by MEGAI\\n" >&2\nexit 1\n')
+        before = self.snapshot()
+        result = self.wire(ok=False, env=dict(self.env, MEGAI_LAYA_CHECK="laya-check-unowned"))
+        self.assertIn("Laya is not activated", result.stderr)
+        self.assertEqual(self.snapshot(), before, "an unowned runtime must write nothing")
+        self.assertEqual(foreign.read_text(), "someone else's environment\n")
+        self.assertFalse((agent / "extensions/megai-laya/index.ts").exists())
+
 
 def load_tests(loader, tests, pattern):
     # LayaPolicy inherits the distribution cases; do not run the imported Slim twice.

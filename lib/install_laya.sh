@@ -87,7 +87,7 @@ write_marker() {
   # state=partial is written before the package install, so a retry recognizes this
   # installer's own failed attempt instead of refusing it as an unowned collision.
   printf 'owner=%s\nstate=%s\ninterpreter=%s\npython=%s\nlaya=%s\nmodel=%s\nlock=%s\n' \
-    "$OWNER" "$1" "$INTERPRETER" "$PINNED_PYTHON" "$PINNED_LAYAVERSION" "$MODEL" "$LOCK_DIGEST" \
+    "$OWNER" "$1" "$INTERPRETER" "$(interpreter_version "$VENV/bin/python")" "$PINNED_LAYAVERSION" "$MODEL" "$LOCK_DIGEST" \
     > "$MARKER" || fail "cannot write the ownership marker $MARKER"
 }
 
@@ -95,8 +95,12 @@ installed_laya_version() {
   "$VENV/bin/python" -c 'import importlib.metadata as m; print(m.version("laya"))' 2>/dev/null
 }
 
+interpreter_version() {
+  "$1" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null
+}
+
 # Reuse requires the venv to be this installer's own, to match every pinned identity
-# field, and to hold the pinned laya. Anything else is rebuilt from the owned venv.
+# field, to actually run the pinned interpreter version and to hold the pinned laya.
 reusable() {
   owned || return 1
   [ "$(marker_field state)" = installed ] || return 1
@@ -104,12 +108,15 @@ reusable() {
   [ "$(marker_field python)" = "$PINNED_PYTHON" ] || return 1
   [ "$(marker_field laya)" = "$PINNED_LAYAVERSION" ] || return 1
   [ "$(marker_field lock)" = "$LOCK_DIGEST" ] || return 1
+  [ "$(interpreter_version "$VENV/bin/python")" = "$PINNED_PYTHON" ] || return 1
   [ "$(installed_laya_version)" = "$PINNED_LAYAVERSION" ] || return 1
 }
 
 install_runtime() {
   "$UV" venv --python "$INTERPRETER" "$VENV" || fail "cannot create the owned venv at $VENV"
   write_marker partial
+  [ "$(interpreter_version "$VENV/bin/python")" = "$PINNED_PYTHON" ] \
+    || fail "the owned venv interpreter $VENV/bin/python reports Python $(interpreter_version "$VENV/bin/python"); this installer pins $PINNED_PYTHON; fix the interpreter and re-run \`bash lib/install_laya.sh\`"
   "$UV" pip install --require-hashes --python "$VENV/bin/python" -r "$LOCK" \
     || fail "cannot install the pinned runtime into $VENV (network or platform wheel missing); fix the cause and re-run \`bash lib/install_laya.sh\`; the partial venv is owned and will be rebuilt"
   write_marker installed
@@ -133,6 +140,9 @@ if [ -z "$INTERPRETER" ]; then
 fi
 [ -n "$INTERPRETER" ] && [ -x "$INTERPRETER" ] \
   || fail "no python $PINNED_PYTHON interpreter found; run \`$UV python install $PINNED_PYTHON\` (or set LAYA_INTERPRETER)"
+SELECTED_VERSION="$(interpreter_version "$INTERPRETER")"
+[ "$SELECTED_VERSION" = "$PINNED_PYTHON" ] \
+  || fail "the selected interpreter $INTERPRETER reports Python ${SELECTED_VERSION:-unknown}; this installer pins Python $PINNED_PYTHON"
 
 checkpoint_check() {
   # One real load per retained checkpoint. This is the slow step: the first run

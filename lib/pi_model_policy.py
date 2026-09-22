@@ -20,18 +20,12 @@ LEGACY_ASSETS = (
 )
 
 
-def laya_runtime_owned() -> bool:
-    """True when the shared MEGAI home holds an owned Laya runtime to verify."""
-    home = Path(os.environ.get("MEGAI_HOME", Path.home() / ".megai"))
-    return (home / "venv/laya/.megai-owned").is_file()
-
-
 def laya_runtime_failure(source: Path) -> str | None:
-    """Return the owned runtime's verification failure, or None when it is ready.
+    """Return the runtime verification failure, or None when it is ready.
 
     MEGAI_LAYA_CHECK is a deterministic test seam so migration gating can be exercised
-    without a checkpoint download; production runs the pinned installer's `--check`.
-    Checkpoints are included, so a package-only venv is not enough to activate Laya.
+    without a checkpoint download; production runs the pinned installer's `--check`,
+    which fails for a missing, unowned or unverifiable runtime.
     """
     seam = os.environ.get("MEGAI_LAYA_CHECK")
     argv = shlex.split(seam) if seam else ["bash", str(source / "lib/install_laya.sh"), "--check"]
@@ -47,14 +41,15 @@ def laya_runtime_failure(source: Path) -> str | None:
 def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> None:
     from slim_wiring import digest, read
 
-    if not remove and laya_runtime_owned():
+    if not remove:
         reason = laya_runtime_failure(source)
         if reason is not None:
-            # Migrate atomically or not at all: a failed owned runtime keeps the working
-            # retired extension in place instead of activating a Laya tool that cannot load.
+            # Migrate atomically or not at all: a missing, unowned or unverifiable
+            # runtime keeps the working retired extension in place instead of
+            # activating a Laya tool that cannot load.
             raise ValueError(
-                "the owned Laya runtime failed verification; the installed legacy decision "
-                f"assets are preserved and Laya is not activated ({reason}); run "
+                "the Laya runtime is not verified; the installed legacy decision assets "
+                f"are preserved and Laya is not activated ({reason}); run "
                 "`bash lib/install_laya.sh` and retry"
             )
 

@@ -23,6 +23,10 @@ LOCK = ROOT / "lib/laya.lock"
 PYTHON_STUB = """#!/bin/bash
 printf 'python %s\\n' "$*" >> "$LAYA_TEST_CALLS"
 printf 'env device=%s lang=%s\\n' "${LAYA_DEVICE:-}" "${LAYA_LANG:-}" >> "$LAYA_TEST_CALLS"
+version="${LAYA_TEST_PYTHONVERSION:-3.11}"
+if [ "${LAYA_TEST_VENV_WRONG:-0}" = 1 ] && [ "$0" != "${LAYA_TEST_PYTHON:-}" ]; then
+  version="3.10"
+fi
 case " $* " in
   *" --check "*)
     if [ "${LAYA_STUB_CHECKPOINT_FAIL:-0}" = 1 ]; then
@@ -31,7 +35,10 @@ case " $* " in
     fi
     printf 'english=convaiinnovations/laya\\nmultilingual=convaiinnovations/laya:multilingual\\n'
     ;;
-  *" -c "*)
+  *"sys.version_info"*)
+    printf '%s\\n' "$version"
+    ;;
+  *"m.version"*)
     printf '%s\\n' "${LAYA_TEST_LAYAVERSION:-0.3.5}"
     ;;
 esac
@@ -92,7 +99,8 @@ class RuntimeInstall(unittest.TestCase):
             PATH=f"{self.bin}:{os.environ['PATH']}",
         )
         for name in ("LAYA_DEVICE", "LAYA_LANG", "LAYA_PLATFORM", "LAYA_STUB_CHECKPOINT_FAIL",
-                     "LAYA_STUB_PIP_FAIL", "LAYA_TEST_LAYAVERSION"):
+                     "LAYA_STUB_PIP_FAIL", "LAYA_TEST_LAYAVERSION", "LAYA_TEST_PYTHONVERSION",
+                     "LAYA_TEST_VENV_WRONG"):
             env.pop(name, None)
         env.update({name: str(value) for name, value in extra.items()})
         return subprocess.run(["bash", str(SCRIPT), *args], env=env, text=True, capture_output=True)
@@ -224,7 +232,25 @@ class RuntimeInstall(unittest.TestCase):
         result = self.install("--check")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("does not match the current pin", result.stderr)
-        self.assertEqual(self.calls.read_text(), "")
+        self.assertNotIn("uv ", self.calls.read_text())
+
+    def test_a_wrong_selected_interpreter_never_creates_a_venv(self):
+        result = self.install(LAYA_TEST_PYTHONVERSION="3.10")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("reports Python 3.10", result.stderr)
+        self.assertIn("pins Python 3.11", result.stderr)
+        self.assertNotIn("uv venv", self.calls.read_text())
+        self.assertFalse(self.venv.exists())
+
+    def test_a_wrong_reused_venv_interpreter_rebuilds_then_fails_safely(self):
+        self.install()
+        self.calls.write_text("")
+        result = self.install(LAYA_TEST_VENV_WRONG="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("venv interpreter", result.stderr)
+        self.assertIn("rebuilding", result.stdout)
+        self.assertIn("uv venv", self.calls.read_text())
+        self.assertNotIn("runtime ready", result.stdout)
 
 
 if __name__ == "__main__":
