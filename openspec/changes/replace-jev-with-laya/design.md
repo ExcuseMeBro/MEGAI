@@ -16,7 +16,7 @@ The repository already has ownership-aware installers, private MEGAI virtual env
 - Rewriting historical Jev benchmark results.
 - Claiming old Jev thresholds or accuracy transfer to Laya.
 - Supporting non-Apple platforms through a second model backend.
-- Integrating into `dev` or `main`.
+- Integrating into `main`.
 
 ## Decisions
 
@@ -76,6 +76,6 @@ Focused Node tests install the actual extension and point it at a deterministic 
 2. After runtime verification succeeds, install one `megai-laya` extension with sibling `bridge.py` and `compaction.ts`, update active policy/skills, and retire only owned `megai-jev*` plus the obsolete owned `megai-laya-compaction` entrypoint in the same transaction.
 3. Reload/restart Pi so the old in-memory extension exits and its session-scoped child cannot survive.
 4. Run focused offline suites and one real local inference smoke.
-5. Commit and push only `origin/pi-laya`.
+5. Commit and push `origin/pi-laya`, reserve and integrate the exact accepted commit to `dev`, verify `origin/dev`, then apply and verify the profile in the local Pi harness. Do not touch `main`.
 
 Rollback: reinstall the previous branch/profile commit. Its transaction restores the previous Jev extension bytes; the Laya virtual environment and Hugging Face cache can remain inert unless the user separately authorizes removal.

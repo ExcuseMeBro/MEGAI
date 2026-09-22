@@ -24,4 +24,4 @@
 - [x] 5.1 Run changed Python Ruff, focused Node/Python/shell suites and OpenSpec strict validation; verify every command exits zero with observed assertions.
 - [x] 5.2 Run English and Uzbek-hinted `choice`/`score`/`noul` requests through one real installed bridge, observe English and multilingual routing with no reload/typed-decisions model, verify no hosted TypeSafe request/credential is used, and record model/timing without input text.
 - [ ] 5.3 Obtain source-current independent guarded review, resolve blocking findings, then rerun affected checks and verify acceptance PASS.
-- [ ] 5.4 Commit the complete change, push non-force to `origin/pi-laya`, verify the exact remote head, record the receipt/evidence in Plane and hand off In Review without changing `dev` or `main`.
+- [ ] 5.4 Commit the complete change, push non-force to `origin/pi-laya`, reserve and integrate the exact accepted commit to `dev`, verify both remote heads, apply and verify the local Pi harness profile, record delivery evidence in Plane and hand off In Review without changing `main`.
