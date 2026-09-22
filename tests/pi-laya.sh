@@ -11,7 +11,7 @@ cd "$ROOT"
 # The suites must pass with no legacy credential or runtime variable set: that is the
 # point of the migration. Drop any inherited ones so a stray shell export cannot make
 # a test look green.
-for name in $(env | sed -n 's/^\(TYPESAFE_[A-Z_]*\|JEV_[A-Z_]*\|LAYA_[A-Z_]*\)=.*/\1/p'); do
+for name in $(env | sed -n 's/^\(LAYA_[A-Z_]*\)=.*/\1/p'); do
   unset "$name"
 done
 

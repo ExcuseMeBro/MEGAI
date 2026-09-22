@@ -300,7 +300,6 @@ class Distribution(unittest.TestCase):
         self.assertIn("subagent", removed)
         self.assertIn("laya", required)
         self.assertIn("sift", required)
-        self.assertIn("jev", removed)
 
     def test_settings_and_mcp_merge_never_drop_operator_keys(self):
         """An update must keep the chosen provider, model and extra MCP servers.

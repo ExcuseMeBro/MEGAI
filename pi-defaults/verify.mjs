@@ -35,7 +35,7 @@ const skills = loader.getSkills();
 const prompts = loader.getPrompts();
 const promptNames = prompts.prompts.map(p => p.name);
 const requiredTools = ['mcp', 'web_search', 'fetch_content', 'headroom_retrieve', 'headroom_memory', 'laya', 'sift'];
-const removedTools = ['subagent', 'jev'];
+const removedTools = ['subagent'];
 const requiredSkills = ['pi-workflow', 'using-superpowers', 'test-driven-development', 'ponytail', 'openspec-propose', 'openspec-apply-change'];
 const requiredPrompts = ['mdev', 'prdev'];
 const policy = existsSync(join(agentDir, 'AGENTS.md')) ? readFileSync(join(agentDir, 'AGENTS.md'), 'utf8') : '';

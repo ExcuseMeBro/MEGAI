@@ -10,16 +10,6 @@ from pathlib import Path
 BEGIN = "<!-- megai:subagent-models:begin -->"
 END = "<!-- megai:subagent-models:end -->"
 
-# Installed assets of the retired hosted decision product. The installer owned these
-# bytes, so an upgrade retires them by name: the Laya assets below replace them, and a
-# stale copy must not stay registered as a second decision tool.
-LEGACY_ASSETS = (
-    "extensions/megai-jev/index.ts",
-    "extensions/megai-jev-compaction/index.ts",
-    "extensions/megai-laya-compaction/index.ts",
-)
-
-
 def laya_runtime_failure(source: Path) -> str | None:
     """Return the runtime verification failure, or None when it is ready.
 
@@ -48,9 +38,8 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
             # runtime keeps the working retired extension in place instead of
             # activating a Laya tool that cannot load.
             raise ValueError(
-                "the Laya runtime is not verified; the installed legacy decision assets "
-                f"are preserved and Laya is not activated ({reason}); run "
-                "`bash lib/install_laya.sh` and retry"
+                "the Laya runtime is not verified; Laya is not activated "
+                f"({reason}); run `bash lib/install_laya.sh` and retry"
             )
 
     policy = (source / "pi-skill/delegation.md").read_bytes()
@@ -96,11 +85,8 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
                (source / "pi-skill/role-routing/index.ts").read_bytes(), remove)
     plan.asset(root / "extensions/megai-model-fallback/index.ts",
                (source / "pi-skill/model-fallback/index.ts").read_bytes(), remove)
-    # Retired decision product: retire the installed bytes it owned, then place the
-    # Laya extension, its stdio bridge (a sibling file, loaded by relative path) and the
-    # compaction companion that shares the same bridge process.
-    for relative in LEGACY_ASSETS:
-        plan.retire(root / relative)
+    # Place the Laya extension, its stdio bridge (a sibling file, loaded by relative
+    # path) and the compaction companion that shares the same bridge process.
     plan.asset(root / "extensions/megai-laya/index.ts",
                (source / "pi-skill/laya/index.ts").read_bytes(), remove)
     plan.asset(root / "extensions/megai-laya/bridge.py",
@@ -113,16 +99,7 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
     installed = read(delegation)
     if installed is None or installed == policy or plan.owned(delegation, installed):
         plan.asset(delegation, policy, remove)
-    elif not remove:
-        # Preserve an otherwise-custom operator policy while migrating the one active
-        # decision-tool reference. Do not claim whole-file ownership after this patch.
-        old = b"When the `jev` tool is available"
-        new = b"When the `laya` tool is available"
-        if installed.count(old) > 1:
-            raise ValueError(f"ambiguous legacy decision-tool references: {delegation}")
-        if old in installed:
-            plan.stage(delegation, installed.replace(old, new), installed)
-            plan.receipt.pop(str(delegation), None)
+    # An unowned, operator-edited policy is preserved instead of claimed.
     if remove:
         # Removing policy does not undo the user's native model preferences.
         plan.retire(root / "megai-roles.json")

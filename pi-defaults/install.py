@@ -330,7 +330,7 @@ def install(reset=False, remove_omp=False):
         )
     os.environ["PATH"] = f"{shared / 'bin'}:{local_bin}:" + os.environ.get("PATH", "")
     env = {**os.environ, "MEGAI_HOME": str(shared), "MEGAI_SOURCE": str(REPO)}
-    for name in ("ruff", "codedb", "tgrep", "jevcache", "headroom"):
+    for name in ("ruff", "codedb", "tgrep", "headroom"):
         run("bash", REPO / f"lib/install_{name}.sh", env=env)
     # The local decision runtime carries checkpoints of its own, so its preparation gates
     # the profile: a runtime that cannot be verified must not activate a decision tool.

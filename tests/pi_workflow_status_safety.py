@@ -17,8 +17,13 @@ from __future__ import annotations
 import importlib.util
 import json
 import shutil
+import sys
 import unittest
 from pathlib import Path
+
+# The frozen acceptance command runs this file directly, so make the repository root
+# importable for the shared workflow fixture module.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tests.pi_workflow_status import (
     PROJECT,

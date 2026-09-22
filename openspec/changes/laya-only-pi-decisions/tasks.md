@@ -5,22 +5,22 @@
 
 ## 2. Consolidate applicable branch work
 
-- [ ] 2.1 Apply the three unique Laya refinement commits before unrelated work; verify their exact commits are ancestors of the candidate and focused Laya policy/default tests pass.
-- [ ] 2.2 Confirm the two installer-fix commits are patch-equivalent to `dev` and do not replay them; record the `git cherry` evidence.
-- [ ] 2.3 Apply the four workflow-status commits after Laya; verify their exact commits are ancestors of the candidate and focused workflow-status tests pass.
-- [ ] 2.4 Confirm the legacy-only branch tip and commits are not ancestors of the candidate and the source branch remains unchanged.
+- [x] 2.1 Apply the three unique Laya refinement commits before unrelated work; verify their exact commits are ancestors of the candidate and focused Laya policy/default tests pass.
+- [x] 2.2 Confirm the two installer-fix commits are patch-equivalent to `dev` and do not replay them; record the `git cherry` evidence.
+- [x] 2.3 Apply the four workflow-status commits after Laya; verify their exact commits are ancestors of the candidate and focused workflow-status tests pass.
+- [x] 2.4 Confirm the legacy-only branch tip and commits are not ancestors of the candidate and the source branch remains unchanged.
 
 ## 3. Remove the retired stack
 
-- [ ] 3.1 Delete every legacy-only tracked implementation, installer, prompt, test, benchmark, result, document and planning artifact while retaining the Laya-only OpenSpec change; verify tracked-path and tracked-content scans return zero matches.
-- [ ] 3.2 Remove migration-only names and behavior from mixed installer, model-policy, verification and test files; verify the Laya installer remains ownership-safe and focused tests pass.
-- [ ] 3.3 Update any affected package manifests or lockfiles only where they actively reference the retired stack; verify dependency installation and profile verification use no retired package.
+- [x] 3.1 Delete every legacy-only tracked implementation, installer, prompt, test, benchmark, result, document and planning artifact while retaining the Laya-only OpenSpec change; verify tracked-path and tracked-content scans return zero matches.
+- [x] 3.2 Remove migration-only names and behavior from mixed installer, model-policy, verification and test files; verify the Laya installer remains ownership-safe and focused tests pass.
+- [x] 3.3 Update any affected package manifests or lockfiles only where they actively reference the retired stack; verify dependency installation and profile verification use no retired package.
 
 ## 4. Verify the committed candidate
 
-- [ ] 4.1 Run focused Laya runtime, policy, installer and active-scope suites; verify all assertions pass.
-- [ ] 4.2 Run focused workflow-status and safety suites; verify all assertions pass.
-- [ ] 4.3 Run Ruff on every changed Python file and strict OpenSpec validation; verify both exit zero.
+- [x] 4.1 Run focused Laya runtime, policy, installer and active-scope suites; verify all assertions pass.
+- [x] 4.2 Run focused workflow-status and safety suites; verify all assertions pass.
+- [x] 4.3 Run Ruff on every changed Python file and strict OpenSpec validation; verify both exit zero.
 - [ ] 4.4 Commit the complete candidate and rerun exhaustive tracked-source scans plus branch ancestry/order checks against the exact commit; verify zero legacy matches and the required commit vector.
 
 ## 5. Guarded acceptance and dev delivery

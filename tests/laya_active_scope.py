@@ -1,157 +1,121 @@
 #!/usr/bin/env python3
-"""Active-scope migration guard: no hosted decision runtime survives in active code.
+"""Strict tracked-source scope for the Laya-only Pi decision stack.
 
-The replacement is only complete if nothing active can still reach the retired hosted
-service or expose its tool. This scans every active source, policy, installer and
-focused-test path for the retired product name, its environment variables, its
-credential service and its ledger, and checks the positive side too: the Laya tool,
-bridge, compaction companion and ledger helper exist, are installed under Laya asset
-names, and the installer retires the legacy extension bytes it owns.
+The retired hosted decision product must not survive anywhere in the tracked tree:
+no file, directory, code, test, benchmark, result, installer, document, package
+identifier or descriptive reference. Git history and the untouched separate
+branches are the archive; the tree itself is Laya-only.
 
-Historical measurement artifacts are deliberately out of scope: they keep their
-original names and text, they are listed here explicitly, and this test asserts they
-are still present and still carry the old token so a later "cleanup" cannot silently
-rewrite the record the old thresholds were measured on.
+The retired token is assembled at runtime so this guard does not reintroduce the
+very name it asserts is absent from the tree it scans.
 """
 from __future__ import annotations
 
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# Active paths: everything that can run or steer a live Pi session.
-ACTIVE = (
-    "install.sh", "README.md", "bin", "lib", "pi-defaults", "pi-skill",
-    "prompts", "skills", "task-flow", "tests", "docs",
-)
-SKIP_DIRS = {".git", ".codedb", "__pycache__", "node_modules", "benchmark", "openspec"}
-SKIP_FILES = {
-    # Historical Jev measurements and results: immutable, never active inputs.
-    "docs/pi-jev-gate.md",
-    "docs/pi-jev-compaction.md",
-    "tests/jev_micro_bench.py",
-    "tests/jev_routing_bench.py",
-    # The guard names every forbidden token and historical path by design.
-    "tests/laya_active_scope.py",
-    # Unrelated local JevCache helper; it has never called the TypeSafe decision API.
-    "docs/jevcache.md",
-    "lib/install_jevcache.sh",
-    # These migration tests name retired env/endpoint tokens only to assert absence.
-    "tests/pi-laya.sh",
-    "tests/pi-laya-live.sh",
-}
-# The retired product, its credential service, its ledger and its installed assets.
-FORBIDDEN = (
-    re.compile(r"typesafe", re.IGNORECASE),
-    re.compile(r"TYPESAFE_[A-Z_]+"),
-    re.compile(r"\bjev\b", re.IGNORECASE),
-    re.compile(r"JEV_[A-Z_]+"),
-    re.compile(r"jev-calls"),
-    re.compile(r"pi-skill/jev"),
-    re.compile(r"megai-jev"),
-)
-# One file has to name the retired extension paths: the installer's ownership-aware
-# retirement. Those exact lines are allowed, nothing else in the file may carry the
-# token, and the scanner proves the retirement call site exists below.
-RETIREMENT_FILE = "lib/pi_model_policy.py"
-RETIREMENT_LINES = {
-    '"extensions/megai-jev/index.ts",',
-    '"extensions/megai-jev-compaction/index.ts",',
-    'old = b"When the `jev` tool is available"',
-}
-# Active verification must name the removed public tool so an accidental reinstall
-# fails loudly. Permit only these exact guard assertions, not arbitrary references.
-ALLOWED_LINES = {
-    "pi-defaults/verify.mjs": {
-        "const removedTools = ['subagent', 'jev'];",
-    },
-    "tests/pi_defaults.py": {
-        'self.assertIn("jev", removed)',
-    },
-    "tests/pi_model_policy.py": {
-        '"When the `jev` tool is available",',
-        'self.assertNotIn("When the `jev` tool is available", installed)',
-    },
-}
+# Assembled fragment: the retired tool, package and descriptive prefix.
+RETIRED = "je" + "v"
+
 TEXT_SUFFIXES = {
     ".py", ".sh", ".ts", ".mjs", ".js", ".md", ".json", ".yaml", ".yml", ".toml",
-    ".in", ".txt", ".lock",
+    ".in", ".txt", ".lock", ".cfg", ".ini",
 }
+# Generated npm integrity checksums are base64 digests of unrelated packages, not
+# descriptive references. Only these exact fields are exempt; package names, paths
+# and every other lockfile line are still scanned.
+CHECKSUM_FIELD = re.compile(r'^\s*"(integrity|resolved)":\s*"')
+CHECKSUM_FILES = {"pi-defaults/package-lock.json"}
+
+# The positive Laya surface that must exist after the cleanup.
+LAYA_ASSETS = (
+    "pi-skill/laya/index.ts",
+    "pi-skill/laya/bridge.py",
+    "pi-skill/laya/compaction.ts",
+    "lib/laya_shadow.py",
+    "tests/pi-laya.sh",
+    "tests/pi-laya-live.sh",
+)
+# Retired installations that must be gone, assembled from the fragment.
+RETIRED_PATHS = (
+    f"pi-skill/{RETIRED}",
+    f"pi-skill/{RETIRED}-compaction",
+    f"lib/{RETIRED}_shadow.py",
+)
 
 
-def active_paths(*, include_retirement: bool = False) -> list[Path]:
-    """Every active file this guard scans, sorted for a stable report."""
-    found: list[Path] = []
-    for entry in ACTIVE:
-        base = ROOT / entry
-        candidates = [base] if base.is_file() else sorted(base.rglob("*"))
-        for path in candidates:
-            if not path.is_file() or path.is_symlink():
-                continue
-            relative = path.relative_to(ROOT).as_posix()
-            if any(part in SKIP_DIRS for part in path.relative_to(ROOT).parts):
-                continue
-            if relative in SKIP_FILES:
-                continue
-            if not include_retirement and relative == RETIREMENT_FILE:
-                continue
-            if path.suffix and path.suffix not in TEXT_SUFFIXES:
-                continue
-            found.append(path)
-    return sorted(set(found))
+def tracked_files() -> list[str]:
+    """Every file in the index, i.e. the tracked tree, sorted for a stable report."""
+    result = subprocess.run(
+        ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
+    )
+    return sorted(line for line in result.stdout.splitlines() if line)
 
 
-def offences(path: Path) -> list[str]:
-    try:
-        text = path.read_text(encoding="utf-8")
-    except (UnicodeDecodeError, OSError):
-        return []
-    relative = path.relative_to(ROOT).as_posix()
+def text_files() -> list[str]:
     found: list[str] = []
-    for number, line in enumerate(text.splitlines(), start=1):
-        for pattern in FORBIDDEN:
-            if pattern.search(line) and line.strip() not in ALLOWED_LINES.get(relative, set()):
+    for relative in tracked_files():
+        path = ROOT / relative
+        if not path.is_file() or path.is_symlink():
+            continue
+        if path.suffix and path.suffix not in TEXT_SUFFIXES:
+            continue
+        found.append(relative)
+    return found
+
+
+def retired_offences() -> list[str]:
+    """Tracked paths and content lines still carrying the retired token."""
+    found: list[str] = []
+    for relative in tracked_files():
+        if RETIRED in relative.lower():
+            found.append(f"path: {relative}")
+            continue
+        path = ROOT / relative
+        if not path.is_file() or path.is_symlink():
+            continue
+        if path.suffix and path.suffix not in TEXT_SUFFIXES:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        for number, line in enumerate(text.splitlines(), start=1):
+            if relative in CHECKSUM_FILES and CHECKSUM_FIELD.match(line):
+                continue
+            if RETIRED in line.lower():
                 found.append(f"{relative}:{number}: {line.strip()[:120]}")
-                break
     return found
 
 
 class ActiveScope(unittest.TestCase):
-    def test_no_hosted_decision_path_remains_active(self) -> None:
-        offences_found: list[str] = []
-        for path in active_paths():
-            offences_found.extend(offences(path))
-        self.assertEqual(offences_found, [], "the retired hosted decision path is still active")
+    def test_no_retired_reference_remains_in_the_tracked_tree(self) -> None:
+        offences = retired_offences()
+        self.assertEqual(
+            offences, [],
+            "the retired decision stack is still present in the tracked tree:\n"
+            + "\n".join(offences),
+        )
 
-    def test_the_installer_only_names_the_retired_assets_to_retire_them(self) -> None:
-        path = ROOT / RETIREMENT_FILE
-        text = path.read_text(encoding="utf-8")
-        self.assertIn("LEGACY_ASSETS", text, "the retired asset list must be explicit")
-        self.assertIn("plan.retire(root / relative)", text, "owned legacy bytes must be retired")
-        for line in text.splitlines():
-            with self.subTest(line=line.strip()[:80]):
-                if any(pattern.search(line) for pattern in FORBIDDEN):
-                    self.assertIn(line.strip(), RETIREMENT_LINES,
-                                  "only the retirement tuple may name the retired assets")
+    def test_no_retired_path_remains_in_the_tracked_tree(self) -> None:
+        offenders = [p for p in tracked_files() if RETIRED in p.lower()]
+        self.assertEqual(offenders, [], "the retired decision stack still owns tracked paths")
 
-    def test_laya_surface_exists_and_the_old_tool_is_gone(self) -> None:
-        for relative in ("pi-skill/laya/index.ts", "pi-skill/laya/bridge.py",
-                         "pi-skill/laya/compaction.ts", "lib/laya_shadow.py",
-                         "tests/pi-laya.sh", "tests/pi-laya-live.sh"):
+    def test_laya_surface_exists_and_the_retired_install_is_gone(self) -> None:
+        for relative in LAYA_ASSETS:
             with self.subTest(path=relative):
                 self.assertTrue((ROOT / relative).is_file(), f"missing required asset: {relative}")
-        self.assertFalse((ROOT / "pi-skill/jev").exists(), "the retired tool directory must be gone")
-        self.assertFalse((ROOT / "pi-skill/jev-compaction").exists())
-        self.assertFalse((ROOT / "lib/jev_shadow.py").exists())
-        self.assertFalse(list((ROOT / "tests").glob("pi-jev*.mjs")), "the retired suites must be gone")
+        for relative in RETIRED_PATHS:
+            with self.subTest(path=relative):
+                self.assertFalse((ROOT / relative).exists(), f"retired asset still present: {relative}")
+        self.assertFalse(list((ROOT / "tests").glob(f"pi-{RETIRED}*.mjs")),
+                         "the retired test suites must be gone")
 
-    def test_the_active_tool_bridge_and_ledger_are_laya(self) -> None:
-        tool = (ROOT / "pi-skill/laya/index.ts").read_text(encoding="utf-8")
-        self.assertIn('name: "laya"', tool, "the public tool must be `laya`")
-        self.assertIn("bridge.py", tool, "the tool must drive the local stdio bridge")
-        self.assertIn('name: "sift"', tool, "the screen stays registered in the same extension")
+    def test_the_installer_places_only_laya_decision_assets(self) -> None:
         installer = (ROOT / "lib/pi_model_policy.py").read_text(encoding="utf-8")
         for asset in ("extensions/megai-laya/index.ts", "extensions/megai-laya/bridge.py",
                       "extensions/megai-laya/compaction.ts"):
@@ -160,27 +124,10 @@ class ActiveScope(unittest.TestCase):
         ledger = (ROOT / "lib/laya_shadow.py").read_text(encoding="utf-8")
         self.assertIn("laya-calls.jsonl", ledger)
 
-    def test_historical_artifacts_are_preserved_but_inert(self) -> None:
-        history = {
-            "tests/jev_micro_bench.py": "jev",
-            "tests/jev_routing_bench.py": "jev",
-            "docs/pi-jev-gate.md": "jev",
-            "docs/pi-jev-compaction.md": "jev",
-        }
-        for relative, token in history.items():
-            with self.subTest(path=relative):
-                path = ROOT / relative
-                self.assertTrue(path.is_file(), "a historical artifact was removed")
-                self.assertIn(token, path.read_text(encoding="utf-8").lower(),
-                              "a historical artifact was rewritten")
-        for path in active_paths():
-            if path.relative_to(ROOT).as_posix() in SKIP_FILES:
-                continue
-            text = path.read_text(encoding="utf-8")
-            for name in history:
-                with self.subTest(path=path, reference=name):
-                    self.assertNotIn(Path(name).stem, text,
-                                     "active code must not depend on a historical artifact")
+    def test_the_public_tool_is_laya(self) -> None:
+        tool = (ROOT / "pi-skill/laya/index.ts").read_text(encoding="utf-8")
+        self.assertIn('name: "laya"', tool, "the public tool must be `laya`")
+        self.assertIn("bridge.py", tool, "the tool must drive the local stdio bridge")
 
 
 if __name__ == "__main__":
