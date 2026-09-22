@@ -255,11 +255,534 @@ def verify_main(receipt):
     return verified
 
 
+def _git_proc(path, *args, timeout=120):
+    """Read-only Git call: no optional index locks, no opportunistic gc."""
+    env = dict(os.environ)
+    env["GIT_OPTIONAL_LOCKS"] = "0"
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    try:
+        return subprocess.run(
+            ["git", "-C", str(path), "-c", "gc.auto=0", *args],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env=env,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ValueError(f"git {args[0]} unavailable: {error}")
+
+
+def _paseo_json(*args):
+    """Documented Paseo read command; any failure is fatal, never guessed."""
+    try:
+        result = subprocess.run(
+            ["paseo", *args, "--json"],
+            capture_output=True,
+            text=True,
+            timeout=45,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ValueError(f"Paseo {args[0]} unavailable: {error}")
+    if result.returncode:
+        raise ValueError(f"Paseo {' '.join(args)} failed; reconcile state")
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise ValueError(f"Malformed Paseo response for {' '.join(args)}: {error}")
+
+
+def _rows(payload, fields):
+    if not isinstance(payload, list):
+        raise ValueError("Malformed Paseo response: expected a list")
+    for row in payload:
+        if not isinstance(row, dict) or any(
+            not isinstance(row.get(field), str) for field in fields
+        ):
+            raise ValueError("Malformed Paseo response: unexpected fields")
+    return payload
+
+
+def _expand(value):
+    return os.path.realpath(os.path.expanduser(str(value)))
+
+
+def _primary_or_none(path):
+    try:
+        return str(primary(path))
+    except (ValueError, OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def _ancestor(path, sha, tip):
+    return _git_proc(path, "merge-base", "--is-ancestor", sha, tip).returncode == 0
+
+
+def _local_ref(path, name):
+    result = _git_proc(path, "rev-parse", "--verify", "--quiet", f"refs/heads/{name}")
+    return result.stdout.strip() if result.returncode == 0 and result.stdout.strip() else None
+
+
+def _ignored(path):
+    result = _git_proc(path, "ls-files", "--others", "--ignored", "--exclude-standard")
+    return [line for line in result.stdout.splitlines() if line] if result.returncode == 0 else []
+
+
+_OPERATION_MARKERS = (
+    ("merge", "MERGE_HEAD"),
+    ("cherry-pick", "CHERRY_PICK_HEAD"),
+    ("revert", "REVERT_HEAD"),
+    ("rebase", "rebase-merge"),
+    ("rebase", "rebase-apply"),
+    ("bisect", "BISECT_LOG"),
+)
+
+
+def _git_dirs(path):
+    dirs = []
+    for args in (("rev-parse", "--git-dir"), ("rev-parse", "--git-common-dir")):
+        result = _git_proc(path, *args)
+        if result.returncode == 0 and result.stdout.strip():
+            value = Path(result.stdout.strip())
+            if not value.is_absolute():
+                value = (Path(path) / value).resolve()
+            if value not in dirs:
+                dirs.append(value)
+    return dirs
+
+
+def _operation(path):
+    for folder in _git_dirs(path):
+        for name, marker in _OPERATION_MARKERS:
+            if (folder / marker).exists():
+                return name
+    return None
+
+
+def _worktree_entries(path):
+    result = _git_proc(path, "worktree", "list", "--porcelain")
+    if result.returncode:
+        return []
+    entries, current = [], None
+    for line in result.stdout.splitlines():
+        if line.startswith("worktree "):
+            if current:
+                entries.append(current)
+            current = {
+                "path": line[len("worktree "):].strip(),
+                "branch": None,
+                "head": None,
+                "locked": False,
+            }
+        elif current is None:
+            continue
+        elif line.startswith("HEAD "):
+            current["head"] = line[len("HEAD "):].strip()
+        elif line.startswith("branch "):
+            ref = line[len("branch "):].strip()
+            current["branch"] = ref[len("refs/heads/"):] if ref.startswith("refs/heads/") else ref
+        elif line == "detached":
+            current["branch"] = None
+        elif line.startswith("locked"):
+            current["locked"] = True
+    if current:
+        entries.append(current)
+    return entries
+
+
+def _snapshot(path):
+    refs = {}
+    result = _git_proc(path, "for-each-ref", "--format=%(refname) %(objectname)", "refs/heads/")
+    if result.returncode == 0:
+        for line in result.stdout.splitlines():
+            name, _, sha = line.partition(" ")
+            if name:
+                refs[f"refs:{name}"] = sha
+    for entry in _worktree_entries(path):
+        item = _git_proc(entry["path"], "rev-parse", "--verify", "HEAD")
+        refs[f"head:{entry['path']}"] = item.stdout.strip() if item.returncode == 0 else None
+    return refs
+
+
+def _fetch_tip(repo, remote, branch):
+    """Fetch one branch with an empty refmap so named refs are not rewritten."""
+    result = _git_proc(
+        repo, "fetch", "--no-tags", "--refmap=", remote, f"refs/heads/{branch}"
+    )
+    if result.returncode:
+        return None, (result.stderr.strip() or "fetch failed")[:200]
+    tip = _git_proc(repo, "rev-parse", "--verify", "FETCH_HEAD^{commit}")
+    if tip.returncode or not tip.stdout.strip():
+        return None, "cannot resolve FETCH_HEAD"
+    return tip.stdout.strip(), None
+
+
+def _forge_allowed(url, forge):
+    return (
+        url.startswith(f"https://{forge}/")
+        or url.startswith(f"git@{forge}:")
+        or url.startswith(f"ssh://git@{forge}/")
+    )
+
+
+def _preserve_for(repo, root, policy):
+    relative = os.path.relpath(str(repo), str(root))
+    return list(policy.get("preserveBranches", {}).get(relative, []))
+
+
+def _repo_row(repo, root, policy):
+    blocked = []
+    current_result = _git_proc(repo, "symbolic-ref", "--short", "-q", "HEAD")
+    current = (
+        current_result.stdout.strip()
+        if current_result.returncode == 0 and current_result.stdout.strip()
+        else None
+    )
+    head_result = _git_proc(repo, "rev-parse", "--verify", "HEAD")
+    head = head_result.stdout.strip() if head_result.returncode == 0 else None
+    status_result = _git_proc(repo, "status", "--porcelain=v1")
+    porcelain = status_result.stdout.splitlines() if status_result.returncode == 0 else []
+    untracked = [line[3:] for line in porcelain if line.startswith("?? ")]
+    dirty = bool(porcelain)
+    ignored = _ignored(repo)
+    operation = _operation(repo)
+    if dirty:
+        blocked.append("dirty")
+    if operation:
+        blocked.append(f"operation:{operation}")
+    if ignored:
+        blocked.append("ignored-untracked")
+
+    remote = "origin"
+    persistent = []
+    for name in ("dev", "main", *_preserve_for(repo, root, policy)):
+        if name not in persistent:
+            persistent.append(name)
+    fetched = {}
+    remote_error = None
+    url_result = _git_proc(repo, "remote", "get-url", remote)
+    if url_result.returncode != 0:
+        remote_error = f"remote {remote} unavailable"
+        blocked.append("remote-missing")
+    else:
+        url = url_result.stdout.strip()
+        forge = policy.get("forge")
+        if forge and not _forge_allowed(url, forge):
+            remote_error = "remote violates forge policy"
+            blocked.append("remote-forge-policy")
+        else:
+            for branch in persistent:
+                tip, error = _fetch_tip(repo, remote, branch)
+                fetched[branch] = tip
+                if error:
+                    blocked.append(f"fetch-failed:{branch}")
+                    if branch == "dev":
+                        remote_error = error
+    remote_dev = fetched.get("dev")
+
+    branch_result = _git_proc(repo, "for-each-ref", "--format=%(refname:short)", "refs/heads/")
+    names = set(persistent)
+    if branch_result.returncode == 0:
+        names.update(line for line in branch_result.stdout.splitlines() if line)
+    branches = {}
+    for name in sorted(names):
+        local = _local_ref(repo, name)
+        in_remote = bool(local and remote_dev and _ancestor(repo, local, remote_dev))
+        branches[name] = {
+            "local": local,
+            "remote": fetched.get(name),
+            "inRemoteDev": in_remote,
+            "diverged": bool(local and remote_dev and not in_remote),
+        }
+
+    worktrees = []
+    for entry in _worktree_entries(repo):
+        in_remote = bool(
+            entry["head"] and remote_dev and _ancestor(repo, entry["head"], remote_dev)
+        )
+        worktrees.append(
+            {
+                "path": entry["path"],
+                "branch": entry["branch"],
+                "head": entry["head"],
+                "locked": entry["locked"],
+                "inRemoteDev": in_remote,
+            }
+        )
+
+    row = {
+        "path": str(repo),
+        "current": current,
+        "head": head,
+        "detached": current is None,
+        "dirty": dirty,
+        "untracked": untracked,
+        "ignored": ignored,
+        "operation": operation,
+        "remoteDev": remote_dev,
+        "remoteDevError": remote_error,
+        "branches": branches,
+        "worktrees": worktrees,
+        "blocked": blocked,
+    }
+    return row
+
+
+def status(cwd, workspace_id=None):
+    policy = context(cwd)
+    root = Path(policy["root"])
+    repositories = [Path(path) for path in policy["repositories"]]
+    repo_paths = {str(repo) for repo in repositories}
+    runner = os.environ.get("PASEO_AGENT_ID")
+
+    before = {str(repo): _snapshot(repo) for repo in repositories}
+    repo_rows = [_repo_row(repo, root, policy) for repo in repositories]
+    rows_by_path = {row["path"]: row for row in repo_rows}
+
+    projects = _rows(_paseo_json("project", "ls"), ("projectId", "name", "path"))
+    workspaces = _rows(
+        _paseo_json("workspace", "ls"),
+        ("workspaceId", "project", "name", "isolation", "cwd"),
+    )
+    agents = _rows(_paseo_json("agent", "ls", "--all"), ("id", "cwd", "status"))
+
+    canon_root = _expand(root)
+    matching = [p for p in projects if _expand(p["path"]) == canon_root]
+    project_id = matching[0]["projectId"] if len(matching) == 1 else None
+    by_name = {}
+    for project in projects:
+        by_name.setdefault(project["name"], []).append(project["projectId"])
+    candidate_names = {project["name"] for project in matching}
+
+    if workspace_id:
+        selected = [w for w in workspaces if w["workspaceId"] == workspace_id]
+        if len(selected) != 1:
+            raise ValueError(f"Requested workspace {workspace_id} not found")
+        requested = selected[0]
+        if project_id is None or by_name.get(requested["project"], []) != [project_id]:
+            raise ValueError("Requested workspace belongs to another project")
+        requested_primary = _primary_or_none(_expand(requested["cwd"]))
+        if requested_primary is None or requested_primary not in repo_paths:
+            raise ValueError("Requested workspace is outside the resolved project")
+    else:
+        selected = [w for w in workspaces if w["project"] in candidate_names]
+
+    observations = {}
+    for workspace in selected:
+        cwd_value = _expand(workspace["cwd"])
+        matched = [a for a in agents if _expand(a["cwd"]) == cwd_value]
+        inspects = []
+        for item in matched:
+            try:
+                inspects.append((item, _paseo_json("agent", "inspect", item["id"])))
+            except ValueError:
+                inspects.append((item, None))
+        observations[workspace["workspaceId"]] = (matched, inspects, cwd_value)
+
+    after = {str(repo): _snapshot(repo) for repo in repositories}
+    moved = {}
+    for key in before:
+        changed = {name for name in before[key] if after[key].get(name) != before[key][name]}
+        if changed:
+            moved[key] = changed
+            rows_by_path[key]["blocked"].append("ref-moved")
+
+    workspace_rows = []
+    for workspace in selected:
+        row = _workspace_row(
+            workspace,
+            policy,
+            project_id,
+            by_name,
+            repo_paths,
+            rows_by_path,
+            observations[workspace["workspaceId"]],
+            moved,
+            runner,
+        )
+        workspace_rows.append(row)
+
+    pending = []
+    for row in repo_rows:
+        if row["remoteDev"] is None:
+            continue
+        for name, info in row["branches"].items():
+            if info["local"] and not info["inRemoteDev"]:
+                pending.append(
+                    {"kind": "branch", "path": row["path"], "branch": name,
+                     "head": info["local"], "reason": "not-in-remote-dev"}
+                )
+        for entry in row["worktrees"]:
+            if entry["head"] and not entry["inRemoteDev"]:
+                pending.append(
+                    {"kind": "worktree", "path": entry["path"], "branch": entry["branch"],
+                     "head": entry["head"], "reason": "not-in-remote-dev"}
+                )
+
+    blocked = [
+        {"scope": "repo", "id": row["path"], "reason": reason}
+        for row in repo_rows
+        for reason in row["blocked"]
+    ] + [
+        {"scope": "workspace", "id": row["workspaceId"], "reason": reason}
+        for row in workspace_rows
+        for reason in row["blocked"]
+    ]
+    cleanup = [
+        {"workspaceId": row["workspaceId"], "cwd": row["cwd"], "head": row["head"]}
+        for row in workspace_rows
+        if row["archiveEligible"]
+    ]
+    return {
+        "root": str(root),
+        "layout": policy["layout"],
+        "planeProject": policy["planeProject"],
+        "repositories": repo_rows,
+        "workspaces": workspace_rows,
+        "pendingDelivery": pending,
+        "cleanupEligible": cleanup,
+        "blocked": blocked,
+    }
+
+
+def _workspace_row(
+    workspace, policy, project_id, by_name, repo_paths, rows_by_path, observation,
+    moved, runner,
+):
+    cwd_value = _expand(workspace["cwd"])
+    matched, inspects, _ = observation
+    blocked = []
+    ids = by_name.get(workspace["project"], [])
+    primary_path = _primary_or_none(cwd_value)
+    if project_id is not None and ids == [project_id]:
+        ownership = "known" if primary_path in repo_paths else "foreign"
+    elif project_id is not None and ids:
+        ownership = "foreign"
+    else:
+        ownership = "unknown"
+    if ownership != "known":
+        blocked.append(f"ownership-{ownership}")
+
+    protected = any(item["id"] == runner for item in matched)
+    busy = protected
+    released = False
+    for item, inspect in inspects:
+        if inspect is None:
+            blocked.append("inspect-failed")
+            continue
+        archived = inspect.get("Archived") is True
+        permissions = inspect.get("PendingPermissions") or []
+        if not archived or permissions:
+            busy = True
+        identity_ok = (
+            inspect.get("Id") == item["id"]
+            and _expand(inspect.get("Cwd", "")) == cwd_value
+        )
+        if archived and not permissions and identity_ok and inspect.get("Status") == "idle":
+            released = True
+        elif archived and (not identity_ok or inspect.get("Status") != "idle"):
+            blocked.append("incomplete-terminal-evidence")
+    if not matched:
+        blocked.append("no-agent-release-evidence")
+    if released and busy:
+        released = False
+
+    head = branch = operation = None
+    dirty = False
+    ignored = []
+    if primary_path is not None:
+        head_result = _git_proc(cwd_value, "rev-parse", "--verify", "HEAD")
+        head = head_result.stdout.strip() if head_result.returncode == 0 else None
+        branch_result = _git_proc(cwd_value, "symbolic-ref", "--short", "-q", "HEAD")
+        branch = (
+            branch_result.stdout.strip()
+            if branch_result.returncode == 0 and branch_result.stdout.strip()
+            else None
+        )
+        status_result = _git_proc(cwd_value, "status", "--porcelain=v1")
+        dirty = status_result.returncode == 0 and bool(status_result.stdout.strip())
+        ignored = _ignored(cwd_value)
+        operation = _operation(cwd_value)
+
+    entry = None
+    repo_row = rows_by_path.get(primary_path) if primary_path else None
+    if repo_row:
+        entry = next((w for w in repo_row["worktrees"] if w["path"] == cwd_value), None)
+    registered = entry is not None
+    locked = bool(entry and entry["locked"])
+
+    remote_dev = repo_row["remoteDev"] if repo_row else None
+    in_remote = bool(head and remote_dev and _ancestor(primary_path, head, remote_dev))
+    moved_here = False
+    if repo_row and primary_path in moved:
+        changed = moved[primary_path]
+        moved_here = (
+            f"head:{cwd_value}" in changed
+            or (branch and f"refs:refs/heads/{branch}" in changed)
+        )
+    if moved_here:
+        blocked.append("ref-moved")
+    if not registered:
+        blocked.append("worktree-not-registered")
+    if locked:
+        blocked.append("worktree-locked")
+    if dirty:
+        blocked.append("dirty")
+    if ignored:
+        blocked.append(f"ignored:{ignored[0]}")
+    if operation:
+        blocked.append(f"operation:{operation}")
+    if head and remote_dev and not in_remote:
+        blocked.append("not-in-remote-dev")
+    if branch is None:
+        blocked.append("detached-head")
+
+    eligible = (
+        ownership == "known"
+        and workspace["isolation"] == "worktree"
+        and registered
+        and not locked
+        and not busy
+        and not protected
+        and released
+        and not dirty
+        and not ignored
+        and operation is None
+        and branch is not None
+        and head is not None
+        and branch == entry["branch"]
+        and in_remote
+        and not moved_here
+    )
+    return {
+        "workspaceId": workspace["workspaceId"],
+        "project": workspace["project"],
+        "projectId": project_id if ownership == "known" else None,
+        "name": workspace["name"],
+        "isolation": workspace["isolation"],
+        "cwd": workspace["cwd"],
+        "ownership": ownership,
+        "busy": busy,
+        "protected": protected,
+        "released": released,
+        "head": head,
+        "branch": branch,
+        "dirty": dirty,
+        "ignored": ignored,
+        "operation": operation,
+        "inRemoteDev": in_remote,
+        "archiveEligible": eligible,
+        "blocked": blocked,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     cmd = sub.add_parser("context")
     cmd.add_argument("--cwd", default=os.getcwd())
+    cmd = sub.add_parser("status")
+    cmd.add_argument("--cwd", default=os.getcwd())
+    cmd.add_argument("--workspace")
     cmd = sub.add_parser("start")
     cmd.add_argument("--title", required=True)
     cmd.add_argument("--cwd", default=os.getcwd())
@@ -275,6 +798,8 @@ def main():
     args = parser.parse_args()
     if args.command == "context":
         return context(args.cwd)
+    if args.command == "status":
+        return status(args.cwd, args.workspace)
     if args.command == "verify-main":
         return verify_main(json.loads(Path(args.receipt).read_text()))
     if args.command == "start":
