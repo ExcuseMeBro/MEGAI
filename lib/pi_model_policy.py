@@ -2,14 +2,45 @@
 """Install Pi policy; change native model defaults only with an explicit --preset."""
 from __future__ import annotations
 
+import os
+import shlex
+import subprocess
 from pathlib import Path
 
 BEGIN = "<!-- megai:subagent-models:begin -->"
 END = "<!-- megai:subagent-models:end -->"
 
+def laya_runtime_failure(source: Path) -> str | None:
+    """Return the runtime verification failure, or None when it is ready.
+
+    MEGAI_LAYA_CHECK is a deterministic test seam so migration gating can be exercised
+    without a checkpoint download; production runs the pinned installer's `--check`,
+    which fails for a missing, unowned or unverifiable runtime.
+    """
+    seam = os.environ.get("MEGAI_LAYA_CHECK")
+    argv = shlex.split(seam) if seam else ["bash", str(source / "lib/install_laya.sh"), "--check"]
+    try:
+        result = subprocess.run(argv, capture_output=True, text=True)
+    except OSError as error:
+        return str(error)[:200]
+    if result.returncode == 0:
+        return None
+    return ((result.stderr or "").strip().splitlines() or ["verification failed"])[-1][:200]
+
 
 def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> None:
     from slim_wiring import digest, read
+
+    if not remove:
+        reason = laya_runtime_failure(source)
+        if reason is not None:
+            # Migrate atomically or not at all: a missing, unowned or unverifiable
+            # runtime keeps the working retired extension in place instead of
+            # activating a Laya tool that cannot load.
+            raise ValueError(
+                "the Laya runtime is not verified; Laya is not activated "
+                f"({reason}); run `bash lib/install_laya.sh` and retry"
+            )
 
     policy = (source / "pi-skill/delegation.md").read_bytes()
     path = root / "AGENTS.md"
@@ -54,11 +85,21 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
                (source / "pi-skill/role-routing/index.ts").read_bytes(), remove)
     plan.asset(root / "extensions/megai-model-fallback/index.ts",
                (source / "pi-skill/model-fallback/index.ts").read_bytes(), remove)
-    plan.asset(root / "extensions/megai-jev/index.ts",
-               (source / "pi-skill/jev/index.ts").read_bytes(), remove)
-    plan.asset(root / "extensions/megai-jev-compaction/index.ts",
-               (source / "pi-skill/jev-compaction/index.ts").read_bytes(), remove)
-    plan.asset(root / "skills/megai/delegation.md", policy, remove)
+    # Place the Laya extension, its stdio bridge (a sibling file, loaded by relative
+    # path) and the compaction companion that shares the same bridge process.
+    plan.asset(root / "extensions/megai-laya/index.ts",
+               (source / "pi-skill/laya/index.ts").read_bytes(), remove)
+    plan.asset(root / "extensions/megai-laya/bridge.py",
+               (source / "pi-skill/laya/bridge.py").read_bytes(), remove)
+    plan.asset(root / "extensions/megai-laya/compaction.ts",
+               (source / "pi-skill/laya/compaction.ts").read_bytes(), remove)
+    plan.asset(root / "extensions/megai-antigravity/index.ts",
+               (source / "pi-skill/antigravity/index.ts").read_bytes(), remove)
+    delegation = root / "skills/megai/delegation.md"
+    installed = read(delegation)
+    if installed is None or installed == policy or plan.owned(delegation, installed):
+        plan.asset(delegation, policy, remove)
+    # An unowned, operator-edited policy is preserved instead of claimed.
     if remove:
         # Removing policy does not undo the user's native model preferences.
         plan.retire(root / "megai-roles.json")

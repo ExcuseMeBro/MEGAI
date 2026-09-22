@@ -199,9 +199,9 @@ class Adaptive(Slim):
                 self.assertIn("routine", text)
                 self.assertIn("guarded", text)
 
-    def test_jev_reaches_every_decision_step(self):
+    def test_laya_reaches_every_decision_step(self):
         policy = (ROOT / "pi-skill/ADAPTIVE.md").read_text().lower()
-        self.assertIn("### typesafe jev at every decision step", policy)
+        self.assertIn("### laya at every decision step", policy)
         for step in ("triage", "task flow", "isolation", "delegation", "verification",
                      "loop control", "first-pass judge", "delivery and handoff"):
             self.assertIn(step, policy)
@@ -212,9 +212,9 @@ class Adaptive(Slim):
                      "pi-skill/acceptance/SKILL.md", "pi-skill/delegation.md",
                      "skills/agent-worktree-lifecycle/SKILL.md"):
             with self.subTest(path=path):
-                self.assertIn("`jev`", (ROOT / path).read_text().lower())
-        self.assertIn("`jev`", (ROOT / "pi-defaults/AGENTS.md").read_text().lower())
-        tool = (ROOT / "pi-skill/jev/index.ts").read_text()
+                self.assertIn("`laya`", (ROOT / path).read_text().lower())
+        self.assertIn("`laya`", (ROOT / "pi-defaults/AGENTS.md").read_text().lower())
+        tool = (ROOT / "pi-skill/laya/index.ts").read_text()
         self.assertIn("every workflow step decision", tool)
         self.assertIn("one call per decision boundary", tool)
 

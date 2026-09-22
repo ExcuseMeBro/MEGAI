@@ -38,12 +38,31 @@ def text(value, name):
     return value
 
 
-def run(argv):
+def environment():
     env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     env.update(LC_ALL="C", GIT_OPTIONAL_LOCKS="0", GIT_TERMINAL_PROMPT="0")
-    result = subprocess.run(argv, env=env, text=True, capture_output=True, timeout=10)
+    return env
+
+
+def run(argv):
+    result = subprocess.run(argv, env=environment(), text=True, capture_output=True, timeout=10)
     require(result.returncode == 0, result.stderr.strip() or "Command failed")
     return result.stdout.rstrip("\n")
+
+
+def ancestor(path, oldest, head):
+    """merge-base --is-ancestor exits 1 for a non-ancestor; any non-zero is not a raise."""
+    result = subprocess.run(["git", "-C", str(path), "merge-base", "--is-ancestor", oldest, head],
+                            env=environment(), text=True, capture_output=True, timeout=10)
+    return result.returncode == 0
+
+
+def delivered(repo, head):
+    """Later merges advance a target past candidate_head; the candidate is still delivered.
+
+    A target that never moved and lacks the candidate stays refused: it is no ancestor.
+    """
+    return head == repo["candidate_head"] or ancestor(repo["path"], repo["candidate_head"], head)
 
 
 def git(path, *args):
@@ -191,6 +210,12 @@ def vector_matches(request, key):
     actual = observe(request)
     require(actual == [repo[key] for repo in request["repositories"]],
             f"Commit vector differs from {key}; refresh/review or reconcile partial delivery")
+
+
+def vector_delivered(request):
+    actual = observe(request)
+    require(all(delivered(repo, head) for head, repo in zip(actual, request["repositories"])),
+            "Candidate is not delivered in every target; refresh/review or reconcile partial delivery")
 
 
 def load_json(path):
@@ -358,9 +383,11 @@ class Queue:
             require(row["state"] in ("active", "held"), "Only held/active grants need reconciliation")
             proof = evidence(args.evidence)
             if args.outcome == "resume":
+                repos = row["request"]["repositories"]
                 actual = observe(row["request"])
-                require(all(head in (repo["expected_head"], repo["candidate_head"])
-                            for head, repo in zip(actual, row["request"]["repositories"])),
+                flags = [delivered(repo, head) for head, repo in zip(actual, repos)]
+                require(all(flag or head == repo["expected_head"]
+                            for flag, head, repo in zip(flags, actual, repos)),
                         "Unknown target vector; preserve all reservations and reconcile manually")
                 text(args.owner, "replacement owner")
                 self.db.execute("""UPDATE requests SET state='active',owner=?,token=?,expires=?,
@@ -368,11 +395,12 @@ class Queue:
                                 (args.owner, secrets.token_hex(24), time.time() + args.lease_seconds,
                                  encoded(proof), now, args.id))
                 fresh = self.row(args.id)
-                remaining = [repo["path"] for head, repo in zip(actual, row["request"]["repositories"])
-                             if head != repo["candidate_head"]]
+                remaining = [repo["path"] for flag, repo in zip(flags, repos) if not flag]
                 return self.public(fresh) | {"token": fresh["token"], "remaining_repositories": remaining}
-            key = "candidate_head" if args.outcome == "completed" else "expected_head"
-            vector_matches(row["request"], key)
+            if args.outcome == "completed":
+                vector_delivered(row["request"])
+            else:
+                vector_matches(row["request"], "expected_head")
             state = "queued" if args.outcome == "retry" else args.outcome
             self.db.execute("""UPDATE requests SET state=?,token=NULL,owner=NULL,expires=NULL,
                 reason='',recovery=?,updated=? WHERE id=?""", (state, encoded(proof), now, args.id))
@@ -387,7 +415,10 @@ class Queue:
                 self.db.execute("UPDATE requests SET state='held',reason=?,updated=? WHERE id=?",
                                 (text(args.reason, "reason"), now, args.id))
             elif action == "finish":
-                vector_matches(row["request"], "candidate_head" if args.outcome == "completed" else "expected_head")
+                if args.outcome == "completed":
+                    vector_delivered(row["request"])
+                else:
+                    vector_matches(row["request"], "expected_head")
                 self.db.execute("UPDATE requests SET state=?,token=NULL,expires=NULL,updated=? WHERE id=?",
                                 (args.outcome, now, args.id))
             else:

@@ -262,6 +262,73 @@ class AcceptanceGateTest(unittest.TestCase):
                 save(directory / "evidence.json", evidence)
                 self.check(directory, 2)
 
+    def frozen_fixture(self, reviewer=None, harness="pi", thinking="medium",
+                       model="openai-codex/gpt-5.6-luna"):
+        directory, contract, evidence = self.fixture()
+        contract["schema"] = 2
+        contract["task_type"] = "change"
+        if reviewer is not None:
+            contract["reviewer"] = reviewer
+        self.amend_contract(directory, contract, evidence)
+        evidence["review"].update(harness=harness, model=model, thinking=thinking)
+        save(directory / "evidence.json", evidence)
+        return directory
+
+    def test_frozen_reviewer_policy_accepts_explicit_medium(self):
+        reviewer = {"harness": "pi", "model": "openai-codex/gpt-5.6-luna",
+                    "thinking": "medium"}
+        self.check(self.frozen_fixture(reviewer=reviewer, thinking="medium"), 0)
+
+    def test_frozen_reviewer_policy_mismatch_is_blocked(self):
+        reviewer = {"harness": "pi", "model": "openai-codex/gpt-5.6-luna",
+                    "thinking": "medium"}
+        for key, value in (("harness", "codex"),
+                           ("model", "anthropic/claude-sonnet-4-6"),
+                           ("thinking", "high")):
+            with self.subTest(key=key):
+                self.check(self.frozen_fixture(reviewer=reviewer, **{key: value}), 2)
+
+    def test_legacy_contract_keeps_pi_high_reviewer_requirement(self):
+        self.check(self.frozen_fixture(reviewer=None, thinking="high"), 0)
+        self.check(self.frozen_fixture(reviewer=None, thinking="medium"), 2)
+
+    def test_collect_emits_frozen_reviewer_policy_into_template(self):
+        reviewer = {"harness": "pi", "model": "openai-codex/gpt-5.6-luna",
+                    "thinking": "medium"}
+        directory, contract, evidence = self.fixture()
+        contract["schema"] = 2
+        contract["task_type"] = "change"
+        contract["reviewer"] = reviewer
+        self.amend_contract(directory, contract, evidence)
+        output = self.base / "collected"
+        result = self.invoke("collect", "--root", self.root, "--contract",
+                             directory / "contract.json", "--contract-sha256",
+                             sha256(directory / "contract.json"), "--out", output)
+        self.assertEqual(result.returncode, 2, result.stdout)
+        self.assertTrue((output / "evidence.json").is_file(), result.stdout)
+        draft = json.loads((output / "evidence.json").read_text())
+        self.assertEqual(
+            {key: draft["review"][key] for key in ("harness", "model", "thinking")},
+            reviewer,
+        )
+
+    def test_malformed_and_schema_one_reviewer_policies_are_blocked(self):
+        valid = {"harness": "pi", "model": "openai-codex/gpt-5.6-luna",
+                 "thinking": "medium"}
+        for label, reviewer in (
+            ("partial", {"harness": "pi", "model": "openai-codex/gpt-5.6-luna"}),
+            ("extra", {**valid, "session": "reviewer"}),
+            ("empty-harness", {**valid, "harness": " "}),
+            ("invalid-model", {**valid, "model": "unknown"}),
+            ("invalid-thinking", {**valid, "thinking": "max"}),
+        ):
+            with self.subTest(label=label):
+                self.check(self.frozen_fixture(reviewer=reviewer), 2)
+        directory, contract, evidence = self.fixture()
+        contract["reviewer"] = valid
+        self.amend_contract(directory, contract, evidence)
+        self.check(directory, 2)
+
     def test_review_fail_and_blocked(self):
         for verdict, expected in (("FAIL", 1), ("BLOCKED", 2)):
             directory, _, evidence = self.fixture()

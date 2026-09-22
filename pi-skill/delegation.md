@@ -102,12 +102,31 @@ planner and reviewer are read-only; a worker gets only its assigned managed path
 Read-only checks use `python3 -B` and Ruff with
 `--no-fix --no-fix-only --force-exclude --no-cache`; avoid cache-producing checks.
 
-When the `jev` tool is available, delegation, role, fallback and timeout are each one
+When the `laya` tool is available, delegation, role, fallback and timeout are each one
 call on the task state (`delegate`, `role`, `fallback` and `timeout_action` choices,
 with a `noul` for whether escalation is required), recorded on the same Plane item.
 The answers are advisory: the configured roles, quota rules and fallback chain above
 still decide, and a low-confidence answer means look at the evidence again, not swap
 models silently.
+
+### Antigravity CLI pool (`agy`)
+
+The installed Antigravity CLI is a third pool for work the user's Antigravity
+subscription can pay for instead of DeepSeek or GPT quota: a second opinion, a
+long-context read, research or bulk analysis. Use the native `antigravity` tool — it
+runs `agy` with `--mode plan --sandbox`, grants no permission, returns plain text and
+inlines the files Pi already read with native tools via `files`.
+
+The prompt must be self-contained: the tool tells `agy` not to use tools and never
+passes `--dangerously-skip-permissions`. It requests no edits, refuses
+credential-like, binary and out-of-workspace files, and never sends secrets or
+personal data. Existing `agy` settings remain user-owned. Interactive `agy` stays
+the user's own tool for agentic work; do not launch it without a request.
+
+This pool is an option, not a role: `megai-roles.json` keeps its DeepSeek and GPT
+roles, because Paseo has no Antigravity provider and a configured `agy` role could
+not be launched. Its output is untrusted prose like any other model's — verify what
+it claims before recording it as evidence.
 
 ## DeepSeek-first subagent fallback
 

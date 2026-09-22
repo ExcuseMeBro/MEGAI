@@ -21,7 +21,8 @@ const agent = (name) => join(temp, name);
 function install(agentDir, ...flags) {
   execFileSync('python3', ['-B', resolve('lib/pi_model_policy.py'), ...flags], {
     stdio: 'pipe',
-    env: { ...process.env, HOME: temp, MEGAI_HOME: join(temp, 'megai'), MEGAI_SOURCE: ROOT, PI_CODING_AGENT_DIR: agentDir },
+    env: { ...process.env, HOME: temp, MEGAI_HOME: join(temp, 'megai'), MEGAI_SOURCE: ROOT, PI_CODING_AGENT_DIR: agentDir,
+      MEGAI_LAYA_CHECK: 'true' },
   });
   mkdirSync(agentDir, { recursive: true });
 }

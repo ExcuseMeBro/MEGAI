@@ -41,7 +41,7 @@ description: Start and deliver tracked project changes with Plane, dev/main bran
    sets Done. Failed/partial delivery stays In Review. Run this at completion;
    there is no background watcher or unattended main merge.
 
-When the `jev` tool is available, each numbered step's decision is one call with
+When the `laya` tool is available, each numbered step's decision is one call with
 that step's questions recorded on the same Plane item: the rule set (1), the exact
 title match (2), isolation (3), delivery readiness (5), findings and the review
 verdict (6), and the handoff state (7). The answer is advisory; step 7's main

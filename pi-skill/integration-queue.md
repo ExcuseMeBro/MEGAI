@@ -115,7 +115,8 @@ bounded operations and renew before expiry. Never interrupt a live mutation mere
 because a lease or task-specific deadline elapsed.
 
 `finish --id --owner --token --outcome completed` releases resources only when
-**every** target ref is at its exact candidate commit and each primary checkout is
+**every** target ref is at its candidate commit or already contains it (later merges
+may have advanced the ref) and each primary checkout is
 clean on its pinned branch (and unchanged HEAD for ref-only integration).
 This records integration, not tests or Plane Done. `--outcome failed` releases only
 if every clean target still has its original HEAD. Check `status` after an uncertain
@@ -137,12 +138,13 @@ uncertain live grant. Preserve logs, source work and all target outcomes.
    - `retry`: every target unchanged; return to the same FIFO position, invalidate
      old token, and claim again.
    - `failed`: every target unchanged; release with a failed integration result.
-   - `completed`: every target at its exact candidate; record observed completion
-     without replaying already-completed mutations.
+   - `completed`: every target at or already containing its candidate; record
+     observed completion without replaying already-completed mutations.
    - `resume --owner NEW_EXECUTOR --lease-seconds 120`: each target must be at its
-     original or candidate HEAD. Retain the entire bundle, rotate token and return
-     `remaining_repositories`. Recheck acceptance/authorization and operate **only**
-     on those remaining targets, then finish the full candidate vector.
+     original HEAD, its candidate HEAD, or already contain that candidate. Retain
+     the entire bundle, rotate token and return `remaining_repositories`. Recheck
+     acceptance/authorization and operate **only** on those remaining targets, then
+     finish the full candidate vector.
 3. Any unknown head, dirty target, changed identity/branch or unresolved Git operation
    remains BLOCKED. Diagnose it under retained ownership; do not silently reset,
    narrow the resource set or infer that an uncertain external operation failed.

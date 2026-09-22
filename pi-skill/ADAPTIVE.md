@@ -34,11 +34,12 @@ behavior requires it, in either mode; exit zero alone is insufficient. A bug nee
 an observed failing reproduction and passing regression, even in routine mode.
 No formal-gate claim without running that gate. Existing stricter repo/user rules win.
 
-### TypeSafe Jev at every decision step
+### Laya at every decision step
 
-The `jev` tool answers typed decision questions (`choice`, `score`, `noul`) in about
-a second for a fraction of a cent. Every decision this flow names is one `jev` call
-on the supplied state instead of a model prompt, recorded with its probabilities on
+The `laya` tool answers typed decision questions (`choice`, `score`, `noul`) in about
+a second from a small local checkpoint: no key, no account and no network request.
+Every decision this flow names is one `laya` call on the supplied state instead of a
+model prompt, recorded with its probabilities on
 the task item:
 
 | Step | Decision | Questions |
@@ -62,24 +63,23 @@ level list (a bare label list is accepted for `choice`/`noul` and sent as labels
 tokens, or personal data. Every answer is advisory: `noul` returns a probability
 and never authorizes a reserved user decision (main promotion, deletion,
 credentials or permissions, software install or removal). If the call returns
-`ok: false` — no key, timeout, network, non-200 — decide with your own judgment,
-say the call failed once, and continue; never retry in a loop. When neither
-`TYPESAFE_API_KEY` nor a keychain entry exists, the tool asks you for a key and
-keeps it for the session: enter it in that plain-text dialog (the keychain and
-`TYPESAFE_API_KEY` routes are never visible, and the tool never echoes the key
-back) or decline and decide directly.
+`ok: false` — the local runtime is missing, a checkpoint failed to load, or the
+request timed out — decide with your own judgment, say the call failed once, and
+continue; never retry in a loop. The runtime is prepared once with
+`bash lib/install_laya.sh`; when it is absent the tool reports that in one line
+instead of asking for a key or any credential.
 
-Every call now lands in `~/.megai/jev-calls.jsonl` with a short record id. Label the
-answers you actually consumed with what really happened —
-`python3 lib/jev_shadow.py note --id ID --actual LABEL` — so
-`python3 lib/jev_shadow.py report` can show the per-question agreement, the cutoff
+Every call now lands in `~/.megai/laya-calls.jsonl` with a short record id, the route
+that answered it and the checkpoint identity. Label the answers you actually consumed
+with what really happened — `python3 lib/laya_shadow.py note --id ID --actual LABEL` —
+so `python3 lib/laya_shadow.py report` can show the per-question agreement, the cutoff
 the probabilities support and the disagreements worth re-testing. An unlabeled
 ledger is only traffic.
 
 A low-confidence answer, a distribution split across acceptable alternatives or an
 answer that contradicts the table above is a signal to inspect the seam, widen
 evidence or ask — not a silent override. Explicit user or task instructions and every
-existing gate outrank an answer: Jev never replaces a check, a reviewer verdict, an
+existing gate outrank an answer: Laya never replaces a check, a reviewer verdict, an
 evidence requirement or a reserved user decision.
 
 ## Three-step default

@@ -1,7 +1,7 @@
 # MiniMax-M3 mixed with deepseek-flash — results
 
 Measures what the paid MiniMax-M3 adds to the paid deepseek-flash worker. The
-request was *"benchmark the minimax + deepseek combination in Pi, with the Jev
+request was *"benchmark the minimax + deepseek combination in Pi, with the local
 decision tool active by default"*, so both mixing directions are measured next to
 each model working alone, and the review control from the local-Qwen run is
 repeated in the same session for a same-window comparison.
@@ -102,20 +102,14 @@ post-review suites passed 10/10.
 MiniMax's extra turns, not its token prices, produce the difference: the same
 output volume at the same unit price, re-reading a 10×-priced prompt cache each time.
 
-## Jev status in these trials
+## Decision-tool status in these trials
 
-The Pi profile used for every trial is the live MEGAI profile, which loads the
-`megai-jev` extension by default. `jev` was available to all 15 agents and **was
-called zero times**: 584 tool calls were `bash` (400), `read` (120), `write` (50)
-and `edit` (14). These prompts hand the agent its arm, model and thinking level, so
-there is no triage decision left for Jev to answer — the measurement says nothing
-about Jev's value on an unclassified request, only that it adds no cost when idle.
-
-The tool was also **broken** at the start of this task: the live endpoint answers a
-`choice`/`noul` `criteria` *list* with HTTP 422 and requires `criteria` on `choice`
-and `score`, which made every triage call fail open with no answer. The fix
-(normalize by question type before the request) is part of this change and was live
-before the matrix ran — see the delivery commit and `pi-skill/jev/index.ts`.
+The Pi profile used for every trial is the live MEGAI profile, which loads the local
+decision tool by default. It was available to all 15 agents and **was called zero
+times**: 584 tool calls were `bash` (400), `read` (120), `write` (50) and `edit`
+(14). These prompts hand the agent its arm, model and thinking level, so there is no
+triage decision left for it to answer — the measurement says nothing about its value
+on an unclassified request, only that it adds no cost when idle.
 
 ## Limits
 
@@ -141,7 +135,7 @@ before the matrix ran — see the delivery commit and `pi-skill/jev/index.ts`.
 | Harness | Pi 0.85.1, `pi -p --mode json --no-session -a --model … --thinking high` |
 | MiniMax-M3 | `minimax/MiniMax-M3`, anthropic-messages endpoint, reasoning on, 512k max output |
 | deepseek-flash | `deepseek/deepseek-flash`, 200k context, prompt cache enabled |
-| Profile | live `~/.pi/agent` MEGAI profile (headroom, jev, provider guard, role routing, workspace guard) |
+| Profile | live `~/.pi/agent` MEGAI profile (headroom, local decision tool, provider guard, role routing, workspace guard) |
 
 ## Evidence
 

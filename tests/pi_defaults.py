@@ -298,6 +298,91 @@ class Distribution(unittest.TestCase):
         self.assertNotIn("subagent", required)
         removed = re.search(r"const removedTools = \[(.*?)\]", verify, re.S).group(1)
         self.assertIn("subagent", removed)
+        self.assertIn("laya", required)
+        self.assertIn("sift", required)
+
+    def test_settings_and_mcp_merge_never_drop_operator_keys(self):
+        """An update must keep the chosen provider, model and extra MCP servers.
+
+        The clean profile regenerated both files from scratch, which silently removed
+        defaultProvider/defaultModel and every MCP server other than plane.
+        """
+        current = {
+            "theme": "light",
+            "defaultProvider": "deepseek",
+            "defaultModel": "deepseek-flash",
+            "modelThinkingLevels": {"deepseek/deepseek-flash": "high"},
+            "skills": ["!~/mine/**"],
+        }
+        settings = install.profile_settings(
+            self.package["dependencies"], Path("/Users/example"), current
+        )
+        self.assertEqual(settings["defaultProvider"], "deepseek")
+        self.assertEqual(settings["defaultModel"], "deepseek-flash")
+        self.assertEqual(settings["modelThinkingLevels"], {"deepseek/deepseek-flash": "high"})
+        self.assertEqual(settings["theme"], "light")
+        self.assertIn("!~/mine/**", settings["skills"])
+        self.assertIn("!/Users/example/.agents/skills/**", settings["skills"])
+        self.assertEqual(
+            [e["source"] for e in settings["packages"] if "pi-superpowers" in e["source"]],
+            ["npm:@weiping/pi-superpowers@5.1.0"],
+        )
+        mcp = install.profile_mcp(
+            Path("/tmp/defaults"),
+            Path("/Users/example"),
+            {"mcpServers": {"pencil": {"url": "https://example.invalid"}},
+             "settings": {"directTools": True}},
+        )
+        self.assertIn("plane", mcp["mcpServers"])
+        self.assertIn("pencil", mcp["mcpServers"])
+        self.assertIs(mcp["settings"]["directTools"], True)
+        self.assertEqual(mcp["settings"]["mcpFooterStatus"], "compact")
+        with tempfile.TemporaryDirectory(prefix="megai-settings-") as staging:
+            broken = Path(staging) / "settings.json"
+            broken.write_text("not json")
+            with self.assertRaises(SystemExit):
+                install.read_object(broken)
+
+    def test_an_update_keeps_the_injected_policy_blocks(self):
+        """Other wirings own the blocks marked inside AGENTS.md; the document is ours."""
+        slim = b"<!-- megai:slim:begin -->\n# MEGAI adaptive\nkeep me\n<!-- megai:slim:end -->\n"
+        models = b"<!-- megai:subagent-models:begin -->\nPi children: keep me\n<!-- megai:subagent-models:end -->\n"
+        current = b"# Pi defaults\nold body\n" + slim + b"\n" + models
+        source = b"# Pi defaults\nnew body\n"
+        merged = install.profile_agents_md(current, source)
+        self.assertTrue(merged.startswith(source))
+        self.assertNotIn(b"old body", merged)
+        self.assertIn(slim.rstrip(b"\n"), merged)
+        self.assertIn(models.rstrip(b"\n"), merged)
+        self.assertEqual(install.profile_agents_md(merged, source), merged)
+        self.assertEqual(install.profile_agents_md(current, current), current)
+        self.assertEqual(install.profile_agents_md(None, source), source)
+
+    def test_the_two_installers_share_one_headroom_bridge(self):
+        """lib/slim_wiring.py owns this same path and refuses a differing file."""
+        source = (DEFAULTS.parent / "lib/slim_wiring.py").read_text()
+        literal = re.search(r"bridge = b'([^']*)'", source).group(1)
+        self.assertEqual(
+            install.HEADROOM_BRIDGE, literal.encode().decode("unicode_escape").encode()
+        )
+
+    def test_the_clean_profile_keeps_one_headroom_adapter(self):
+        """Both adapter names expose the same tools, and Pi refuses one of them."""
+        with tempfile.TemporaryDirectory(prefix="megai-headroom-") as staging:
+            home = Path(staging)
+            agent = home / ".pi/agent"
+            canonical = agent / "extensions/megai-headroom"
+            canonical.mkdir(parents=True)
+            (canonical / "index.ts").write_text("canonical")
+            duplicate = agent / "extensions/headroom"
+            duplicate.mkdir(parents=True)
+            (duplicate / "index.ts").write_text("duplicate")
+            moved = install.retire_duplicate_headroom(agent, home)
+            self.assertFalse(duplicate.exists())
+            self.assertEqual(moved.parent, home / ".pi/backups")
+            self.assertEqual((moved / "index.ts").read_text(), "duplicate")
+            self.assertEqual((canonical / "index.ts").read_text(), "canonical")
+            self.assertIsNone(install.retire_duplicate_headroom(agent, home))
 
     def test_native_policy_and_prompts_are_distributed_and_verified(self):
         policy = (DEFAULTS / "AGENTS.md").read_text()
@@ -312,6 +397,20 @@ class Distribution(unittest.TestCase):
             self.assertIn("description:", front)
             self.assertIn(f"'{name}'", verify)
         self.assertIn('SOURCE / "prompts"', (DEFAULTS / "install.py").read_text())
+
+    def test_pi_version_is_resolved_at_install_and_read_back_from_the_manifest(self):
+        """The profile installs the newest Pi and records what it resolved.
+
+        A pinned version went stale: the deployed verify step demanded 0.85.1 while a
+        newer Pi was on PATH, so the whole check aborted and verified nothing.
+        """
+        installer = (DEFAULTS / "install.py").read_text()
+        self.assertIn("@latest", installer)
+        self.assertNotIn("pi-coding-agent@0.", installer)
+        self.assertIn('"pi": installed', installer)
+        verify = (DEFAULTS / "verify.mjs").read_text()
+        self.assertIn("defaults/manifest.json", verify)
+        self.assertNotIn("0.85.1", verify)
 
     def test_child_launch_background_keeps_main_focus(self):
         policy = (DEFAULTS / "AGENTS.md").read_text()
@@ -388,6 +487,39 @@ class InstallerPreflight(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("unsupported", result.stderr)
                 self.assertEqual(marker.read_text(), "existing session")
+
+    def test_a_failed_runtime_prepare_blocks_activation(self):
+        with patch.dict(os.environ, {"MEGAI_LAYA_INSTALL": "false"}):
+            with self.assertRaises(SystemExit) as caught:
+                install.prepare_laya_runtime(ROOT, dict(os.environ))
+        self.assertIn("unchanged", str(caught.exception))
+        self.assertIn("not activated", str(caught.exception))
+
+    def test_a_verified_runtime_prepare_continues(self):
+        with patch.dict(os.environ, {"MEGAI_LAYA_INSTALL": "true"}):
+            install.prepare_laya_runtime(ROOT, dict(os.environ))
+
+    def test_a_failed_profile_activation_is_fatal(self):
+        with patch.dict(os.environ, {"MEGAI_LAYA_ACTIVATE": "false"}):
+            with self.assertRaises(SystemExit) as caught:
+                install.activate_laya_profile(ROOT, dict(os.environ))
+        self.assertIn("not activated", str(caught.exception))
+
+    def test_a_verified_profile_activation_continues(self):
+        with patch.dict(os.environ, {"MEGAI_LAYA_ACTIVATE": "true"}):
+            install.activate_laya_profile(ROOT, dict(os.environ))
+
+    def test_profile_activation_runs_after_extension_copy(self):
+        source = (ROOT / "pi-defaults/install.py").read_text()
+        activation = source.index("activate_laya_profile(REPO, env)")
+        self.assertLess(
+            source.index('shutil.copytree(SOURCE / "extensions", agent / "extensions"'),
+            activation,
+        )
+        self.assertLess(
+            source.index('shutil.copytree(SOURCE / "skills", agent / "skills"'),
+            activation,
+        )
 
 
 if __name__ == "__main__":

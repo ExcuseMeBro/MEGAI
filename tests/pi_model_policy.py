@@ -16,8 +16,9 @@ class ModelPolicy(Slim):
         self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
         self.assertTrue((agent / "extensions/megai-provider-guard/index.ts").is_file())
         self.assertTrue((agent / "extensions/megai-role-routing/index.ts").is_file())
-        self.assertTrue((agent / "extensions/megai-jev/index.ts").is_file())
+        self.assertTrue((agent / "extensions/megai-laya/index.ts").is_file())
         self.assertTrue((agent / "extensions/megai-model-fallback/index.ts").is_file())
+        self.assertTrue((agent / "extensions/megai-antigravity/index.ts").is_file())
         before = self.snapshot()
         self.wire()
         self.assertEqual(self.snapshot(), before)
@@ -26,18 +27,21 @@ class ModelPolicy(Slim):
         self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-provider-guard/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-role-routing/index.ts").exists())
-        self.assertFalse((agent / "extensions/megai-jev/index.ts").exists())
+        self.assertFalse((agent / "extensions/megai-laya/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-model-fallback/index.ts").exists())
+        self.assertFalse((agent / "extensions/megai-antigravity/index.ts").exists())
 
     def test_role_routing_asset_installs_idempotently_and_preserves_collision(self):
         self.wire()
         agent = self.home / ".pi/agent"
         target = agent / "extensions/megai-role-routing/index.ts"
         self.assertEqual(target.read_bytes(), (self.megai / "pi-skill/role-routing/index.ts").read_bytes())
-        jev = agent / "extensions/megai-jev/index.ts"
-        self.assertEqual(jev.read_bytes(), (self.megai / "pi-skill/jev/index.ts").read_bytes())
+        laya = agent / "extensions/megai-laya/index.ts"
+        self.assertEqual(laya.read_bytes(), (self.megai / "pi-skill/laya/index.ts").read_bytes())
         fallback = agent / "extensions/megai-model-fallback/index.ts"
         self.assertEqual(fallback.read_bytes(), (self.megai / "pi-skill/model-fallback/index.ts").read_bytes())
+        pool = agent / "extensions/megai-antigravity/index.ts"
+        self.assertEqual(pool.read_bytes(), (self.megai / "pi-skill/antigravity/index.ts").read_bytes())
         before = self.snapshot()
         self.wire()
         self.assertEqual(self.snapshot(), before)
@@ -49,10 +53,10 @@ class ModelPolicy(Slim):
         self.assertIn("custom/legacy asset preserved", self.wire(ok=False).stderr)
         self.assertEqual(self.snapshot(), before)
 
-    def test_jev_asset_preserves_a_user_owned_collision(self):
+    def test_laya_asset_preserves_a_user_owned_collision(self):
         self.wire()
-        target = self.home / ".pi/agent/extensions/megai-jev/index.ts"
-        self.write(target, "user-owned jev tool")
+        target = self.home / ".pi/agent/extensions/megai-laya/index.ts"
+        self.write(target, "user-owned laya tool")
         before = self.snapshot()
         self.assertIn("custom/legacy asset preserved", self.wire(ok=False).stderr)
         self.assertEqual(self.snapshot(), before)

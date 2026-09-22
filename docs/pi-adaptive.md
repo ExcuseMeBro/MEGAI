@@ -82,10 +82,10 @@ No silent live-session switch: open a fresh Pi session and verify the model. An
 existing Paseo tab can retain its own explicit model; choose Pi / deepseek-flash / high
 there. Running writers must finish before reload/restart.
 
-## One Jev call per boundary, speculative branches included
+## One decision call per boundary, speculative branches included
 
-Measured 2026-09-19 (`~/.megai/evidence/jev-speculation/`, 30 comparisons on the live
-`jev-latest` endpoint, 10 realistic MEGAI decision boundaries): bundling a follow-up for
+Measured 2026-09-19 (30 comparisons on the then-active hosted decision endpoint, 10
+realistic MEGAI decision boundaries): bundling a follow-up for
 *every* branch option into the same call as the branch question, and using only the
 selected branch's answer, returned the identical answer 30/30 times, took 0.78s median
 against 1.57s for two sequential calls, and cost 544 input tokens against 896, with no

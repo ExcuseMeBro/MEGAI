@@ -7,10 +7,16 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import shutil
+import shlex
 import subprocess
 import sys
 import tempfile
+
+# The clean profile always installs the newest Pi; the resolved version is recorded
+# in the defaults manifest instead of being pinned here.
+PI_PACKAGE = "@earendil-works/pi-coding-agent"
 
 SOURCE = Path(__file__).resolve().parent
 REPO = SOURCE.parent
@@ -34,7 +40,7 @@ def remove(path):
         shutil.rmtree(path)
 
 
-def profile_settings(versions, home):
+def profile_settings(versions, home, current=None):
     packages = []
     for name, version in versions.items():
         if name == "@fission-ai/openspec":
@@ -44,12 +50,170 @@ def profile_settings(versions, home):
             # Bootstrap only: the bundled delegation extension stays excluded.
             entry["extensions"] = ["extensions/bootstrap.ts"]
         packages.append(entry)
-    return {
-        "theme": "dark",
-        "defaultThinkingLevel": "high",
-        "packages": packages,
-        "skills": [f"!{home}/.agents/skills/**"],
+    # The profile owns its package list and its skill narrowing; the provider, model,
+    # thinking, timeout and retry choices are the operator's and survive an update.
+    settings = dict(current or {})
+    settings["packages"] = packages
+    settings.setdefault("theme", "dark")
+    settings.setdefault("defaultThinkingLevel", "high")
+    skills = settings.get("skills")
+    skills = list(skills) if isinstance(skills, list) else []
+    narrow = f"!{home}/.agents/skills/**"
+    if narrow not in skills:
+        skills.append(narrow)
+    settings["skills"] = skills
+    return settings
+
+
+def profile_mcp(defaults, home, current=None):
+    """The profile owns the plane entry; other servers and settings are the operator's."""
+    mcp = dict(current or {})
+    servers = mcp.get("mcpServers")
+    if servers is None:
+        servers = {}
+    if not isinstance(servers, dict):
+        raise SystemExit("Existing mcp.json has a non-object mcpServers; reconcile it before install")
+    servers["plane"] = {
+        "url": "https://mcp.plane.so/http/api-key/mcp",
+        "auth": False,
+        "lifecycle": "lazy",
+        "includeTools": [
+            "workitem*",
+            "project",
+            "state",
+            "label",
+            "member",
+            "workspace",
+            "get_pql_reference",
+        ],
+        "requestHeadersCommand": {
+            "command": "python3",
+            "args": [
+                str(defaults / "plane_mcp_headers.py"),
+                "--token-file",
+                str(home / ".config/megai/credentials/plane-api-token"),
+                "--workspace",
+                "brodev",
+            ],
+        },
     }
+    mcp["mcpServers"] = servers
+    settings = mcp.get("settings")
+    if settings is None:
+        settings = {}
+    if not isinstance(settings, dict):
+        raise SystemExit("Existing mcp.json has a non-object settings; reconcile it before install")
+    for key, value in (("autoAuth", False), ("directTools", False), ("mcpFooterStatus", "compact")):
+        settings.setdefault(key, value)
+    mcp["settings"] = settings
+    return mcp
+
+
+def read_object(path):
+    """Read an existing JSON object, or nothing when the file is absent.
+
+    An unreadable or non-object file fails the install instead of being replaced:
+    these files also carry operator-owned settings.
+    """
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text())
+    except ValueError as exc:
+        raise SystemExit(f"Existing {path} is not valid JSON; reconcile it before install") from exc
+    if not isinstance(data, dict):
+        raise SystemExit(f"Existing {path} is not a JSON object; reconcile it before install")
+    return data
+
+
+def defaults_only(current, profile):
+    """Profile values apply only where the operator left the key unset."""
+    merged = dict(current or {})
+    for key, value in profile.items():
+        merged.setdefault(key, value)
+    return merged
+
+
+HEADROOM_BRIDGE = (
+    b'#!/usr/bin/env bash\nset -euo pipefail\nroot="${MEGAI_HOME:-$HOME/.megai}"\n'
+    b'exec env -i HOME="$HOME" MEGAI_HOME="$root" PATH="${PATH:-/usr/bin:/bin}"'
+    b' "$root/venv/headroom/bin/python" -I -B "$root/pi-skill/headroom/bridge.py" "$@"\n'
+)
+
+
+def retire_duplicate_headroom(agent, home):
+    """Keep exactly one headroom adapter installed.
+
+    Two adapter names expose headroom_retrieve and headroom_memory twice, and Pi
+    refuses one of them. The profile owns extensions/megai-headroom, so the duplicate
+    is moved aside, never deleted.
+    """
+    duplicate = agent / "extensions/headroom"
+    if not (duplicate.exists() or duplicate.is_symlink()):
+        return None
+    root = home / ".pi/backups"
+    root.mkdir(parents=True, exist_ok=True)
+    target = root / "headroom-duplicate"
+    index = 0
+    while target.exists() or target.is_symlink():
+        index += 1
+        target = root / f"headroom-duplicate-{index}"
+    shutil.move(str(duplicate), str(target))
+    return target
+
+
+INJECTED_BLOCK = re.compile(
+    rb"<!-- megai:[a-z-]+:begin -->.*?<!-- megai:[a-z-]+:end -->", re.S
+)
+
+
+def profile_agents_md(current, source):
+    """Keep the MEGAI blocks that other wirings inject into this policy document.
+
+    install.py owns AGENTS.md while lib/slim_wiring.py and the model policy own the
+    marked blocks inside it. Writing the file wholesale dropped those blocks together
+    with their ownership receipts, so the next wiring check reported stale wiring.
+    """
+    if not current:
+        return source
+    kept = [
+        block
+        for block in INJECTED_BLOCK.findall(current)
+        if block.split(b"\n", 1)[0] not in source
+    ]
+    if not kept:
+        return source
+    text = source.rstrip(b"\n") + b"\n"
+    for block in kept:
+        text += b"\n" + block.rstrip(b"\n") + b"\n"
+    return text
+
+
+def prepare_laya_runtime(repo, env):
+    """Prepare the owned Laya runtime before any Laya activation.
+
+    A failure is fatal: the profile must not claim a local decision runtime it cannot
+    load, and a previously installed decision extension is left untouched. MEGAI_LAYA_INSTALL
+    is a deterministic test seam for the runtime installer command.
+    """
+    seam = os.environ.get("MEGAI_LAYA_INSTALL")
+    command = shlex.split(seam) if seam else ["bash", str(repo / "lib/install_laya.sh")]
+    if subprocess.run(command, env=env).returncode:
+        raise SystemExit(
+            "Local decision runtime preparation failed; existing decision assets are unchanged "
+            "and Laya is not activated. Run `bash lib/install_laya.sh` once the cause is fixed, then rerun the installer."
+        )
+
+
+def activate_laya_profile(repo, env):
+    """Atomically retire the hosted decision assets and activate local Laya."""
+    seam = os.environ.get("MEGAI_LAYA_ACTIVATE")
+    command = shlex.split(seam) if seam else [sys.executable, str(repo / "lib/pi_model_policy.py")]
+    if subprocess.run(command, env=env).returncode:
+        raise SystemExit(
+            "Local Laya profile activation failed; existing decision assets are unchanged "
+            "and Laya is not activated. Reconcile the reported conflict, then rerun the installer."
+        )
 
 
 def install(reset=False, remove_omp=False):
@@ -106,30 +270,23 @@ def install(reset=False, remove_omp=False):
         remove(home / ".omp")
         for name in ("omp-agents", "omp-config", "omp-skill"):
             remove(shared / name)
-    if shutil.which("bun"):
-        run(
-            "bun",
-            "add",
-            "-g",
-            "--ignore-scripts",
-            "@earendil-works/pi-coding-agent@0.85.1",
-        )
-    else:
-        run(
-            "npm",
-            "install",
-            "-g",
-            "--ignore-scripts",
-            "@earendil-works/pi-coding-agent@0.85.1",
-        )
+    manager = "bun" if shutil.which("bun") else "npm"
+    run(
+        manager,
+        "add" if manager == "bun" else "install",
+        "-g",
+        "--ignore-scripts",
+        f"{PI_PACKAGE}@latest",
+    )
     selected = shutil.which("pi")
-    if (
-        not selected
-        or subprocess.check_output([selected, "--version"], text=True).strip()
-        != "0.85.1"
-    ):
+    installed = (
+        subprocess.check_output([selected, "--version"], text=True).strip()
+        if selected
+        else ""
+    )
+    if not re.fullmatch(r"\d+\.\d+\.\d+", installed):
         raise SystemExit(
-            "PATH does not select Pi 0.85.1; put the installed Pi binary directory first"
+            "PATH does not select a working Pi binary; put the installed Pi binary directory first"
         )
     agent.mkdir(parents=True, exist_ok=True, mode=0o700)
     agent.chmod(0o700)
@@ -173,8 +330,11 @@ def install(reset=False, remove_omp=False):
         )
     os.environ["PATH"] = f"{shared / 'bin'}:{local_bin}:" + os.environ.get("PATH", "")
     env = {**os.environ, "MEGAI_HOME": str(shared), "MEGAI_SOURCE": str(REPO)}
-    for name in ("ruff", "codedb", "tgrep", "jevcache", "headroom"):
+    for name in ("ruff", "codedb", "tgrep", "headroom"):
         run("bash", REPO / f"lib/install_{name}.sh", env=env)
+    # The local decision runtime carries checkpoints of its own, so its preparation gates
+    # the profile: a runtime that cannot be verified must not activate a decision tool.
+    prepare_laya_runtime(REPO, env)
     shutil.copytree(
         REPO / "pi-skill/headroom", shared / "pi-skill/headroom", dirs_exist_ok=True
     )
@@ -182,65 +342,47 @@ def install(reset=False, remove_omp=False):
     shutil.copy2(REPO / "bin/megai", shared / "bin/megai")
     (shared / "bin/megai").chmod(0o755)
     shutil.copytree(SOURCE / "extensions", agent / "extensions", dirs_exist_ok=True)
-    headroom = agent / "extensions/headroom"
-    headroom.mkdir(exist_ok=True)
+    headroom = agent / "extensions/megai-headroom"
+    headroom.mkdir(parents=True, exist_ok=True)
     shutil.copy2(REPO / "pi-skill/headroom/index.ts", headroom / "index.ts")
+    retire_duplicate_headroom(agent, home)
     shutil.copytree(SOURCE / "skills", agent / "skills", dirs_exist_ok=True)
     shutil.copytree(SOURCE / "prompts", agent / "prompts", dirs_exist_ok=True)
-    shutil.copy2(SOURCE / "AGENTS.md", agent / "AGENTS.md")
+    source_md = SOURCE / "AGENTS.md"
+    agents_md = agent / "AGENTS.md"
+    before_md = agents_md.read_bytes() if agents_md.exists() else None
+    agents_md.write_bytes(profile_agents_md(before_md, source_md.read_bytes()))
+    agents_md.chmod(source_md.stat().st_mode & 0o777)
+    # The policy transaction runs after profile-owned skills and AGENTS.md are refreshed,
+    # so their exact source bytes cannot be mistaken for unowned legacy conflicts.
+    activate_laya_profile(REPO, env)
     versions = json.loads((SOURCE / "package.json").read_text())["dependencies"]
-    write_json(agent / "settings.json", profile_settings(versions, home))
+    write_json(
+        agent / "settings.json",
+        profile_settings(versions, home, read_object(agent / "settings.json")),
+    )
     write_json(
         agent / "mcp.json",
-        {
-            "settings": {
-                "autoAuth": False,
-                "directTools": False,
-                "mcpFooterStatus": "compact",
-            },
-            "mcpServers": {
-                "plane": {
-                    "url": "https://mcp.plane.so/http/api-key/mcp",
-                    "auth": False,
-                    "lifecycle": "lazy",
-                    "includeTools": [
-                        "workitem*",
-                        "project",
-                        "state",
-                        "label",
-                        "member",
-                        "workspace",
-                        "get_pql_reference",
-                    ],
-                    "requestHeadersCommand": {
-                        "command": "python3",
-                        "args": [
-                            str(defaults / "plane_mcp_headers.py"),
-                            "--token-file",
-                            str(home / ".config/megai/credentials/plane-api-token"),
-                            "--workspace",
-                            "brodev",
-                        ],
-                    },
-                },
-            },
-        },
+        profile_mcp(defaults, home, read_object(agent / "mcp.json")),
     )
     write_json(
         agent / "web-search.json",
-        {
-            "provider": "exa",
-            "workflow": "none",
-            "allowBrowserCookies": False,
-            "autoOpenBrowser": False,
-        },
+        defaults_only(
+            read_object(agent / "web-search.json"),
+            {
+                "provider": "exa",
+                "workflow": "none",
+                "allowBrowserCookies": False,
+                "autoOpenBrowser": False,
+            },
+        ),
     )
     # Children inherit the selected model through native Paseo; no Pi agent profiles.
     local_bin.mkdir(parents=True, exist_ok=True)
     bridge = shared / "bin/megai-headroom"
-    bridge.write_text(
-        '#!/bin/sh\nexec "$HOME/.megai/venv/headroom/bin/python" -I -B "$HOME/.megai/pi-skill/headroom/bridge.py" "$@"\n'
-    )
+    # One canonical byte string: lib/slim_wiring.py owns this same path and refuses a
+    # file that differs from its own asset, so the two installers must agree.
+    bridge.write_bytes(HEADROOM_BRIDGE)
     bridge.chmod(0o755)
     for name, target in {
         "openspec": npm_root / "node_modules/.bin/openspec",
@@ -270,7 +412,7 @@ def install(reset=False, remove_omp=False):
     # This marker opts the MEGAI Pi launcher into the new profile, never old wiring.
     write_json(
         defaults / "manifest.json",
-        {"schema": 1, "profile": "clean", "pi": "0.85.1", "packages": versions},
+        {"schema": 1, "profile": "clean", "pi": installed, "packages": versions},
     )
     run(
         str(local_bin / "openspec"),

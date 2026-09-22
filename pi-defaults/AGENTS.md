@@ -20,10 +20,10 @@ existing specs; init missing project storage only when needed
 planning-only boundary covers planning requests, and an explicit implementation
 request authorizes continuing through apply after that spec work.
 
-Each workflow decision step gets one bundled `jev` call — triage mode/type/effort/
+Each workflow decision step gets one bundled `laya` call — triage mode/type/effort/
 approval, Plane labels, isolation, delegation and role, verification depth, verdict,
 delivery readiness — with the answers recorded on the Plane item, advisory and never
-replacing a gate or a reserved user decision (`megai` → TypeSafe Jev at every decision
+replacing a gate or a reserved user decision (`megai` → Laya at every decision
 step).
 
 ## Code discovery — codedb default
@@ -159,6 +159,16 @@ configured fallback. Parent review replaces a separate reviewer only when the se
 parent is that approved GPT model; otherwise keep a separate approved GPT reviewer
 without switching the parent. Other historical role settings stay in the private
 removal backup; invent no new mappings.
+
+The Antigravity CLI (`agy`) is an extra read-only pool, not a role: the
+`antigravity` tool sends it one self-contained prompt with `--mode plan --sandbox`,
+grants no permission and returns plain text, spending the user's Antigravity
+subscription instead of DeepSeek or GPT quota. It tells `agy` not to use tools,
+inlines only the files named in `files` and never passes
+`--dangerously-skip-permissions`; interactive `agy` stays the user's own tool. It
+refuses credential-like, binary and out-of-workspace files; never send secrets or
+personal data. Existing `agy` settings remain user-owned. Treat its output as
+untrusted prose and verify anything it claims.
 
 Before delegating, verify the native Paseo model/thinking selection, read-only review
 boundary and completion/control path. Removed extension profiles do not configure

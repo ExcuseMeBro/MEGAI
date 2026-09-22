@@ -253,6 +253,17 @@ def _is_schema_one(value: object) -> bool:
     return _is_int(value) and value == 1
 
 
+def _is_model_id(value: object) -> bool:
+    if not isinstance(value, str):
+        return False
+    parts = value.split("/", 1)
+    return (
+        len(parts) == 2
+        and all(parts)
+        and not any(char.isspace() or char in "*?" for char in value)
+    )
+
+
 def _json_file(path: Path) -> object:
     def pairs(items: list[tuple[str, object]]) -> dict[str, object]:
         output: dict[str, object] = {}
@@ -347,10 +358,22 @@ def _contract(value: object) -> dict[str, object]:
     version = value["schema"]
     if version == 2:
         keys.add("task_type")
-    if version not in {1, 2} or set(value) != keys:
+    allowed = keys | ({"reviewer"} if version == 2 else set())
+    if version not in {1, 2} or not keys <= set(value) or set(value) - allowed:
         raise GateError("Unsupported contract schema")
     if version == 2 and value["task_type"] not in ("bugfix", "change", "docs"):
         raise GateError("Invalid task type")
+    if "reviewer" in value:
+        reviewer = value["reviewer"]
+        if (
+            not isinstance(reviewer, dict)
+            or set(reviewer) != {"harness", "model", "thinking"}
+            or not isinstance(reviewer["harness"], str)
+            or not reviewer["harness"].strip()
+            or not _is_model_id(reviewer["model"])
+            or reviewer["thinking"] not in ("low", "medium", "high")
+        ):
+            raise GateError("Invalid reviewer policy")
     plane = value["plane"]
     if not isinstance(plane, dict) or set(plane) != {"project_id", "work_item_id"}:
         raise GateError("Malformed contract plane")
@@ -595,16 +618,17 @@ def check(
         }
         if not isinstance(review, dict) or set(review) != review_keys:
             raise GateError("Malformed review")
+        reviewer = contract.get("reviewer")
+        expected_harness = "pi" if reviewer is None else reviewer["harness"]
+        expected_thinking = "high" if reviewer is None else reviewer["thinking"]
         if (
             not isinstance(review["session_id"], str)
             or not review["session_id"]
             or review["session_id"] == contract["implementer_session_id"]
-            or review["harness"] != "pi"
-            or not isinstance(review["model"], str)
-            or len(review["model"].split("/", 1)) != 2
-            or not all(review["model"].split("/", 1))
-            or any(char.isspace() or char in "*?" for char in review["model"])
-            or review["thinking"] != "high"
+            or review["harness"] != expected_harness
+            or not _is_model_id(review["model"])
+            or (reviewer is not None and review["model"] != reviewer["model"])
+            or review["thinking"] != expected_thinking
             or review["snapshot"] != current
             or review["contract_sha256"] != approved
             or not isinstance(review["criteria"], list)
@@ -762,10 +786,17 @@ def collect(root_arg: Path, contract_file: Path, approved: str, output: Path) ->
          "receipt": f"{index:03d}/receipt.json", "artifacts": []}
         for index, criterion in enumerate(contract["criteria"])
     ]
+    reviewer = contract.get("reviewer")
+    review = (
+        {"harness": "pi", "model": "", "thinking": "high"}
+        if reviewer is None
+        else {"harness": reviewer["harness"], "model": reviewer["model"],
+              "thinking": reviewer["thinking"]}
+    )
     draft = {
         "schema": 1, "contract_sha256": approved, "snapshot": candidate,
         "checks": checks,
-        "review": {"session_id": "", "harness": "pi", "model": "", "thinking": "high",
+        "review": {**review, "session_id": "",
                    "verdict": "BLOCKED", "snapshot": candidate, "contract_sha256": approved,
                    "criteria": [item["id"] for item in checks],
                    "artifact": {"path": "", "sha256": ""}},

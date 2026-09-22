@@ -15,7 +15,7 @@ try {
   if (!process.env.MEGAI_GUARD_AGENT_DIR) {
     execFileSync('python3', ['-B', resolve('lib/pi_model_policy.py')], { env: {
       ...process.env, HOME: temp, MEGAI_HOME: join(temp, 'megai'),
-      MEGAI_SOURCE: resolve('.'), PI_CODING_AGENT_DIR: agentDir,
+      MEGAI_SOURCE: resolve('.'), PI_CODING_AGENT_DIR: agentDir, MEGAI_LAYA_CHECK: 'true',
     } });
   }
   const loader = new DefaultResourceLoader({ cwd: temp, agentDir });

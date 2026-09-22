@@ -241,6 +241,82 @@ class QueueCLI(unittest.TestCase):
         self.git(self.repos["frontend"], "merge", "--ff-only", "task/change")
         self.assertEqual(self.finish(resumed, "completed")["state"], "completed")
 
+    def test_completed_accepts_candidate_at_target_head(self):
+        self.enqueue("fast-forward", "backend")
+        grant = self.claim("fast-forward")
+        self.git(self.repos["backend"], "merge", "--ff-only", "task/change")
+        self.assertEqual(self.finish(grant, "completed")["state"], "completed")
+
+    def test_completed_accepts_candidate_behind_advanced_target(self):
+        self.enqueue("advanced", "backend")
+        grant = self.claim("advanced")
+        path = self.repos["backend"]
+        self.git(path, "merge", "--ff-only", "task/change")
+        (path / "later").write_text("later merge\n")
+        self.git(path, "add", "later")
+        self.git(path, "commit", "-m", "later merge")
+        finished = self.finish(grant, "completed")
+        self.assertEqual(finished["state"], "completed")
+        self.assertFalse(finished["needs_reconcile"])
+        self.enqueue("after", "backend")
+        self.assertEqual(self.claim("after")["state"], "active")
+
+    def test_completed_still_refuses_unrelated_target_head(self):
+        self.enqueue("unrelated", "backend")
+        grant = self.claim("unrelated")
+        path = self.repos["backend"]
+        (path / "later").write_text("unrelated merge\n")
+        self.git(path, "add", "later")
+        self.git(path, "commit", "-m", "unrelated merge")
+        self.assertIn("not delivered", self.finish(grant, "completed", code=2)["reason"])
+        self.assertEqual(self.call("status", "--id", "unrelated")["state"], "active")
+
+    def test_moved_expected_head_still_refuses_enqueue_claim_and_refresh(self):
+        file = self.request("moved", "backend")
+        self.call("enqueue", "--request", file)
+        path = self.repos["backend"]
+        (path / "later").write_text("moved base\n")
+        self.git(path, "add", "later")
+        self.git(path, "commit", "-m", "moved base")
+        stale = json.loads(file.read_text())
+        stale["id"] = "moved-copy"
+        copy = self.base / "moved-copy.json"
+        copy.write_text(json.dumps(stale))
+        self.assertIn("Commit vector", self.call("enqueue", "--request", copy, code=2)["reason"])
+        self.assertIn("Commit vector", self.claim("moved", code=2)["reason"])
+        self.assertIn("Commit vector", self.call("refresh", "--request", file,
+                                                  "--evidence", self.proof, code=2)["reason"])
+        self.assertEqual(self.call("status", "--id", "moved")["state"], "queued")
+
+    def test_reconcile_completed_accepts_candidate_behind_advanced_target(self):
+        self.enqueue("reconcile-completed", "backend")
+        self.claim("reconcile-completed")
+        path = self.repos["backend"]
+        self.git(path, "merge", "--ff-only", "task/change")
+        (path / "later").write_text("later merge\n")
+        self.git(path, "add", "later")
+        self.git(path, "commit", "-m", "later merge")
+        result = self.call("reconcile", "--id", "reconcile-completed", "--outcome", "completed",
+                           "--owner-stopped", "--evidence", self.proof)
+        self.assertEqual(result["state"], "completed")
+        self.assertFalse(result["needs_reconcile"])
+
+    def test_resume_excludes_candidate_behind_advanced_target(self):
+        self.enqueue("resume-advanced", "backend", "frontend")
+        grant = self.claim("resume-advanced")
+        path = self.repos["backend"]
+        self.git(path, "merge", "--ff-only", "task/change")
+        (path / "later").write_text("later merge\n")
+        self.git(path, "add", "later")
+        self.git(path, "commit", "-m", "later merge")
+        self.call("hold", "--id", "resume-advanced", "--owner", grant["owner"], "--token", grant["token"],
+                  "--reason", "Executor disconnected after backend delivery")
+        resumed = self.call("reconcile", "--id", "resume-advanced", "--outcome", "resume",
+                            "--owner", "new-owner", "--owner-stopped", "--evidence", self.proof)
+        self.assertEqual(resumed["remaining_repositories"], [str(self.repos["frontend"].resolve())])
+        self.git(self.repos["frontend"], "merge", "--ff-only", "task/change")
+        self.assertEqual(self.finish(resumed, "completed")["state"], "completed")
+
     def test_unresolved_git_operation_blocks_even_when_tree_is_clean(self):
         self.enqueue("operation", "backend")
         path = self.repos["backend"]

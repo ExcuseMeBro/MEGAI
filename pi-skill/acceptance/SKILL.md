@@ -70,7 +70,7 @@ screenshots, coverage, exit zero or LLM scores alone do not prove behavior.
 Use one fresh independent Pi verifier, not an automatic scout/writer/reviewer team.
 Give it the existing raw receipts; repeat a passing check only for a concrete
 unresolved risk. Editorial preferences are nonblocking unless they violate the
-frozen contract or create a demonstrated safety/correctness failure. When the `jev`
+frozen contract or create a demonstrated safety/correctness failure. When the `laya`
 tool is available, one call at criteria freeze and one before the verdict
 (`sufficiency` and `verdict` choices, `escalate` `noul`) is an advisory second
 opinion recorded on the item; it never turns a failed or missing gate into PASS and

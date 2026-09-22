@@ -72,7 +72,7 @@ worktrees isolate files/indexes, not shared Git refs, services, secrets or an OS
    get different task branches/worktrees even within one repo. Cross-repo tasks can
    implement independently, while integration reserves shared target resources.
 
-When the `jev` tool is available, one call covers isolation (managed worktree / clean
+When the `laya` tool is available, one call covers isolation (managed worktree / clean
 checkout / blocked) and the delivery target, and one covers cleanup (archive /
 retain / blocked), recorded on the same Plane item. The answers are advisory and
 never authorize main, push or deletion.
