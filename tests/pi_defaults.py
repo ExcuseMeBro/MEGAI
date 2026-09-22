@@ -299,6 +299,48 @@ class Distribution(unittest.TestCase):
         removed = re.search(r"const removedTools = \[(.*?)\]", verify, re.S).group(1)
         self.assertIn("subagent", removed)
 
+    def test_settings_and_mcp_merge_never_drop_operator_keys(self):
+        """An update must keep the chosen provider, model and extra MCP servers.
+
+        The clean profile regenerated both files from scratch, which silently removed
+        defaultProvider/defaultModel and every MCP server other than plane.
+        """
+        current = {
+            "theme": "light",
+            "defaultProvider": "deepseek",
+            "defaultModel": "deepseek-flash",
+            "modelThinkingLevels": {"deepseek/deepseek-flash": "high"},
+            "skills": ["!~/mine/**"],
+        }
+        settings = install.profile_settings(
+            self.package["dependencies"], Path("/Users/example"), current
+        )
+        self.assertEqual(settings["defaultProvider"], "deepseek")
+        self.assertEqual(settings["defaultModel"], "deepseek-flash")
+        self.assertEqual(settings["modelThinkingLevels"], {"deepseek/deepseek-flash": "high"})
+        self.assertEqual(settings["theme"], "light")
+        self.assertIn("!~/mine/**", settings["skills"])
+        self.assertIn("!/Users/example/.agents/skills/**", settings["skills"])
+        self.assertEqual(
+            [e["source"] for e in settings["packages"] if "pi-superpowers" in e["source"]],
+            ["npm:@weiping/pi-superpowers@5.1.0"],
+        )
+        mcp = install.profile_mcp(
+            Path("/tmp/defaults"),
+            Path("/Users/example"),
+            {"mcpServers": {"pencil": {"url": "https://example.invalid"}},
+             "settings": {"directTools": True}},
+        )
+        self.assertIn("plane", mcp["mcpServers"])
+        self.assertIn("pencil", mcp["mcpServers"])
+        self.assertIs(mcp["settings"]["directTools"], True)
+        self.assertEqual(mcp["settings"]["mcpFooterStatus"], "compact")
+        with tempfile.TemporaryDirectory(prefix="megai-settings-") as staging:
+            broken = Path(staging) / "settings.json"
+            broken.write_text("not json")
+            with self.assertRaises(SystemExit):
+                install.read_object(broken)
+
     def test_native_policy_and_prompts_are_distributed_and_verified(self):
         policy = (DEFAULTS / "AGENTS.md").read_text()
         self.assertIn("native Paseo agents", policy)
