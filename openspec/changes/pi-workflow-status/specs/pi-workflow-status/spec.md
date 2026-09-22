@@ -119,6 +119,11 @@ The CLI SHALL provide `status [--cwd PATH] [--workspace WORKSPACE_ID]`. It SHALL
 - **WHEN** `--workspace ID` is supplied for a valid workspace
 - **THEN** the full project repository and persistent-branch inventory is still produced
 
+#### Scenario: List and inspect observations must agree
+- **WHEN** a matching agent-list row reports a non-idle status while its inspect reports archived and idle, or the list and inspect statuses disagree, or the inspect `Cwd` does not match the workspace
+- **THEN** the workspace is `busy`, `released: false`, blocked with a concrete conflict reason and never `archiveEligible`
+- **AND** a single matching list row that is not affirmatively idle prevents release even when another matching inspect looks idle
+
 #### Scenario: Complete field validation
 - **WHEN** an agent-list, project or workspace row is missing a documented field or has a wrong field type
 - **THEN** the command fails closed with `BLOCKED:` and no stdout, never a traceback
@@ -140,7 +145,7 @@ The CLI SHALL provide `status [--cwd PATH] [--workspace WORKSPACE_ID]`. It SHALL
 `status` SHALL consider a scoped workspace released only with affirmative evidence, and SHALL report `archiveEligible` only for a clean, idle, known-owned, released worktree whose exact HEAD is reachable from the fetched remote `dev`; it SHALL never archive.
 
 #### Scenario: Released task-owned worktree
-- **WHEN** a matching scoped agent is archived with a known idle status, empty pending permissions and a matching inspect identity, and no non-archived or protected agent shares the workspace
+- **WHEN** the matching agent-list row itself reports the known idle status, its inspect is archived with the same known idle status, empty pending permissions and a matching identity, and no non-archived or protected agent shares the workspace
 - **THEN** the worktree is listed in `cleanupEligible` with its exact HEAD, provided it is clean, idle and at a remote-`dev`-reachable HEAD
 
 #### Scenario: Incomplete terminal evidence
@@ -165,9 +170,14 @@ The CLI SHALL provide `status [--cwd PATH] [--workspace WORKSPACE_ID]`. It SHALL
 - **THEN** it is blocked and never `archiveEligible`, regardless of the Paseo isolation label or any agent release evidence
 
 ### Requirement: Ref-race guard
-`status` SHALL compare every observed named ref and worktree HEAD before and after the observation pass and SHALL report any moved candidate blocked rather than emitting a stale snapshot.
+`status` SHALL take a before snapshot of every observed named ref and worktree (`path`, HEAD, branch, `locked`), take the final snapshot strictly after every workspace safety read, compare them over the union of both key sets, and additionally require exact equality of each workspace's observed HEAD, branch and lock state with both its registered worktree entry and the final snapshot; any mismatch or late change SHALL be reported blocked and `stale` rather than emitting a stale snapshot.
 
 #### Scenario: Concurrent ref, worktree or lock movement
 - **WHEN** any observed named ref, worktree registration, worktree HEAD, worktree branch or worktree lock state changes during the pass, including a branch or worktree added or removed
-- **THEN** the union of the before/after snapshots detects it, and the repository and candidate are marked `stale` and blocked
+- **THEN** the union of the before/final snapshots detects it, and the repository and candidate are marked `stale` and blocked
 - **AND** no moved, added, removed or relocked candidate is ever `cleanupEligible` or presented as verified state
+
+#### Scenario: Change after the workspace reads
+- **WHEN** a registered worktree reports HEAD A to the registration check while the later workspace read or the final post-read snapshot sees a different HEAD B, branch or lock state
+- **THEN** that workspace is marked `stale`, blocked with a concrete reason such as `workspace-head-moved`, and never `archiveEligible`
+- **AND** a late repository change propagates its blocked state to every corresponding workspace

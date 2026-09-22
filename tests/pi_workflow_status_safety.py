@@ -14,6 +14,7 @@ argument text.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import shutil
 import unittest
@@ -31,6 +32,11 @@ from tests.pi_workflow_status import (
 )
 
 REAL_GIT = shutil.which("git")
+
+_WORKFLOW_PATH = Path(__file__).resolve().parent.parent / "pi-defaults" / "workflow.py"
+_spec = importlib.util.spec_from_file_location("megai_workflow_under_test", _WORKFLOW_PATH)
+workflow = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(workflow)
 
 FAKE_GIT = '''#!/usr/bin/env python3
 import os, sys
@@ -397,6 +403,128 @@ class SafetyContract(unittest.TestCase):
         self.assertFalse(rows["wks_fail"]["archiveEligible"])
         self.assertIn("repo-blocked", rows["wks_fail"]["blocked"])
         self.assertEqual(_git(self.fx.primary, "show-ref"), before)
+
+    # --- 7. closure review: agent consistency and the final race pass ------
+
+    def test_agent_list_running_conflicts_with_archived_idle_inspect(self):
+        wt = self.fx.add_worktree("wt-conflict", "task/conflict")
+        data = self.load(
+            self.status(
+                workspaces=[workspace("wks_conflict", wt)],
+                agents=[agent("agent-conflict", wt, status="running")],
+                inspects=inspect("agent-conflict", wt, archived=True, status="idle"),
+            )
+        )
+        _, rows = self.rows(data)
+        row = rows["wks_conflict"]
+        self.assertFalse(row["released"])
+        self.assertTrue(row["busy"])
+        self.assertFalse(row["archiveEligible"])
+        self.assertIn("agent-list-not-idle:running", row["blocked"])
+
+    def test_agent_list_and_inspect_status_mismatch_is_blocked(self):
+        wt = self.fx.add_worktree("wt-mismatch", "task/mismatch")
+        payload = inspect("agent-mismatch", wt, archived=True, status="idle")[
+            "agent-mismatch"
+        ]
+        payload["Status"] = "running"
+        data = self.load(
+            self.status(
+                workspaces=[workspace("wks_mismatch", wt)],
+                agents=[agent("agent-mismatch", wt, status="idle")],
+                inspects={"agent-mismatch": payload},
+            )
+        )
+        _, rows = self.rows(data)
+        row = rows["wks_mismatch"]
+        self.assertFalse(row["released"])
+        self.assertFalse(row["archiveEligible"])
+        self.assertIn("agent-status-mismatch", row["blocked"])
+
+    def test_agent_inspect_cwd_mismatch_is_blocked(self):
+        wt = self.fx.add_worktree("wt-cwd", "task/cwd")
+        payload = inspect("agent-cwd", wt, archived=True)["agent-cwd"]
+        payload["Cwd"] = str(self.fx.root)
+        data = self.load(
+            self.status(
+                workspaces=[workspace("wks_cwd", wt)],
+                agents=[agent("agent-cwd", wt, status="idle")],
+                inspects={"agent-cwd": payload},
+            )
+        )
+        _, rows = self.rows(data)
+        row = rows["wks_cwd"]
+        self.assertFalse(row["released"])
+        self.assertFalse(row["archiveEligible"])
+        self.assertIn("inspect-identity-mismatch", row["blocked"])
+
+    def _registered_state(self):
+        data = self.load(
+            self.status(
+                workspaces=[workspace("wks_final", self.fx.primary)],
+                agents=[],
+                inspects={},
+            )
+        )
+        repo = next(r for r in data["repositories"] if r["path"] == str(self.fx.primary))
+        return repo
+
+    def _late_row(self, wt):
+        repo = self._registered_state()
+        row = {
+            "workspaceId": "wks_final",
+            "cwd": str(wt),
+            "head": next(w["head"] for w in repo["worktrees"] if w["path"] == str(wt)),
+            "branch": next(w["branch"] for w in repo["worktrees"] if w["path"] == str(wt)),
+            "locked": next(w["locked"] for w in repo["worktrees"] if w["path"] == str(wt)),
+            "blocked": [],
+            "stale": False,
+            "archiveEligible": True,
+        }
+        repo_row = {
+            "path": repo["path"],
+            "worktrees": [dict(w) for w in repo["worktrees"]],
+            "blocked": list(repo["blocked"]),
+            "stale": repo["stale"],
+        }
+        return row, {repo["path"]: repo_row}, Path(repo["path"])
+
+    def test_final_pass_catches_head_change_after_workspace_reads(self):
+        wt = self.fx.add_worktree("wt-late-head", "task/late-head")
+        row, rows_by_path, repo_path = self._late_row(wt)
+        (wt / "late.txt").write_text("late\n")
+        _git(wt, "add", ".")
+        _git(wt, "commit", "-qm", "late")
+        after = {str(repo_path): workflow._git_snapshot(repo_path)[0]}
+        workflow._finalize_workspace_row(row, {}, after, rows_by_path)
+        self.assertTrue(row["stale"])
+        self.assertFalse(row["archiveEligible"])
+        self.assertIn("worktree-head-moved", row["blocked"])
+
+    def test_final_pass_catches_lock_change_after_workspace_reads(self):
+        wt = self.fx.add_worktree("wt-late-lock", "task/late-lock")
+        row, rows_by_path, repo_path = self._late_row(wt)
+        _git(self.fx.primary, "worktree", "lock", str(wt))
+        after = {str(repo_path): workflow._git_snapshot(repo_path)[0]}
+        workflow._finalize_workspace_row(row, {}, after, rows_by_path)
+        self.assertTrue(row["stale"])
+        self.assertFalse(row["archiveEligible"])
+        self.assertIn("worktree-lock-moved", row["blocked"])
+
+    def test_registered_entry_disagreement_is_blocked(self):
+        wt = self.fx.add_worktree("wt-reg", "task/reg")
+        row, rows_by_path, repo_path = self._late_row(wt)
+        # The registered worktree entry itself reports a different HEAD: the
+        # workspace read is not the object the registration was checked against.
+        entry = next(
+            w for w in rows_by_path[str(repo_path)]["worktrees"] if w["path"] == str(wt)
+        )
+        entry["head"] = "0" * 40
+        after = {str(repo_path): workflow._git_snapshot(repo_path)[0]}
+        workflow._finalize_workspace_row(row, {}, after, rows_by_path)
+        self.assertTrue(row["stale"])
+        self.assertFalse(row["archiveEligible"])
+        self.assertIn("workspace-head-moved", row["blocked"])
 
 
 if __name__ == "__main__":

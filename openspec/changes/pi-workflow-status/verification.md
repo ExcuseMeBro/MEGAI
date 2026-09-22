@@ -56,6 +56,26 @@ Additive suite `tests/pi_workflow_status_safety.py` (frozen
 - Known unchanged baseline: `python3 -B -m unittest tests.pi_fast_workflow -v` → `Ran 9 … FAILED (failures=1)` (`ADAPTIVE.md` ceiling; file byte-identical at `HEAD`), log `/tmp/m88-rev-fast.log`.
 - Reviewer requirement 5 conflict: `>1` canonical project match stays non-fatal blocked (`ownership: unknown`) because the frozen test `test_status_blocks_ambiguous_project_identity` requires it; `0` is fatal. Parent reconciles.
 
+## Closure evidence (commit `978938f` rejected)
+
+Additive closure regressions in `tests/pi_workflow_status_safety.py` (frozen
+`tests/pi_workflow_status.py` unchanged):
+
+- Red on `978938f` (source temporarily restored):
+  `python3 -B -m unittest tests.pi_workflow_status_safety -v` →
+  `Ran 25 tests … FAILED (failures=2, errors=3)`, log
+  `/tmp/m88-closure-red.log`. The failures are the running-list/archived-idle
+  conflict and the list/inspect status mismatch; the errors are the final-pass
+  and registered-entry regressions against a source that has no final pass.
+- Green after correction: combined `python3 -B -m unittest tests.pi_workflow_status tests.pi_workflow_status_safety -v` → `Ran 44 tests … OK`, log `/tmp/m88-closure-combined.log`.
+- `python3 -B -m unittest tests.pi_defaults -v` → `Ran 22 tests … OK`, log `/tmp/m88-closure-defaults.log`.
+- `ruff check --no-fix --no-fix-only --force-exclude --no-cache -- pi-defaults/workflow.py tests/pi_workflow_status.py tests/pi_workflow_status_safety.py` → `All checks passed!`.
+- `openspec validate pi-workflow-status` → `Change 'pi-workflow-status' is valid`.
+
+The earlier `pi_fast_workflow` `ADAPTIVE.md` ceiling baseline is unrelated to
+this change (it does not touch `pi-defaults/workflow.py` or `ADAPTIVE.md`) and
+was not re-run.
+
 Independent GPT review of the exact diff is required before handoff. Actual
 archive/cleanup remains a separate parent gate; `archiveEligible` is a report,
 not authorization, and the documented `agent inspect` schema proves no unseen

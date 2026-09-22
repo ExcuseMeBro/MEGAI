@@ -108,36 +108,46 @@ scoped workspace, `agent inspect --json <id>` only for agents whose expanded
 documented field and type; an inspect payload that is not an object or whose
 core fields (`Id`, `Status`, `Cwd`, `Archived`) drift is a per-candidate blocker
 rather than a traceback. `released` is true only when **every** matching scoped
-agent is affirmatively released: `Archived: true`, a **known idle status**
-(documented observed value `idle`), an inspect `Id`/`Cwd` matching the workspace,
-an explicit `PendingPermissions` list that is empty, and no busy/protected
-condition. A missing `PendingPermissions` field is **unknown**, not empty. One
+agent is affirmatively released: the **list row itself** reports the known idle
+status `idle`, `Archived: true`, the inspect `Status` agrees with that known idle
+value, an inspect `Id`/`Cwd` matching the workspace, an explicit
+`PendingPermissions` list that is empty, and no busy/protected condition. A
+non-idle list row, a list/inspect status disagreement, a mismatched `Cwd` or a
+missing `PendingPermissions` field is a concrete conflict/unknown blocker. One
 failed, malformed, non-archived, permission-pending, non-idle or protected
 matching agent makes `released` false even when another matching agent is
-archived and idle. A workspace is `busy` when any matching agent is not archived
-or reports pending permissions, or a matching agent id equals the current runner
-id (`PASEO_AGENT_ID`, `protected: true`). A missing runner id is `runner-unknown`:
-the inventory is still produced, but no workspace is eligible. No documented
-field proves queued work or terminal/service release, so no such field is
-invented.
+archived and idle. A workspace is `busy` when any matching list row is not idle,
+or any matching agent is not archived or reports pending permissions, or a
+matching agent id equals the current runner id (`PASEO_AGENT_ID`,
+`protected: true`). A missing runner id is `runner-unknown`: the inventory is
+still produced, but no workspace is eligible. No documented field proves queued
+work or terminal/service release, so no such field is invented.
 
 **Archive eligibility (observation only).** `archiveEligible` is true only for
 `isolation == "worktree"` whose cwd is a registered, unlocked worktree of a
 project repository, that cwd is not a primary checkout path, the branch is a
 `task/` branch that is not `dev`, `main` or a configured preserve branch, and
 with ownership known, not busy/protected, released, clean (no tracked/untracked/
-ignored data), no unfinished operation, no Git or snapshot error, and HEAD
-reachable from the fetched remote `dev`, with no ref movement. It additionally
-requires **zero blockers** on both the repository and the workspace, so any
-failed safety check disqualifies it. It is a report; `status` never archives, and
-blocked/raced/locked/ignored candidates are never eligible.
-
-**Ref-race guard.** A before/after snapshot of every observed named ref
-(`refs/heads/*` per repository) plus every registered worktree's path, HEAD,
-branch and `locked` state is compared at the end of the pass, over the **union**
-of both key sets so additions and removals are detected; a moved, added, removed
-or relocked candidate marks its repository `stale`, is reported blocked and is
+ignored data), no unfinished operation, no Git or snapshot error, no stale
+observation, workspace HEAD/branch/`locked` exactly equal to both the registered
+worktree entry and the final post-read snapshot, and HEAD reachable from the
+fetched remote `dev`. It additionally requires **zero blockers** on both the
+repository and the workspace, so any failed safety check disqualifies it. It is a
+report; `status` never archives, and blocked/raced/locked/ignored candidates are
 never eligible.
+
+**Ref-race guard.** A before snapshot of every observed named ref
+(`refs/heads/*` per repository) plus every registered worktree's path, HEAD,
+branch and `locked` state is taken first; the final snapshot is taken strictly
+**after every workspace safety read**, so a change during or after those reads
+cannot look safe. The two are compared over the **union** of both key sets so
+additions and removals are detected; a moved, added, removed or relocked
+candidate marks its repository `stale` and blocked. Every workspace is then
+finalized against the earlier registered entry and the final snapshot with exact
+head/branch/lock equality; a late change or a read/registration disagreement sets
+that workspace `stale`, adds a concrete blocker, propagates the repository's
+blocked state, and forces `archiveEligible` false. One final verification pass is
+used; there is no snapshot loop.
 
 **No writes.** Only `git fetch` (approved remotes) and read-only
 `git`/`paseo` commands. No merge, push, archive, delete, checkout, Plane call or

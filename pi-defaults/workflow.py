@@ -670,18 +670,6 @@ def status(cwd, workspace_id=None):
                 inspects.append((item, None))
         observations[workspace["workspaceId"]] = (matched, inspects, cwd_value)
 
-    moved = {}
-    for repo in repositories:
-        key = str(repo)
-        snapshot, error = _git_snapshot(repo)
-        current = snapshot or {}
-        union = set(before[key]) | set(current)
-        changed = {name for name in union if before[key].get(name) != current.get(name)}
-        if changed or error:
-            moved[key] = changed
-            rows_by_path[key]["blocked"].append("ref-moved")
-            rows_by_path[key]["stale"] = True
-
     workspace_rows = []
     for workspace in selected:
         row = _workspace_row(
@@ -692,10 +680,27 @@ def status(cwd, workspace_id=None):
             repo_paths,
             rows_by_path,
             observations[workspace["workspaceId"]],
-            moved,
             runner,
         )
         workspace_rows.append(row)
+
+    # The final observation must follow every workspace safety read, so a change
+    # during or after those reads cannot be reported as safe.
+    moved = {}
+    after = {}
+    for repo in repositories:
+        key = str(repo)
+        snapshot, error = _git_snapshot(repo)
+        after[key] = snapshot or {}
+        union = set(before[key]) | set(after[key])
+        changed = {name for name in union if before[key].get(name) != after[key].get(name)}
+        if changed or error:
+            moved[key] = changed
+            rows_by_path[key]["blocked"].append("ref-moved")
+            rows_by_path[key]["stale"] = True
+
+    for row in workspace_rows:
+        _finalize_workspace_row(row, moved, after, rows_by_path)
 
     pending = []
     for row in repo_rows:
@@ -761,7 +766,7 @@ def _inspect_problem(inspect):
 
 def _workspace_row(
     workspace, policy, project_id, by_name, repo_paths, rows_by_path, observation,
-    moved, runner,
+    runner,
 ):
     root = Path(policy["root"])
     cwd_value = _expand(workspace["cwd"])
@@ -799,6 +804,13 @@ def _workspace_row(
         archived = inspect["Archived"]
         permissions = inspect.get("PendingPermissions")
         identity_ok = inspect["Id"] == item["id"] and _expand(inspect["Cwd"]) == cwd_value
+        if item["status"] != "idle":
+            blocked.append(f"agent-list-not-idle:{item['status']}")
+            busy = True
+            bad = True
+        if inspect["Status"] != item["status"]:
+            blocked.append("agent-status-mismatch")
+            bad = True
         if permissions is None:
             blocked.append("pending-permissions-unknown")
             bad = True
@@ -853,19 +865,10 @@ def _workspace_row(
             blocked.append("git-error:workspace-ancestor")
         else:
             in_remote = ancestor
-    moved_here = False
-    if repo_row and primary_path in moved:
-        changed = moved[primary_path]
-        prefix = f"worktree:{cwd_value}:"
-        moved_here = any(name.startswith(prefix) for name in changed) or bool(
-            branch and f"refs:refs/heads/{branch}" in changed
-        )
-
     in_primary = cwd_value in repo_paths or workspace["isolation"] == "local"
     preserve = _preserve_for(Path(primary_path), root, policy) if primary_path else []
     protected_names = {"dev", "main", *preserve}
-    repo_blocked = list(repo_row["blocked"]) if repo_row else ["repo-unknown"]
-    stale = moved_here or bool(repo_row and repo_row.get("stale"))
+    stale = False
 
     if in_primary:
         blocked.append("primary-path")
@@ -887,10 +890,6 @@ def _workspace_row(
         blocked.append(f"operation:{operation}")
     if in_remote is False:
         blocked.append("not-in-remote-dev")
-    if stale:
-        blocked.append("stale-observation")
-    if repo_blocked:
-        blocked.append("repo-blocked")
 
     entry_branch = entry["branch"] if entry else None
     eligible = (
@@ -908,7 +907,6 @@ def _workspace_row(
         and branch not in protected_names
         and branch == entry_branch
         and in_remote is True
-        and not stale
         and not blocked
     )
     return {
@@ -924,6 +922,7 @@ def _workspace_row(
         "released": released,
         "head": head,
         "branch": branch,
+        "locked": locked,
         "dirty": dirty,
         "ignored": ignored,
         "operation": operation,
@@ -932,6 +931,60 @@ def _workspace_row(
         "archiveEligible": eligible,
         "blocked": blocked,
     }
+
+
+def _finalize_workspace_row(row, moved, after, rows_by_path):
+    """Final race pass: exact equality against the registered entry and the
+    post-read snapshot, so a change during or after the workspace reads is
+    stale and blocked rather than safe."""
+    cwd_value = _expand(row["cwd"])
+    repo_path = _primary_or_none(cwd_value)
+    repo_row = rows_by_path.get(repo_path) if repo_path else None
+    blocked = row["blocked"]
+    stale = False
+
+    entry = None
+    if repo_row:
+        entry = next((w for w in repo_row["worktrees"] if w["path"] == cwd_value), None)
+    if entry is None:
+        blocked.append("worktree-not-registered")
+        stale = True
+    else:
+        if row["head"] != entry["head"]:
+            blocked.append("workspace-head-moved")
+            stale = True
+        if row["branch"] != entry["branch"]:
+            blocked.append("workspace-branch-moved")
+            stale = True
+        if bool(row["locked"]) != bool(entry["locked"]):
+            blocked.append("worktree-lock-moved")
+            stale = True
+
+    final = after.get(repo_path, {}) if repo_path else {}
+    prefix = f"worktree:{cwd_value}:"
+    if repo_row:
+        if prefix + "head" not in final:
+            blocked.append("worktree-removed")
+            stale = True
+        else:
+            if row["head"] != final[prefix + "head"]:
+                blocked.append("worktree-head-moved")
+                stale = True
+            if row["branch"] != final[prefix + "branch"]:
+                blocked.append("worktree-branch-moved")
+                stale = True
+            if bool(row["locked"]) != bool(final[prefix + "locked"]):
+                blocked.append("worktree-lock-moved")
+                stale = True
+        if repo_path in moved or repo_row.get("stale"):
+            stale = True
+        if repo_row["blocked"]:
+            blocked.append("repo-blocked")
+    if stale:
+        blocked.append("stale-observation")
+    row["blocked"] = list(dict.fromkeys(blocked))
+    row["stale"] = stale
+    row["archiveEligible"] = row["archiveEligible"] and not stale and not row["blocked"]
 
 
 def main():
