@@ -12,13 +12,18 @@ while (!existsSync(join(packageRoot, 'package.json'))) {
   if (parent === packageRoot) throw new Error('Cannot find Pi package');
   packageRoot = parent;
 }
-const metadata = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
-if (metadata.name !== '@earendil-works/pi-coding-agent' || metadata.version !== '0.85.1') {
-  throw new Error('PATH must select @earendil-works/pi-coding-agent 0.85.1');
-}
 const agentDir = join(homedir(), '.pi/agent');
 if (process.env.PI_CODING_AGENT_DIR && realpathSync(process.env.PI_CODING_AGENT_DIR) !== realpathSync(agentDir)) {
   throw new Error('Custom PI_CODING_AGENT_DIR is unsupported by the clean default profile');
+}
+// The profile installs the newest Pi and records what it resolved; the check compares
+// PATH against that record instead of a version pinned here, which only went stale.
+const metadata = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
+const manifestPath = join(agentDir, 'defaults/manifest.json');
+const recorded = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')).pi : undefined;
+if (metadata.name !== '@earendil-works/pi-coding-agent'
+    || (typeof recorded === 'string' && metadata.version !== recorded)) {
+  throw new Error(`PATH must select @earendil-works/pi-coding-agent${typeof recorded === 'string' ? ` ${recorded}` : ''}, found ${metadata.name}@${metadata.version}; re-run the MEGAI Pi install`);
 }
 const { DefaultResourceLoader } = await import(pathToFileURL(join(packageRoot, 'dist/index.js')).href);
 const loader = new DefaultResourceLoader({ cwd: process.cwd(), agentDir });
