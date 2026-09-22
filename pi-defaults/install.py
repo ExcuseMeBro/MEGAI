@@ -346,7 +346,6 @@ def install(reset=False, remove_omp=False):
     headroom.mkdir(parents=True, exist_ok=True)
     shutil.copy2(REPO / "pi-skill/headroom/index.ts", headroom / "index.ts")
     retire_duplicate_headroom(agent, home)
-    activate_laya_profile(REPO, env)
     shutil.copytree(SOURCE / "skills", agent / "skills", dirs_exist_ok=True)
     shutil.copytree(SOURCE / "prompts", agent / "prompts", dirs_exist_ok=True)
     source_md = SOURCE / "AGENTS.md"
@@ -354,6 +353,9 @@ def install(reset=False, remove_omp=False):
     before_md = agents_md.read_bytes() if agents_md.exists() else None
     agents_md.write_bytes(profile_agents_md(before_md, source_md.read_bytes()))
     agents_md.chmod(source_md.stat().st_mode & 0o777)
+    # The policy transaction runs after profile-owned skills and AGENTS.md are refreshed,
+    # so their exact source bytes cannot be mistaken for unowned legacy conflicts.
+    activate_laya_profile(REPO, env)
     versions = json.loads((SOURCE / "package.json").read_text())["dependencies"]
     write_json(
         agent / "settings.json",
