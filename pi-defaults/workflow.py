@@ -810,6 +810,7 @@ def _workspace_row(
             bad = True
         if inspect["Status"] != item["status"]:
             blocked.append("agent-status-mismatch")
+            busy = True
             bad = True
         if permissions is None:
             blocked.append("pending-permissions-unknown")
@@ -820,6 +821,7 @@ def _workspace_row(
             bad = True
         if not identity_ok:
             blocked.append("inspect-identity-mismatch")
+            busy = True
             bad = True
         if archived and inspect["Status"] != "idle":
             blocked.append("incomplete-terminal-evidence")

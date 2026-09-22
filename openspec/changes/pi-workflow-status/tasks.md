@@ -31,6 +31,7 @@
 - [x] 5.2 Take the final ref/worktree snapshot strictly after every workspace safety read and require exact workspace HEAD/branch/`locked` equality with both the registered entry and the final snapshot; a late change or disagreement is `stale`, blocked and ineligible, propagated from the repository to every corresponding workspace.
 - [x] 5.3 Add the closure regressions to `tests/pi_workflow_status_safety.py` (running-list conflict, list/inspect status mismatch, inspect cwd mismatch, final-pass head and lock changes after the reads, registered-entry disagreement).
 - [x] 5.4 Update `design.md` and the spec so they describe the actual timing and the list/inspect consistency rule rather than a pre-read snapshot.
-- [ ] 5.5 Re-collect candidate evidence and a fresh independent review after the correction commit.
+- [x] 5.6 Closure review 2: set `busy` for the inspect/list status disagreement and the inspect identity mismatch so the workspace is honestly `busy`, matching the spec; asserted in the two supplementary tests.
+- [ ] 5.7 Re-collect candidate evidence and a fresh independent review after the correction commit.
 
 Delivery follows the existing dev lifecycle; keep the Plane item In Review and this change active pending user approval.

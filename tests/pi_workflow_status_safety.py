@@ -438,6 +438,7 @@ class SafetyContract(unittest.TestCase):
         _, rows = self.rows(data)
         row = rows["wks_mismatch"]
         self.assertFalse(row["released"])
+        self.assertTrue(row["busy"])
         self.assertFalse(row["archiveEligible"])
         self.assertIn("agent-status-mismatch", row["blocked"])
 
@@ -455,6 +456,7 @@ class SafetyContract(unittest.TestCase):
         _, rows = self.rows(data)
         row = rows["wks_cwd"]
         self.assertFalse(row["released"])
+        self.assertTrue(row["busy"])
         self.assertFalse(row["archiveEligible"])
         self.assertIn("inspect-identity-mismatch", row["blocked"])
 

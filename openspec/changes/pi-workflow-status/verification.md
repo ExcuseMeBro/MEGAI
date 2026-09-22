@@ -72,6 +72,17 @@ Additive closure regressions in `tests/pi_workflow_status_safety.py` (frozen
 - `ruff check --no-fix --no-fix-only --force-exclude --no-cache -- pi-defaults/workflow.py tests/pi_workflow_status.py tests/pi_workflow_status_safety.py` → `All checks passed!`.
 - `openspec validate pi-workflow-status` → `Change 'pi-workflow-status' is valid`.
 
+### Closure review 2 (`65a62ae`, spec-coherence)
+
+`busy` is set for the inspect/list status disagreement and the inspect identity
+mismatch, matching the spec's `busy` claim. Red on `65a62ae`:
+`python3 -B -m unittest tests.pi_workflow_status_safety.SafetyContract.test_agent_list_and_inspect_status_mismatch_is_blocked tests.pi_workflow_status_safety.SafetyContract.test_agent_inspect_cwd_mismatch_is_blocked -v`
+→ `Ran 2 tests … FAILED (failures=2)`, log `/tmp/m88-busy-red.log`. Green:
+combined `python3 -B -m unittest tests.pi_workflow_status tests.pi_workflow_status_safety -v`
+→ `Ran 44 tests … OK`, log `/tmp/m88-busy-green.log`; `tests.pi_defaults` →
+`Ran 22 … OK`; Ruff `All checks passed!`; `openspec validate` valid;
+`git diff --check` clean.
+
 The earlier `pi_fast_workflow` `ADAPTIVE.md` ceiling baseline is unrelated to
 this change (it does not touch `pi-defaults/workflow.py` or `ADAPTIVE.md`) and
 was not re-run.
