@@ -45,7 +45,9 @@ unresolvable project/cwd, an unreadable or malformed Paseo payload, or an
 explicit `--workspace` that is absent **or belongs to another project**.
 `--workspace` narrows only the workspace observation; the project's full
 repository/persistent-branch inventory is still produced, so it cannot bypass
-scope or foreign isolation.
+scope or foreign isolation. A resolved root with **zero** canonical `project ls`
+path matches is fatal (never an empty, safe-looking inventory); multiple matches
+keep the frozen non-fatal `ownership: unknown` blocked inventory.
 
 **Project scope.** `context(cwd)` supplies `root`, `layout`, `repositories`,
 `persistentBranches` and `preserveBranches`. No other project, home directory
@@ -82,6 +84,16 @@ and the common dir; `detached` from `git symbolic-ref -q HEAD`; and the explicit
 `locked` state from `git worktree list --porcelain`, which blocks cleanup by
 policy regardless of cleanliness.
 
+**Every Git read is checked.** Low-level helpers return a value plus an error
+instead of raising, so a failed safety read blocks its candidate without
+aborting the other repositories. `status`, ignored scan, git-dir/common-dir,
+worktree list, ref snapshot, HEAD, symbolic-ref, local-ref and merge-base each
+map a command error to an explicit blocker; the value is reported as unknown,
+never coerced to clean or absent. The expected `rc 1` of `symbolic-ref` (detached)
+and `merge-base --is-ancestor` (not an ancestor), and the expected missing local
+branch of `rev-parse --verify --quiet`, are distinguished from `rc > 1` errors.
+No Git blocker can ever yield `archiveEligible`.
+
 **Branch/worktree inventory and pendingDelivery.** Beyond persistent branches,
 enumerate local branches (`for-each-ref refs/heads/`) and registered worktrees
 (`git worktree list --porcelain`) with their exact HEADs. Any local branch or
@@ -92,29 +104,40 @@ cleanup-eligible). The two-tier lookup distinguishes an absent local branch
 
 **Scoped agents and release proof.** `agent ls --all --json` once; for each
 scoped workspace, `agent inspect --json <id>` only for agents whose expanded
-`cwd` equals the workspace cwd (bounded). A workspace is `busy` if any matching
-agent is not `Archived`, or any matching inspect has a non-empty
-`PendingPermissions`, or a matching agent id equals the current runner id
-(`PASEO_AGENT_ID`, reported as `protected: true`). `released` is true only when
-at least one matching agent has `Archived: true`, a **known idle status**
-(documented observed value `idle`), an inspect `Id`/`Cwd` matching the
-workspace, empty `PendingPermissions`, and no busy/protected condition holds. No
-documented field proves queued work or terminal/service release, so an archived
-agent without that affirmative idle evidence, or an agent whose identity does
-not match, is `released: false` with a concrete blocker; `status` does not invent
-a queue/terminal field. No matching agent is `unknown`, never safe.
+`cwd` equals the workspace cwd (bounded). List rows are validated against every
+documented field and type; an inspect payload that is not an object or whose
+core fields (`Id`, `Status`, `Cwd`, `Archived`) drift is a per-candidate blocker
+rather than a traceback. `released` is true only when **every** matching scoped
+agent is affirmatively released: `Archived: true`, a **known idle status**
+(documented observed value `idle`), an inspect `Id`/`Cwd` matching the workspace,
+an explicit `PendingPermissions` list that is empty, and no busy/protected
+condition. A missing `PendingPermissions` field is **unknown**, not empty. One
+failed, malformed, non-archived, permission-pending, non-idle or protected
+matching agent makes `released` false even when another matching agent is
+archived and idle. A workspace is `busy` when any matching agent is not archived
+or reports pending permissions, or a matching agent id equals the current runner
+id (`PASEO_AGENT_ID`, `protected: true`). A missing runner id is `runner-unknown`:
+the inventory is still produced, but no workspace is eligible. No documented
+field proves queued work or terminal/service release, so no such field is
+invented.
 
 **Archive eligibility (observation only).** `archiveEligible` is true only for
 `isolation == "worktree"` whose cwd is a registered, unlocked worktree of a
-project repository, with ownership known, not busy/protected, released, clean
-(no tracked/untracked/ignored data), no unfinished operation, a non-null branch
-equal to the worktree HEAD, and that HEAD reachable from the fetched remote
-`dev`, with no ref movement. It is a report; `status` never archives, and
-`blocked`/raced/locked/ignored candidates are never eligible.
+project repository, that cwd is not a primary checkout path, the branch is a
+`task/` branch that is not `dev`, `main` or a configured preserve branch, and
+with ownership known, not busy/protected, released, clean (no tracked/untracked/
+ignored data), no unfinished operation, no Git or snapshot error, and HEAD
+reachable from the fetched remote `dev`, with no ref movement. It additionally
+requires **zero blockers** on both the repository and the workspace, so any
+failed safety check disqualifies it. It is a report; `status` never archives, and
+blocked/raced/locked/ignored candidates are never eligible.
 
 **Ref-race guard.** A before/after snapshot of every observed named ref
-(`refs/heads/*` per repository, each worktree HEAD) is compared at the end of
-the pass; a moved candidate is reported blocked and never eligible.
+(`refs/heads/*` per repository) plus every registered worktree's path, HEAD,
+branch and `locked` state is compared at the end of the pass, over the **union**
+of both key sets so additions and removals are detected; a moved, added, removed
+or relocked candidate marks its repository `stale`, is reported blocked and is
+never eligible.
 
 **No writes.** Only `git fetch` (approved remotes) and read-only
 `git`/`paseo` commands. No merge, push, archive, delete, checkout, Plane call or
@@ -150,6 +173,12 @@ file write. Fetch may change objects/`FETCH_HEAD` by design; that is not a
 
 ## Risks / Trade-offs
 
+- Requirement 5 (zero **or** `>1` canonical path match fatal) conflicts with the
+  frozen test `test_status_blocks_ambiguous_project_identity`, which requires the
+  `>1` case to exit 0 with a blocked `ownership: unknown` inventory. The frozen
+  contract is byte-identical and takes precedence, so `>1` stays non-fatal and
+  fail-closed; `0` is fatal as required. The parent owns reconciling this
+  criterion.
 - The Paseo CLI JSON is a contract, not a versioned API; any drift degrades to a
   blocked observation, never to a wrong `cleanupEligible`.
 - Fetch-per-persistent-branch is network work, bounded to the resolved project's

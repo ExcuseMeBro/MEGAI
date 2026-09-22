@@ -38,6 +38,24 @@ Supplementary checks:
 - `python3 -B -m unittest tests.pi_fast_workflow -v` → `Ran 9 tests … FAILED (failures=1)`, log `/tmp/m88-fast.log`. This is a **pre-existing, unrelated baseline failure**: `test_adaptive_keeps_economy_routing_clauses_under_char_budget` reports `ADAPTIVE.md` at 12839 chars over a 9600 ceiling; `pi-skill/ADAPTIVE.md` is byte-identical at `HEAD` (12855 bytes) and is not touched by this change, and `tests/pi_fast_workflow.py` does not import `pi-defaults/workflow.py`. No regression is introduced.
 - `openspec validate pi-workflow-status` → `Change 'pi-workflow-status' is valid` (structural only, never implementation proof).
 
+## Correction evidence (post-review, candidate `7f361f3` rejected)
+
+Additive suite `tests/pi_workflow_status_safety.py` (frozen
+`tests/pi_workflow_status.py` unchanged, SHA
+`183bffff…e2131c`):
+
+- Red on `7f361f3` (source temporarily restored):
+  `python3 -B -m unittest tests.pi_workflow_status_safety -v` →
+  `Ran 19 tests … FAILED (failures=22, errors=2)`, log
+  `/tmp/m88-rev-supp-red.log`.
+- Green after correction: same command → `Ran 19 tests … OK`, log
+  `/tmp/m88-rev-supp-green2.log`.
+- Combined frozen + supplementary: `python3 -B -m unittest tests.pi_workflow_status tests.pi_workflow_status_safety -v` → `Ran 38 tests … OK`, log `/tmp/m88-rev-combined.log`.
+- `python3 -B -m unittest tests.pi_defaults -v` → `Ran 22 tests … OK`, log `/tmp/m88-rev-defaults.log`.
+- `ruff check --no-fix --no-fix-only --force-exclude --no-cache -- pi-defaults/workflow.py tests/pi_workflow_status.py tests/pi_workflow_status_safety.py` → `All checks passed!`, log `/tmp/m88-rev-ruff.log`.
+- Known unchanged baseline: `python3 -B -m unittest tests.pi_fast_workflow -v` → `Ran 9 … FAILED (failures=1)` (`ADAPTIVE.md` ceiling; file byte-identical at `HEAD`), log `/tmp/m88-rev-fast.log`.
+- Reviewer requirement 5 conflict: `>1` canonical project match stays non-fatal blocked (`ownership: unknown`) because the frozen test `test_status_blocks_ambiguous_project_identity` requires it; `0` is fatal. Parent reconciles.
+
 Independent GPT review of the exact diff is required before handoff. Actual
 archive/cleanup remains a separate parent gate; `archiveEligible` is a report,
 not authorization, and the documented `agent inspect` schema proves no unseen

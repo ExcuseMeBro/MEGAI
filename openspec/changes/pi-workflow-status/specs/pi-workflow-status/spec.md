@@ -17,6 +17,11 @@ The CLI SHALL provide `status [--cwd PATH] [--workspace WORKSPACE_ID]`. It SHALL
 - **WHEN** the project cannot be resolved, a Paseo read fails or is malformed, or an explicitly requested `--workspace` is absent or foreign
 - **THEN** the command exits non-zero with `BLOCKED:` on stderr and prints no stdout
 
+#### Scenario: No canonical project match
+- **WHEN** no Paseo project's canonical path equals the resolved project root
+- **THEN** the command exits non-zero with `BLOCKED:` on stderr and prints no stdout
+- **AND** it never reports an empty, safe-looking inventory
+
 #### Scenario: Observation is not approval
 - **WHEN** `status` runs
 - **THEN** it performs no merge, push, archive, delete, checkout, Plane mutation or source/config/ref edit
@@ -45,6 +50,16 @@ The CLI SHALL provide `status [--cwd PATH] [--workspace WORKSPACE_ID]`. It SHALL
 - **WHEN** a repository's remote violates the configured forge policy, or its remote or `dev` is missing or fails
 - **THEN** that repository is blocked with a `remoteDev`/`remoteDevError` reason and no network call is made for a policy violation
 - **AND** other repositories and the command still complete (exit 0)
+
+#### Scenario: Failed observation is never clean or absent
+- **WHEN** any Git safety read (`status`, ignored scan, git-dir/common-dir, worktree list, ref snapshot, HEAD, symbolic-ref, local-ref or merge-base) fails
+- **THEN** that candidate carries a blocked reason and the value is unknown, never reported as clean or absent
+- **AND** a failed safety check can never yield `archiveEligible`
+
+#### Scenario: Failing persistent branch blocks its repository
+- **WHEN** one persistent-branch fetch fails while another succeeds
+- **THEN** the repository is blocked with the failing branch reason without aborting the command
+- **AND** a workspace of that repository is never `archiveEligible`
 
 #### Scenario: Exact project scope
 - **WHEN** the project is a monorepo or a grouped multi-repository project
@@ -104,9 +119,22 @@ The CLI SHALL provide `status [--cwd PATH] [--workspace WORKSPACE_ID]`. It SHALL
 - **WHEN** `--workspace ID` is supplied for a valid workspace
 - **THEN** the full project repository and persistent-branch inventory is still produced
 
-#### Scenario: Paseo schema drift
-- **WHEN** a Paseo read fails or returns a shape that does not match the documented fields
-- **THEN** a fatal payload failure blocks the command, while an individual malformed observation is blocked rather than guessed
+#### Scenario: Complete field validation
+- **WHEN** an agent-list, project or workspace row is missing a documented field or has a wrong field type
+- **THEN** the command fails closed with `BLOCKED:` and no stdout, never a traceback
+- **AND** an `agent inspect` payload that is not an object, or whose `Id`/`Status`/`Cwd`/`Archived` type drifts, is a per-candidate blocker rather than a guess
+
+#### Scenario: Missing pending-permissions is unknown
+- **WHEN** a matching archived agent's `PendingPermissions` field is absent
+- **THEN** its permissions are unknown, not empty, so the workspace is not released and not `archiveEligible`
+
+#### Scenario: One bad matching agent invalidates release
+- **WHEN** any matching scoped agent fails inspect, is malformed, is not archived, has pending permissions or unknown status, or is the protected runner
+- **THEN** the workspace is not released even when another matching agent is archived and idle
+
+#### Scenario: Missing runner identity is unknown
+- **WHEN** the current runner id is not available
+- **THEN** the inventory is still produced, but every workspace is blocked and never `archiveEligible`
 
 ### Requirement: Affirmative release proof for cleanup
 `status` SHALL consider a scoped workspace released only with affirmative evidence, and SHALL report `archiveEligible` only for a clean, idle, known-owned, released worktree whose exact HEAD is reachable from the fetched remote `dev`; it SHALL never archive.
@@ -132,10 +160,14 @@ The CLI SHALL provide `status [--cwd PATH] [--workspace WORKSPACE_ID]`. It SHALL
 - **WHEN** a matching scoped agent id equals the current runner id
 - **THEN** the workspace reports `protected: true`, is blocked, and is never `cleanupEligible`
 
+#### Scenario: Categorical cleanup exclusions
+- **WHEN** a workspace cwd is the primary checkout (even when mislabeled `worktree`), or its branch is `dev`, `main` or a configured preserve branch, or it is detached or not a `task/` branch
+- **THEN** it is blocked and never `archiveEligible`, regardless of the Paseo isolation label or any agent release evidence
+
 ### Requirement: Ref-race guard
 `status` SHALL compare every observed named ref and worktree HEAD before and after the observation pass and SHALL report any moved candidate blocked rather than emitting a stale snapshot.
 
-#### Scenario: Concurrent ref movement
-- **WHEN** an observed persistent, task or worktree ref changes during the pass
-- **THEN** that candidate is reported blocked with a movement reason
-- **AND** it is never `cleanupEligible` and never presented as verified state
+#### Scenario: Concurrent ref, worktree or lock movement
+- **WHEN** any observed named ref, worktree registration, worktree HEAD, worktree branch or worktree lock state changes during the pass, including a branch or worktree added or removed
+- **THEN** the union of the before/after snapshots detects it, and the repository and candidate are marked `stale` and blocked
+- **AND** no moved, added, removed or relocked candidate is ever `cleanupEligible` or presented as verified state
