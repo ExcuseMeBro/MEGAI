@@ -13,7 +13,6 @@ import hashlib
 import json
 import sys
 import unittest
-from pathlib import Path
 
 from slim_distribution import ROOT, Slim
 
@@ -79,6 +78,44 @@ class LayaPolicy(Slim):
         installer = (ROOT / "pi-defaults/install.py").read_text()
         self.assertIn("lib/install_laya.sh", installer,
                       "the real install flow must prepare the pinned local runtime")
+
+    def test_migration_is_gated_on_a_verified_owned_runtime(self):
+        # Installed legacy decision bytes are the migration the gate protects: a Laya
+        # runtime that fails checkpoint verification must not retire them or activate Laya.
+        agent = self.home / ".pi/agent"
+        receipt_path = self.megai / "slim-wiring.json"
+        receipt = {}
+        for relative in LEGACY_ASSETS:
+            target = agent / relative
+            self.write(target, "owned hosted decision tool\n")
+            receipt[str(target)] = hashlib.sha256(target.read_bytes()).hexdigest()
+        receipt_path.write_text(json.dumps(receipt))
+        self.write(self.megai / "venv/laya/.megai-owned",
+                   "owner=megai-laya\nstate=installed\n")
+        self.stub("laya-check-fail", 'printf "laya: checkpoints failed\\n" >&2\nexit 1\n')
+        self.stub("laya-check-ok", "exit 0\n")
+        before = self.snapshot()
+        result = self.wire(ok=False, env=dict(self.env, MEGAI_LAYA_CHECK="laya-check-fail"))
+        self.assertIn("legacy decision assets are preserved", result.stderr)
+        self.assertIn("Laya is not activated", result.stderr)
+        self.assertEqual(self.snapshot(), before, "a gated migration must write nothing")
+        for relative in LEGACY_ASSETS:
+            self.assertTrue((agent / relative).is_file(), "owned legacy assets must be preserved")
+        self.assertFalse((agent / "extensions/megai-laya/index.ts").exists())
+        # The same transaction retires the legacy bytes and activates Laya once the
+        # runtime verifies.
+        self.wire(env=dict(self.env, MEGAI_LAYA_CHECK="laya-check-ok"))
+        for relative in LEGACY_ASSETS:
+            self.assertFalse((agent / relative).exists())
+        self.assertTrue((agent / "extensions/megai-laya/index.ts").is_file())
+
+    def test_removal_still_works_under_a_failing_runtime_gate(self):
+        self.wire()
+        self.write(self.megai / "venv/laya/.megai-owned",
+                   "owner=megai-laya\nstate=installed\n")
+        self.stub("laya-check-fail", "exit 1\n")
+        self.wire("--remove", env=dict(self.env, MEGAI_LAYA_CHECK="laya-check-fail"))
+        self.assertFalse((self.home / ".pi/agent/extensions/megai-laya/index.ts").exists())
 
 
 def load_tests(loader, tests, pattern):

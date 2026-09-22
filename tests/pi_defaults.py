@@ -486,6 +486,17 @@ class InstallerPreflight(unittest.TestCase):
                 self.assertIn("unsupported", result.stderr)
                 self.assertEqual(marker.read_text(), "existing session")
 
+    def test_a_failed_runtime_prepare_blocks_activation(self):
+        with patch.dict(os.environ, {"MEGAI_LAYA_INSTALL": "false"}):
+            with self.assertRaises(SystemExit) as caught:
+                install.prepare_laya_runtime(ROOT, dict(os.environ))
+        self.assertIn("unchanged", str(caught.exception))
+        self.assertIn("not activated", str(caught.exception))
+
+    def test_a_verified_runtime_prepare_continues(self):
+        with patch.dict(os.environ, {"MEGAI_LAYA_INSTALL": "true"}):
+            install.prepare_laya_runtime(ROOT, dict(os.environ))
+
 
 if __name__ == "__main__":
     unittest.main()

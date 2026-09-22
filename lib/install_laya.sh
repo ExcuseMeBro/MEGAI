@@ -10,8 +10,12 @@
 # English model that reads Latin script as English.
 #
 # Every mutation stays inside the owned venv: no global Pi config, no user site-packages,
-# no PATH entry. A failure exits non-zero and prints what to do next, and a partial venv
-# is left in place on purpose so a retry resumes instead of re-downloading.
+# no PATH entry. A failure exits non-zero and prints what to do next. The ownership marker
+# is written before the package install with state=partial, so this installer's own failed
+# first attempt is recognized and rebuilt on retry, while a directory with no marker is an
+# unowned collision and is never touched. Reuse re-validates the marker against the current
+# lock digest, the pinned interpreter, the pinned interpreter version and the installed laya
+# version before the checkpoints are verified again.
 #
 #   bash lib/install_laya.sh                 # prepare and verify the runtime
 #   bash lib/install_laya.sh --prepare-only   # same, without writing MEGAI tool state
@@ -70,7 +74,46 @@ if not any(line.startswith("laya==") for line in entries):
     raise SystemExit("lib/laya.lock must pin the runtime itself")
 PY
 
-owned() { [ -d "$VENV" ] && [ -f "$MARKER" ]; }
+# The lock is the runtime identity; a reused venv must still match all of it.
+OWNER="megai-laya"
+PINNED_LAYAVERSION="$(sed -n 's/^laya==\([^ ]*\).*/\1/p' "$LOCK" | head -1)"
+[ -n "$PINNED_LAYAVERSION" ] || fail "lib/laya.lock does not pin the runtime itself"
+LOCK_DIGEST="$(python3 -c 'import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' "$LOCK")"
+
+marker_field() { sed -n "s/^$1=//p" "$MARKER" 2>/dev/null | head -1; }
+owned() { [ -d "$VENV" ] && [ -f "$MARKER" ] && [ "$(marker_field owner)" = "$OWNER" ]; }
+
+write_marker() {
+  # state=partial is written before the package install, so a retry recognizes this
+  # installer's own failed attempt instead of refusing it as an unowned collision.
+  printf 'owner=%s\nstate=%s\ninterpreter=%s\npython=%s\nlaya=%s\nmodel=%s\nlock=%s\n' \
+    "$OWNER" "$1" "$INTERPRETER" "$PINNED_PYTHON" "$PINNED_LAYAVERSION" "$MODEL" "$LOCK_DIGEST" \
+    > "$MARKER" || fail "cannot write the ownership marker $MARKER"
+}
+
+installed_laya_version() {
+  "$VENV/bin/python" -c 'import importlib.metadata as m; print(m.version("laya"))' 2>/dev/null
+}
+
+# Reuse requires the venv to be this installer's own, to match every pinned identity
+# field, and to hold the pinned laya. Anything else is rebuilt from the owned venv.
+reusable() {
+  owned || return 1
+  [ "$(marker_field state)" = installed ] || return 1
+  [ "$(marker_field interpreter)" = "$INTERPRETER" ] || return 1
+  [ "$(marker_field python)" = "$PINNED_PYTHON" ] || return 1
+  [ "$(marker_field laya)" = "$PINNED_LAYAVERSION" ] || return 1
+  [ "$(marker_field lock)" = "$LOCK_DIGEST" ] || return 1
+  [ "$(installed_laya_version)" = "$PINNED_LAYAVERSION" ] || return 1
+}
+
+install_runtime() {
+  "$UV" venv --python "$INTERPRETER" "$VENV" || fail "cannot create the owned venv at $VENV"
+  write_marker partial
+  "$UV" pip install --require-hashes --python "$VENV/bin/python" -r "$LOCK" \
+    || fail "cannot install the pinned runtime into $VENV (network or platform wheel missing); fix the cause and re-run \`bash lib/install_laya.sh\`; the partial venv is owned and will be rebuilt"
+  write_marker installed
+}
 
 if [ "$ACTION" = remove ]; then
   if [ ! -e "$VENV" ]; then ok "no runtime at $VENV; nothing to remove"; exit 0; fi
@@ -102,22 +145,25 @@ checkpoint_check() {
 
 if [ "$ACTION" = check ]; then
   owned || fail "no owned runtime at $VENV; run \`bash lib/install_laya.sh\`"
+  reusable || fail "the owned runtime at $VENV does not match the current pin (interpreter, lock or laya version); re-run \`bash lib/install_laya.sh\` to rebuild it"
   checkpoint_check "$VENV/bin/python" \
     || fail "the runtime at $VENV did not verify: $MODEL (English + multilingual) failed to load"
   ok "ready -> $VENV ($MODEL English + multilingual verified)"
   exit 0
 fi
 
-if owned; then
+if reusable; then
   ok "runtime already prepared -> $VENV"
 else
-  "$UV" venv --python "$INTERPRETER" "$VENV" || fail "cannot create the owned venv at $VENV"
-  "$UV" pip install --require-hashes --python "$VENV/bin/python" -r "$LOCK" \
-    || fail "cannot install the pinned runtime into $VENV (network or platform wheel missing); retry once the cause is fixed"
-  printf 'interpreter=%s\npython=%s\nmodel=%s\nlock=%s\n' \
-    "$INTERPRETER" "$PINNED_PYTHON" "$MODEL" "$(python3 -c 'import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' "$LOCK")" \
-    > "$MARKER" || fail "cannot write the ownership marker $MARKER"
+  if owned; then
+    ok "owned runtime is stale or incomplete -> rebuilding $VENV"
+    rm -rf "$VENV" || fail "cannot rebuild the owned runtime at $VENV"
+  fi
+  install_runtime
 fi
+
+[ "$(installed_laya_version)" = "$PINNED_LAYAVERSION" ] \
+  || fail "the runtime at $VENV does not have laya $PINNED_LAYAVERSION installed; re-run \`bash lib/install_laya.sh\`"
 
 checkpoint_check "$VENV/bin/python" \
   || fail "the runtime is installed at $VENV but its checkpoints are not verified; re-run \`bash lib/install_laya.sh\` once the download completes"
@@ -127,7 +173,7 @@ if [ "$ACTION" != prepare-only ] && [ -f "$MEGAI_HOME/lib/state.sh" ]; then
   . "$MEGAI_HOME/lib/ui.sh" 2>/dev/null || true
   . "$MEGAI_HOME/lib/state.sh" 2>/dev/null || true
   if declare -F state_set >/dev/null 2>&1; then
-    state_set '.tools.laya' "$(jq -cn --arg bin "$VENV/bin/python" --arg lock "$(python3 -c 'import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' "$LOCK")" --arg model "$MODEL" '{bin:$bin,lock:$lock,model:$model}')" 2>/dev/null || true
+    state_set '.tools.laya' "$(jq -cn --arg bin "$VENV/bin/python" --arg lock "$LOCK_DIGEST" --arg model "$MODEL" '{bin:$bin,lock:$lock,model:$model}')" 2>/dev/null || true
   fi
 fi
 

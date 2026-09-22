@@ -9,6 +9,7 @@ download. The real download runs once in tests/pi-laya-live.sh.
 from __future__ import annotations
 
 import os
+import re
 import stat
 import subprocess
 import tempfile
@@ -30,6 +31,9 @@ case " $* " in
     fi
     printf 'english=convaiinnovations/laya\\nmultilingual=convaiinnovations/laya:multilingual\\n'
     ;;
+  *" -c "*)
+    printf '%s\\n' "${LAYA_TEST_LAYAVERSION:-0.3.5}"
+    ;;
 esac
 exit 0
 """
@@ -42,6 +46,12 @@ case "$1" in
     mkdir -p "$last/bin"
     cp "$LAYA_TEST_PYTHON" "$last/bin/python"
     chmod +x "$last/bin/python"
+    ;;
+  pip)
+    if [ "${LAYA_STUB_PIP_FAIL:-0}" = 1 ]; then
+      printf 'uv pip: simulated install failure\\n' >&2
+      exit 1
+    fi
     ;;
 esac
 exit 0
@@ -81,7 +91,8 @@ class RuntimeInstall(unittest.TestCase):
             LAYA_TEST_PYTHON=str(self.python),
             PATH=f"{self.bin}:{os.environ['PATH']}",
         )
-        for name in ("LAYA_DEVICE", "LAYA_LANG", "LAYA_PLATFORM", "LAYA_STUB_CHECKPOINT_FAIL"):
+        for name in ("LAYA_DEVICE", "LAYA_LANG", "LAYA_PLATFORM", "LAYA_STUB_CHECKPOINT_FAIL",
+                     "LAYA_STUB_PIP_FAIL", "LAYA_TEST_LAYAVERSION"):
             env.pop(name, None)
         env.update({name: str(value) for name, value in extra.items()})
         return subprocess.run(["bash", str(SCRIPT), *args], env=env, text=True, capture_output=True)
@@ -173,6 +184,47 @@ class RuntimeInstall(unittest.TestCase):
         result = self.install(LAYA_DEVICE="cpu", LAYA_LANG="uz")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("env device=cpu lang=uz", self.calls.read_text())
+
+    def test_a_failed_install_is_retried_without_being_refused_as_unowned(self):
+        failed = self.install(LAYA_STUB_PIP_FAIL="1")
+        self.assertNotEqual(failed.returncode, 0, failed.stdout + failed.stderr)
+        marker = (self.venv / ".megai-owned").read_text()
+        self.assertIn("owner=megai-laya", marker)
+        self.assertIn("state=partial", marker)
+        self.calls.write_text("")
+        retried = self.install()
+        self.assertEqual(retried.returncode, 0, retried.stdout + retried.stderr)
+        self.assertNotIn("not owned by MEGAI", retried.stderr)
+        self.assertIn("state=installed", (self.venv / ".megai-owned").read_text())
+
+    def test_a_stale_lock_pin_rebuilds_the_owned_runtime(self):
+        self.install()
+        marker = self.venv / ".megai-owned"
+        marker.write_text(re.sub(r"^lock=.*$", "lock=" + "0" * 64, marker.read_text(), flags=re.M))
+        self.calls.write_text("")
+        result = self.install()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("rebuilding", result.stdout)
+        self.assertIn("uv venv", self.calls.read_text())
+        self.assertNotIn("lock=" + "0" * 64, marker.read_text())
+
+    def test_a_wrong_installed_laya_version_is_never_reported_ready(self):
+        self.install()
+        result = self.install(LAYA_TEST_LAYAVERSION="9.9.9")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("does not have laya 0.3.5 installed", result.stderr)
+        self.assertNotIn("runtime ready", result.stdout)
+
+    def test_check_rejects_a_runtime_that_no_longer_matches_the_pin(self):
+        self.install()
+        marker = self.venv / ".megai-owned"
+        marker.write_text(re.sub(r"^interpreter=.*$", "interpreter=/somewhere/else/python",
+                                 marker.read_text(), flags=re.M))
+        self.calls.write_text("")
+        result = self.install("--check")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("does not match the current pin", result.stderr)
+        self.assertEqual(self.calls.read_text(), "")
 
 
 if __name__ == "__main__":

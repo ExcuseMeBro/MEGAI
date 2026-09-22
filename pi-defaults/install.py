@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -188,6 +189,22 @@ def profile_agents_md(current, source):
     return text
 
 
+def prepare_laya_runtime(repo, env):
+    """Prepare the owned Laya runtime before any Laya activation.
+
+    A failure is fatal: the profile must not claim a local decision runtime it cannot
+    load, and a previously installed decision extension is left untouched. MEGAI_LAYA_INSTALL
+    is a deterministic test seam for the runtime installer command.
+    """
+    seam = os.environ.get("MEGAI_LAYA_INSTALL")
+    command = shlex.split(seam) if seam else ["bash", str(repo / "lib/install_laya.sh")]
+    if subprocess.run(command, env=env).returncode:
+        raise SystemExit(
+            "Local decision runtime preparation failed; existing decision assets are unchanged "
+            "and Laya is not activated. Run `bash lib/install_laya.sh` once the cause is fixed, then rerun the installer."
+        )
+
+
 def install(reset=False, remove_omp=False):
     home = Path.home()
     agent = home / ".pi/agent"
@@ -304,11 +321,9 @@ def install(reset=False, remove_omp=False):
     env = {**os.environ, "MEGAI_HOME": str(shared), "MEGAI_SOURCE": str(REPO)}
     for name in ("ruff", "codedb", "tgrep", "jevcache", "headroom"):
         run("bash", REPO / f"lib/install_{name}.sh", env=env)
-    # The local decision runtime carries checkpoints of its own, so its preparation is a
-    # one-time download that must not abort an otherwise complete install: the extension
-    # is staged either way and reports a missing runtime instead of failing obscurely.
-    if subprocess.run(["bash", str(REPO / "lib/install_laya.sh")], env=env).returncode:
-        print("warning: local decision runtime not ready; run `bash lib/install_laya.sh` once the cause is fixed", file=sys.stderr)
+    # The local decision runtime carries checkpoints of its own, so its preparation gates
+    # the profile: a runtime that cannot be verified must not activate a decision tool.
+    prepare_laya_runtime(REPO, env)
     shutil.copytree(
         REPO / "pi-skill/headroom", shared / "pi-skill/headroom", dirs_exist_ok=True
     )
