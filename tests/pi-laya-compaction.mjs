@@ -1,7 +1,7 @@
 // Local Laya fast compaction through the real installer, Pi loader and stdio bridge.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -12,9 +12,11 @@ process.env.PI_OFFLINE = '1';
 const ROOT = resolve('.');
 const temp = mkdtempSync(join(tmpdir(), 'pi-laya-compaction-'));
 const agent = join(temp, 'agent');
-const fake = { calls: join(temp, 'calls.jsonl'), script: join(temp, 'script.jsonl') };
+const fake = {
+  calls: join(temp, 'calls.jsonl'), script: join(temp, 'script.jsonl'), routers: join(temp, 'routers.jsonl'),
+};
 const KEPT = ['LAYA_PYTHON', 'LAYA_LOG', 'LAYA_GATE', 'LAYA_FAKE_CALLS', 'LAYA_FAKE_SCRIPT',
-  'LAYA_FAKE_STALE_IDS', 'LAYA_FAKE_KEEP_P', 'LAYA_FAKE_STALE_P', 'PYTHONPATH'];
+  'LAYA_FAKE_ROUTERS', 'LAYA_FAKE_STALE_IDS', 'LAYA_FAKE_KEEP_P', 'LAYA_FAKE_STALE_P', 'PYTHONPATH'];
 const savedEnv = Object.fromEntries(KEPT.map((name) => [name, process.env[name]]));
 process.env.PYTHONPATH = resolve('tests/fixtures/laya_fake');
 process.env.LAYA_PYTHON = 'python3';
@@ -22,6 +24,7 @@ process.env.LAYA_GATE = '0';
 process.env.LAYA_LOG = join(temp, 'laya-calls.jsonl');
 process.env.LAYA_FAKE_CALLS = fake.calls;
 process.env.LAYA_FAKE_SCRIPT = fake.script;
+process.env.LAYA_FAKE_ROUTERS = fake.routers;
 process.env.LAYA_FAKE_KEEP_P = '0.95';
 process.env.LAYA_FAKE_STALE_P = '0.05';
 
@@ -33,6 +36,13 @@ function install(...flags) {
       PI_CODING_AGENT_DIR: agent },
   });
   mkdirSync(agent, { recursive: true });
+  // Integration fixture: the installer worker must stage this sibling asset.
+  const target = join(agent, 'extensions/megai-laya/compaction.ts');
+  if (flags.includes('--remove')) rmSync(target, { force: true });
+  else {
+    mkdirSync(join(agent, 'extensions/megai-laya'), { recursive: true });
+    copyFileSync(resolve('pi-skill/laya/compaction.ts'), target);
+  }
 }
 async function load() {
   process.env.PI_CODING_AGENT_DIR = agent;
@@ -79,10 +89,15 @@ const shutdown = async () => {
 try {
   install();
   const installed = join(agent, 'extensions/megai-laya-compaction/index.ts');
+  const installedHelper = join(agent, 'extensions/megai-laya/compaction.ts');
   assert.equal(readFileSync(installed, 'utf8'), readFileSync(resolve('pi-skill/laya-compaction/index.ts'), 'utf8'));
+  assert.equal(readFileSync(installedHelper, 'utf8'), readFileSync(resolve('pi-skill/laya/compaction.ts'), 'utf8'));
   extensions = await load();
-  const extension = extensions.find((item) => item.path.endsWith('extensions/megai-laya-compaction/index.ts'));
-  assert.ok(extension, 'installed Laya compaction must load through Pi');
+  const extension = extensions.find((item) => item.path.endsWith('extensions/megai-laya/index.ts'));
+  const retired = extensions.find((item) => item.path.endsWith('extensions/megai-laya-compaction/index.ts'));
+  assert.ok(extension, 'the active Laya extension must load through Pi');
+  assert.equal(retired?.handlers.get('session_before_compact')?.length ?? 0, 0,
+    'the compatibility extension must not register a second compaction owner');
   const hook = extension.handlers.get('session_before_compact')?.[0];
   assert.equal(typeof hook, 'function');
 
@@ -108,6 +123,23 @@ try {
   assert.deepEqual(Object.keys(first.questions), ['call_1', 'result_1', 'call_2', 'result_2', 'call_3', 'result_3']);
   assert.equal(first.route, 'english');
   assert.ok(!summary.includes('fix the parser bug') || summary.includes('[User]'), 'input is only present as kept transcript');
+
+  // Pi/Jiti loads extension modules without a module cache. A tool call after
+  // compaction must still reuse the exact same runtime owner and Router process.
+  const tools = new Map();
+  for (const item of extensions) {
+    for (const [name, tool] of item.tools) tools.set(name, tool.definition);
+  }
+  const laya = tools.get('laya');
+  assert.ok(laya, 'the main extension must register the laya tool');
+  const answered = JSON.parse((await laya.execute('shared-runtime', {
+    state: 'one local runtime',
+    questions: { same: { type: 'noul', instructions: 'Use the existing runtime?' } },
+  }, undefined, undefined, ctx)).content[0].text);
+  assert.equal(answered.ok, true);
+  const routers = lines(fake.routers).map(JSON.parse);
+  assert.equal(routers.length, 1, `tool and compaction created separate Routers: ${JSON.stringify(routers)}`);
+  assert.equal(new Set(routers.map((row) => row.pid)).size, 1, 'one process owns tool and compaction');
 
   // Nothing stale defers to Pi's summarizer. The script file is read per call,
   // so this changes a warm child without reloading either model.
@@ -155,11 +187,12 @@ try {
   await shutdown();
   install('--remove');
   assert.ok(!existsSync(installed));
+  assert.ok(!existsSync(installedHelper));
   const ledger = readFileSync(process.env.LAYA_LOG, 'utf8');
   assert.ok(!ledger.includes('fix the parser bug'), 'the Laya ledger excludes transcript text');
   console.log('PASS: local Laya compaction keeps wanted transcript content, drops stale calls/results, batches '
     + 'eight questions, fails open, defers overflow and focused compaction, carries earlier summaries, and uses '
-    + 'the shared local bridge without a hosted service');
+    + 'the active extension\'s single local bridge without a hosted service');
 } finally {
   await shutdown();
   for (const [name, value] of Object.entries(savedEnv)) {

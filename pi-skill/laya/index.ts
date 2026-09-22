@@ -48,6 +48,7 @@ import { readFile, realpath, stat } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { registerLayaCompaction } from "./compaction.ts";
 
 /** The bridge ships next to this file, so the installed extension is self-contained. */
 const BRIDGE = join(dirname(fileURLToPath(import.meta.url)), "bridge.py");
@@ -346,8 +347,7 @@ const BRIDGE_ENV_KEEP = new Set([
   "PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "TZ", "VIRTUAL_ENV", "PYTHONPATH",
   "PYTHONHOME", "PYTHONDONTWRITEBYTECODE", "PYTHONUNBUFFERED", "PYTHONWARNINGS",
   "MEGAI_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME", "HF_HOME", "HF_HUB_CACHE",
-  "TRANSFORMERS_CACHE", "TORCH_HOME", "HF_TOKEN", "CUDA_VISIBLE_DEVICES",
-  "PYTORCH_ENABLE_MPS_FALLBACK",
+  "TRANSFORMERS_CACHE", "TORCH_HOME", "CUDA_VISIBLE_DEVICES", "PYTORCH_ENABLE_MPS_FALLBACK",
 ]);
 
 function bridgeEnv(): Record<string, string | undefined> {
@@ -355,11 +355,18 @@ function bridgeEnv(): Record<string, string | undefined> {
   for (const [key, value] of Object.entries(process.env)) {
     if (key.startsWith("LAYA_") || BRIDGE_ENV_KEEP.has(key)) env[key] = value;
   }
+  // Inference is cache-only. Provisioning owns downloads and credentials; the live
+  // bridge must never consult a registry or emit model-library telemetry.
+  env.HF_HUB_OFFLINE = "1";
+  env.TRANSFORMERS_OFFLINE = "1";
+  env.HF_HUB_DISABLE_TELEMETRY = "1";
   return env;
 }
 
 let child: ChildProcessWithoutNullStreams | undefined;
 let buffered = "";
+let closed = false;
+const SHUT_DOWN: LayaResult = { ok: false, error: "the local Laya session has shut down" };
 /** The one in-flight request: the bridge is asked for exactly one answer at a time. */
 let waiting: { id: string; settle: (result: LayaResult) => void } | undefined;
 /** Serializes access so two hooks can never interleave two requests on one pipe. */
@@ -471,6 +478,7 @@ function drain(): void {
 }
 
 export function stopChild(): void {
+  closed = true;
   const proc = child;
   child = undefined;
   buffered = "";
@@ -501,37 +509,62 @@ export async function layaPost(
 ): Promise<LayaResult> {
   const id = randomUUID().slice(0, 8);
   const started = Date.now();
+  if (closed) {
+    layaLog({ id, source, lang: lang ?? null, ms: 0, model: null, route: null, error: SHUT_DOWN.error });
+    return SHUT_DOWN;
+  }
   const deadline = timeoutMs();
+  const timedOut: LayaResult = { ok: false, error: `the local Laya call timed out after ${deadline} ms` };
+  const cancelled: LayaResult = { ok: false, error: "the local Laya call was cancelled" };
+  let expired = false;
+  let aborted = signal?.aborted ?? false;
   const run = (): Promise<LayaResult> => {
-    if (signal?.aborted) return Promise.resolve({ ok: false, error: "the local Laya call was cancelled" });
-    return pipeFree().then(() => new Promise<LayaResult>((settle) => {
-      const timer = setTimeout(
-        () => finish({ ok: false, error: `the local Laya call timed out after ${deadline} ms` }),
-        deadline,
-      );
-      const onAbort = () => finish({ ok: false, error: "the local Laya call was cancelled" });
-      const finish = (result: LayaResult) => {
-        clearTimeout(timer);
-        signal?.removeEventListener("abort", onAbort);
-        settle(result);
-      };
-      const proc = child ?? startChild();
-      waiting = { id, settle: finish };
-      signal?.addEventListener("abort", onAbort, { once: true });
-      try {
-        proc.stdin.write(`${JSON.stringify({ id, state, questions, ...(lang ? { lang } : {}) })}\n`);
-      } catch (error) {
-        if (waiting?.id === id) waiting = undefined;
-        releasePipe();
-        finish({ ok: false, error: `the local Laya bridge is not writable (${message(error)})` });
-      }
-    }));
+    if (closed) return Promise.resolve(SHUT_DOWN);
+    if (aborted || signal?.aborted) return Promise.resolve(cancelled);
+    if (expired) return Promise.resolve(timedOut);
+    return pipeFree().then(() => {
+      if (closed) return SHUT_DOWN;
+      if (aborted || signal?.aborted) return cancelled;
+      if (expired) return timedOut;
+      return new Promise<LayaResult>((settle) => {
+        const proc = child ?? startChild();
+        waiting = { id, settle };
+        try {
+          proc.stdin.write(`${JSON.stringify({ id, state, questions, ...(lang ? { lang } : {}) })}\n`);
+        } catch (error) {
+          if (waiting?.id === id) waiting = undefined;
+          releasePipe();
+          settle({ ok: false, error: `the local Laya bridge is not writable (${message(error)})` });
+        }
+      });
+    });
   };
-  // Serialized: one request is in flight at a time, and a failed predecessor never
-  // blocks the next caller.
+  // The caller's deadline starts now, before this request waits behind the one pipe.
+  // A timed-out/cancelled request remains in the serialization chain only long enough
+  // to consume its own late line; it can never postpone the caller's result.
   const mine = chain.then(run, run);
   chain = mine.then(() => undefined, () => undefined);
-  const result = await mine;
+  const result = await new Promise<LayaResult>((settle) => {
+    let done = false;
+    const finish = (value: LayaResult) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+      settle(value);
+    };
+    const onAbort = () => {
+      aborted = true;
+      finish(cancelled);
+    };
+    const timer = setTimeout(() => {
+      expired = true;
+      finish(timedOut);
+    }, deadline);
+    signal?.addEventListener("abort", onAbort, { once: true });
+    if (aborted) onAbort();
+    mine.then(finish, (error) => finish({ ok: false, error: message(error) }));
+  });
   layaLog({
     id,
     source,
@@ -586,6 +619,7 @@ async function siftRead(path: string, cwd: string, roots: string[]): Promise<{ t
 }
 
 export default function laya(pi: ExtensionAPI) {
+  registerLayaCompaction(pi, layaPost);
   pi.registerTool({
     name: "laya",
     label: "Laya decision (local)",

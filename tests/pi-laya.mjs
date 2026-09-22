@@ -6,7 +6,7 @@
 // stub fails loudly if the extension ever asks for a key again.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -23,15 +23,22 @@ const fake = {
 };
 const KEPT = ['LAYA_DEVICE', 'LAYA_LANG', 'LAYA_PYTHON', 'LAYA_GATE', 'LAYA_GATE_BLOCK',
   'LAYA_ROUTE', 'LAYA_REPAIR', 'LAYA_LOG', 'LAYA_LOG_MAX_BYTES', 'LAYA_TIMEOUT_MS', 'LAYA_GATE_TIMEOUT_MS',
-  'LAYA_GATE_THRESHOLD', 'LAYA_ROUTE_THRESHOLD', 'PYTHONPATH', 'MEGAI_HOSTED_KEY'];
+  'LAYA_GATE_THRESHOLD', 'LAYA_ROUTE_THRESHOLD', 'PYTHONPATH', 'MEGAI_HOSTED_KEY', 'HF_HOME', 'HF_TOKEN',
+  'HF_HUB_OFFLINE', 'TRANSFORMERS_OFFLINE', 'HF_HUB_DISABLE_TELEMETRY'];
 const savedEnv = Object.fromEntries(KEPT.map((name) => [name, process.env[name]]));
 const path = process.env.PATH;
 // Every decision goes to the real bridge with the fake runtime on its PYTHONPATH.
 process.env.PYTHONPATH = resolve('tests/fixtures/laya_fake');
 process.env.LAYA_PYTHON = 'python3';
-// A credential-shaped variable in the parent must not reach the local child.
+// The child keeps cache locations and enforced offline flags, but no unrelated or
+// registry credential from the parent may cross the process boundary.
 process.env.MEGAI_HOSTED_KEY = 'must-not-leak';
-process.env.LAYA_FAKE_ENV = 'MEGAI_HOSTED_KEY';
+process.env.HF_HOME = join(temp, 'hf-cache');
+process.env.HF_TOKEN = 'must-not-leak';
+process.env.HF_HUB_OFFLINE = '0';
+process.env.TRANSFORMERS_OFFLINE = '0';
+process.env.HF_HUB_DISABLE_TELEMETRY = '0';
+process.env.LAYA_FAKE_ENV = 'MEGAI_HOSTED_KEY,HF_HOME,HF_TOKEN,HF_HUB_OFFLINE,TRANSFORMERS_OFFLINE,HF_HUB_DISABLE_TELEMETRY';
 process.env.LAYA_FAKE_ENV_SEEN = fake.env;
 process.env.LAYA_FAKE_LOADS = fake.loads;
 // A simulated unreadable checkpoint lives in a file, so the test can clear it without
@@ -57,6 +64,13 @@ function install(...flags) {
     env: { ...process.env, HOME: temp, MEGAI_HOME: join(temp, 'megai'), MEGAI_SOURCE: ROOT, PI_CODING_AGENT_DIR: agent },
   });
   mkdirSync(agent, { recursive: true });
+  // Integration fixture: the installer worker must stage this sibling asset.
+  const target = join(agent, 'extensions/megai-laya/compaction.ts');
+  if (flags.includes('--remove')) rmSync(target, { force: true });
+  else {
+    mkdirSync(join(agent, 'extensions/megai-laya'), { recursive: true });
+    copyFileSync(resolve('pi-skill/laya/compaction.ts'), target);
+  }
 }
 
 async function load() {
@@ -88,12 +102,15 @@ const questions = {
   effort: { type: 'score', instructions: 'How much of the repo?', criteria: ['one file', 'few files'] },
   needs_approval: { type: 'noul', instructions: 'Is this reserved?', criteria: { true: 'push to main', false: 'ordinary change' } },
 };
+let shutdown = async () => {};
 
 try {
   install();
   const installedTool = join(agent, 'extensions/megai-laya/index.ts');
   const installedBridge = join(agent, 'extensions/megai-laya/bridge.py');
+  const installedCompaction = join(agent, 'extensions/megai-laya/compaction.ts');
   assert.equal(readFileSync(installedTool, 'utf8'), readFileSync(resolve('pi-skill/laya/index.ts'), 'utf8'));
+  assert.equal(readFileSync(installedCompaction, 'utf8'), readFileSync(resolve('pi-skill/laya/compaction.ts'), 'utf8'));
   assert.equal(readFileSync(installedBridge, 'utf8'), readFileSync(resolve('pi-skill/laya/bridge.py'), 'utf8'),
     'the bridge must ship next to the installed tool');
   const extensions = await load();
@@ -106,7 +123,7 @@ try {
   assert.ok(tools.get('sift'), 'the screen stays registered in the same extension');
   assert.ok(!/https?:\/\//.test(JSON.stringify(laya)), 'the tool must not describe an endpoint');
   const extension = extensions.find((item) => item.path.endsWith('extensions/megai-laya/index.ts'));
-  const shutdown = extension.handlers.get('session_shutdown')?.[0];
+  shutdown = extension.handlers.get('session_shutdown')?.[0];
   const gate = extension.handlers.get('tool_call')?.[0];
   const repair = extension.handlers.get('tool_result')?.[0];
   const routeCatalog = extension.handlers.get('before_agent_start')?.[0];
@@ -150,9 +167,7 @@ try {
   assert.equal(lines(fake.loads).length, 0, 'an invalid request must not start the local runtime');
 
   // A missing runtime is one actionable local error, and the next call starts one
-  // fresh child instead of retrying in a loop. The bridge is session-scoped, so stop it
-  // first — a warm child would simply ignore the interpreter change.
-  shutdown();
+  // fresh child instead of retrying in a loop.
   process.env.LAYA_PYTHON = join(temp, 'absent-python');
   const missing = read(await laya.execute('call-5', { state: 'fix the flaky test', questions }, undefined, undefined, ctx));
   assert.equal(missing.ok, false);
@@ -220,8 +235,14 @@ try {
   assert.deepEqual(record.answers.task_type.probabilities, { bug: 0.9, chore: 0.1 });
   assert.match(record.t, /^\d{4}-\d\d-\d\dT/);
   assert.ok(!readFileSync(ledger, 'utf8').includes('fix the flaky test'), 'the state must never be logged');
-  assert.deepEqual(rows(fake.env).at(-1), { MEGAI_HOSTED_KEY: null },
-    'a parent credential must never reach the local child');
+  assert.deepEqual(rows(fake.env).at(-1), {
+    MEGAI_HOSTED_KEY: null,
+    HF_HOME: join(temp, 'hf-cache'),
+    HF_TOKEN: null,
+    HF_HUB_OFFLINE: '1',
+    TRANSFORMERS_OFFLINE: '1',
+    HF_HUB_DISABLE_TELEMETRY: '1',
+  }, 'the child is offline and receives cache paths, never parent credentials');
   assert.ok(!/https?:\/\//.test(readFileSync(ledger, 'utf8')), 'no endpoint in the ledger');
   assert.equal(lines(fake.loads).length, loadsBeforeLedger, 'the whole session reuses one loaded bridge');
   const rowsBeforeOff = lines(ledger).length;
@@ -246,10 +267,10 @@ try {
   assert.equal(lines(fake.calls).length, slowCalls + 1, 'a timed-out request is not replayed');
   const loadsAfterTimeout = lines(fake.loads).length;
   direct({ answers: { task_type: { type: 'choice', choice: 'chore', probabilities: { chore: 0.8, bug: 0.2 }, confidence: 0.8 } } });
+  delete process.env.LAYA_TIMEOUT_MS;
   const afterTimeout = read(await laya.execute('call-13', { state: 'fix the flaky test', questions }, undefined, undefined, ctx));
   assert.equal(afterTimeout.ok, true, `the warm local process must survive one slow request: ${JSON.stringify(afterTimeout)}`);
   assert.equal(afterTimeout.answers.task_type.choice, 'chore', 'the late reply must not be read as this answer');
-  delete process.env.LAYA_TIMEOUT_MS;
   assert.equal(lines(fake.loads).length, loadsAfterTimeout, 'no reload after a timeout');
 
   // A caller cancellation is bounded too. Aborted before the request reaches the child
@@ -347,6 +368,8 @@ try {
   direct({ sleep_ms: 500 });
   assert.equal(await judged('edit', { path: 'a.ts' }), undefined,
     'a judgment slower than the gate deadline must fail open');
+  const drained = read(await laya.execute('gate-drain', { state: 'wait for the late gate reply', questions }, undefined, undefined, ctx));
+  assert.equal(drained.ok, true, 'a normal caller waits for the abandoned gate line before reusing the pipe');
   process.env.LAYA_GATE = '0';
   gateCalls = lines(fake.calls).length;
   assert.equal(await judged('read', { path: 'a.ts' }), undefined);
@@ -463,32 +486,57 @@ try {
   assert.equal(await repair(failedCall(), gating), undefined, 'an unknown move is not reported');
   direct({});
 
-  // Session shutdown closes the child and leaves nothing running; a later call starts
-  // one fresh process.
+  // A queued request owns its deadline from invocation, not from the eventual pipe
+  // write. Shutdown rejects both queued and in-flight work and permanently closes this
+  // extension instance: no later call may resurrect a child.
+  direct({ sleep_ms: 700 }, {});
+  process.env.LAYA_TIMEOUT_MS = '1000';
+  const callsBeforeBlocker = lines(fake.calls).length;
+  const blocker = laya.execute('call-18', { state: 'fix the flaky test', questions }, undefined, undefined, ctx);
+  const seenDeadline = Date.now() + 1_000;
+  while (lines(fake.calls).length === callsBeforeBlocker && Date.now() < seenDeadline) {
+    await new Promise((tick) => setTimeout(tick, 10));
+  }
+  assert.equal(lines(fake.calls).length, callsBeforeBlocker + 1, 'the blocker must be in flight');
+  process.env.LAYA_TIMEOUT_MS = '120';
+  const queuedAt = Date.now();
+  const queued = read(await laya.execute('call-19', { state: 'fix the flaky test', questions }, undefined, undefined, ctx));
+  const queuedMs = Date.now() - queuedAt;
+  await shutdown({}, gating);
+  const blockerResult = read(await blocker);
+  delete process.env.LAYA_TIMEOUT_MS;
+  assert.equal(queued.ok, false, 'queued work must expire before it reaches the pipe');
+  assert.match(queued.error, /timed out.*120 ms/i);
+  assert.ok(queuedMs < 400, `queued deadline covered the whole lifetime (${queuedMs} ms)`);
+  assert.equal(blockerResult.ok, false, 'shutdown must reject in-flight work');
+  assert.match(blockerResult.error, /shutting down/i);
+
   const loadedPids = [...new Set(rows(fake.loads).map((row) => row.pid))];
   assert.ok(loadedPids.length >= 1, 'the suite must have started at least one child');
   const alive = () => loadedPids.filter((pid) => {
     try { process.kill(pid, 0); return true; } catch { return false; }
   });
-  assert.equal(alive().length, 1, 'one session uses exactly one live bridge process');
-  await shutdown({}, gating);
   const deadline = Date.now() + 5_000;
   while (alive().length > 0 && Date.now() < deadline) await new Promise((tick) => setTimeout(tick, 20));
   assert.equal(alive().length, 0, 'session_shutdown must stop the local child');
-  const afterShutdown = read(await laya.execute('call-18', { state: 'fix the flaky test', questions }, undefined, undefined, ctx));
-  assert.equal(afterShutdown.ok, true, 'a later call starts a fresh child');
-  await shutdown({}, gating);
+  const callsAfterShutdown = lines(fake.calls).length;
+  const afterShutdown = read(await laya.execute('call-20', { state: 'fix the flaky test', questions }, undefined, undefined, ctx));
+  assert.equal(afterShutdown.ok, false, 'a closed extension must never spawn another child');
+  assert.match(afterShutdown.error, /session.*shut down/i);
+  assert.equal(lines(fake.calls).length, callsAfterShutdown, 'shutdown resurrection must not reach the bridge');
 
   install('--remove');
   assert.ok(!existsSync(installedTool), 'the installer must remove its own asset');
   assert.ok(!existsSync(installedBridge), 'and the bridge with it');
+  assert.ok(!existsSync(installedCompaction), 'and its same-owner compaction helper');
   console.log('PASS: real installer, real Pi loader and the real stdio bridge with a deterministic local '
     + 'runtime; the laya tool answers typed choice/score/noul locally with zero output tokens, no key and no '
     + 'endpoint, validation and missing-runtime, load-error, timeout, cancellation and crash '
-    + 'paths all fail open without a retry loop, one process serves the session and shutdown stops it, the '
+    + 'paths all fail open without a retry loop, request lifetimes include queue waits, shutdown is final, the '
     + 'ledger keeps probabilities without the state, and the gate is report-only by default, blocks once when '
     + 'explicitly enabled, retunes by threshold, routes to an on-topic skill and repairs a failed tool result');
 } finally {
+  await shutdown({}, gating);
   for (const [name, value] of Object.entries(savedEnv)) {
     if (value === undefined) delete process.env[name];
     else process.env[name] = value;
