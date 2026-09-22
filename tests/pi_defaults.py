@@ -341,6 +341,24 @@ class Distribution(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 install.read_object(broken)
 
+    def test_the_clean_profile_keeps_one_headroom_adapter(self):
+        """Both adapter names expose the same tools, and Pi refuses one of them."""
+        with tempfile.TemporaryDirectory(prefix="megai-headroom-") as staging:
+            home = Path(staging)
+            agent = home / ".pi/agent"
+            canonical = agent / "extensions/megai-headroom"
+            canonical.mkdir(parents=True)
+            (canonical / "index.ts").write_text("canonical")
+            duplicate = agent / "extensions/headroom"
+            duplicate.mkdir(parents=True)
+            (duplicate / "index.ts").write_text("duplicate")
+            moved = install.retire_duplicate_headroom(agent, home)
+            self.assertFalse(duplicate.exists())
+            self.assertEqual(moved.parent, home / ".pi/backups")
+            self.assertEqual((moved / "index.ts").read_text(), "duplicate")
+            self.assertEqual((canonical / "index.ts").read_text(), "canonical")
+            self.assertIsNone(install.retire_duplicate_headroom(agent, home))
+
     def test_native_policy_and_prompts_are_distributed_and_verified(self):
         policy = (DEFAULTS / "AGENTS.md").read_text()
         self.assertIn("native Paseo agents", policy)
