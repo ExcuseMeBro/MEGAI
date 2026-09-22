@@ -133,6 +133,27 @@ def defaults_only(current, profile):
     return merged
 
 
+def retire_duplicate_headroom(agent, home):
+    """Keep exactly one headroom adapter installed.
+
+    Two adapter names expose headroom_retrieve and headroom_memory twice, and Pi
+    refuses one of them. The profile owns extensions/megai-headroom, so the duplicate
+    is moved aside, never deleted.
+    """
+    duplicate = agent / "extensions/headroom"
+    if not (duplicate.exists() or duplicate.is_symlink()):
+        return None
+    root = home / ".pi/backups"
+    root.mkdir(parents=True, exist_ok=True)
+    target = root / "headroom-duplicate"
+    index = 0
+    while target.exists() or target.is_symlink():
+        index += 1
+        target = root / f"headroom-duplicate-{index}"
+    shutil.move(str(duplicate), str(target))
+    return target
+
+
 def install(reset=False, remove_omp=False):
     home = Path.home()
     agent = home / ".pi/agent"
@@ -256,9 +277,10 @@ def install(reset=False, remove_omp=False):
     shutil.copy2(REPO / "bin/megai", shared / "bin/megai")
     (shared / "bin/megai").chmod(0o755)
     shutil.copytree(SOURCE / "extensions", agent / "extensions", dirs_exist_ok=True)
-    headroom = agent / "extensions/headroom"
-    headroom.mkdir(exist_ok=True)
+    headroom = agent / "extensions/megai-headroom"
+    headroom.mkdir(parents=True, exist_ok=True)
     shutil.copy2(REPO / "pi-skill/headroom/index.ts", headroom / "index.ts")
+    retire_duplicate_headroom(agent, home)
     shutil.copytree(SOURCE / "skills", agent / "skills", dirs_exist_ok=True)
     shutil.copytree(SOURCE / "prompts", agent / "prompts", dirs_exist_ok=True)
     shutil.copy2(SOURCE / "AGENTS.md", agent / "AGENTS.md")
