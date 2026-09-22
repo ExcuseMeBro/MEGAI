@@ -59,6 +59,7 @@ RETIREMENT_FILE = "lib/pi_model_policy.py"
 RETIREMENT_LINES = {
     '"extensions/megai-jev/index.ts",',
     '"extensions/megai-jev-compaction/index.ts",',
+    'old = b"When the `jev` tool is available"',
 }
 # Active verification must name the removed public tool so an accidental reinstall
 # fails loudly. Permit only these exact guard assertions, not arbitrary references.
@@ -68,6 +69,10 @@ ALLOWED_LINES = {
     },
     "tests/pi_defaults.py": {
         'self.assertIn("jev", removed)',
+    },
+    "tests/pi_model_policy.py": {
+        '"When the `jev` tool is available",',
+        'self.assertNotIn("When the `jev` tool is available", installed)',
     },
 }
 TEXT_SUFFIXES = {

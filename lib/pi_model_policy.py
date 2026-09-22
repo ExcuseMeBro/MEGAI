@@ -109,7 +109,20 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
                (source / "pi-skill/laya/compaction.ts").read_bytes(), remove)
     plan.asset(root / "extensions/megai-antigravity/index.ts",
                (source / "pi-skill/antigravity/index.ts").read_bytes(), remove)
-    plan.asset(root / "skills/megai/delegation.md", policy, remove)
+    delegation = root / "skills/megai/delegation.md"
+    installed = read(delegation)
+    if installed is None or installed == policy or plan.owned(delegation, installed):
+        plan.asset(delegation, policy, remove)
+    elif not remove:
+        # Preserve an otherwise-custom operator policy while migrating the one active
+        # decision-tool reference. Do not claim whole-file ownership after this patch.
+        old = b"When the `jev` tool is available"
+        new = b"When the `laya` tool is available"
+        if installed.count(old) > 1:
+            raise ValueError(f"ambiguous legacy decision-tool references: {delegation}")
+        if old in installed:
+            plan.stage(delegation, installed.replace(old, new), installed)
+            plan.receipt.pop(str(delegation), None)
     if remove:
         # Removing policy does not undo the user's native model preferences.
         plan.retire(root / "megai-roles.json")

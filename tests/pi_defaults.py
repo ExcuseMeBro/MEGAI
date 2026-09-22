@@ -512,9 +512,14 @@ class InstallerPreflight(unittest.TestCase):
 
     def test_profile_activation_runs_after_extension_copy(self):
         source = (ROOT / "pi-defaults/install.py").read_text()
+        activation = source.index("activate_laya_profile(REPO, env)")
         self.assertLess(
             source.index('shutil.copytree(SOURCE / "extensions", agent / "extensions"'),
-            source.index("activate_laya_profile(REPO, env)"),
+            activation,
+        )
+        self.assertLess(
+            source.index('shutil.copytree(SOURCE / "skills", agent / "skills"'),
+            activation,
         )
 
 
