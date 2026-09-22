@@ -816,7 +816,12 @@ def _workspace_row(
             blocked.append("pending-permissions-unknown")
             bad = True
             continue
-        if not archived or permissions:
+        if not archived:
+            blocked.append("agent-not-archived")
+            busy = True
+            bad = True
+        if permissions:
+            blocked.append("pending-permissions")
             busy = True
             bad = True
         if not identity_ok:

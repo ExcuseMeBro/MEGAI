@@ -70,11 +70,6 @@ A model-comparison follow-up (`results/union-alpha.md`) adds
 `openrouter/stealth/union-alpha` to `MODELS` and runs the Pi arm only
 (`--arms pi`); its provider-failure evidence lives in the same file.
 
-A profile follow-up (`results/typesafe-skill.md`) runs the Pi arm twice over the
-`deepseek-flash` cells, once with the TypeSafe agent skill present in
-`~/.pi/agent/skills/` and once with that directory parked. It changes no harness
-code: the varied variable is the profile, not the matrix or the prompt.
-
 A local-model follow-up (`results/qwen-hybrid.md`) adds a self-hosted
 `qwen38-local/qwen3.8-35b-a3b-distill` provider (a `llama-server` on the tailnet,
 registered in `~/.pi/agent/models.json`) and a third arm, **`hybrid`**: the

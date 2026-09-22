@@ -218,6 +218,39 @@ class SafetyContract(unittest.TestCase):
         self.assertFalse(rows["wks_perm"]["archiveEligible"])
         self.assertIn("pending-permissions-unknown", rows["wks_perm"]["blocked"])
 
+    def test_idle_unarchived_agent_reports_an_explicit_blocker(self):
+        wt = self.fx.add_worktree("wt-unarchived", "task/unarchived")
+        data = self.load(
+            self.status(
+                workspaces=[workspace("wks_unarchived", wt)],
+                agents=[agent("agent-unarchived", wt)],
+                inspects=inspect("agent-unarchived", wt, archived=False),
+            )
+        )
+        _, rows = self.rows(data)
+        row = rows["wks_unarchived"]
+        self.assertTrue(row["busy"])
+        self.assertFalse(row["released"])
+        self.assertFalse(row["archiveEligible"])
+        self.assertIn("agent-not-archived", row["blocked"])
+
+    def test_pending_permissions_report_an_explicit_blocker(self):
+        wt = self.fx.add_worktree("wt-pending", "task/pending")
+        data = self.load(
+            self.status(
+                workspaces=[workspace("wks_pending", wt)],
+                agents=[agent("agent-pending", wt)],
+                inspects=inspect("agent-pending", wt, archived=True,
+                                 permissions=[{"id": "p1"}]),
+            )
+        )
+        _, rows = self.rows(data)
+        row = rows["wks_pending"]
+        self.assertTrue(row["busy"])
+        self.assertFalse(row["released"])
+        self.assertFalse(row["archiveEligible"])
+        self.assertIn("pending-permissions", row["blocked"])
+
     def test_one_bad_inspect_invalidates_workspace(self):
         wt = self.fx.add_worktree("wt-mix", "task/mix")
         data = self.load(
