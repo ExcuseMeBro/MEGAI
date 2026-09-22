@@ -33,5 +33,5 @@
 
 - [x] 6.1 Inventory affected active Pi resources and create a private timestamped backup outside the active profile; verify permissions and backup readability without copying session transcripts.
 - [x] 6.2 Remove only active retired extensions/prompts/configuration, run the delivered profile installer and reload verification; verify required Laya-backed tools load and the retired tool is absent.
-- [x] 6.3 Run an exhaustive active-resource scan excluding backups and sessions; verify zero legacy matches while existing backup/session data remains present.
+- [x] 6.3 Run an exhaustive active-resource scan excluding backups and sessions and verify zero legacy matches. Preservation is asserted only as far as it is evidenced: every removed active path is restorable from the hash-verified backup archive, and the surviving session and backup history predates the operation with nothing written into the backup store inside the operation window. No pre-cleanup inventory of those stores was captured, so complete historical preservation is deliberately not claimed.
 - [ ] 6.4 Record repository SHA, local-profile evidence, review verdict, remaining risks and cleanup outcome on the Plane item, then hand off In Review and stop before `main` promotion.
