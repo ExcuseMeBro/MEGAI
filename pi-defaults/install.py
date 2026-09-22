@@ -39,7 +39,7 @@ def remove(path):
         shutil.rmtree(path)
 
 
-def profile_settings(versions, home):
+def profile_settings(versions, home, current=None):
     packages = []
     for name, version in versions.items():
         if name == "@fission-ai/openspec":
@@ -49,12 +49,88 @@ def profile_settings(versions, home):
             # Bootstrap only: the bundled delegation extension stays excluded.
             entry["extensions"] = ["extensions/bootstrap.ts"]
         packages.append(entry)
-    return {
-        "theme": "dark",
-        "defaultThinkingLevel": "high",
-        "packages": packages,
-        "skills": [f"!{home}/.agents/skills/**"],
+    # The profile owns its package list and its skill narrowing; the provider, model,
+    # thinking, timeout and retry choices are the operator's and survive an update.
+    settings = dict(current or {})
+    settings["packages"] = packages
+    settings.setdefault("theme", "dark")
+    settings.setdefault("defaultThinkingLevel", "high")
+    skills = settings.get("skills")
+    skills = list(skills) if isinstance(skills, list) else []
+    narrow = f"!{home}/.agents/skills/**"
+    if narrow not in skills:
+        skills.append(narrow)
+    settings["skills"] = skills
+    return settings
+
+
+def profile_mcp(defaults, home, current=None):
+    """The profile owns the plane entry; other servers and settings are the operator's."""
+    mcp = dict(current or {})
+    servers = mcp.get("mcpServers")
+    if servers is None:
+        servers = {}
+    if not isinstance(servers, dict):
+        raise SystemExit("Existing mcp.json has a non-object mcpServers; reconcile it before install")
+    servers["plane"] = {
+        "url": "https://mcp.plane.so/http/api-key/mcp",
+        "auth": False,
+        "lifecycle": "lazy",
+        "includeTools": [
+            "workitem*",
+            "project",
+            "state",
+            "label",
+            "member",
+            "workspace",
+            "get_pql_reference",
+        ],
+        "requestHeadersCommand": {
+            "command": "python3",
+            "args": [
+                str(defaults / "plane_mcp_headers.py"),
+                "--token-file",
+                str(home / ".config/megai/credentials/plane-api-token"),
+                "--workspace",
+                "brodev",
+            ],
+        },
     }
+    mcp["mcpServers"] = servers
+    settings = mcp.get("settings")
+    if settings is None:
+        settings = {}
+    if not isinstance(settings, dict):
+        raise SystemExit("Existing mcp.json has a non-object settings; reconcile it before install")
+    for key, value in (("autoAuth", False), ("directTools", False), ("mcpFooterStatus", "compact")):
+        settings.setdefault(key, value)
+    mcp["settings"] = settings
+    return mcp
+
+
+def read_object(path):
+    """Read an existing JSON object, or nothing when the file is absent.
+
+    An unreadable or non-object file fails the install instead of being replaced:
+    these files also carry operator-owned settings.
+    """
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text())
+    except ValueError as exc:
+        raise SystemExit(f"Existing {path} is not valid JSON; reconcile it before install") from exc
+    if not isinstance(data, dict):
+        raise SystemExit(f"Existing {path} is not a JSON object; reconcile it before install")
+    return data
+
+
+def defaults_only(current, profile):
+    """Profile values apply only where the operator left the key unset."""
+    merged = dict(current or {})
+    for key, value in profile.items():
+        merged.setdefault(key, value)
+    return merged
 
 
 def install(reset=False, remove_omp=False):
@@ -187,51 +263,25 @@ def install(reset=False, remove_omp=False):
     shutil.copytree(SOURCE / "prompts", agent / "prompts", dirs_exist_ok=True)
     shutil.copy2(SOURCE / "AGENTS.md", agent / "AGENTS.md")
     versions = json.loads((SOURCE / "package.json").read_text())["dependencies"]
-    write_json(agent / "settings.json", profile_settings(versions, home))
+    write_json(
+        agent / "settings.json",
+        profile_settings(versions, home, read_object(agent / "settings.json")),
+    )
     write_json(
         agent / "mcp.json",
-        {
-            "settings": {
-                "autoAuth": False,
-                "directTools": False,
-                "mcpFooterStatus": "compact",
-            },
-            "mcpServers": {
-                "plane": {
-                    "url": "https://mcp.plane.so/http/api-key/mcp",
-                    "auth": False,
-                    "lifecycle": "lazy",
-                    "includeTools": [
-                        "workitem*",
-                        "project",
-                        "state",
-                        "label",
-                        "member",
-                        "workspace",
-                        "get_pql_reference",
-                    ],
-                    "requestHeadersCommand": {
-                        "command": "python3",
-                        "args": [
-                            str(defaults / "plane_mcp_headers.py"),
-                            "--token-file",
-                            str(home / ".config/megai/credentials/plane-api-token"),
-                            "--workspace",
-                            "brodev",
-                        ],
-                    },
-                },
-            },
-        },
+        profile_mcp(defaults, home, read_object(agent / "mcp.json")),
     )
     write_json(
         agent / "web-search.json",
-        {
-            "provider": "exa",
-            "workflow": "none",
-            "allowBrowserCookies": False,
-            "autoOpenBrowser": False,
-        },
+        defaults_only(
+            read_object(agent / "web-search.json"),
+            {
+                "provider": "exa",
+                "workflow": "none",
+                "allowBrowserCookies": False,
+                "autoOpenBrowser": False,
+            },
+        ),
     )
     # Children inherit the selected model through native Paseo; no Pi agent profiles.
     local_bin.mkdir(parents=True, exist_ok=True)
