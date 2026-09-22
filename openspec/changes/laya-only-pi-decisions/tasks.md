@@ -31,7 +31,7 @@
 
 ## 6. Apply the Laya-only local profile
 
-- [ ] 6.1 Inventory affected active Pi resources and create a private timestamped backup outside the active profile; verify permissions and backup readability without copying session transcripts.
-- [ ] 6.2 Remove only active retired extensions/prompts/configuration, run the delivered profile installer and reload verification; verify required Laya-backed tools load and the retired tool is absent.
-- [ ] 6.3 Run an exhaustive active-resource scan excluding backups and sessions; verify zero legacy matches while existing backup/session data remains present.
+- [x] 6.1 Inventory affected active Pi resources and create a private timestamped backup outside the active profile; verify permissions and backup readability without copying session transcripts.
+- [x] 6.2 Remove only active retired extensions/prompts/configuration, run the delivered profile installer and reload verification; verify required Laya-backed tools load and the retired tool is absent.
+- [x] 6.3 Run an exhaustive active-resource scan excluding backups and sessions; verify zero legacy matches while existing backup/session data remains present.
 - [ ] 6.4 Record repository SHA, local-profile evidence, review verdict, remaining risks and cleanup outcome on the Plane item, then hand off In Review and stop before `main` promotion.
