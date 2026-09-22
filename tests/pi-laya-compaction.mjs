@@ -1,7 +1,7 @@
 // Local Laya fast compaction through the real installer, Pi loader and stdio bridge.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -36,13 +36,6 @@ function install(...flags) {
       PI_CODING_AGENT_DIR: agent },
   });
   mkdirSync(agent, { recursive: true });
-  // Integration fixture: the installer worker must stage this sibling asset.
-  const target = join(agent, 'extensions/megai-laya/compaction.ts');
-  if (flags.includes('--remove')) rmSync(target, { force: true });
-  else {
-    mkdirSync(join(agent, 'extensions/megai-laya'), { recursive: true });
-    copyFileSync(resolve('pi-skill/laya/compaction.ts'), target);
-  }
 }
 async function load() {
   process.env.PI_CODING_AGENT_DIR = agent;
@@ -88,16 +81,13 @@ const shutdown = async () => {
 };
 try {
   install();
-  const installed = join(agent, 'extensions/megai-laya-compaction/index.ts');
+  const retired = join(agent, 'extensions/megai-laya-compaction/index.ts');
   const installedHelper = join(agent, 'extensions/megai-laya/compaction.ts');
-  assert.equal(readFileSync(installed, 'utf8'), readFileSync(resolve('pi-skill/laya-compaction/index.ts'), 'utf8'));
+  assert.ok(!existsSync(retired), 'the retired second extension must not remain installed');
   assert.equal(readFileSync(installedHelper, 'utf8'), readFileSync(resolve('pi-skill/laya/compaction.ts'), 'utf8'));
   extensions = await load();
   const extension = extensions.find((item) => item.path.endsWith('extensions/megai-laya/index.ts'));
-  const retired = extensions.find((item) => item.path.endsWith('extensions/megai-laya-compaction/index.ts'));
   assert.ok(extension, 'the active Laya extension must load through Pi');
-  assert.equal(retired?.handlers.get('session_before_compact')?.length ?? 0, 0,
-    'the compatibility extension must not register a second compaction owner');
   const hook = extension.handlers.get('session_before_compact')?.[0];
   assert.equal(typeof hook, 'function');
 
@@ -186,7 +176,7 @@ try {
 
   await shutdown();
   install('--remove');
-  assert.ok(!existsSync(installed));
+  assert.ok(!existsSync(installedHelper));
   assert.ok(!existsSync(installedHelper));
   const ledger = readFileSync(process.env.LAYA_LOG, 'utf8');
   assert.ok(!ledger.includes('fix the parser bug'), 'the Laya ledger excludes transcript text');

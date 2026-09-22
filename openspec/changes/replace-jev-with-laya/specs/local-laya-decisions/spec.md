@@ -75,7 +75,7 @@ The installer SHALL provision a pinned upstream `laya` runtime (package version 
 
 #### Scenario: Supported clean install
 - **WHEN** installation runs on a supported platform with the pinned interpreter available and writable owned destinations
-- **THEN** the pinned runtime and both routed checkpoints are verified before `megai-laya` and `megai-laya-compaction` become active
+- **THEN** the pinned runtime and both routed checkpoints are verified before the single `megai-laya` extension becomes active, and a failure preserves the previously installed decision assets
 
 #### Scenario: Unsupported platform
 - **WHEN** installation runs where the pinned interpreter or `laya` runtime cannot be provisioned
@@ -86,11 +86,15 @@ The installer SHALL provision a pinned upstream `laya` runtime (package version 
 - **THEN** the installer preserves it and stops without mutation
 
 ### Requirement: Laya-backed companion behavior
-The existing file screen, workflow gate/router, failed-tool next-move guidance and fast compaction behaviors SHALL use the same local Laya runtime and SHALL retain their existing input bounds, privacy checks and native fallbacks unless this specification states otherwise.
+The existing file screen, workflow gate/router, failed-tool next-move guidance and fast compaction behaviors SHALL be registered by one active extension owner, use the same local Laya runtime, and retain their existing input bounds, privacy checks and native fallbacks unless this specification states otherwise.
 
 #### Scenario: Sift screens mixed candidates
 - **WHEN** `sift` receives readable and refused candidate paths
 - **THEN** readable text is scored locally, refused paths make no inference request, and only probabilities or refusal reasons enter the conversation
+
+#### Scenario: Compaction shares the runtime owner
+- **WHEN** the Laya tool and fast compaction run in one Pi session
+- **THEN** both use one bridge process and the obsolete separate compaction extension is absent
 
 #### Scenario: Compaction cannot decide safely
 - **WHEN** a Laya batch fails, returns unusable answers, or drops nothing

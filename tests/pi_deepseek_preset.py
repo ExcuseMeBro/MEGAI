@@ -55,7 +55,7 @@ class Preset(unittest.TestCase):
         for relative in ("pi-skill/delegation.md", "pi-skill/provider-guard/index.ts",
                          "pi-skill/role-routing/index.ts", "pi-skill/model-fallback/index.ts",
                          "pi-skill/antigravity/index.ts", "pi-skill/laya/index.ts",
-                         "pi-skill/laya/bridge.py", "pi-skill/laya-compaction/index.ts"):
+                         "pi-skill/laya/bridge.py", "pi-skill/laya/compaction.ts"):
             path = legacy / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes((ROOT / relative).read_bytes())

@@ -22,7 +22,7 @@ from pi_model_policy import LEGACY_ASSETS
 ASSETS = (
     ("extensions/megai-laya/index.ts", "pi-skill/laya/index.ts"),
     ("extensions/megai-laya/bridge.py", "pi-skill/laya/bridge.py"),
-    ("extensions/megai-laya-compaction/index.ts", "pi-skill/laya-compaction/index.ts"),
+    ("extensions/megai-laya/compaction.ts", "pi-skill/laya/compaction.ts"),
 )
 
 

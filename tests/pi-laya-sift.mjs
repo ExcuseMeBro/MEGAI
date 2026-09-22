@@ -137,16 +137,15 @@ try {
   assert.match(refused, /with-needle\.md: yes/);
   assert.ok(!refused.includes('{"ok":false'), 'one unreadable file must not fail the batch');
 
-  // A missing runtime refuses every file with one actionable local error instead of
-  // reaching for anything remote. The session-scoped bridge keeps its child warm, so
-  // stop it first — exactly what `session_shutdown` does at the end of a session.
+  // Session shutdown is final: later screens fail open without spawning another
+  // runtime or reaching for anything remote.
   for (const extension of extensions) {
     for (const handler of extension.handlers.get('session_shutdown') ?? []) handler();
   }
   process.env.LAYA_PYTHON = join(temp, 'absent-python');
   before = lines(fake.calls).length;
   const noRuntime = read(await run({ query: 'find the needle', paths: [join(work, 'with-needle.md')] }));
-  assert.match(noRuntime, /unread, .*(not installed|no such file|ENOENT)/i);
+  assert.match(noRuntime, /unread, .*session has shut down/i);
   assert.equal(lines(fake.calls).length, before, 'a missing runtime sends nothing');
   process.env.LAYA_PYTHON = 'python3';
 
@@ -156,7 +155,7 @@ try {
   console.log('PASS: the sift screen scores each readable file locally and returns only a probability, keeps '
     + 'input order, marks head-and-tail truncation, refuses credential-like, non-file, binary, oversized and '
     + 'out-of-root paths per file without a request, keeps the text out of the conversation and the ledger, '
-    + 'and reports a missing local runtime without touching a hosted service');
+    + 'and fails open after final session shutdown without touching a hosted service');
 } finally {
   for (const [name, value] of Object.entries(savedEnv)) {
     if (value === undefined) delete process.env[name];

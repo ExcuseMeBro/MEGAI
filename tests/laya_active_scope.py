@@ -123,7 +123,7 @@ class ActiveScope(unittest.TestCase):
 
     def test_laya_surface_exists_and_the_old_tool_is_gone(self) -> None:
         for relative in ("pi-skill/laya/index.ts", "pi-skill/laya/bridge.py",
-                         "pi-skill/laya-compaction/index.ts", "lib/laya_shadow.py",
+                         "pi-skill/laya/compaction.ts", "lib/laya_shadow.py",
                          "tests/pi-laya.sh", "tests/pi-laya-live.sh"):
             with self.subTest(path=relative):
                 self.assertTrue((ROOT / relative).is_file(), f"missing required asset: {relative}")
@@ -139,7 +139,7 @@ class ActiveScope(unittest.TestCase):
         self.assertIn('name: "sift"', tool, "the screen stays registered in the same extension")
         installer = (ROOT / "lib/pi_model_policy.py").read_text(encoding="utf-8")
         for asset in ("extensions/megai-laya/index.ts", "extensions/megai-laya/bridge.py",
-                      "extensions/megai-laya-compaction/index.ts"):
+                      "extensions/megai-laya/compaction.ts"):
             with self.subTest(asset=asset):
                 self.assertIn(asset, installer, "the installer must place every Laya asset")
         ledger = (ROOT / "lib/laya_shadow.py").read_text(encoding="utf-8")

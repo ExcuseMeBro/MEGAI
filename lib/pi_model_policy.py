@@ -16,6 +16,7 @@ END = "<!-- megai:subagent-models:end -->"
 LEGACY_ASSETS = (
     "extensions/megai-jev/index.ts",
     "extensions/megai-jev-compaction/index.ts",
+    "extensions/megai-laya-compaction/index.ts",
 )
 
 
@@ -109,8 +110,8 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
                (source / "pi-skill/laya/index.ts").read_bytes(), remove)
     plan.asset(root / "extensions/megai-laya/bridge.py",
                (source / "pi-skill/laya/bridge.py").read_bytes(), remove)
-    plan.asset(root / "extensions/megai-laya-compaction/index.ts",
-               (source / "pi-skill/laya-compaction/index.ts").read_bytes(), remove)
+    plan.asset(root / "extensions/megai-laya/compaction.ts",
+               (source / "pi-skill/laya/compaction.ts").read_bytes(), remove)
     plan.asset(root / "extensions/megai-antigravity/index.ts",
                (source / "pi-skill/antigravity/index.ts").read_bytes(), remove)
     plan.asset(root / "skills/megai/delegation.md", policy, remove)

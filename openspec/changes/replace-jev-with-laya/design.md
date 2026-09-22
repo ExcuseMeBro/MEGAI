@@ -1,6 +1,6 @@
 ## Context
 
-See `proposal.md` for motivation and `specs/local-laya-decisions/spec.md` for the behavior contract. The active Jev extension currently owns the typed tool, sift, tool-call gate/router, failed-tool guidance and shared request/logging code; a companion extension imports that code for compaction. It performs one hosted HTTP request per judgment and its block thresholds were measured on Jev. Laya is the upstream open-source decision package (`pip install laya`, Apache-2.0) whose 421M-parameter English checkpoint takes meaningful time and memory to load, but answers in tens of milliseconds once loaded.
+See `proposal.md` for motivation and `specs/local-laya-decisions/spec.md` for the behavior contract. The active Jev extension currently owns the typed tool, sift, tool-call gate/router, failed-tool guidance and shared request/logging code; a companion extension imports that code for compaction. Pi loads extension entrypoints through separate cache-disabled module instances, so preserving that split would create two local model processes. It performs one hosted HTTP request per judgment and its block thresholds were measured on Jev. Laya is the upstream open-source decision package (`pip install laya`, Apache-2.0) whose 421M-parameter English checkpoint takes meaningful time and memory to load, but answers in tens of milliseconds once loaded.
 
 The repository already has ownership-aware installers, private MEGAI virtual environments, fail-open extension tests and session lifecycle hooks. Project policy forbids adding an independent daemon.
 
@@ -22,7 +22,7 @@ The repository already has ownership-aware installers, private MEGAI virtual env
 
 ### Use one lazy stdio child, not a service or per-call CLI
 
-The TypeScript extension will spawn a Python bridge only on the first decision. The bridge creates `laya.Router(max_loaded=2)` once, consumes newline-delimited JSON requests on stdin and emits one JSON response per line on stdout. The English and multilingual checkpoints load lazily on first use and both remain resident, so alternating languages never reload a model; `typed-decisions` is never selected. Requests are serialized by the extension; stderr is bounded and used only for diagnostics. `session_shutdown` closes and terminates the child.
+The TypeScript extension will spawn a Python bridge only on the first decision. The bridge creates `laya.Router(max_loaded=2)` once, consumes newline-delimited JSON requests on stdin and emits one JSON response per line on stdout. The English and multilingual checkpoints load lazily on first use and both remain resident, so alternating languages never reload a model; `typed-decisions` is never selected. Requests are serialized by the extension, and each deadline covers queue wait, pipe wait and inference together. The same extension entrypoint registers compaction from a sibling module, so every decision-backed feature owns exactly one runtime instance. Stderr is bounded and used only for diagnostics. `session_shutdown` permanently rejects queued/new work for that extension instance, closes and terminates the child, and cannot resurrect it.
 
 Alternatives rejected:
 - A localhost HTTP daemon violates the no-new-daemon constraint and adds port/lifecycle ownership.
@@ -66,14 +66,14 @@ Focused Node tests install the actual extension and point it at a deterministic 
 - **Laya is less accurate and less calibrated than Jev on the measured 500-item comparison** → gate blocking is opt-in and workflow decisions remain advisory; record outcomes for future tuning.
 - **First use of each language family builds a checkpoint** → the installer selectively caches and verifies English plus multilingual files; the bridge loads each model lazily once, and its two-slot router prevents alternating-language reloads.
 - **Two resident models consume substantial unified memory per Pi session** → no typed-decisions model, no duplicate process, lazy loading, a hard two-model cap and deterministic shutdown; no background daemon.
-- **A child crash can leave pending requests** → reject all pending calls, clear the process reference and allow a later call to start one fresh child; never replay an uncertain request automatically.
+- **A child crash can leave pending requests** → reject all pending calls and clear the process reference without replaying an uncertain request; a later call may start a fresh child only before session shutdown.
 - **Platform and interpreter availability** → the installer pins an interpreter with prebuilt `torch` wheels, permits CPU fallback and fails before activation on an unsupported platform instead of silently falling back to a hosted provider.
 - **Renaming breaks old prompts and resumed tool calls** → active policy and tests migrate together; old `jev` calls fail visibly rather than secretly using another backend.
 
 ## Migration Plan
 
 1. Add and verify the owned, pinned Laya runtime without touching active Pi extensions.
-2. Install `megai-laya` and `megai-laya-compaction`, update active policy/skills, and retire only owned `megai-jev*` assets in the existing transaction.
+2. After runtime verification succeeds, install one `megai-laya` extension with sibling `bridge.py` and `compaction.ts`, update active policy/skills, and retire only owned `megai-jev*` plus the obsolete owned `megai-laya-compaction` entrypoint in the same transaction.
 3. Reload/restart Pi so the old in-memory extension exits and its session-scoped child cannot survive.
 4. Run focused offline suites and one real local inference smoke.
 5. Commit and push only `origin/pi-laya`.

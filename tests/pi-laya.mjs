@@ -6,7 +6,7 @@
 // stub fails loudly if the extension ever asks for a key again.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -64,13 +64,6 @@ function install(...flags) {
     env: { ...process.env, HOME: temp, MEGAI_HOME: join(temp, 'megai'), MEGAI_SOURCE: ROOT, PI_CODING_AGENT_DIR: agent },
   });
   mkdirSync(agent, { recursive: true });
-  // Integration fixture: the installer worker must stage this sibling asset.
-  const target = join(agent, 'extensions/megai-laya/compaction.ts');
-  if (flags.includes('--remove')) rmSync(target, { force: true });
-  else {
-    mkdirSync(join(agent, 'extensions/megai-laya'), { recursive: true });
-    copyFileSync(resolve('pi-skill/laya/compaction.ts'), target);
-  }
 }
 
 async function load() {
