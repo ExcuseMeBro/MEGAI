@@ -21,7 +21,7 @@
 - [x] 4.1 Run focused Laya runtime, policy, installer and active-scope suites; verify all assertions pass.
 - [x] 4.2 Run focused workflow-status and safety suites; verify all assertions pass.
 - [x] 4.3 Run Ruff on every changed Python file and strict OpenSpec validation; verify both exit zero.
-- [ ] 4.4 Commit the complete candidate and rerun exhaustive tracked-source scans plus branch ancestry/order checks against the exact commit; verify zero legacy matches and the required commit vector.
+- [x] 4.4 Commit the complete candidate and rerun exhaustive tracked-source scans plus branch ancestry/order checks against the exact commit; verify zero legacy matches and the required commit vector.
 
 ## 5. Guarded acceptance and dev delivery
 
