@@ -61,6 +61,27 @@ class ModelPolicy(Slim):
         self.assertIn("custom/legacy asset preserved", self.wire(ok=False).stderr)
         self.assertEqual(self.snapshot(), before)
 
+    def test_unowned_delegation_migrates_only_the_decision_tool_name(self):
+        self.wire()
+        agent = self.home / ".pi/agent"
+        target = agent / "skills/megai/delegation.md"
+        custom = target.read_text().replace(
+            "When the `laya` tool is available",
+            "When the `jev` tool is available",
+        ) + "\nCustom operator rule stays.\n"
+        self.write(target, custom)
+        command = (sys.executable, str(self.megai / "lib/pi_model_policy.py"))
+        self.run_cmd(*command)
+        installed = target.read_text()
+        self.assertIn("When the `laya` tool is available", installed)
+        self.assertNotIn("When the `jev` tool is available", installed)
+        self.assertIn("Custom operator rule stays.", installed)
+        receipt = json.loads((self.megai / "slim-wiring.json").read_text())
+        self.assertNotIn(str(target), receipt, "a scoped migration must not claim the custom file")
+        before = self.snapshot()
+        self.run_cmd(*command)
+        self.assertEqual(self.snapshot(), before)
+
     def test_owned_legacy_guard_retired_on_upgrade(self):
         import hashlib
 
