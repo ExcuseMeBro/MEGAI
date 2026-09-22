@@ -102,7 +102,7 @@ planner and reviewer are read-only; a worker gets only its assigned managed path
 Read-only checks use `python3 -B` and Ruff with
 `--no-fix --no-fix-only --force-exclude --no-cache`; avoid cache-producing checks.
 
-When the `jev` tool is available, delegation, role, fallback and timeout are each one
+When the `laya` tool is available, delegation, role, fallback and timeout are each one
 call on the task state (`delegate`, `role`, `fallback` and `timeout_action` choices,
 with a `noul` for whether escalation is required), recorded on the same Plane item.
 The answers are advisory: the configured roles, quota rules and fallback chain above

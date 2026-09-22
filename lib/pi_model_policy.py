@@ -7,6 +7,14 @@ from pathlib import Path
 BEGIN = "<!-- megai:subagent-models:begin -->"
 END = "<!-- megai:subagent-models:end -->"
 
+# Installed assets of the retired hosted decision product. The installer owned these
+# bytes, so an upgrade retires them by name: the Laya assets below replace them, and a
+# stale copy must not stay registered as a second decision tool.
+LEGACY_ASSETS = (
+    "extensions/megai-jev/index.ts",
+    "extensions/megai-jev-compaction/index.ts",
+)
+
 
 def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> None:
     from slim_wiring import digest, read
@@ -54,10 +62,17 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
                (source / "pi-skill/role-routing/index.ts").read_bytes(), remove)
     plan.asset(root / "extensions/megai-model-fallback/index.ts",
                (source / "pi-skill/model-fallback/index.ts").read_bytes(), remove)
-    plan.asset(root / "extensions/megai-jev/index.ts",
-               (source / "pi-skill/jev/index.ts").read_bytes(), remove)
-    plan.asset(root / "extensions/megai-jev-compaction/index.ts",
-               (source / "pi-skill/jev-compaction/index.ts").read_bytes(), remove)
+    # Retired decision product: retire the installed bytes it owned, then place the
+    # Laya extension, its stdio bridge (a sibling file, loaded by relative path) and the
+    # compaction companion that shares the same bridge process.
+    for relative in LEGACY_ASSETS:
+        plan.retire(root / relative)
+    plan.asset(root / "extensions/megai-laya/index.ts",
+               (source / "pi-skill/laya/index.ts").read_bytes(), remove)
+    plan.asset(root / "extensions/megai-laya/bridge.py",
+               (source / "pi-skill/laya/bridge.py").read_bytes(), remove)
+    plan.asset(root / "extensions/megai-laya-compaction/index.ts",
+               (source / "pi-skill/laya-compaction/index.ts").read_bytes(), remove)
     plan.asset(root / "extensions/megai-antigravity/index.ts",
                (source / "pi-skill/antigravity/index.ts").read_bytes(), remove)
     plan.asset(root / "skills/megai/delegation.md", policy, remove)

@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Label and read the live Jev decision ledger.
+"""Label and read the live Laya decision ledger.
 
-`jev` appends one JSONL line per provider call to `~/.megai/jev-calls.jsonl`
-(`JEV_LOG` moves that file, `JEV_LOG=0` turns it off). This closes the loop that
+`laya` appends one JSONL line per local decision to `~/.megai/laya-calls.jsonl`
+(`LAYA_LOG` moves that file, `LAYA_LOG=0` turns it off). This closes the loop that
 file exists for. `note` appends what actually happened for one recorded decision,
-keyed by the short record id the tool prints; `report` joins answers to outcomes
-and prints three things worth acting on: how often Jev's answer matched the real
-outcome per question, what its probabilities are worth as a cutoff, and the rows
-where the two disagreed — the rows worth turning into a test set.
+keyed by the short record id the tool prints; `report` joins answers to outcomes and
+prints what is worth acting on: how often the local answer matched the real outcome
+per question, what its probabilities are worth as a cutoff, the routes that answered
+and the rows where the two disagreed — the rows worth turning into a test set.
 
-It reads and appends to that one file, makes no provider request, and prints no
-state: the ledger never stores the state sent to Jev, and neither does this.
+It reads and appends to that one file, starts no model and makes no request, and
+prints no state: the ledger never stores the state sent to the model, and neither
+does this.
 """
 from __future__ import annotations
 
@@ -23,15 +24,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-DEFAULT_LEDGER = Path.home() / ".megai/jev-calls.jsonl"
+DEFAULT_LEDGER = Path.home() / ".megai/laya-calls.jsonl"
 CUTOFFS = (0.5, 0.6, 0.7, 0.8, 0.9)
 YES = {"yes", "true", "1", "y"}
 NO = {"no", "false", "0", "n"}
 
 
 def ledger_path() -> Path | None:
-    """The ledger `jev` writes to, or None when `JEV_LOG=0` turned logging off."""
-    value = os.environ.get("JEV_LOG", "").strip()
+    """The ledger `laya` writes to, or None when `LAYA_LOG=0` turned logging off."""
+    value = os.environ.get("LAYA_LOG", "").strip()
     if value == "0":
         return None
     return Path(value) if value else DEFAULT_LEDGER
@@ -86,8 +87,8 @@ def questions_of(row: dict[str, Any]) -> dict[str, Any]:
 
 
 def confidence(entry: dict[str, Any]) -> float | None:
-    """The probability Jev put on the answer it gave: `confidence` when the
-    provider reports it, otherwise the weight of the picked choice."""
+    """The probability the model put on the answer it gave: `confidence` when the
+    checkpoint reports it, otherwise the weight of the picked choice."""
     value = entry.get("confidence")
     if isinstance(value, (int, float)):
         return float(value)
@@ -147,6 +148,7 @@ def collect(calls: list[dict[str, Any]], labels: dict[tuple[str, str], str]) -> 
                 "actual": actual,
                 "agrees": None if actual is None else agrees(bucket["type"], entry.get("answer"), actual),
                 "id": call_id(row),
+                "route": str(row.get("route") or ""),
             })
     return seen
 
@@ -171,14 +173,21 @@ def quantile(values: list[float], fraction: float) -> float | None:
 
 
 def disagreements_of(questions: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
-    """The rows where Jev's answer and the recorded outcome differ, flattened with
-    their question id: the free test set the guide asks normal traffic to build."""
+    """The rows where the local answer and the recorded outcome differ, flattened
+    with their question id: the free test set a later calibration wants."""
     rows = []
     for qid, bucket in questions.items():
         for row in bucket["seen"]:
             if row["agrees"] is False:
                 rows.append({**row, "question": qid})
     return rows
+
+
+def counts(rows: list[dict[str, Any]], key: str, fallback: str) -> str:
+    """`english 12, multilingual 3` — which route or checkpoint answered, and how
+    often: a calibration is retuned per language family, not per call."""
+    counted = collections.Counter(str(row.get(key) or fallback) for row in rows)
+    return ", ".join(f"{name} {count}" for name, count in counted.most_common()) or "none"
 
 
 def report(path: Path, calls: list[dict[str, Any]], failures: list[dict[str, Any]], questions: dict[str, dict[str, Any]]) -> str:
@@ -189,6 +198,9 @@ def report(path: Path, calls: list[dict[str, Any]], failures: list[dict[str, Any
         f"ledger: {path}",
         f"lines: {len(calls) + len(failures)}  calls: {len(calls)}  failed: {len(failures)}",
         "sources: " + (", ".join(f"{name} {count}" for name, count in sources.most_common()) or "none"),
+        f"routes: {counts(calls, 'route', 'unknown')}",
+        f"models: {counts(calls, 'model', 'unknown')}",
+        f"languages: {counts(calls, 'lang', 'auto')}",
         f"labeled answers: {labeled} of {asked}",
         "",
         "questions",
@@ -206,7 +218,7 @@ def report(path: Path, calls: list[dict[str, Any]], failures: list[dict[str, Any
 
     scored = {qid: bucket for qid, bucket in questions.items() if any(r["agrees"] is not None for r in bucket["seen"])}
     if not scored:
-        lines += ["", "no outcome labels yet: `jev_shadow.py note --id <record id> --actual <label>`"]
+        lines += ["", "no outcome labels yet: `laya_shadow.py note --id <record id> --actual <label>`"]
         return "\n".join(lines)
 
     lines += ["", "outcome", f"{'question':<22} {'n':>4} {'agree':>7} {'mean P right/wrong':>20}"]
@@ -231,7 +243,7 @@ def report(path: Path, calls: list[dict[str, Any]], failures: list[dict[str, Any
     rows = disagreements_of(questions)
     lines += ["", f"disagreements ({len(rows)} rows, the next test set)"]
     if rows:
-        lines.append(f"{'id':<10} {'question':<22} {'Jev':<24} {'actual':<24} {'P':>5}")
+        lines.append(f"{'id':<10} {'question':<22} {'model':<24} {'actual':<24} {'P':>5}")
         for row in rows:
             lines.append(
                 f"{row['id']:<10} {row['question']:<22} {str(row['value']):<24} {str(row['actual']):<24} {number(row['p']):>5}"
@@ -265,13 +277,13 @@ def write(path: Path, row: dict[str, Any]) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="jev_shadow.py",
-        description="Label what actually happened for a recorded Jev decision, and read the ledger back.",
+        prog="laya_shadow.py",
+        description="Label what actually happened for a recorded Laya decision, and read the ledger back.",
     )
-    parser.add_argument("--path", help="ledger file (default: JEV_LOG, else ~/.megai/jev-calls.jsonl)")
+    parser.add_argument("--path", help="ledger file (default: LAYA_LOG, else ~/.megai/laya-calls.jsonl)")
     actions = parser.add_subparsers(dest="action", required=True)
     noting = actions.add_parser("note", help="append the real outcome for one recorded decision")
-    noting.add_argument("--id", required=True, help="the record id the jev tool printed")
+    noting.add_argument("--id", required=True, help="the record id the laya tool printed")
     noting.add_argument("--actual", required=True, help="what really happened")
     noting.add_argument("--question", default="", help="one question id; omit to label every question of that call")
     noting.add_argument("--source", default="agent", help="who labeled it (default: agent)")
@@ -281,7 +293,7 @@ def main(argv: list[str] | None = None) -> int:
 
     path = Path(args.path) if args.path else ledger_path()
     if path is None:
-        print("ledger is off (`JEV_LOG=0`)", file=sys.stderr)
+        print("ledger is off (`LAYA_LOG=0`)", file=sys.stderr)
         return 1
     if args.action == "note":
         return note(path, args)

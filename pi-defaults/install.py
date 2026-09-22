@@ -304,6 +304,11 @@ def install(reset=False, remove_omp=False):
     env = {**os.environ, "MEGAI_HOME": str(shared), "MEGAI_SOURCE": str(REPO)}
     for name in ("ruff", "codedb", "tgrep", "jevcache", "headroom"):
         run("bash", REPO / f"lib/install_{name}.sh", env=env)
+    # The local decision runtime carries checkpoints of its own, so its preparation is a
+    # one-time download that must not abort an otherwise complete install: the extension
+    # is staged either way and reports a missing runtime instead of failing obscurely.
+    if subprocess.run(["bash", str(REPO / "lib/install_laya.sh")], env=env).returncode:
+        print("warning: local decision runtime not ready; run `bash lib/install_laya.sh` once the cause is fixed", file=sys.stderr)
     shutil.copytree(
         REPO / "pi-skill/headroom", shared / "pi-skill/headroom", dirs_exist_ok=True
     )

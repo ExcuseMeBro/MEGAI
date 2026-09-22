@@ -1,31 +1,35 @@
 /**
- * Jev fast compaction — the Pi twin of `tamaratran/fast-jev-compaction`.
+ * Laya fast compaction on the local Laya runtime.
  *
  * Pi normally spends one LLM summarization call on the span it discards. This
  * replaces that with two cheap `noul` questions per tool call in the span: keep
  * the call, keep its result. The assistant and user text, every tool call, and
- * every result Jev scores as still needed stay verbatim; a result judged stale
+ * every result Laya scores as still needed stay verbatim; a result judged stale
  * collapses to a one-line note, and a stale call disappears together with its
  * result. The summary is a transcript with holes cut out, not a paraphrase —
  * orders of magnitude cheaper and faster than a summarization call, and nothing
  * that mattered is reworded.
  *
- * It can never block a compaction. Without a key, with `/compact <instructions>`
- * (a focused summary we cannot honor), on overflow recovery (which needs a summary
- * guaranteed to be small), when the span has no tool calls, or when Jev drops
- * nothing, the handler returns `undefined` and Pi's own summarization runs exactly
- * as before. A failed or unreadable Jev batch keeps everything it asked about.
+ * It can never block a compaction. Without a local runtime, with
+ * `/compact <instructions>` (a focused summary we cannot honor), on overflow
+ * recovery (which needs a summary guaranteed to be small), when the span has no
+ * tool calls, or when Laya drops nothing, the handler returns `undefined` and Pi's
+ * own summarization runs exactly as before. A failed or unreadable Laya batch keeps
+ * everything it asked about.
+ *
+ * It shares the extension's one session-scoped bridge through the relative import
+ * below, so compaction adds no second model process.
  *
  * Deviations from the Claude Code plugin: thinking blocks are dropped rather than
  * judged, a kept result is capped at `MAX_RESULT_CHARS` so a compaction always
  * frees space, and the previous summary is carried forward verbatim because Pi
  * discards it after each cycle.
  * ponytail: the carried summary grows by one span per cycle. If a very long
- * session's chain ever gets too big, fold older cycles into one Jev-kept pass.
+ * session's chain ever gets too big, fold older cycles into one Laya-kept pass.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { convertToLlm } from "@earendil-works/pi-coding-agent";
-import { apiKey, jevPost, MAX_QUESTIONS } from "../megai-jev/index.ts";
+import { layaPost, MAX_QUESTIONS, stopChild } from "../megai-laya/index.ts";
 
 /** `noul` probability at or above which a call or result is kept. */
 const KEEP_THRESHOLD = 0.5;
@@ -37,7 +41,7 @@ const MAX_ARGS_CHARS = 200;
 const MAX_GOAL_CHARS = 1_500;
 const GOAL_MESSAGES = 3;
 
-const HEADER = "Compacted transcript of earlier turns (Jev fast compaction: kept verbatim, " +
+const HEADER = "Compacted transcript of earlier turns (Laya fast compaction: kept verbatim, " +
   "entries marked `dropped` were judged stale — re-run the tool if they matter now).";
 
 interface ToolCall {
@@ -173,7 +177,6 @@ function noul(answer: unknown): number | undefined {
 async function decide(
   calls: readonly ToolCall[],
   state: string,
-  key: string,
   signal: AbortSignal,
 ): Promise<{ decisions: Map<number, Action>; requests: number; failed: number }> {
   const batches: ToolCall[][] = [];
@@ -183,7 +186,7 @@ async function decide(
   const answers = await Promise.all(
     batches.map(async (batch) => ({
       batch,
-      result: await jevPost(key, state, Object.assign({}, ...batch.map(questionsFor)), signal, "compaction"),
+      result: await layaPost(state, Object.assign({}, ...batch.map(questionsFor)), undefined, signal, "compaction"),
     })),
   );
   const decisions = new Map<number, Action>();
@@ -255,15 +258,14 @@ function fileLists(fileOps: any): { readFiles: string[]; modifiedFiles: string[]
   };
 }
 
-export default function jevCompaction(pi: ExtensionAPI) {
+export default function layaCompaction(pi: ExtensionAPI) {
+  pi.on("session_shutdown", stopChild);
   pi.on("session_before_compact", async (event, ctx) => {
     try {
       const { preparation, reason, customInstructions, signal } = event;
       // A focused `/compact <instructions>` wants a summary this cannot produce,
       // and overflow recovery needs a summary guaranteed to be small.
       if (reason === "overflow" || customInstructions?.trim()) return;
-      const key = apiKey();
-      if (!key) return;
 
       const messages = [...preparation.messagesToSummarize, ...preparation.turnPrefixMessages];
       const { blocks, calls, chars } = blocksOf(convertToLlm(messages));
@@ -274,7 +276,6 @@ export default function jevCompaction(pi: ExtensionAPI) {
       const { decisions, requests, failed } = await decide(
         calls,
         stateFor(goalOf(messages), calls, carried),
-        key,
         signal,
       );
       const resultsDropped = calls.filter((call) => decisions.get(call.seq) === "drop_result").length;
@@ -286,8 +287,8 @@ export default function jevCompaction(pi: ExtensionAPI) {
       const summary = render(blocks, decisions, carried);
       const files = fileLists(preparation.fileOps);
       ctx.ui.notify(
-        `Jev compaction: ${calls.length} calls, ${resultsDropped} results and ${callsDropped} calls dropped, ` +
-          `${chars} → ${summary.length} chars, ${requests} Jev calls in ${Date.now() - started} ms` +
+        `Laya compaction: ${calls.length} calls, ${resultsDropped} results and ${callsDropped} calls dropped, ` +
+          `${chars} → ${summary.length} chars, ${requests} local calls in ${Date.now() - started} ms` +
           (failed ? ` (${failed} batches kept everything)` : ""),
         failed ? "warning" : "info",
       );
@@ -298,7 +299,7 @@ export default function jevCompaction(pi: ExtensionAPI) {
           tokensBefore: preparation.tokensBefore,
           details: {
             ...files,
-            jev: {
+            laya: {
               calls: calls.length,
               kept: calls.filter((call) => decisions.get(call.seq) === "keep").length,
               resultsDropped,
@@ -313,7 +314,7 @@ export default function jevCompaction(pi: ExtensionAPI) {
         },
       };
     } catch (error) {
-      ctx.ui.notify(`Jev compaction failed (${error instanceof Error ? error.message : String(error)}); using Pi's summary`, "warning");
+      ctx.ui.notify(`Laya compaction failed (${error instanceof Error ? error.message : String(error)}); using Pi's summary`, "warning");
       return;
     }
   });

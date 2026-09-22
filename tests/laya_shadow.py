@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Contracts for the Jev ledger reader.
+"""Contracts for the Laya ledger reader.
 
 The agreement, cutoff and disagreement numbers are checked against a hand-built
 fixture so the printed advice cannot drift from the ledger it claims to read, and
@@ -22,13 +22,14 @@ LIB = ROOT / "lib"
 
 # Loaded by path: this file is named after the module it tests, so a plain import
 # would find the test module itself when the suite is run from this directory.
-spec = importlib.util.spec_from_file_location("jev_shadow_lib", LIB / "jev_shadow.py")
+spec = importlib.util.spec_from_file_location("laya_shadow_lib", LIB / "laya_shadow.py")
 shadow = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(shadow)
 
 
 def call(rid: str, source: str, answers: dict) -> dict:
-    return {"id": rid, "source": source, "model": "jev-1.13.0", "t": "2026-01-01T00:00:00.000Z", "answers": answers}
+    return {"id": rid, "source": source, "model": "convaiinnovations/laya", "route": "english",
+            "runtime": "local:laya", "t": "2026-01-01T00:00:00.000Z", "answers": answers}
 
 
 def noul(value: float) -> dict:
@@ -45,7 +46,7 @@ def choice(label: str, confidence: float | None = None) -> dict:
 class LedgerReader(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
-        self.path = Path(self.temp.name) / "jev-calls.jsonl"
+        self.path = Path(self.temp.name) / "laya-calls.jsonl"
 
     def tearDown(self) -> None:
         self.temp.cleanup()
@@ -56,7 +57,7 @@ class LedgerReader(unittest.TestCase):
     def cli(self, *args: str, env: dict | None = None, path: bool = True) -> subprocess.CompletedProcess:
         args = (("--path", str(self.path)) if path else ()) + args
         return subprocess.run(
-            [sys.executable, str(LIB / "jev_shadow.py"), *args],
+            [sys.executable, str(LIB / "laya_shadow.py"), *args],
             capture_output=True, text=True, env={**os.environ, **(env or {})},
         )
 
@@ -78,6 +79,9 @@ class LedgerReader(unittest.TestCase):
 
         self.assertEqual((len(calls), len(failures)), (4, 0))
         self.assertIn("sources: tool 2, gate 1, sift 1", text)
+        self.assertIn("routes: english 4", text)
+        self.assertIn("models: convaiinnovations/laya 4", text)
+        self.assertIn("languages: auto 4", text)
         self.assertIn("labeled answers: 5 of 6", text)
         self.assertIn("mode", text)
         self.assertIn("100.0%", text)          # mode: routine/routine and guarded/guarded
@@ -111,7 +115,8 @@ class LedgerReader(unittest.TestCase):
     def test_failure_rows_are_counted_apart_and_never_answered(self) -> None:
         self.write([
             call("aaaa1111", "tool", {"mode": choice("routine")}),
-            {"id": "bbbb2222", "source": "gate", "model": "jev-1.13.0", "error": "Jev returned HTTP 500", "status": 500},
+            {"id": "bbbb2222", "source": "gate", "model": None, "route": None,
+             "error": "laya: inference failed (child exited 1)", "runtime": "local:laya"},
         ])
         text = self.cli("report").stdout
         self.assertIn("calls: 1", text)
@@ -157,9 +162,9 @@ class LedgerReader(unittest.TestCase):
         self.assertIn("calls: 1", broken.stdout)
 
     def test_ledger_off_is_reported_not_silently_empty(self) -> None:
-        result = self.cli("report", env={"JEV_LOG": "0"}, path=False)
+        result = self.cli("report", env={"LAYA_LOG": "0"}, path=False)
         self.assertEqual(result.returncode, 1)
-        self.assertIn("JEV_LOG=0", result.stderr)
+        self.assertIn("LAYA_LOG=0", result.stderr)
 
 
 if __name__ == "__main__":

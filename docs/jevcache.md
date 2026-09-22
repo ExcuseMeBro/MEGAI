@@ -18,9 +18,9 @@ Only `demo`, `decide`, `recall`, `serve`, `stats` and `replay` are used here. Th
 `publish --remote`, `use`, `market`, `wallet`, `earnings` and `deposit` commands reach the
 hosted index and a money surface; nothing in this stack calls them.
 
-## Not wired into the Jev gate
+## Not wired into the Laya gate
 
-The gate in `pi-skill/jev/index.ts` decides whether a tool call runs as written. jevcache
+The gate in `pi-skill/laya/index.ts` decides whether a tool call runs as written. jevcache
 stays out of that path, deliberately:
 
 - **The traffic does not repeat.** A gate state is the session goal, the working
@@ -46,7 +46,6 @@ stays out of that path, deliberately:
 ```bash
 jevcache demo                       # no key, no schema, no setup
 jevcache stats                      # hit rate and spend avoided
-JEVCACHE_BACKEND=jev TYPESAFE_API_KEY=… jevcache decide --schema support.route --state ticket.json
 ```
 
 Revisit the decision above when a caller with real repeats exists. The hand-run probes
