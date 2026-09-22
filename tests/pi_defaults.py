@@ -341,6 +341,14 @@ class Distribution(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 install.read_object(broken)
 
+    def test_the_two_installers_share_one_headroom_bridge(self):
+        """lib/slim_wiring.py owns this same path and refuses a differing file."""
+        source = (DEFAULTS.parent / "lib/slim_wiring.py").read_text()
+        literal = re.search(r"bridge = b'([^']*)'", source).group(1)
+        self.assertEqual(
+            install.HEADROOM_BRIDGE, literal.encode().decode("unicode_escape").encode()
+        )
+
     def test_the_clean_profile_keeps_one_headroom_adapter(self):
         """Both adapter names expose the same tools, and Pi refuses one of them."""
         with tempfile.TemporaryDirectory(prefix="megai-headroom-") as staging:

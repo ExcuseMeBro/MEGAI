@@ -133,6 +133,13 @@ def defaults_only(current, profile):
     return merged
 
 
+HEADROOM_BRIDGE = (
+    b'#!/usr/bin/env bash\nset -euo pipefail\nroot="${MEGAI_HOME:-$HOME/.megai}"\n'
+    b'exec env -i HOME="$HOME" MEGAI_HOME="$root" PATH="${PATH:-/usr/bin:/bin}"'
+    b' "$root/venv/headroom/bin/python" -I -B "$root/pi-skill/headroom/bridge.py" "$@"\n'
+)
+
+
 def retire_duplicate_headroom(agent, home):
     """Keep exactly one headroom adapter installed.
 
@@ -308,9 +315,9 @@ def install(reset=False, remove_omp=False):
     # Children inherit the selected model through native Paseo; no Pi agent profiles.
     local_bin.mkdir(parents=True, exist_ok=True)
     bridge = shared / "bin/megai-headroom"
-    bridge.write_text(
-        '#!/bin/sh\nexec "$HOME/.megai/venv/headroom/bin/python" -I -B "$HOME/.megai/pi-skill/headroom/bridge.py" "$@"\n'
-    )
+    # One canonical byte string: lib/slim_wiring.py owns this same path and refuses a
+    # file that differs from its own asset, so the two installers must agree.
+    bridge.write_bytes(HEADROOM_BRIDGE)
     bridge.chmod(0o755)
     for name, target in {
         "openspec": npm_root / "node_modules/.bin/openspec",
