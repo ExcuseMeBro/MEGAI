@@ -31,11 +31,12 @@ const NO_TOOLS = "Answer only from this prompt and its supplied context. Do not 
 const SENSITIVE_PATH = /(^|[/\\])(?:\.git|\.ssh|\.aws|\.env(?:\.[^/\\]+)?|auth\.json|oauth_creds\.json|credentials?(?:\.(?:json|ya?ml|toml))?|secrets?)(?=$|[/\\])/i;
 const SENSITIVE_SUFFIX = /\.(?:pem|key|p12|pfx)$/i;
 const UTF8 = new TextDecoder("utf-8", { fatal: true });
+const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/;
 
 function decodeText(data: Uint8Array): string | undefined {
-  if (data.some((byte) => byte < 32 && byte !== 9 && byte !== 10 && byte !== 13)) return undefined;
   try {
-    return UTF8.decode(data);
+    const text = UTF8.decode(data);
+    return CONTROL.test(text) ? undefined : text;
   } catch {
     return undefined;
   }

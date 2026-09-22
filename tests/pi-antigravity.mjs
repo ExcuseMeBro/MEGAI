@@ -47,6 +47,8 @@ process.stdout.write(process.env.AGY_ANSWER ?? '');
   writeFileSync(join(work, '.env'), 'TOKEN=secret\n');
   writeFileSync(join(work, 'binary.bin'), Buffer.from([1, 2, 3]));
   writeFileSync(join(work, 'invalid.bin'), Buffer.from([0xc3, 0x28]));
+  writeFileSync(join(work, 'del.bin'), Buffer.from([0x7f]));
+  writeFileSync(join(work, 'c1.bin'), Buffer.from([0xc2, 0x80]));
   symlinkSync('.env', join(work, 'safe.txt'));
   writeFileSync(join(temp, 'outside.txt'), 'outside-value\n');
   const ctx = { hasUI: false, mode: 'print', cwd: work, isIdle: () => true,
@@ -71,15 +73,17 @@ process.stdout.write(process.env.AGY_ANSWER ?? '');
 
   // Unsafe, binary, escaping and over-cap paths are refused without failing the turn.
   const capped = await run({ prompt: 'Read the log',
-    files: ['huge.log', 'missing.md', '.env', '../outside.txt', 'binary.bin', 'safe.txt', 'invalid.bin'] });
+    files: ['huge.log', 'missing.md', '.env', '../outside.txt', 'binary.bin', 'safe.txt', 'invalid.bin', 'del.bin', 'c1.bin'] });
   assert.equal(capped.content[0].text, 'ANTIGRAVITY_ANSWER');
-  assert.equal(capped.details.notes.length, 7, 'every refused or unreadable file is reported');
+  assert.equal(capped.details.notes.length, 9, 'every refused or unreadable file is reported');
   assert.match(capped.details.notes[0], /per-file cap/);
   assert.match(capped.details.notes[2], /credential-like/);
   assert.match(capped.details.notes[3], /outside the working directory/);
   assert.match(capped.details.notes[4], /binary content/);
   assert.match(capped.details.notes[5], /credential-like/, 'resolved symlink target names are screened');
   assert.match(capped.details.notes[6], /binary content/, 'invalid UTF-8 is refused');
+  assert.match(capped.details.notes[7], /binary content/, 'ASCII DEL is refused');
+  assert.match(capped.details.notes[8], /binary content/, 'UTF-8 C1 controls are refused');
   assert.ok(!argv().includes('--model'), 'an omitted model is left to the CLI default');
   assert.ok(!argv()[1].includes('TOKEN=secret'), 'credential-like file contents must not leave the process');
   assert.ok(!argv()[1].includes('outside-value'), 'outside file contents must not leave the process');
