@@ -1,7 +1,7 @@
 ## 1. Freeze the Laya-only contract
 
 - [x] 1.1 Rename and revise the existing OpenSpec artifacts for strict Laya-only source/profile scope, ordered branch consolidation and dev-only delivery; verify `openspec validate laya-only-pi-decisions --strict` passes.
-- [ ] 1.2 Freeze guarded acceptance commands for Laya behavior, workflow status, exhaustive tracked-source absence, active-profile absence and commit ancestry; verify the contract hash and criteria are recorded on the existing Plane item.
+- [x] 1.2 Freeze guarded acceptance commands for Laya behavior, workflow status, exhaustive tracked-source absence, active-profile absence and commit ancestry; verify the contract hash and criteria are recorded on the existing Plane item.
 
 ## 2. Consolidate applicable branch work
 
