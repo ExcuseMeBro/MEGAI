@@ -60,6 +60,16 @@ RETIREMENT_LINES = {
     '"extensions/megai-jev/index.ts",',
     '"extensions/megai-jev-compaction/index.ts",',
 }
+# Active verification must name the removed public tool so an accidental reinstall
+# fails loudly. Permit only these exact guard assertions, not arbitrary references.
+ALLOWED_LINES = {
+    "pi-defaults/verify.mjs": {
+        "const removedTools = ['subagent', 'jev'];",
+    },
+    "tests/pi_defaults.py": {
+        'self.assertIn("jev", removed)',
+    },
+}
 TEXT_SUFFIXES = {
     ".py", ".sh", ".ts", ".mjs", ".js", ".md", ".json", ".yaml", ".yml", ".toml",
     ".in", ".txt", ".lock",
@@ -97,7 +107,7 @@ def offences(path: Path) -> list[str]:
     found: list[str] = []
     for number, line in enumerate(text.splitlines(), start=1):
         for pattern in FORBIDDEN:
-            if pattern.search(line):
+            if pattern.search(line) and line.strip() not in ALLOWED_LINES.get(relative, set()):
                 found.append(f"{relative}:{number}: {line.strip()[:120]}")
                 break
     return found

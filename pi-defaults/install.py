@@ -205,6 +205,17 @@ def prepare_laya_runtime(repo, env):
         )
 
 
+def activate_laya_profile(repo, env):
+    """Atomically retire the hosted decision assets and activate local Laya."""
+    seam = os.environ.get("MEGAI_LAYA_ACTIVATE")
+    command = shlex.split(seam) if seam else [sys.executable, str(repo / "lib/pi_model_policy.py")]
+    if subprocess.run(command, env=env).returncode:
+        raise SystemExit(
+            "Local Laya profile activation failed; existing decision assets are unchanged "
+            "and Laya is not activated. Reconcile the reported conflict, then rerun the installer."
+        )
+
+
 def install(reset=False, remove_omp=False):
     home = Path.home()
     agent = home / ".pi/agent"
@@ -335,6 +346,7 @@ def install(reset=False, remove_omp=False):
     headroom.mkdir(parents=True, exist_ok=True)
     shutil.copy2(REPO / "pi-skill/headroom/index.ts", headroom / "index.ts")
     retire_duplicate_headroom(agent, home)
+    activate_laya_profile(REPO, env)
     shutil.copytree(SOURCE / "skills", agent / "skills", dirs_exist_ok=True)
     shutil.copytree(SOURCE / "prompts", agent / "prompts", dirs_exist_ok=True)
     source_md = SOURCE / "AGENTS.md"
