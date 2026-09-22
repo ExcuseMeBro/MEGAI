@@ -7,10 +7,15 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
+
+# The clean profile always installs the newest Pi; the resolved version is recorded
+# in the defaults manifest instead of being pinned here.
+PI_PACKAGE = "@earendil-works/pi-coding-agent"
 
 SOURCE = Path(__file__).resolve().parent
 REPO = SOURCE.parent
@@ -106,30 +111,23 @@ def install(reset=False, remove_omp=False):
         remove(home / ".omp")
         for name in ("omp-agents", "omp-config", "omp-skill"):
             remove(shared / name)
-    if shutil.which("bun"):
-        run(
-            "bun",
-            "add",
-            "-g",
-            "--ignore-scripts",
-            "@earendil-works/pi-coding-agent@0.85.1",
-        )
-    else:
-        run(
-            "npm",
-            "install",
-            "-g",
-            "--ignore-scripts",
-            "@earendil-works/pi-coding-agent@0.85.1",
-        )
+    manager = "bun" if shutil.which("bun") else "npm"
+    run(
+        manager,
+        "add" if manager == "bun" else "install",
+        "-g",
+        "--ignore-scripts",
+        f"{PI_PACKAGE}@latest",
+    )
     selected = shutil.which("pi")
-    if (
-        not selected
-        or subprocess.check_output([selected, "--version"], text=True).strip()
-        != "0.85.1"
-    ):
+    installed = (
+        subprocess.check_output([selected, "--version"], text=True).strip()
+        if selected
+        else ""
+    )
+    if not re.fullmatch(r"\d+\.\d+\.\d+", installed):
         raise SystemExit(
-            "PATH does not select Pi 0.85.1; put the installed Pi binary directory first"
+            "PATH does not select a working Pi binary; put the installed Pi binary directory first"
         )
     agent.mkdir(parents=True, exist_ok=True, mode=0o700)
     agent.chmod(0o700)
@@ -270,7 +268,7 @@ def install(reset=False, remove_omp=False):
     # This marker opts the MEGAI Pi launcher into the new profile, never old wiring.
     write_json(
         defaults / "manifest.json",
-        {"schema": 1, "profile": "clean", "pi": "0.85.1", "packages": versions},
+        {"schema": 1, "profile": "clean", "pi": installed, "packages": versions},
     )
     run(
         str(local_bin / "openspec"),

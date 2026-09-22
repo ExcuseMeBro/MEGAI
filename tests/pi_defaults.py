@@ -313,6 +313,20 @@ class Distribution(unittest.TestCase):
             self.assertIn(f"'{name}'", verify)
         self.assertIn('SOURCE / "prompts"', (DEFAULTS / "install.py").read_text())
 
+    def test_pi_version_is_resolved_at_install_and_read_back_from_the_manifest(self):
+        """The profile installs the newest Pi and records what it resolved.
+
+        A pinned version went stale: the deployed verify step demanded 0.85.1 while a
+        newer Pi was on PATH, so the whole check aborted and verified nothing.
+        """
+        installer = (DEFAULTS / "install.py").read_text()
+        self.assertIn("@latest", installer)
+        self.assertNotIn("pi-coding-agent@0.", installer)
+        self.assertIn('"pi": installed', installer)
+        verify = (DEFAULTS / "verify.mjs").read_text()
+        self.assertIn("defaults/manifest.json", verify)
+        self.assertNotIn("0.85.1", verify)
+
     def test_child_launch_background_keeps_main_focus(self):
         policy = (DEFAULTS / "AGENTS.md").read_text()
         for required in (

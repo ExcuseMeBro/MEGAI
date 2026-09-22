@@ -95,6 +95,20 @@ class Slim(unittest.TestCase):
             self.assertNotIn("zvec_grep", json.loads(mcp_path.read_text())["mcpServers"])
         self.assertTrue((self.legacy / "sentinel").exists())
 
+    def test_verify_reports_the_stale_destination(self):
+        """A source that moved ahead must name the lagging installed path.
+
+        Reported drift used to be a bare "missing/stale" with no path, which left an
+        operator to guess among every wired destination.
+        """
+        self.wire()
+        destination = self.home / ".pi/agent/skills/megai-task-flow/SKILL.md"
+        source = self.megai / "task-flow/skills/megai-task-flow/SKILL.md"
+        self.write(source, source.read_text() + "\nupdated upstream\n")
+        result = self.wire("--verify", ok=False)
+        self.assertIn("slim wiring is missing/stale", result.stderr)
+        self.assertIn(str(destination), result.stderr)
+
     def test_workspace_guard_assets_install_verify_and_remove(self):
         self.wire()
         target = self.home / ".pi/agent/extensions/megai-workspace-guard"

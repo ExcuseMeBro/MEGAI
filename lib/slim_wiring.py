@@ -467,7 +467,11 @@ class Plan:
                 raise ValueError(f"destination changed during preflight: {path}")
         changes = {p: v for p, v in self.changes.items() if self.originals[p] != v}
         if verify and changes:
-            raise ValueError("slim wiring is missing/stale; run megai wire for the selected harness")
+            listed = ", ".join(sorted(str(path) for path in changes))
+            raise ValueError(
+                f"slim wiring is missing/stale: {listed}; "
+                "run megai wire for the selected harness"
+            )
         if dry_run or not changes:
             return
         backup_root = MEGAI / "backups"
