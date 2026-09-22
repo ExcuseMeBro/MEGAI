@@ -298,6 +298,9 @@ class Distribution(unittest.TestCase):
         self.assertNotIn("subagent", required)
         removed = re.search(r"const removedTools = \[(.*?)\]", verify, re.S).group(1)
         self.assertIn("subagent", removed)
+        self.assertIn("laya", required)
+        self.assertIn("sift", required)
+        self.assertIn("jev", removed)
 
     def test_settings_and_mcp_merge_never_drop_operator_keys(self):
         """An update must keep the chosen provider, model and extra MCP servers.
@@ -496,6 +499,23 @@ class InstallerPreflight(unittest.TestCase):
     def test_a_verified_runtime_prepare_continues(self):
         with patch.dict(os.environ, {"MEGAI_LAYA_INSTALL": "true"}):
             install.prepare_laya_runtime(ROOT, dict(os.environ))
+
+    def test_a_failed_profile_activation_is_fatal(self):
+        with patch.dict(os.environ, {"MEGAI_LAYA_ACTIVATE": "false"}):
+            with self.assertRaises(SystemExit) as caught:
+                install.activate_laya_profile(ROOT, dict(os.environ))
+        self.assertIn("not activated", str(caught.exception))
+
+    def test_a_verified_profile_activation_continues(self):
+        with patch.dict(os.environ, {"MEGAI_LAYA_ACTIVATE": "true"}):
+            install.activate_laya_profile(ROOT, dict(os.environ))
+
+    def test_profile_activation_runs_after_extension_copy(self):
+        source = (ROOT / "pi-defaults/install.py").read_text()
+        self.assertLess(
+            source.index('shutil.copytree(SOURCE / "extensions", agent / "extensions"'),
+            source.index("activate_laya_profile(REPO, env)"),
+        )
 
 
 if __name__ == "__main__":
