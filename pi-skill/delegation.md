@@ -114,15 +114,14 @@ models silently.
 The installed Antigravity CLI is a third pool for work the user's Antigravity
 subscription can pay for instead of DeepSeek or GPT quota: a second opinion, a
 long-context read, research or bulk analysis. Use the native `antigravity` tool — it
-runs `agy` in headless print mode, returns plain text and inlines the files Pi
-already read with native tools via `files`.
+runs `agy` with `--mode plan --sandbox`, grants no permission, returns plain text and
+inlines the files Pi already read with native tools via `files`.
 
-Headless `agy` cannot answer a permission prompt, so its own tools are auto-denied:
-the prompt must be self-contained, and the tool never passes
-`--dangerously-skip-permissions`. It cannot read the repo by itself and it never
-edits anything. It refuses credential-like, binary and out-of-workspace files; never
-send secrets or personal data. Interactive `agy` stays the user's own tool for
-agentic work; do not launch it without a request.
+The prompt must be self-contained: the tool tells `agy` not to use tools and never
+passes `--dangerously-skip-permissions`. It requests no edits, refuses
+credential-like, binary and out-of-workspace files, and never sends secrets or
+personal data. Existing `agy` settings remain user-owned. Interactive `agy` stays
+the user's own tool for agentic work; do not launch it without a request.
 
 This pool is an option, not a role: `megai-roles.json` keeps its DeepSeek and GPT
 roles, because Paseo has no Antigravity provider and a configured `agy` role could

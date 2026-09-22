@@ -2,7 +2,7 @@
 // headless print mode and its answer comes back. Offline — a fake `agy` on the
 // configured bin path records argv and prints a canned answer; no provider, no network.
 import assert from 'node:assert/strict';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -45,7 +45,9 @@ process.stdout.write(process.env.AGY_ANSWER ?? '');
   writeFileSync(join(work, 'note.md'), 'needle-alpha\n');
   writeFileSync(join(work, 'huge.log'), 'x'.repeat(600 * 1024));
   writeFileSync(join(work, '.env'), 'TOKEN=secret\n');
-  writeFileSync(join(work, 'binary.bin'), Buffer.from([0, 1, 2]));
+  writeFileSync(join(work, 'binary.bin'), Buffer.from([1, 2, 3]));
+  writeFileSync(join(work, 'invalid.bin'), Buffer.from([0xc3, 0x28]));
+  symlinkSync('.env', join(work, 'safe.txt'));
   writeFileSync(join(temp, 'outside.txt'), 'outside-value\n');
   const ctx = { hasUI: false, mode: 'print', cwd: work, isIdle: () => true,
     isProjectTrusted: () => false, abort() {}, getSystemPrompt: () => '', ui: { notify() {} } };
@@ -60,22 +62,38 @@ process.stdout.write(process.env.AGY_ANSWER ?? '');
   assert.equal(sent[0], '-p');
   assert.match(sent[1], /Summarize the note/);
   assert.match(sent[1], /needle-alpha/, 'the requested file must be inlined into the prompt');
-  assert.deepEqual(sent.slice(2, 4), ['--print-timeout', '300s']);
+  assert.equal(sent[sent.indexOf('--mode') + 1], 'plan');
+  assert.ok(sent.includes('--sandbox'), 'headless runs must stay sandboxed');
+  assert.equal(sent[sent.indexOf('--print-timeout') + 1], '300s');
   assert.equal(sent[sent.indexOf('--model') + 1], 'gemini-3.1-pro-high');
   assert.ok(!sent.join(' ').includes('dangerously'), 'headless runs must never auto-approve permissions');
   assert.deepEqual(ok.details.notes, [], 'a clean run reports no notes');
 
   // Unsafe, binary, escaping and over-cap paths are refused without failing the turn.
-  const capped = await run({ prompt: 'Read the log', files: ['huge.log', 'missing.md', '.env', '../outside.txt', 'binary.bin'] });
+  const capped = await run({ prompt: 'Read the log',
+    files: ['huge.log', 'missing.md', '.env', '../outside.txt', 'binary.bin', 'safe.txt', 'invalid.bin'] });
   assert.equal(capped.content[0].text, 'ANTIGRAVITY_ANSWER');
-  assert.equal(capped.details.notes.length, 5, 'every refused or unreadable file is reported');
+  assert.equal(capped.details.notes.length, 7, 'every refused or unreadable file is reported');
   assert.match(capped.details.notes[0], /per-file cap/);
   assert.match(capped.details.notes[2], /credential-like/);
   assert.match(capped.details.notes[3], /outside the working directory/);
   assert.match(capped.details.notes[4], /binary content/);
+  assert.match(capped.details.notes[5], /credential-like/, 'resolved symlink target names are screened');
+  assert.match(capped.details.notes[6], /binary content/, 'invalid UTF-8 is refused');
   assert.ok(!argv().includes('--model'), 'an omitted model is left to the CLI default');
   assert.ok(!argv()[1].includes('TOKEN=secret'), 'credential-like file contents must not leave the process');
   assert.ok(!argv()[1].includes('outside-value'), 'outside file contents must not leave the process');
+
+  // Model ids are values, never another CLI option; rejection happens before spawn.
+  const beforeInvalid = readFileSync(argvFile, 'utf8');
+  const invalidModel = await run({ prompt: 'x', model: '--dangerously-skip-permissions' });
+  assert.match(invalidModel.content[0].text, /invalid model/i);
+  assert.equal(readFileSync(argvFile, 'utf8'), beforeInvalid, 'invalid model ids must not execute agy');
+
+  // Ordinary answers about permissions remain valid.
+  process.env.AGY_ANSWER = 'Unix permission bits are 0644';
+  const ordinary = await run({ prompt: 'Explain Unix permissions' });
+  assert.equal(ordinary.content[0].text, 'Unix permission bits are 0644');
 
   // The CLI's auto-denied permission turn is reported as unusable, not as an answer.
   process.env.AGY_ANSWER = 'jetski: no output produced — a tool required the "command" permission that headless mode cannot prompt for';
