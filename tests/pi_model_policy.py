@@ -18,6 +18,7 @@ class ModelPolicy(Slim):
         self.assertTrue((agent / "extensions/megai-role-routing/index.ts").is_file())
         self.assertTrue((agent / "extensions/megai-jev/index.ts").is_file())
         self.assertTrue((agent / "extensions/megai-model-fallback/index.ts").is_file())
+        self.assertTrue((agent / "extensions/megai-antigravity/index.ts").is_file())
         before = self.snapshot()
         self.wire()
         self.assertEqual(self.snapshot(), before)
@@ -28,6 +29,7 @@ class ModelPolicy(Slim):
         self.assertFalse((agent / "extensions/megai-role-routing/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-jev/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-model-fallback/index.ts").exists())
+        self.assertFalse((agent / "extensions/megai-antigravity/index.ts").exists())
 
     def test_role_routing_asset_installs_idempotently_and_preserves_collision(self):
         self.wire()
@@ -38,6 +40,8 @@ class ModelPolicy(Slim):
         self.assertEqual(jev.read_bytes(), (self.megai / "pi-skill/jev/index.ts").read_bytes())
         fallback = agent / "extensions/megai-model-fallback/index.ts"
         self.assertEqual(fallback.read_bytes(), (self.megai / "pi-skill/model-fallback/index.ts").read_bytes())
+        pool = agent / "extensions/megai-antigravity/index.ts"
+        self.assertEqual(pool.read_bytes(), (self.megai / "pi-skill/antigravity/index.ts").read_bytes())
         before = self.snapshot()
         self.wire()
         self.assertEqual(self.snapshot(), before)

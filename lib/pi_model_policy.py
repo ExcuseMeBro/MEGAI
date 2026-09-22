@@ -58,6 +58,8 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
                (source / "pi-skill/jev/index.ts").read_bytes(), remove)
     plan.asset(root / "extensions/megai-jev-compaction/index.ts",
                (source / "pi-skill/jev-compaction/index.ts").read_bytes(), remove)
+    plan.asset(root / "extensions/megai-antigravity/index.ts",
+               (source / "pi-skill/antigravity/index.ts").read_bytes(), remove)
     plan.asset(root / "skills/megai/delegation.md", policy, remove)
     if remove:
         # Removing policy does not undo the user's native model preferences.

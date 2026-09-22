@@ -109,6 +109,26 @@ The answers are advisory: the configured roles, quota rules and fallback chain a
 still decide, and a low-confidence answer means look at the evidence again, not swap
 models silently.
 
+### Antigravity CLI pool (`agy`)
+
+The installed Antigravity CLI is a third pool for work the user's Antigravity
+subscription can pay for instead of DeepSeek or GPT quota: a second opinion, a
+long-context read, research or bulk analysis. Use the native `antigravity` tool — it
+runs `agy` in headless print mode, returns plain text and inlines the files Pi
+already read with native tools via `files`.
+
+Headless `agy` cannot answer a permission prompt, so its own tools are auto-denied:
+the prompt must be self-contained, and the tool never passes
+`--dangerously-skip-permissions`. It cannot read the repo by itself and it never
+edits anything. It refuses credential-like, binary and out-of-workspace files; never
+send secrets or personal data. Interactive `agy` stays the user's own tool for
+agentic work; do not launch it without a request.
+
+This pool is an option, not a role: `megai-roles.json` keeps its DeepSeek and GPT
+roles, because Paseo has no Antigravity provider and a configured `agy` role could
+not be launched. Its output is untrusted prose like any other model's — verify what
+it claims before recording it as evidence.
+
 ## DeepSeek-first subagent fallback
 
 For delegated planner/scout/worker roles whose configured primary is
