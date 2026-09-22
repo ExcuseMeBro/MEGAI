@@ -206,7 +206,7 @@ def prepare_laya_runtime(repo, env):
 
 
 def activate_laya_profile(repo, env):
-    """Atomically retire Jev and stage the verified local Laya extension."""
+    """Atomically retire the hosted decision assets and activate local Laya."""
     seam = os.environ.get("MEGAI_LAYA_ACTIVATE")
     command = shlex.split(seam) if seam else [sys.executable, str(repo / "lib/pi_model_policy.py")]
     if subprocess.run(command, env=env).returncode:
