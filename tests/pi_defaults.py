@@ -341,6 +341,21 @@ class Distribution(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 install.read_object(broken)
 
+    def test_an_update_keeps_the_injected_policy_blocks(self):
+        """Other wirings own the blocks marked inside AGENTS.md; the document is ours."""
+        slim = b"<!-- megai:slim:begin -->\n# MEGAI adaptive\nkeep me\n<!-- megai:slim:end -->\n"
+        models = b"<!-- megai:subagent-models:begin -->\nPi children: keep me\n<!-- megai:subagent-models:end -->\n"
+        current = b"# Pi defaults\nold body\n" + slim + b"\n" + models
+        source = b"# Pi defaults\nnew body\n"
+        merged = install.profile_agents_md(current, source)
+        self.assertTrue(merged.startswith(source))
+        self.assertNotIn(b"old body", merged)
+        self.assertIn(slim.rstrip(b"\n"), merged)
+        self.assertIn(models.rstrip(b"\n"), merged)
+        self.assertEqual(install.profile_agents_md(merged, source), merged)
+        self.assertEqual(install.profile_agents_md(current, current), current)
+        self.assertEqual(install.profile_agents_md(None, source), source)
+
     def test_the_two_installers_share_one_headroom_bridge(self):
         """lib/slim_wiring.py owns this same path and refuses a differing file."""
         source = (DEFAULTS.parent / "lib/slim_wiring.py").read_text()

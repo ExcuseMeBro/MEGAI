@@ -161,6 +161,33 @@ def retire_duplicate_headroom(agent, home):
     return target
 
 
+INJECTED_BLOCK = re.compile(
+    rb"<!-- megai:[a-z-]+:begin -->.*?<!-- megai:[a-z-]+:end -->", re.S
+)
+
+
+def profile_agents_md(current, source):
+    """Keep the MEGAI blocks that other wirings inject into this policy document.
+
+    install.py owns AGENTS.md while lib/slim_wiring.py and the model policy own the
+    marked blocks inside it. Writing the file wholesale dropped those blocks together
+    with their ownership receipts, so the next wiring check reported stale wiring.
+    """
+    if not current:
+        return source
+    kept = [
+        block
+        for block in INJECTED_BLOCK.findall(current)
+        if block.split(b"\n", 1)[0] not in source
+    ]
+    if not kept:
+        return source
+    text = source.rstrip(b"\n") + b"\n"
+    for block in kept:
+        text += b"\n" + block.rstrip(b"\n") + b"\n"
+    return text
+
+
 def install(reset=False, remove_omp=False):
     home = Path.home()
     agent = home / ".pi/agent"
@@ -290,7 +317,11 @@ def install(reset=False, remove_omp=False):
     retire_duplicate_headroom(agent, home)
     shutil.copytree(SOURCE / "skills", agent / "skills", dirs_exist_ok=True)
     shutil.copytree(SOURCE / "prompts", agent / "prompts", dirs_exist_ok=True)
-    shutil.copy2(SOURCE / "AGENTS.md", agent / "AGENTS.md")
+    source_md = SOURCE / "AGENTS.md"
+    agents_md = agent / "AGENTS.md"
+    before_md = agents_md.read_bytes() if agents_md.exists() else None
+    agents_md.write_bytes(profile_agents_md(before_md, source_md.read_bytes()))
+    agents_md.chmod(source_md.stat().st_mode & 0o777)
     versions = json.loads((SOURCE / "package.json").read_text())["dependencies"]
     write_json(
         agent / "settings.json",
