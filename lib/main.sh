@@ -46,9 +46,10 @@ bash "$LIB/retire_numasec.sh"
 bash "$LIB/retire_openspec.sh"
 python3 "$LIB/retire_legacy_sources.py"
 
-step 3 7 "Installing core search (indexing starts only on request)"
+step 3 7 "Installing core search and local tools (indexing starts only on request)"
 bash "$LIB/install_tgrep.sh" || die "tgrep install failed"
 bash "$LIB/install_codedb.sh" || die "codedb install failed"
+bash "$LIB/install_jev_browser.sh" || die "Jev Ultrafast browser agent install failed"
 
 step 4 7 "Installing Ruff and requested skill kits"
 bash "$LIB/install_ruff.sh" || die "Ruff install failed"

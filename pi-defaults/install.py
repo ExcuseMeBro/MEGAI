@@ -319,7 +319,7 @@ def install(reset=False, remove_omp=False):
         )
     os.environ["PATH"] = f"{shared / 'bin'}:{local_bin}:" + os.environ.get("PATH", "")
     env = {**os.environ, "MEGAI_HOME": str(shared), "MEGAI_SOURCE": str(REPO)}
-    for name in ("ruff", "codedb", "tgrep", "headroom"):
+    for name in ("ruff", "codedb", "tgrep", "headroom", "jev_browser"):
         run("bash", REPO / f"lib/install_{name}.sh", env=env)
     # The policy transaction also retires assets from earlier installs, so it runs on
     # every install, not only on first adoption.

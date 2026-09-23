@@ -84,6 +84,7 @@ def stage_adaptive_policy(plan, root: Path, source: Path) -> None:
         ("pi-skill/ADAPTIVE.md", "megai/SKILL.md"),
         ("task-flow/skills/megai-task-flow/SKILL.md", "megai-task-flow/SKILL.md"),
         ("skills/agent-worktree-lifecycle/SKILL.md", "agent-worktree-lifecycle/SKILL.md"),
+        ("pi-skill/jev-browser/SKILL.md", "jev-browser/SKILL.md"),
         ("pi-skill/acceptance/SKILL.md", "megai-acceptance/SKILL.md"),
         ("pi-skill/acceptance/reference.md", "megai-acceptance/reference.md"),
         ("pi-skill/acceptance/contract.example.json", "megai-acceptance/contract.example.json"),

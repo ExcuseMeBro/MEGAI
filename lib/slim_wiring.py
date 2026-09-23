@@ -386,6 +386,7 @@ class Plan:
         for relative, skill in (
             ("task-flow/skills/megai-task-flow/SKILL.md", "megai-task-flow"),
             ("skills/agent-worktree-lifecycle/SKILL.md", "agent-worktree-lifecycle"),
+            ("pi-skill/jev-browser/SKILL.md", "jev-browser"),
             ("pi-skill/ADAPTIVE.md" if name == "pi" else "pi-skill/SKILL.md", "megai"),
         ):
             skill_root = root / "skills" if name == "pi" else HOME / ".agents/skills" if name == "codex" else root / "skills"
