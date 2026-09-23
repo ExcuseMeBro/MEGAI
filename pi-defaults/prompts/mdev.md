@@ -13,8 +13,11 @@ Resolve each of these, continue, and report them as steps you completed:
 - Local `dev` ahead of the remote, or anything listed in `pendingDelivery`: that is the work
   queue, not a blocker.
 - Ignored or ignored-untracked files in a checkout (`ignored-untracked`, `ignored:*` status
-  reasons): they are uncommittable, so they never block delivery. Preserve them; they only
-  keep that one workspace out of cleanup.
+  reasons): they never block the delivery decision, and they only keep that one workspace out
+  of cleanup. They are still destructible: an ordinary fast-forward overwrites an ignored file
+  whose path the task commit now tracks, so always merge with `--no-overwrite-ignore`. When
+  that refuses, move the colliding ignored file aside to a preserved path, re-run, and report
+  where it went; never delete it.
 - Missing Plane identity for recorded task work: reuse the branch's existing identity, or
   create it once with `pi-workflow start --title "<task title>"` so the delivery has a home.
 - Missing or stale evidence for the recorded SHA: obtain the focused checks and a fresh
@@ -78,8 +81,9 @@ force, remote branch deletion, other projects/repos).
    remote advancement, fetch and revalidate the new scoped snapshot and retry, at most three
    passes; report only if refs keep moving or safe reconciliation needs owner input, preserving
    the integration.
-   Fast-forward local `dev` only if its checkout is clean, exclusively owned and still at the
-   recorded head; never rewrite it or switch someone else's branch. Publish the exact validated
+   Fast-forward local `dev` with `git merge --ff-only --no-overwrite-ignore` only if its
+   checkout is clean, exclusively owned and still at the recorded head; never rewrite it or
+   switch someone else's branch. Publish the exact validated
    commit by SHA (`<validated-sha>:refs/heads/dev`) with an ordinary non-force push. If local `dev`
    cannot safely be updated, retain the isolated integration and report that separately from
    verified remote delivery. Genuine unresolved regressions, unsafe state or infrastructure

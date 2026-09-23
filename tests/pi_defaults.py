@@ -410,7 +410,8 @@ class Distribution(unittest.TestCase):
             self.assertIn("**Never stop for a recoverable prerequisite**",
                           (DEFAULTS / f"prompts/{name}.md").read_text())
         mdev = (DEFAULTS / "prompts/mdev.md").read_text()
-        for clause in ("`pi-workflow status`", "ignored-untracked", "pi-workflow start --title"):
+        for clause in ("`pi-workflow status`", "ignored-untracked", "pi-workflow start --title",
+                       "--no-overwrite-ignore"):
             self.assertIn(clause, mdev)
         prdev = (DEFAULTS / "prompts/prdev.md").read_text()
         for clause in ("github.com", "Missing evidence for the captured `dev` SHA",

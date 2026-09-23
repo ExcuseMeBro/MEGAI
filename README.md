@@ -145,7 +145,9 @@ Both complete recoverable prerequisites instead of stopping: a local `dev` ahead
 ignored or ignored-untracked files, a missing Plane identity, missing or stale evidence, a moved
 ref and an ordinary `dev`-vs-`main` difference are work to finish, not blockers. They stop only
 for a write into another owner's work, an ambiguous product decision, or an action outside their
-authorization (main promotion, force, remote branch deletion, another project).
+authorization (main promotion, force, remote branch deletion, another project). Ignored files
+never block that decision, but the `dev` fast-forward uses `--no-overwrite-ignore` so a
+colliding ignored file is preserved and reported instead of silently overwritten.
 
 The persistent branches are `dev` and `main`. Normal task branches start from dev
 in managed Paseo worktrees and deliver to dev after tests/review. Main promotion
