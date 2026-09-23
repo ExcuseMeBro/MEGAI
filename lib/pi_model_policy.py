@@ -71,6 +71,10 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
     installed = read(delegation)
     if installed is None or installed == policy or plan.owned(delegation, installed):
         plan.asset(delegation, policy, remove)
+    # The browser agent is a default profile capability, so it is staged by this
+    # always-on policy path and not only by the adaptive refresh below.
+    plan.asset(root / "skills/jev-browser/SKILL.md",
+               (source / "pi-skill/jev-browser/SKILL.md").read_bytes(), remove)
     # An unowned, operator-edited policy is preserved instead of claimed.
     if remove:
         # Removing policy does not undo the user's native model preferences.
@@ -84,7 +88,6 @@ def stage_adaptive_policy(plan, root: Path, source: Path) -> None:
         ("pi-skill/ADAPTIVE.md", "megai/SKILL.md"),
         ("task-flow/skills/megai-task-flow/SKILL.md", "megai-task-flow/SKILL.md"),
         ("skills/agent-worktree-lifecycle/SKILL.md", "agent-worktree-lifecycle/SKILL.md"),
-        ("pi-skill/jev-browser/SKILL.md", "jev-browser/SKILL.md"),
         ("pi-skill/acceptance/SKILL.md", "megai-acceptance/SKILL.md"),
         ("pi-skill/acceptance/reference.md", "megai-acceptance/reference.md"),
         ("pi-skill/acceptance/contract.example.json", "megai-acceptance/contract.example.json"),

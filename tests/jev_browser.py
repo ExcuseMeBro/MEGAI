@@ -11,6 +11,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -85,17 +86,40 @@ class JevBrowser(unittest.TestCase):
     def test_installer_and_skill_are_wired(self) -> None:
         self.assertIn("install_jev_browser.sh", (ROOT / "lib/main.sh").read_text())
         self.assertIn('"jev_browser"', (ROOT / "pi-defaults/install.py").read_text())
-        for wiring in ("lib/slim_wiring.py", "lib/pi_model_policy.py"):
-            self.assertIn(
-                '"pi-skill/jev-browser/SKILL.md"',
-                (ROOT / wiring).read_text(),
-                f"{wiring} must stage the skill",
-            )
+        self.assertIn(
+            '"pi-skill/jev-browser/SKILL.md"',
+            (ROOT / "lib/slim_wiring.py").read_text(),
+            "lib/slim_wiring.py must stage the skill",
+        )
         self.assertTrue(INSTALLER.stat().st_mode & 0o111)
         skill = SKILL.read_text()
         self.assertTrue(skill.startswith("---\nname: jev-browser\n"), "skill frontmatter")
         self.assertIn("jev-browser --url", skill)
         self.assertIn("verif", skill.lower(), "the skill must require outcome verification")
+
+    def test_clean_profile_policy_stages_the_skill(self) -> None:
+        # The pi profile install runs the policy CLI without --adaptive, so the skill
+        # has to be staged by the always-on policy path and not only by the refresh.
+        with tempfile.TemporaryDirectory() as tmp:
+            env = {
+                "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+                "HOME": tmp,
+                "PI_CODING_AGENT_DIR": tmp,
+                "MEGAI_HOME": tmp,
+                "MEGAI_SOURCE": str(ROOT),
+                "PYTHONDONTWRITEBYTECODE": "1",
+            }
+            proc = subprocess.run(
+                [sys.executable, "-B", str(ROOT / "lib/pi_model_policy.py")],
+                cwd=ROOT,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            staged = Path(tmp) / "skills/jev-browser/SKILL.md"
+            self.assertTrue(staged.is_file(), "the clean profile must stage the skill")
+            self.assertEqual(staged.read_bytes(), SKILL.read_bytes())
 
 
 if __name__ == "__main__":
