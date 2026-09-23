@@ -404,6 +404,28 @@ class Distribution(unittest.TestCase):
             self.assertIn(f"'{name}'", verify)
         self.assertIn('SOURCE / "prompts"', (DEFAULTS / "install.py").read_text())
 
+    def test_never_block_prompts_and_status_reasons(self):
+        """Delivery prompts finish recoverable work; status stops blocking on it."""
+        for name in ("mdev", "prdev"):
+            self.assertIn("**Never stop for a recoverable prerequisite**",
+                          (DEFAULTS / f"prompts/{name}.md").read_text())
+        mdev = (DEFAULTS / "prompts/mdev.md").read_text()
+        for clause in ("`pi-workflow status`", "ignored-untracked", "pi-workflow start --title",
+                       "--no-overwrite-ignore"):
+            self.assertIn(clause, mdev)
+        prdev = (DEFAULTS / "prompts/prdev.md").read_text()
+        for clause in ("github.com", "Missing evidence for the captured `dev` SHA",
+                       "No commits in that diff means no PR"):
+            self.assertIn(clause, prdev)
+        # Ignored files affect cleanup or colliding merges, not inventory readiness.
+        self.assertNotIn('blocked.append("ignored-untracked")',
+                         (DEFAULTS / "workflow.py").read_text())
+        base = {"Id": "a", "Status": "idle", "Cwd": "/tmp", "Archived": False}
+        self.assertIsNone(w._inspect_problem(
+            {**base, "Capabilities": {"tools": True}, "AvailableModes": "all"}))
+        self.assertEqual(w._inspect_problem({**base, "PendingPermissions": "unknown"}),
+                         "inspect-field:PendingPermissions")
+
     def test_pi_version_is_resolved_at_install_and_read_back_from_the_manifest(self):
         """The profile installs the newest Pi and records what it resolved.
 
