@@ -417,7 +417,7 @@ class Distribution(unittest.TestCase):
         for clause in ("github.com", "Missing evidence for the captured `dev` SHA",
                        "No commits in that diff means no PR"):
             self.assertIn(clause, prdev)
-        # Ignored files cannot be committed, so they never become a repo-level blocker.
+        # Ignored files affect cleanup or colliding merges, not inventory readiness.
         self.assertNotIn('blocked.append("ignored-untracked")',
                          (DEFAULTS / "workflow.py").read_text())
         base = {"Id": "a", "Status": "idle", "Cwd": "/tmp", "Archived": False}
