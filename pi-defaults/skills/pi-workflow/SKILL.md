@@ -21,14 +21,20 @@ description: Start and deliver tracked project changes with Plane, dev/main bran
    A coordination folder without `.git` is never initialized or cloned as a repo.
    Inherit its local rules into every child. Discover existing project ID with
    `paseo project ls --json`; create workspaces using `paseo workspace create`.
-   Use returned paths under `~/.paseo/worktrees`, never constructed paths.
+   Use returned paths under `~/.paseo/worktrees`, never constructed paths. This
+   applies even to tiny edits; never edit, stage or commit directly on dev/main.
 4. Serialize writes and integration for each repository. Work in task branches;
    do not change a busy primary checkout. An explicitly requested persistent
    branch overrides dev delivery: work on/push that branch only and retain it.
    Preserve dev, main, every locally configured extra branch, and unmerged work.
 5. Run task acceptance checks, inspect the full diff, and fix review findings.
-   Integrate verified task commits to dev and push when authorized by the task.
-   Hand off In Review after all affected repos are delivered. Keep a receipt JSON:
+   After acceptance and required review, reserve all integration targets using
+   `megai queue`, then automatically fast-forward verified task commits to local dev
+   without waiting for another user confirmation. Verify exact delivered commits and
+   complete the reservation; on a moved/dirty target, stale evidence or uncertain
+   result, retain task resources and reconcile instead of forcing or assuming success.
+   Push only with separate explicit approval. Perform safe task-owned post-merge
+   workspace/branch cleanup before handing off In Review. Keep a receipt JSON:
    `{"repositories":[{"path":"/absolute/primary/repo","commit":"FULL_SHA","remote":"origin"}]}`.
    List every affected repository and its delivered commit. Runtime-only changes
    without a Git delivery remain In Review until a user-owned completion decision.
@@ -41,7 +47,11 @@ description: Start and deliver tracked project changes with Plane, dev/main bran
    sets Done. Failed/partial delivery stays In Review. Run this at completion;
    there is no background watcher or unattended main merge.
 
-For persistent branch work (including validationsdk), retain branch/worktree and
-leave the task In Review while its changes are absent from main. Clean up only
-released, clean, verified-merged temporary worktrees/branches after delivery.
-Never use force deletion/push to reconcile ownership or divergence.
+For explicitly requested persistent branch work (including validationsdk), retain
+that branch/worktree and leave the task In Review while its changes are absent from
+main. Automatically archive only released, clean, task-owned temporary workspaces
+and delete only proven-merged task branches after verified delivery, using
+`agent-worktree-lifecycle` Post-merge cleanup; leave active, dirty, unknown and
+unmerged work intact and report why. Never use force deletion/push to reconcile
+ownership or divergence. No background daemon, hook, unattended main merge or
+automatic push is implied.
