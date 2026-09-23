@@ -504,8 +504,8 @@ def _repo_row(repo, root, policy):
         blocked.append("dirty")
     if operation:
         blocked.append(f"operation:{operation}")
-    # Ignored files cannot be committed, so they cannot make a merge or push unsafe.
-    # They stay reported per workspace, where cleanup must preserve them.
+    # Ignored files alone do not block inventory; they still protect cleanup per
+    # workspace, and delivery merges must use --no-overwrite-ignore.
 
     remote = "origin"
     persistent = []
