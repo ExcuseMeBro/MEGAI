@@ -194,7 +194,7 @@ async function verifyDelegationWorktree(pi: ExtensionAPI, parentCwd: string, req
 
   const [branchResult, statusResult, listResult, parentCommonResult, targetCommonResult, targetGitDirResult, headResult] =
     await Promise.all([
-      git(pi, ["symbolic-ref", "--quiet", "--short", "HEAD"], target),
+      git(pi, ["symbolic-ref", "--quiet", "HEAD"], target),
       git(pi, ["status", "--porcelain=v1", "--untracked-files=all"], target),
       git(pi, ["worktree", "list", "--porcelain"], target),
       git(pi, ["rev-parse", "--git-common-dir"], parentRoot),
@@ -202,9 +202,12 @@ async function verifyDelegationWorktree(pi: ExtensionAPI, parentCwd: string, req
       git(pi, ["rev-parse", "--git-dir"], targetRoot),
       git(pi, ["rev-parse", "HEAD"], target),
     ]);
-  const branch = clean(branchResult.stdout);
-  if (failed(branchResult) || !branch) return { error: "detached HEAD is not allowed for delegated work" };
-  if (["main", "dev", "pi", "master"].includes(branch)) {
+  const branchRef = clean(branchResult.stdout);
+  const branch = branchRef.replace(/^refs\/heads\//, "");
+  if (failed(branchResult) || !branchRef.startsWith("refs/heads/") || !branch) {
+    return { error: "detached HEAD is not allowed for delegated work" };
+  }
+  if (["refs/heads/main", "refs/heads/dev", "refs/heads/pi", "refs/heads/master"].includes(branchRef)) {
     return { error: `protected branch ${branch} cannot receive delegated edits` };
   }
   if (failed(statusResult)) return { error: "could not inspect worktree status" };

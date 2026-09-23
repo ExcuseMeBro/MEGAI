@@ -171,6 +171,12 @@ process.stdout.write(process.env.AGY_ANSWER ?? '');
   assert.match(refused.content[0].text, /refused/i);
   assert.match(refused.content[0].text, /primary worktree/i);
 
+  const protectedWorktree = join(temp, 'repo-main');
+  execFileSync('git', ['-C', repo, 'worktree', 'add', '-b', 'main', protectedWorktree, 'HEAD'], { stdio: 'ignore' });
+  const protectedResult = await runDelegate({ task: 'x', worktree: protectedWorktree });
+  assert.match(protectedResult.content[0].text, /protected branch main/i);
+  execFileSync('git', ['-C', repo, 'worktree', 'remove', '--force', protectedWorktree], { stdio: 'ignore' });
+
   console.log('pi-antigravity: PASS');
 } finally {
   rmSync(temp, { recursive: true, force: true });
