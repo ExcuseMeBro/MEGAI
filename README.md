@@ -141,11 +141,20 @@ and to clean safe local task workspaces, and `/prdev` opens the `dev` → `main`
 without merging. Neither promotes `main`, and both keep delivery evidence bound to the exact
 recorded SHAs.
 
+Both complete recoverable prerequisites instead of stopping: a local `dev` ahead of its remote,
+ignored or ignored-untracked files, a missing Plane identity, missing or stale evidence, a moved
+ref and an ordinary `dev`-vs-`main` difference are work to finish, not blockers. They stop only
+for a write into another owner's work, an ambiguous product decision, or an action outside their
+authorization (main promotion, force, remote branch deletion, another project). Ignored files
+never block that decision, but the `dev` fast-forward uses `--no-overwrite-ignore` so a
+colliding ignored file is preserved and reported instead of silently overwritten.
+
 The persistent branches are `dev` and `main`. Normal task branches start from dev
 in managed Paseo worktrees and deliver to dev after tests/review. Main promotion
 requires explicit approval. A specifically requested persistent branch overrides
 dev delivery: push only that branch, retain its worktree, leave the task In Review
-until it reaches main. `pi` is this task's explicitly requested delivery branch.
+until it reaches main. A persistent branch such as `pi` is used only when the task or
+the user explicitly requests it.
 
 A monorepo gets one worktree per task. A folder containing separate repositories
 gets one worktree per affected repository under the same existing Paseo project and

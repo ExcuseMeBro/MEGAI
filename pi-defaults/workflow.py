@@ -504,8 +504,8 @@ def _repo_row(repo, root, policy):
         blocked.append("dirty")
     if operation:
         blocked.append(f"operation:{operation}")
-    if ignored:
-        blocked.append("ignored-untracked")
+    # Ignored files alone do not block inventory; they still protect cleanup per
+    # workspace, and delivery merges must use --no-overwrite-ignore.
 
     remote = "origin"
     persistent = []
@@ -758,9 +758,12 @@ def _inspect_problem(inspect):
                   "CreatedAt", "UpdatedAt", "ParentAgentId"):
         if field in inspect and inspect[field] is not None and not isinstance(inspect[field], str):
             return f"inspect-field:{field}"
-    for field in ("Capabilities", "AvailableModes", "PendingPermissions"):
-        if field in inspect and not isinstance(inspect[field], list):
-            return f"inspect-field:{field}"
+    # Capabilities and AvailableModes are informational and their payload shape
+    # varies across Paseo versions, so they never block. Only pending permissions
+    # gate safety and keep their strict type check.
+    permissions = inspect.get("PendingPermissions")
+    if permissions is not None and not isinstance(permissions, list):
+        return "inspect-field:PendingPermissions"
     return None
 
 
