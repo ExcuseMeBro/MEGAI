@@ -6,10 +6,12 @@ import sys
 
 from slim_wiring import MEGAI, Plan, digest, read
 from retire_legacy_sources import RETIRED_PATHS, stage_retirements
+from retire_local_decisions import stage_published
 
 source = Path(sys.argv[1]).resolve()
 plan = Plan()
 stage_retirements(plan)
+stage_published(plan, MEGAI)
 # These legacy entrypoints are intentionally absent from the active source
 # publication; their receipt-owned bytes are archived by the same plan.
 for relative in ("lib/install_agent_memory.sh", "lib/install_rtk.sh", "lib/install_caveman.sh", "pi-skill/extensions/memory.sh", "pi-skill/model-guard/index.ts"):

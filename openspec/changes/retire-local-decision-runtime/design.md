@@ -25,9 +25,13 @@ removed with them.
   `lib/retire_legacy_sources.py`, in a new table in `lib/retire_local_decisions.py`.
   Repository installs copy `lib/` a second time into `$MEGAI_HOME/pi-profile`, so those
   paths appear in the same table.
-- The pinned runtime: moved into `$MEGAI_HOME/backups/retired-decision-runtime*` rather
-  than deleted. It is large but rebuildable, and a rename is reversible while a delete
-  is not. A symlink, a regular file or an unmarked directory is reported, not touched.
+- The pinned runtime: ownership and Plan destinations are preflighted without writes;
+  direct Pi wiring atomically renames the owned directory into private backups before
+  Plan apply, restoring it if publication fails. In a journaled installer transaction,
+  the move waits until after all wiring and verification so rollback cannot restore an
+  extension without its runtime. Source publication and Pi wiring both retire the
+  published copies through the same receipt-aware Plan. A symlink, regular file or
+  unmarked directory is reported, not touched.
 
 ### Assemble the retired name instead of spelling it
 
@@ -41,7 +45,7 @@ and no runtime behaviour depends on the assembly.
 
 The integrity-corrected frozen contract excludes historical benchmark records, test
 protocols, audits and archived reviewer-policy examples from the stale-alias scan,
-but not from the retired-runtime scan. Eleven named historical paths retain exact
+but not from the retired-runtime scan. Twelve named historical paths retain exact
 base-commit bytes in both the index and worktree. Replacing a model label while
 keeping hashes, costs and measurements unchanged would falsely attribute completed
 experiments to a different model. Active templates and policy still use the current
@@ -58,7 +62,8 @@ out of scope and untouched.
 ## Compatibility and privacy
 
 - The Pi policy transaction keeps one fatal subprocess step (`MEGAI_PI_POLICY` test
-  seam); a failure still stops the install before profile success is reported.
+  seam); a failure still stops the install before profile success is reported. This
+  is not a blanket rollback guarantee for unrelated clean-profile installer steps.
 - Operator-owned values stay authoritative: user-edited AGENTS.md blocks, unowned
   extension files, native provider/model/thinking settings, other extensions, skills,
   MCP entries and unrelated state keys are preserved byte-for-byte.
@@ -68,6 +73,11 @@ out of scope and untouched.
   private backup.
 
 ## Rollback
+
+A failed direct Pi Plan restores a moved runtime; an outer journaled installer moves
+it only after all other phases succeed. Concurrent edits can still prevent the
+journal from restoring changed files, and a process crash between a direct runtime
+rename and its policy apply requires recovery from the preserved backup.
 
 Revert the commit: the deleted sources return, and reinstall restores the previous
 wiring. A retired runtime is not lost — it sits in `$MEGAI_HOME/backups/` until the

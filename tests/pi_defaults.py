@@ -303,7 +303,8 @@ class Distribution(unittest.TestCase):
         self.assertNotIn("subagent", required)
         removed = re.search(r"const removedTools = \[(.*?)\]", verify, re.S).group(1)
         self.assertIn("subagent", removed)
-        self.assertIn("sift", required)
+        self.assertNotIn("sift", required)
+        self.assertNotIn("`sift`", (DEFAULTS / "AGENTS.md").read_text())
         self.assertNotIn(retired.TOOL, required)
 
     def test_settings_and_mcp_merge_never_drop_operator_keys(self):

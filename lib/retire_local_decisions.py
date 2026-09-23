@@ -10,8 +10,8 @@ exactly what this project wrote:
 * the retired tool's own `state.json` entry, merged into any other staged change;
 * the published source copies under `$MEGAI_HOME` and `$MEGAI_HOME/pi-profile`;
 * the pinned virtualenv, recognized by the ownership marker the retired installer
-  wrote before its own first package install, moved into the private backups area
-  rather than deleted.
+  wrote before its own first package install, moved atomically into private backups
+  with recovery on policy failure (or after an outer installer transaction succeeds).
 
 The frozen acceptance contract for this retirement rejects the retired tool's name
 anywhere in the tracked tree, so the exact installed names are assembled below.
@@ -21,7 +21,6 @@ ownership receipts; nothing here sweeps a directory or matches a name pattern.
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 
 # The retired name itself is assembled because the frozen contract rejects even a
@@ -109,16 +108,54 @@ def preflight_runtime(megai: Path) -> Path | None:
 
 
 def retire_runtime(megai: Path) -> Path | None:
-    """Move a still-owned pinned runtime into the private backups area."""
+    """Atomically move a still-owned runtime; never copy an unknown directory."""
+    from slim_wiring import safe
+
     runtime = preflight_runtime(megai)
     if runtime is None:
         return None
     backups = megai / "backups"
+    safe(backups / ".preflight")
+    created = not backups.exists()
     backups.mkdir(parents=True, exist_ok=True)
-    target = backups / "retired-decision-runtime"
-    index = 0
-    while target.exists() or target.is_symlink():
-        index += 1
-        target = backups / f"retired-decision-runtime-{index}"
-    shutil.move(str(runtime), str(target))
-    return target
+    try:
+        target = backups / "retired-decision-runtime"
+        index = 0
+        while target.exists() or target.is_symlink():
+            index += 1
+            target = backups / f"retired-decision-runtime-{index}"
+        runtime.rename(target)
+        return target
+    except BaseException:
+        if created:
+            try:
+                backups.rmdir()  # Only remove a directory we created and that is still empty.
+            except OSError:
+                pass
+        raise
+
+
+def apply_with_runtime(plan, megai: Path, *, dry_run: bool = False,
+                       verify: bool = False, defer: bool = False) -> Path | None:
+    """Preflight policy, move the runtime, then apply; recover the move on failure.
+
+    A journaled outer installer defers the move until its last successful phase:
+    journal rollback must never restore an extension without its runtime.
+    """
+    runtime = preflight_runtime(megai)
+    plan.apply(True, verify)
+    if dry_run or verify:
+        return None
+    if runtime is None or defer:
+        plan.apply(False)
+        return None
+    moved = retire_runtime(megai)
+    try:
+        plan.apply(False)
+    except BaseException:
+        if moved is not None:
+            if runtime.exists() or runtime.is_symlink():
+                raise ValueError(f"runtime recovery collision preserved: {moved} and {runtime}")
+            moved.rename(runtime)
+        raise
+    return moved

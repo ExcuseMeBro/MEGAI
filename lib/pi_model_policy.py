@@ -132,7 +132,7 @@ def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
 def main() -> None:
     import argparse
     import os
-    from retire_local_decisions import preflight_runtime, retire_runtime, stage_published
+    from retire_local_decisions import apply_with_runtime, stage_published
     from slim_wiring import MEGAI, Plan, SOURCE
 
     parser = argparse.ArgumentParser(description=__doc__)
@@ -154,12 +154,10 @@ def main() -> None:
     stage_published(plan, MEGAI)
     if args.preset:
         stage_preset(plan, root, SOURCE, args.preset)
-    preflight_runtime(MEGAI)
-    plan.apply(args.check)
-    if not args.check:
-        moved = retire_runtime(MEGAI)
-        if moved is not None:
-            print(f"retired runtime moved aside: {moved}")
+    moved = apply_with_runtime(plan, MEGAI, dry_run=args.check,
+                               defer=bool(os.environ.get("MEGAI_TRANSACTION_LOG")))
+    if moved is not None:
+        print(f"retired runtime moved aside: {moved}")
 
 
 if __name__ == "__main__":

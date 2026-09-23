@@ -11,6 +11,18 @@ A reinstall SHALL retire the extension files, the saved tool state, the publishe
 - **WHEN** an operator-written file occupies a retired path, or a symlink, regular file or unmarked directory occupies the runtime path
 - **THEN** the install fails closed naming the preserved path, no bytes are deleted, and the rest of the transaction rolls back
 
-#### Scenario: Non-Git package installs keep working
-- **WHEN** `lib/retire_legacy_sources.py` runs during `megai install` or the installer transaction
-- **THEN** the retired published copies are staged through the same plan and dry-run check, and its existing manifest validation stays unchanged
+#### Scenario: Move failure cannot publish partial Pi policy
+- **WHEN** moving an owned runtime into backups fails
+- **THEN** direct Pi wiring leaves the runtime directory, policy, receipt and state unchanged
+
+#### Scenario: Journaled installation fails after wiring
+- **WHEN** the installer transaction fails a late verification after source publication and Pi wiring
+- **THEN** its journal restores owned files and the original runtime remains in place
+
+#### Scenario: Source publication retires owned copies
+- **WHEN** source publication runs
+- **THEN** retired published copies are removed by the receipt-aware Plan without touching unowned copies
+
+#### Scenario: Completed Pi wiring retires all owned assets
+- **WHEN** direct Pi wiring or the wiring-only installer transaction succeeds
+- **THEN** owned published copies, Pi extension files, saved state and the runtime are retired without deleting unowned assets; the runtime moves only after all outer installer phases succeed

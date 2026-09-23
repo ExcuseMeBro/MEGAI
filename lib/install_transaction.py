@@ -15,6 +15,7 @@ import sys
 import tempfile
 
 from slim_wiring import MEGAI, atomic_write, digest, read, safe
+from retire_local_decisions import preflight_runtime, retire_runtime
 
 
 def rollback(journal: Path) -> None:
@@ -50,6 +51,7 @@ def main() -> int:
     env = dict(os.environ, MEGAI_SOURCE=str(source), PYTHONDONTWRITEBYTECODE="1")
     # All harness destinations and retirement metadata are validated before
     # Headroom preparation, source publication, or any cleanup.
+    preflight_runtime(MEGAI)
     subprocess.run([sys.executable, str(source / "lib/slim_wiring.py"), "all", "--check"], env=env, check=True)
     subprocess.run([sys.executable, str(source / "lib/retire_legacy_sources.py"), "--check"], env=env, check=True)
     # No entrypoint or Pi resource is published before the replacement works.
@@ -71,6 +73,8 @@ def main() -> int:
             subprocess.run(["bash", str(MEGAI / "lib/verify_headroom_activation.sh")], env=env, check=True)
         else:
             subprocess.run(["bash", str(MEGAI / "lib/main.sh")], env=env, check=True)
+        # Last phase: rollback cannot restore an extension after its runtime moved.
+        retire_runtime(MEGAI)
     except BaseException:
         rollback(journal)
         print(f"Source and owned Pi wiring rolled back; inactive dependencies and recovery evidence retained: {directory}", file=sys.stderr)

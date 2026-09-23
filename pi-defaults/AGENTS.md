@@ -71,10 +71,8 @@ both terms:
   `CMD > /tmp/step.log 2>&1; rg -n "pattern" /tmp/step.log | head -40`.
 - Read the range under investigation (`read` with offset/limit, `rg -n`, `sed -n`)
   rather than printing a whole large file, and re-read only after a change.
-- Choosing *which* of many files, logs or evidence artifacts deserves that read is a
-  `sift` screen: give it the query and the candidate paths and only a probability per
-  file comes back, never the contents. Unread and truncated files are not evidence of
-  irrelevance.
+- Choose which files, logs or evidence artifacts to read by path and scoped `rg`, then
+  read only the relevant range. Unread and truncated files are not evidence of irrelevance.
 - Prefer one bounded call over many small ones; each small result stays in the
   context for the rest of the session.
 - Reuse what the user already inspected instead of buying the same output twice:

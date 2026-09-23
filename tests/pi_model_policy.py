@@ -59,7 +59,7 @@ class ModelPolicy(Slim):
         import hashlib
 
         sys.path.insert(0, str(self.megai / "lib"))
-        from retire_local_decisions import EXTENSIONS, RUNTIME, STATE_TOOL, TOOL
+        from retire_local_decisions import EXTENSIONS, PUBLISHED, RUNTIME, RUNTIME_OWNER, STATE_TOOL, TOOL
 
         self.wire()
         agent = self.home / ".pi/agent"
@@ -71,7 +71,12 @@ class ModelPolicy(Slim):
         receipt = json.loads(receipt_path.read_text())
         for path in seeded:
             receipt[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+        published = self.write(self.megai / next(iter(PUBLISHED)), "previously owned source\n")
+        receipt[str(published)] = hashlib.sha256(published.read_bytes()).hexdigest()
         receipt_path.write_text(json.dumps(receipt))
+        runtime = self.megai / RUNTIME
+        self.write(runtime / ".megai-owned", f"owner={RUNTIME_OWNER}\n")
+        self.write(runtime / "bin/python", "old runtime\n")
         state_path = self.megai / "state.json"
         state = json.loads(state_path.read_text())
         state["tools"][STATE_TOOL] = {"bin": str(self.megai / RUNTIME / "bin/python")}
@@ -85,6 +90,9 @@ class ModelPolicy(Slim):
             self.assertNotIn(str(path), receipt)
         state = json.loads(state_path.read_text())
         self.assertNotIn(STATE_TOOL, state["tools"])
+        self.assertFalse(published.exists())
+        self.assertFalse(runtime.exists())
+        self.assertEqual(len(list((self.megai / "backups").glob("retired-decision-runtime*"))), 1)
         self.assertEqual(state["keep"], {"value": 42})
         for name in ("megai-provider-guard", "megai-role-routing", "megai-model-fallback",
                      "megai-antigravity"):
@@ -135,6 +143,65 @@ class ModelPolicy(Slim):
         self.assertEqual(self.snapshot(), before)
         self.assertEqual((runtime / "keep.txt").read_text(), "user data\n")
 
+    def test_runtime_move_failure_preserves_directory_and_policy_transaction(self):
+        """A failed move cannot publish a partial Pi profile or state retirement."""
+        sys.path.insert(0, str(self.megai / "lib"))
+        from retire_local_decisions import RUNTIME, RUNTIME_OWNER, STATE_TOOL
+
+        self.wire()
+        agent = self.home / ".pi/agent"
+        runtime = self.megai / RUNTIME
+        self.write(runtime / ".megai-owned", f"owner={RUNTIME_OWNER}\n")
+        self.write(runtime / "bin/python", "previous runtime\n")
+        state_path = self.megai / "state.json"
+        state = json.loads(state_path.read_text())
+        state["tools"][STATE_TOOL] = {"installed": True}
+        state_path.write_text(json.dumps(state))
+        source_policy = self.megai / "pi-skill/delegation.md"
+        source_policy.write_text(source_policy.read_text() + "\nupdated policy\n")
+        checked = [agent / "AGENTS.md", agent / "skills/megai/delegation.md",
+                   self.megai / "slim-wiring.json", state_path]
+        originals = {path: path.read_bytes() for path in checked}
+        before = self.snapshot()
+        directories = {str(path.relative_to(self.root)) for path in self.root.rglob("*") if path.is_dir()}
+        script = ("import sys\nfrom unittest.mock import patch\n"
+                  "sys.path.insert(0, sys.argv[1])\nsys.argv = ['pi_model_policy.py']\n"
+                  "from pi_model_policy import main\n"
+                  "with patch('retire_local_decisions.retire_runtime', "
+                  "side_effect=OSError('injected runtime move failure')):\n"
+                  "    main()\n")
+        result = self.run_cmd(sys.executable, "-B", "-c", script, str(self.megai / "lib"), ok=False)
+        self.assertIn("injected runtime move failure", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual({str(path.relative_to(self.root)) for path in self.root.rglob("*") if path.is_dir()}, directories)
+        self.assertTrue(runtime.is_dir())
+        for path, value in originals.items():
+            self.assertEqual(path.read_bytes(), value, str(path))
+
+    def test_policy_write_failure_restores_moved_runtime(self):
+        """An error after an atomic move must put the original runtime back."""
+        sys.path.insert(0, str(self.megai / "lib"))
+        from retire_local_decisions import RUNTIME, RUNTIME_OWNER
+
+        self.wire()
+        runtime = self.megai / RUNTIME
+        self.write(runtime / ".megai-owned", f"owner={RUNTIME_OWNER}\n")
+        self.write(runtime / "bin/python", "previous runtime\n")
+        before = self.snapshot()
+        script = ("import sys\nfrom unittest.mock import patch\n"
+                  "sys.path.insert(0, sys.argv[1])\nsys.argv = ['pi_model_policy.py']\n"
+                  "from slim_wiring import Plan\nfrom pi_model_policy import main\n"
+                  "original = Plan.apply\n"
+                  "def fail_after_move(self, dry_run, verify=False):\n"
+                  "    if not dry_run: raise OSError('injected policy publish failure')\n"
+                  "    return original(self, dry_run, verify)\n"
+                  "with patch.object(Plan, 'apply', fail_after_move):\n    main()\n")
+        result = self.run_cmd(sys.executable, "-B", "-c", script, str(self.megai / "lib"), ok=False)
+        self.assertIn("injected policy publish failure", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+        self.assertTrue(runtime.is_dir())
+        self.assertFalse(list((self.megai / "backups").glob("retired-decision-runtime*")))
+
     def test_native_compaction_has_no_substitute_tool(self):
         """Pi compacts natively: no decision extension or companion is installed."""
         sys.path.insert(0, str(self.megai / "lib"))
@@ -181,11 +248,18 @@ class ModelPolicy(Slim):
 
         guard = self.megai / "pi-skill/model-guard/index.ts"
         self.write(guard, "legacy source guard")
+        sys.path.insert(0, str(self.megai / "lib"))
+        from retire_local_decisions import PUBLISHED
+
+        published = self.write(self.megai / next(iter(PUBLISHED)), "previously owned source\n")
         receipt_path = self.megai / "slim-wiring.json"
-        receipt_path.write_text(json.dumps({str(guard): hashlib.sha256(guard.read_bytes()).hexdigest()}))
+        receipt_path.write_text(json.dumps({str(path): hashlib.sha256(path.read_bytes()).hexdigest()
+                                            for path in (guard, published)}))
         self.run_cmd(sys.executable, str(self.megai / "lib/install_slim_source.py"), str(ROOT))
         self.assertFalse(guard.exists())
+        self.assertFalse(published.exists())
         self.assertNotIn(str(guard), json.loads(receipt_path.read_text()))
+        self.assertNotIn(str(published), json.loads(receipt_path.read_text()))
         backups = self.megai / "backups"
         self.assertTrue(any(p.is_file() and p.read_bytes() == b"legacy source guard" for p in backups.rglob("*")))
 
