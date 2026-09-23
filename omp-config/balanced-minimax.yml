@@ -15,15 +15,15 @@ modelRoles:
   worker-legacy: openai-codex/gpt-5.3-codex-spark:low
 
   # Explicit GPT specialties
-  plan: openai-codex/gpt-5.6-sol:high
-  slow: openai-codex/gpt-5.6-sol:high
-  advisor: openai-codex/gpt-5.6-sol:high
-  final: openai-codex/gpt-5.6-sol:high
-  vision: openai-codex/gpt-5.6-sol:medium
+  plan: openai-codex/gpt-6-sol:high
+  slow: openai-codex/gpt-6-sol:high
+  advisor: openai-codex/gpt-6-sol:high
+  final: openai-codex/gpt-6-sol:high
+  vision: openai-codex/gpt-6-sol:medium
   architecture: openai-codex/gpt-5.6-terra:high
   terra: openai-codex/gpt-5.6-terra:medium
   review: openai-codex/gpt-5.6-terra:high
-  luna: openai-codex/gpt-5.6-luna:low
+  luna: openai-codex/gpt-6-luna:low
   scout: minimax-code/MiniMax-M2.1-lightning:low
   debug: openai-codex/gpt-5.5:high
   long-context: openai-codex/gpt-5.4:high
@@ -57,14 +57,14 @@ task:
     minimax-stable-worker: openai-codex/gpt-5.4:high
     minimax-legacy-worker: openai-codex/gpt-5.3-codex-spark:low
     minimax-commit-writer: openai-codex/gpt-5.3-codex-spark:low
-    luna-scout: openai-codex/gpt-5.6-luna:low
+    luna-scout: openai-codex/gpt-6-luna:low
     terra-scout: openai-codex/gpt-5.6-terra:medium
     reviewer: openai-codex/gpt-5.6-terra:high
     cavecrew-reviewer: openai-codex/gpt-5.4-mini:medium
-    security-reviewer: openai-codex/gpt-5.6-sol:high
+    security-reviewer: openai-codex/gpt-6-sol:high
     librarian: openai-codex/gpt-5.4:high
-    designer: openai-codex/gpt-5.6-sol:medium
-    sol-gate: openai-codex/gpt-5.6-sol:high
+    designer: openai-codex/gpt-6-sol:medium
+    sol-gate: openai-codex/gpt-6-sol:high
     gpt-debugger: openai-codex/gpt-5.5:high
     gpt-long-context: openai-codex/gpt-5.4:high
     gpt-fast-reviewer: openai-codex/gpt-5.4-mini:medium
@@ -73,7 +73,7 @@ task:
 retry:
   fallbackChains:
     "minimax-code/MiniMax-M2.1-lightning":
-      - openai-codex/gpt-5.6-luna:low
+      - openai-codex/gpt-6-luna:low
     "minimax-code/MiniMax-M3": []
     "minimax-code/MiniMax-M2.7-highspeed": []
     "minimax-code/MiniMax-M2.7": []

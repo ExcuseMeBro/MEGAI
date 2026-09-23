@@ -34,7 +34,7 @@ const commands = loaded.extensions.flatMap(e => [...e.commands.keys()]);
 const skills = loader.getSkills();
 const prompts = loader.getPrompts();
 const promptNames = prompts.prompts.map(p => p.name);
-const requiredTools = ['mcp', 'web_search', 'fetch_content', 'headroom_retrieve', 'headroom_memory', 'laya', 'sift'];
+const requiredTools = ['mcp', 'web_search', 'fetch_content', 'headroom_retrieve', 'headroom_memory', 'sift'];
 const removedTools = ['subagent'];
 const requiredSkills = ['pi-workflow', 'using-superpowers', 'test-driven-development', 'ponytail', 'openspec-propose', 'openspec-apply-change'];
 const requiredPrompts = ['mdev', 'prdev'];

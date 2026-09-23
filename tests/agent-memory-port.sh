@@ -5,8 +5,6 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 export HOME="$TMP/home" MEGAI_HOME="$TMP/megai" MEGAI_SOURCE="$ROOT"
 export PI_CODING_AGENT_DIR="$HOME/.pi/agent" CODEX_HOME="$HOME/.codex" PATH="$TMP/bin:$PATH"
-# Deterministic seam: this suite asserts retirement wiring, not the checkpoint download.
-export MEGAI_LAYA_CHECK=true
 mkdir -p "$MEGAI_HOME/bin" "$MEGAI_HOME/lib" "$HOME/.pi/agent" "$HOME/.codex" "$TMP/bin"
 cp "$ROOT/bin/megai" "$MEGAI_HOME/bin/megai"
 cp "$ROOT/lib/ui.sh" "$ROOT/lib/state.sh" "$ROOT/lib/slim_wiring.py" "$MEGAI_HOME/lib/"

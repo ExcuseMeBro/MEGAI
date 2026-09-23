@@ -81,7 +81,7 @@ class Flow(unittest.TestCase):
             "snapshot": snap, "checks": [{"id": "fix", "status": "PASS",
                 "observation": "Regression assertion passes", "receipt": "green/receipt.json", "artifacts": []}],
             "review": {"session_id": "synthetic-reviewer", "harness": "pi",
-                       "model": "openai-codex/gpt-5.6-sol", "thinking": "high", "verdict": "PASS",
+                       "model": "openai-codex/gpt-6-sol", "thinking": "high", "verdict": "PASS",
                        "snapshot": snap, "contract_sha256": digest(self.base / "contract.json"),
                        "criteria": ["fix"], "artifact": {"path": "review.txt", "sha256": digest(self.base / "review.txt")}},
         }

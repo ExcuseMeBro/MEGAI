@@ -2,7 +2,7 @@
 name: luna-scout
 description: Trusted fast read-only scout used when MiniMax discovery is empty, conflicting, or unsuitable for the payload.
 managed-by: megai
-model: openai-codex/gpt-5.6-luna
+model: openai-codex/gpt-6-luna
 thinking: low
 blocking: true
 tools: read, grep, glob, lsp

@@ -31,17 +31,13 @@ class Slim(unittest.TestCase):
         self.env = dict(os.environ, HOME=str(self.home), MEGAI_HOME=str(self.megai),
                         PI_CODING_AGENT_DIR=str(self.home / ".pi/agent"),
                         CODEX_HOME=str(self.home / ".codex"), OMP_PROFILE="", PI_PROFILE="",
-                        PATH=f"{self.bin}:{os.environ['PATH']}", PYTHONDONTWRITEBYTECODE="1",
-                        MEGAI_LAYA_CHECK="laya-check-ok")
+                        PATH=f"{self.bin}:{os.environ['PATH']}", PYTHONDONTWRITEBYTECODE="1")
         # A second outer sandbox protects against single-export shell expansion bugs.
         for key in ("HOME", "MEGAI_HOME", "PI_CODING_AGENT_DIR", "CODEX_HOME"):
             self.assertTrue(Path(self.env[key]).is_relative_to(self.root))
         (self.bin / "python3").symlink_to(sys.executable)
         for name in ("tgrep", "codedb", "ruff", "pi", "omp", "claude", "codex", "npm", "npx", "curl", "node"):
             self.stub(name, 'printf "%s\\n" "$0 $*" >>"$HOME/calls"\nexit 0\n')
-        # Policy suites assert wiring, not the checkpoint download: the gate is verified
-        # through this deterministic seam and overridden per test when it must fail.
-        self.stub("laya-check-ok", "exit 0\n")
         (self.megai / "state.json").write_text('{"tools":{},"agents":{},"ports":{"agent-memory":3111},"keep":{"value":42}}\n')
         self.project = self.root / "project"
         self.project.mkdir()

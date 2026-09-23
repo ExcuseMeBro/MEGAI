@@ -72,12 +72,6 @@ Optionally add `security`, `performance` or `accessibility` only when explicit
 acceptance covers that concern; they do not replace a primary type or area.
 Priority, workflow state, assignees and release/version stay in their native fields.
 
-When the `laya` tool is available, classification is one call: `label_type` and
-`label_area` choice questions, a `reconcile` choice for a contradictory existing
-label, and a `reclassify` `noul` on resume. A low-confidence, contradictory or
-out-of-table answer is a signal to inspect the scope or ask the user; it never
-silently overrides this table or attaches a second primary type.
-
 ### Resolve and attach safely
 
 1. Consume every project label page in the resolved workspace/project. Match names

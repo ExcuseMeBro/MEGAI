@@ -24,6 +24,11 @@ install_spec = importlib.util.spec_from_file_location(
 )
 install = importlib.util.module_from_spec(install_spec)
 install_spec.loader.exec_module(install)
+retire_spec = importlib.util.spec_from_file_location(
+    "retire_local_decisions", ROOT / "lib/retire_local_decisions.py"
+)
+retired = importlib.util.module_from_spec(retire_spec)
+retire_spec.loader.exec_module(retired)
 DEFAULTS = ROOT / "pi-defaults"
 STATES = {s: s for s in ("Todo", "In Progress", "In Review", "Done")}
 
@@ -298,8 +303,8 @@ class Distribution(unittest.TestCase):
         self.assertNotIn("subagent", required)
         removed = re.search(r"const removedTools = \[(.*?)\]", verify, re.S).group(1)
         self.assertIn("subagent", removed)
-        self.assertIn("laya", required)
         self.assertIn("sift", required)
+        self.assertNotIn(retired.TOOL, required)
 
     def test_settings_and_mcp_merge_never_drop_operator_keys(self):
         """An update must keep the chosen provider, model and extra MCP servers.
@@ -488,30 +493,20 @@ class InstallerPreflight(unittest.TestCase):
                 self.assertIn("unsupported", result.stderr)
                 self.assertEqual(marker.read_text(), "existing session")
 
-    def test_a_failed_runtime_prepare_blocks_activation(self):
-        with patch.dict(os.environ, {"MEGAI_LAYA_INSTALL": "false"}):
+    def test_a_failed_policy_transaction_is_fatal(self):
+        with patch.dict(os.environ, {"MEGAI_PI_POLICY": "false"}):
             with self.assertRaises(SystemExit) as caught:
-                install.prepare_laya_runtime(ROOT, dict(os.environ))
-        self.assertIn("unchanged", str(caught.exception))
-        self.assertIn("not activated", str(caught.exception))
+                install.apply_pi_policy(ROOT, dict(os.environ))
+        self.assertIn("inspect the reported conflict and current assets before retry", str(caught.exception))
+        self.assertNotIn("rolled back", str(caught.exception))
 
-    def test_a_verified_runtime_prepare_continues(self):
-        with patch.dict(os.environ, {"MEGAI_LAYA_INSTALL": "true"}):
-            install.prepare_laya_runtime(ROOT, dict(os.environ))
+    def test_a_verified_policy_transaction_continues(self):
+        with patch.dict(os.environ, {"MEGAI_PI_POLICY": "true"}):
+            install.apply_pi_policy(ROOT, dict(os.environ))
 
-    def test_a_failed_profile_activation_is_fatal(self):
-        with patch.dict(os.environ, {"MEGAI_LAYA_ACTIVATE": "false"}):
-            with self.assertRaises(SystemExit) as caught:
-                install.activate_laya_profile(ROOT, dict(os.environ))
-        self.assertIn("not activated", str(caught.exception))
-
-    def test_a_verified_profile_activation_continues(self):
-        with patch.dict(os.environ, {"MEGAI_LAYA_ACTIVATE": "true"}):
-            install.activate_laya_profile(ROOT, dict(os.environ))
-
-    def test_profile_activation_runs_after_extension_copy(self):
+    def test_policy_transaction_runs_after_extension_copy(self):
         source = (ROOT / "pi-defaults/install.py").read_text()
-        activation = source.index("activate_laya_profile(REPO, env)")
+        activation = source.index("apply_pi_policy(REPO, env)")
         self.assertLess(
             source.index('shutil.copytree(SOURCE / "extensions", agent / "extensions"'),
             activation,

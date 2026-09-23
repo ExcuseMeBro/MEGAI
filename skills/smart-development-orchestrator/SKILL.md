@@ -53,9 +53,9 @@ Choose the narrowest capable model. Paseo workers use the explicit `omp/<selecto
 | `openai-codex/gpt-5.3-codex-spark:low` | tiny / commit / docker / worker-legacy | Tiny mechanical trusted changes |
 | `openai-codex/gpt-5.5:high` | migration / debug | Migrations and hard debugging |
 | `openai-codex/gpt-5.4:high` | worker-stable / long-context | Compatibility and long-context implementation |
-| `openai-codex/gpt-5.6-sol:high` | plan / slow / advisor / final | Explicit critical reasoning or operator-requested final review |
-| `openai-codex/gpt-5.6-sol:medium` | vision | Explicit visual reasoning |
-| `openai-codex/gpt-5.6-luna:low` | luna | One-step trusted discovery fallback |
+| `openai-codex/gpt-6-sol:high` | plan / slow / advisor / final | Explicit critical reasoning or operator-requested final review |
+| `openai-codex/gpt-6-sol:medium` | vision | Explicit visual reasoning |
+| `openai-codex/gpt-6-luna:low` | luna | One-step trusted discovery fallback |
 | `openai-codex/gpt-5.4-mini:medium` | review-fast | Explicit fast independent review |
 | `openai-codex/gpt-5.3-codex-spark:low` | trusted-fast | Explicit very small trusted task |
 

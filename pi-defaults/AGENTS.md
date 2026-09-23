@@ -20,12 +20,6 @@ existing specs; init missing project storage only when needed
 planning-only boundary covers planning requests, and an explicit implementation
 request authorizes continuing through apply after that spec work.
 
-Each workflow decision step gets one bundled `laya` call — triage mode/type/effort/
-approval, Plane labels, isolation, delegation and role, verification depth, verdict,
-delivery readiness — with the answers recorded on the Plane item, advisory and never
-replacing a gate or a reserved user decision (`megai` → Laya at every decision
-step).
-
 ## Code discovery — codedb default
 
 codedb FIRST in every Pi session, children included: find code, inspect file APIs, and
@@ -154,7 +148,7 @@ workspace. No second runner for the same task; never import an actively owned se
 Parent provider, model and thinking level stay unchanged.
 
 Approved: worker `deepseek/deepseek-flash` at high thinking, trusted fallback
-`openai-codex/gpt-5.6-luna:high`; reviewer/security `openai-codex/gpt-6-astra`, no
+`openai-codex/gpt-6-luna:high`; reviewer/security `openai-codex/gpt-6-astra`, no
 configured fallback. Parent review replaces a separate reviewer only when the selected
 parent is that approved GPT model; otherwise keep a separate approved GPT reviewer
 without switching the parent. Other historical role settings stay in the private

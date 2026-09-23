@@ -32,8 +32,8 @@ assert.ok(ext, 'Model fallback extension must load');
 
 const models = new Map([
   ['deepseek/deepseek-flash', { id: 'deepseek-flash', provider: 'deepseek' }],
-  ['openai-codex/gpt-5.6-sol', { id: 'gpt-5.6-sol', provider: 'openai-codex' }],
-  ['openai-codex/gpt-5.6-luna', { id: 'gpt-5.6-luna', provider: 'openai-codex' }],
+  ['openai-codex/gpt-6-sol', { id: 'gpt-6-sol', provider: 'openai-codex' }],
+  ['openai-codex/gpt-6-luna', { id: 'gpt-6-luna', provider: 'openai-codex' }],
   ['openai-codex/gpt-5.5', { id: 'gpt-5.5', provider: 'openai-codex' }],
 ]);
 
@@ -64,22 +64,22 @@ reset();
 
 // A provider failure on the configured primary continues on the partner, visibly.
 await fail('deepseek', 'deepseek-flash', '402 {"error":{"message":"Insufficient Balance","code":"invalid_request_error"}}');
-assert.deepEqual(switched, ['openai-codex/gpt-5.6-sol'], 'Continue on the configured partner');
+assert.deepEqual(switched, ['openai-codex/gpt-6-sol'], 'Continue on the configured partner');
 assert.equal(sent.length, 1, 'Continue the unfinished task once');
 assert.match(sent[0].text, /Insufficient Balance/);
 assert.equal(sent[0].options?.deliverAs, 'followUp', 'Queue the continuation into the live run');
 assert.equal(entries.length, 1);
 assert.equal(entries[0].type, 'megai-model-fallback');
 assert.deepEqual(entries[0].data, {
-  from: 'deepseek/deepseek-flash', to: 'openai-codex/gpt-5.6-sol',
+  from: 'deepseek/deepseek-flash', to: 'openai-codex/gpt-6-sol',
   reason: '402 {"error":{"message":"Insufficient Balance","code":"invalid_request_error"}}',
 });
 assert.equal(notices.length, 1, 'The switch must be visible');
 assert.equal(notices[0].level, 'warning');
 
 // The partner failing too must not ping-pong back to the already failed primary.
-await fail('openai-codex', 'gpt-5.6-sol', '503 Service Unavailable');
-assert.deepEqual(switched, ['openai-codex/gpt-5.6-sol'], 'Never cycle back to a failed model');
+await fail('openai-codex', 'gpt-6-sol', '503 Service Unavailable');
+assert.deepEqual(switched, ['openai-codex/gpt-6-sol'], 'Never cycle back to a failed model');
 assert.equal(sent.length, 1);
 
 // A completed run stays where it is.
@@ -137,7 +137,7 @@ for (const message of [
 ]) {
   reset();
   await fail('deepseek', 'deepseek-flash', message);
-  assert.deepEqual(switched, ['openai-codex/gpt-5.6-sol'], `Continue on the partner for: ${message}`);
+  assert.deepEqual(switched, ['openai-codex/gpt-6-sol'], `Continue on the partner for: ${message}`);
 }
 
 // A model without a configured partner is left alone.
@@ -146,11 +146,11 @@ await fail('openai-codex', 'gpt-5.5', '500 Internal Server Error');
 assert.deepEqual(switched, []);
 
 // A new session forgets the previous failure and honours the user override.
-writeFileSync(config, JSON.stringify({ fallbacks: { 'deepseek/deepseek-flash': 'openai-codex/gpt-5.6-luna' } }));
+writeFileSync(config, JSON.stringify({ fallbacks: { 'deepseek/deepseek-flash': 'openai-codex/gpt-6-luna' } }));
 await emit('session_start');
 reset();
 await fail('deepseek', 'deepseek-flash', '500 Internal Server Error');
-assert.deepEqual(switched, ['openai-codex/gpt-5.6-luna'], 'Use the configured pair');
+assert.deepEqual(switched, ['openai-codex/gpt-6-luna'], 'Use the configured pair');
 
 // An empty map is the documented off switch; an unusable file keeps the defaults.
 writeFileSync(config, JSON.stringify({ fallbacks: {} }));
@@ -162,7 +162,7 @@ writeFileSync(config, '{ not json');
 await emit('session_start');
 reset();
 await fail('deepseek', 'deepseek-flash', '500 Internal Server Error');
-assert.deepEqual(switched, ['openai-codex/gpt-5.6-sol'], 'Unusable config keeps the built-in pair');
+assert.deepEqual(switched, ['openai-codex/gpt-6-sol'], 'Unusable config keeps the built-in pair');
 
 // An unauthenticated partner cannot be selected, so the session is left untouched.
 rmSync(config);

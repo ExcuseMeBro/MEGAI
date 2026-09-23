@@ -4,7 +4,7 @@ import json
 import sys
 import unittest
 
-from slim_distribution import Slim
+from slim_distribution import ROOT, Slim
 
 
 class ModelPolicy(Slim):
@@ -16,7 +16,6 @@ class ModelPolicy(Slim):
         self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
         self.assertTrue((agent / "extensions/megai-provider-guard/index.ts").is_file())
         self.assertTrue((agent / "extensions/megai-role-routing/index.ts").is_file())
-        self.assertTrue((agent / "extensions/megai-laya/index.ts").is_file())
         self.assertTrue((agent / "extensions/megai-model-fallback/index.ts").is_file())
         self.assertTrue((agent / "extensions/megai-antigravity/index.ts").is_file())
         before = self.snapshot()
@@ -27,7 +26,6 @@ class ModelPolicy(Slim):
         self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-provider-guard/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-role-routing/index.ts").exists())
-        self.assertFalse((agent / "extensions/megai-laya/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-model-fallback/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-antigravity/index.ts").exists())
 
@@ -36,8 +34,6 @@ class ModelPolicy(Slim):
         agent = self.home / ".pi/agent"
         target = agent / "extensions/megai-role-routing/index.ts"
         self.assertEqual(target.read_bytes(), (self.megai / "pi-skill/role-routing/index.ts").read_bytes())
-        laya = agent / "extensions/megai-laya/index.ts"
-        self.assertEqual(laya.read_bytes(), (self.megai / "pi-skill/laya/index.ts").read_bytes())
         fallback = agent / "extensions/megai-model-fallback/index.ts"
         self.assertEqual(fallback.read_bytes(), (self.megai / "pi-skill/model-fallback/index.ts").read_bytes())
         pool = agent / "extensions/megai-antigravity/index.ts"
@@ -53,13 +49,108 @@ class ModelPolicy(Slim):
         self.assertIn("custom/legacy asset preserved", self.wire(ok=False).stderr)
         self.assertEqual(self.snapshot(), before)
 
-    def test_laya_asset_preserves_a_user_owned_collision(self):
+    def test_reinstall_retires_previously_owned_decision_assets(self):
+        """A reinstall removes what earlier installs owned, and nothing else.
+
+        The retired tool's extension files and its saved tool state are seeded here the
+        way an earlier install left them: owned bytes with a receipt. The run retires
+        them, keeps unrelated state and leaves Pi's own resources in place.
+        """
+        import hashlib
+
+        sys.path.insert(0, str(self.megai / "lib"))
+        from retire_local_decisions import EXTENSIONS, RUNTIME, STATE_TOOL, TOOL
+
         self.wire()
-        target = self.home / ".pi/agent/extensions/megai-laya/index.ts"
-        self.write(target, "user-owned laya tool")
+        agent = self.home / ".pi/agent"
+        seeded = [agent / directory / name
+                  for directory, names in EXTENSIONS.items() for name in names]
+        for path in seeded:
+            self.write(path, "previously owned asset\n")
+        receipt_path = self.megai / "slim-wiring.json"
+        receipt = json.loads(receipt_path.read_text())
+        for path in seeded:
+            receipt[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+        receipt_path.write_text(json.dumps(receipt))
+        state_path = self.megai / "state.json"
+        state = json.loads(state_path.read_text())
+        state["tools"][STATE_TOOL] = {"bin": str(self.megai / RUNTIME / "bin/python")}
+        state_path.write_text(json.dumps(state))
+
+        self.wire()
+        for path in seeded:
+            self.assertFalse(path.exists())
+        receipt = json.loads(receipt_path.read_text())
+        for path in seeded:
+            self.assertNotIn(str(path), receipt)
+        state = json.loads(state_path.read_text())
+        self.assertNotIn(STATE_TOOL, state["tools"])
+        self.assertEqual(state["keep"], {"value": 42})
+        for name in ("megai-provider-guard", "megai-role-routing", "megai-model-fallback",
+                     "megai-antigravity"):
+            self.assertTrue((agent / "extensions" / name / "index.ts").is_file(), name)
+        self.assertNotIn(TOOL, (agent / "AGENTS.md").read_text().lower())
+
+    def test_reinstall_preserves_an_unowned_decision_asset(self):
+        """An operator file at a retired path keeps its bytes and fails the install."""
+        sys.path.insert(0, str(self.megai / "lib"))
+        from retire_local_decisions import EXTENSIONS
+
+        self.wire()
+        target = self.home / ".pi/agent" / next(iter(EXTENSIONS)) / "index.ts"
+        self.write(target, "user-owned decision tool")
         before = self.snapshot()
-        self.assertIn("custom/legacy asset preserved", self.wire(ok=False).stderr)
+        self.assertIn("unowned retired asset preserved", self.wire(ok=False).stderr)
         self.assertEqual(self.snapshot(), before)
+        self.assertEqual(target.read_text(), "user-owned decision tool")
+
+    def test_reinstall_moves_an_owned_runtime_aside(self):
+        sys.path.insert(0, str(self.megai / "lib"))
+        from retire_local_decisions import RUNTIME, RUNTIME_OWNER, TOOL
+
+        runtime = self.megai / RUNTIME
+        self.write(runtime / ".megai-owned", f"owner={RUNTIME_OWNER}\nstate=installed\n")
+        self.write(runtime / "bin/python", "stub\n")
+        command = (sys.executable, str(self.megai / "lib/pi_model_policy.py"))
+        before = self.snapshot()
+        self.run_cmd(*command, "--check")
+        self.assertEqual(self.snapshot(), before)
+        self.run_cmd(*command)
+        self.assertFalse(runtime.exists())
+        moved = sorted((self.megai / "backups").glob("retired-decision-runtime*"))
+        self.assertEqual(len(moved), 1)
+        self.assertTrue((moved[0] / ".megai-owned").is_file())
+        self.assertNotIn(TOOL, (self.home / ".pi/agent/AGENTS.md").read_text().lower())
+
+    def test_reinstall_reports_an_unowned_runtime_without_touching_it(self):
+        sys.path.insert(0, str(self.megai / "lib"))
+        from retire_local_decisions import RUNTIME
+
+        runtime = self.megai / RUNTIME
+        self.write(runtime / "keep.txt", "user data\n")
+        before = self.snapshot()
+        command = (sys.executable, str(self.megai / "lib/pi_model_policy.py"))
+        self.assertIn("unowned retired runtime preserved",
+                      self.run_cmd(*command, ok=False).stderr)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual((runtime / "keep.txt").read_text(), "user data\n")
+
+    def test_native_compaction_has_no_substitute_tool(self):
+        """Pi compacts natively: no decision extension or companion is installed."""
+        sys.path.insert(0, str(self.megai / "lib"))
+        from retire_local_decisions import EXTENSIONS, TOOL
+
+        self.wire()
+        agent = self.home / ".pi/agent"
+        for directory, names in EXTENSIONS.items():
+            for name in names:
+                self.assertFalse((agent / directory / name).exists())
+        budget = " ".join((ROOT / "docs/pi-context-budget.md").read_text().split())
+        self.assertIn("With native compaction enabled", budget)
+        self.assertIn("no extension, router or custom compactor", budget)
+        policy = " ".join((agent / "skills/megai/SKILL.md").read_text().split()).lower()
+        self.assertIn("compaction stays Pi's own".lower(), policy)
+        self.assertNotIn(TOOL, policy)
 
     def test_owned_legacy_guard_retired_on_upgrade(self):
         import hashlib

@@ -55,7 +55,7 @@ Paseo may report `xhigh` while the native Pi session actually uses `high`.
 ## Subagent-only fallback, parent unchanged
 
 The delegation policy keeps configured DeepSeek planner/scout/worker roles primary
-and uses `openai-codex/gpt-5.6-luna` (at the role's configured thinking level) for a permitted model-failure fallback or
+and uses `openai-codex/gpt-6-luna` (at the role's configured thinking level) for a permitted model-failure fallback or
 confirmed DeepSeek `402: Insufficient Balance`. For that billing error, the parent
 continues unfinished child work on that fallback without retrying DeepSeek or waiting
 for a top-up; see the

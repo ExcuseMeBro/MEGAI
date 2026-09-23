@@ -49,7 +49,7 @@ PI_CONFIG_FILES="$performance:$balanced" MINIMAX_CODE_API_KEY=test-only omp conf
     and .modelRoles.value.migration == "openai-codex/gpt-5.5:high"
     and .modelRoles.value["worker-stable"] == "openai-codex/gpt-5.4:high"
     and .modelRoles.value["worker-legacy"] == "openai-codex/gpt-5.3-codex-spark:low"
-    and .modelRoles.value.plan == "openai-codex/gpt-5.6-sol:high"
+    and .modelRoles.value.plan == "openai-codex/gpt-6-sol:high"
     and .modelRoles.value.architecture == "openai-codex/gpt-5.6-terra:high"
     and .modelRoles.value.review == "openai-codex/gpt-5.6-terra:high"
     and .modelRoles.value.debug == "openai-codex/gpt-5.5:high"
@@ -79,7 +79,7 @@ PI_CONFIG_FILES="$performance:$balanced" MINIMAX_CODE_API_KEY=test-only omp conf
     and .["task.agentModelOverrides"].value["minimax-worker"] == "openai-codex/gpt-5.6-terra:medium"
     and .["task.agentModelOverrides"].value["minimax-test-worker"] == "openai-codex/gpt-5.4-mini:medium"
     and .["task.agentModelOverrides"].value.reviewer == "openai-codex/gpt-5.6-terra:high"
-    and .["task.agentModelOverrides"].value["security-reviewer"] == "openai-codex/gpt-5.6-sol:high"
+    and .["task.agentModelOverrides"].value["security-reviewer"] == "openai-codex/gpt-6-sol:high"
     and .["task.agentAdvisor"].value == {}
     and .["task.isolation.mode"].value == "auto"
     and .["task.isolation.merge"].value == "branch"
@@ -105,11 +105,11 @@ PI_CONFIG_FILES="$performance:$balanced" MINIMAX_CODE_API_KEY=test-only omp conf
       (.["retry.fallbackChains"].value | with_entries(.value |= map(strip_effort))) as $graph
       | all($graph | keys[]; (has_cycle($graph; .; []) | not))
     )
-    and .["retry.fallbackChains"].value["openai-codex/gpt-5.6-sol"] == []
+    and .["retry.fallbackChains"].value["openai-codex/gpt-6-sol"] == []
     and .["retry.fallbackChains"].value["openai-codex/gpt-5.6-terra"] == []
-    and .["retry.fallbackChains"].value["openai-codex/gpt-5.6-luna"] == []
+    and .["retry.fallbackChains"].value["openai-codex/gpt-6-luna"] == []
     and .["retry.fallbackChains"].value["openai-codex/gpt-5.3-codex-spark"] == []
-    and .["retry.fallbackChains"].value["minimax-code/MiniMax-M2.1-lightning"][0] == "openai-codex/gpt-5.6-luna:low"
+    and .["retry.fallbackChains"].value["minimax-code/MiniMax-M2.1-lightning"][0] == "openai-codex/gpt-6-luna:low"
   ' >/dev/null
 
 echo "OMP high-speed config: ok"

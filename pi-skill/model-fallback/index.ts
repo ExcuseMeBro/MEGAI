@@ -25,8 +25,8 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 const DEFAULT_FALLBACKS: Record<string, string> = {
-  "deepseek/deepseek-flash": "openai-codex/gpt-5.6-sol",
-  "openai-codex/gpt-5.6-sol": "deepseek/deepseek-flash",
+  "deepseek/deepseek-flash": "openai-codex/gpt-6-sol",
+  "openai-codex/gpt-6-sol": "deepseek/deepseek-flash",
 };
 const MAX_CONFIG_BYTES = 32 * 1024;
 const MAX_PAIRS = 16;

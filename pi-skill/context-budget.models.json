@@ -3,7 +3,7 @@
     "openai-codex": {
       "modelOverrides": {
         "gpt-6-astra": { "contextWindow": 65536 },
-        "gpt-5.6-sol": { "contextWindow": 65536 }
+        "gpt-6-sol": { "contextWindow": 65536 }
       }
     }
   }

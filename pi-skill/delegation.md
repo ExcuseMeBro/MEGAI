@@ -102,13 +102,6 @@ planner and reviewer are read-only; a worker gets only its assigned managed path
 Read-only checks use `python3 -B` and Ruff with
 `--no-fix --no-fix-only --force-exclude --no-cache`; avoid cache-producing checks.
 
-When the `laya` tool is available, delegation, role, fallback and timeout are each one
-call on the task state (`delegate`, `role`, `fallback` and `timeout_action` choices,
-with a `noul` for whether escalation is required), recorded on the same Plane item.
-The answers are advisory: the configured roles, quota rules and fallback chain above
-still decide, and a low-confidence answer means look at the evidence again, not swap
-models silently.
-
 ### Antigravity CLI pool (`agy`)
 
 The installed Antigravity CLI is a third pool for work the user's Antigravity
@@ -134,7 +127,7 @@ For delegated planner/scout/worker roles whose configured primary is
 `deepseek/deepseek-flash`, keep DeepSeek first. After a confirmed
 provider/model-specific failure, timeout, reasoning dead-end or unavailable
 primary, use this exact chain, keeping each role's configured thinking level:
-`deepseek/deepseek-flash` -> `openai-codex/gpt-5.6-luna`.
+`deepseek/deepseek-flash` -> `openai-codex/gpt-6-luna`.
 Explicit task model/provider restrictions override this preference; do not replace
 other configured primaries or the independent reviewer's configured model.
 A confirmed provider-specific insufficient balance or unavailability permits the
@@ -163,7 +156,7 @@ not blind fallback. Use completion notifications, not sleep polling.
 
 The installed `megai-model-fallback` extension continues a parent session that ended
 on a provider-level failure on the other configured provider:
-`deepseek/deepseek-flash` <-> `openai-codex/gpt-5.6-sol`. It swaps at most once per
+`deepseek/deepseek-flash` <-> `openai-codex/gpt-6-sol`. It swaps at most once per
 failed model in a session — a partner that also fails is never swapped back to the
 first, so failures cannot cycle between providers — then notifies the user, records a
 `megai-model-fallback` session entry and continues the unfinished task in the same
@@ -177,7 +170,7 @@ pair applies when the file is missing or unusable, and an empty map disables the
 swap:
 
 ```json
-{"fallbacks": {"deepseek/deepseek-flash": "openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-sol": "deepseek/deepseek-flash"}}
+{"fallbacks": {"deepseek/deepseek-flash": "openai-codex/gpt-6-sol", "openai-codex/gpt-6-sol": "deepseek/deepseek-flash"}}
 ```
 
 Editing that file needs no reinstall. The continuation is queued as a follow-up into
@@ -196,7 +189,7 @@ fallback trigger, even when the payload says `type=unknown_error` and
 broad type/code fields alone or a quoted error in repository/tool/test output.
 
 For this confirmed case, the parent routes the unfinished subagent task to the next
-provider in the chain — `openai-codex/gpt-5.6-luna` (the role's configured thinking level) — after the stopped-writer
+provider in the chain — `openai-codex/gpt-6-luna` (the role's configured thinking level) — after the stopped-writer
 and verified-launch checks. Notify the user briefly and continue without requesting
 the same fallback
 approval again, retrying DeepSeek, sleeping or waiting for a balance top-up. Carry
@@ -211,7 +204,7 @@ Advance the chain only on an eligible confirmed provider/model-specific failure,
 including a known provider-specific balance failure. Unresolved `401`/`403`, generic
 `429`, shared quota/outages, unknown `402` responses and uncertain writes are BLOCKED
 until reconciled, not fallback triggers. Do not cycle providers, buy credits or
-modify credentials. If `openai-codex/gpt-5.6-luna` also fails, stop as BLOCKED: the
+modify credentials. If `openai-codex/gpt-6-luna` also fails, stop as BLOCKED: the
 current parent does not silently implement in its place and the chain does not
 restart. If no eligible chain provider is available, report BLOCKED.
 
@@ -278,7 +271,7 @@ Moved out of the always-loaded `AGENTS.md` so the parent pays for it only when i
 delegates or escalates.
 
 A confirmed DeepSeek provider timeout means no resend to DeepSeek and no second long
-wait: use the approved `openai-codex/gpt-5.6-luna` (the role's configured thinking
+wait: use the approved `openai-codex/gpt-6-luna` (the role's configured thinking
 level) fallback once and report the
 model that actually ran. A native wait timeout alone is not a provider failure.
 For a suspected stall, do one bounded native wait of at most 180 seconds and inspect

@@ -189,30 +189,19 @@ def profile_agents_md(current, source):
     return text
 
 
-def prepare_laya_runtime(repo, env):
-    """Prepare the owned Laya runtime before any Laya activation.
+def apply_pi_policy(repo, env):
+    """Apply the Pi policy transaction: owned assets, retirements and model policy.
 
-    A failure is fatal: the profile must not claim a local decision runtime it cannot
-    load, and a previously installed decision extension is left untouched. MEGAI_LAYA_INSTALL
-    is a deterministic test seam for the runtime installer command.
+    MEGAI_PI_POLICY is a deterministic test seam for the policy command. A failure is
+    fatal: the profile must not report success while an owned asset, a retirement or
+    the workflow policy did not apply.
     """
-    seam = os.environ.get("MEGAI_LAYA_INSTALL")
-    command = shlex.split(seam) if seam else ["bash", str(repo / "lib/install_laya.sh")]
-    if subprocess.run(command, env=env).returncode:
-        raise SystemExit(
-            "Local decision runtime preparation failed; existing decision assets are unchanged "
-            "and Laya is not activated. Run `bash lib/install_laya.sh` once the cause is fixed, then rerun the installer."
-        )
-
-
-def activate_laya_profile(repo, env):
-    """Atomically retire the hosted decision assets and activate local Laya."""
-    seam = os.environ.get("MEGAI_LAYA_ACTIVATE")
+    seam = os.environ.get("MEGAI_PI_POLICY")
     command = shlex.split(seam) if seam else [sys.executable, str(repo / "lib/pi_model_policy.py")]
     if subprocess.run(command, env=env).returncode:
         raise SystemExit(
-            "Local Laya profile activation failed; existing decision assets are unchanged "
-            "and Laya is not activated. Reconcile the reported conflict, then rerun the installer."
+            "Pi policy activation failed; inspect the reported conflict and current assets "
+            "before retry."
         )
 
 
@@ -332,9 +321,8 @@ def install(reset=False, remove_omp=False):
     env = {**os.environ, "MEGAI_HOME": str(shared), "MEGAI_SOURCE": str(REPO)}
     for name in ("ruff", "codedb", "tgrep", "headroom"):
         run("bash", REPO / f"lib/install_{name}.sh", env=env)
-    # The local decision runtime carries checkpoints of its own, so its preparation gates
-    # the profile: a runtime that cannot be verified must not activate a decision tool.
-    prepare_laya_runtime(REPO, env)
+    # The policy transaction also retires assets from earlier installs, so it runs on
+    # every install, not only on first adoption.
     shutil.copytree(
         REPO / "pi-skill/headroom", shared / "pi-skill/headroom", dirs_exist_ok=True
     )
@@ -355,7 +343,7 @@ def install(reset=False, remove_omp=False):
     agents_md.chmod(source_md.stat().st_mode & 0o777)
     # The policy transaction runs after profile-owned skills and AGENTS.md are refreshed,
     # so their exact source bytes cannot be mistaken for unowned legacy conflicts.
-    activate_laya_profile(REPO, env)
+    apply_pi_policy(REPO, env)
     versions = json.loads((SOURCE / "package.json").read_text())["dependencies"]
     write_json(
         agent / "settings.json",

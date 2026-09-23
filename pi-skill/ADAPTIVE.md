@@ -34,53 +34,17 @@ behavior requires it, in either mode; exit zero alone is insufficient. A bug nee
 an observed failing reproduction and passing regression, even in routine mode.
 No formal-gate claim without running that gate. Existing stricter repo/user rules win.
 
-### Laya at every decision step
+### Decisions use native judgment
 
-The `laya` tool answers typed decision questions (`choice`, `score`, `noul`) in about
-a second from a small local checkpoint: no key, no account and no network request.
-Every decision this flow names is one `laya` call on the supplied state instead of a
-model prompt, recorded with its probabilities on
-the task item:
-
-| Step | Decision | Questions |
-| --- | --- | --- |
-| Triage, once at start/resume | mode, type, areas, effort, approval, delegation, review | `mode` choice (routine/guarded), `task_type` choice, `area` choice plus a `noul` per open secondary area, `effort` score (0 one file – 3 architecture), `needs_approval` `noul`, `delegate` choice (parent/one worker), `review` `noul` |
-| Task flow | the Plane labels and a scope change | `label_type` choice, `label_area` choice, `reconcile` choice on a contradiction (reuse/create/ask), `reclassify` `noul` on resume |
-| Isolation | commit target and cleanup | `isolation` choice (managed worktree/clean checkout/blocked), `delivery_target` choice, `cleanup` choice (archive/retain/blocked) |
-| Delegation | whether, who, fallback | `delegate` choice, `role` choice among the configured roles, `fallback` choice, `timeout_action` choice |
-| Verification | the smallest sufficient check and the verdict | `check` choice, `sufficiency` choice (sufficient/gap), `verdict` choice (PASS/PASS WITH FINDINGS/BLOCKED), `escalate` `noul` |
-| Loop control | is the task actually finished, and who decides next | `done` `noul`, `next` choice (continue/stop/escalate), `missing` `noul`, `human` `noul` |
-| First-pass judge | whether an output is good enough to keep or needs the expensive review | `keep` `noul`, `judge` choice (accept/expensive review/human) |
-| Delivery and handoff | readiness and state | `delivery_ready` choice, `handoff_state` choice (In Review/blocked) |
-
-One call per decision boundary bundles that step's questions, which run in parallel
-and cannot see each other's answers (8-question limit). When every branch's follow-up
-is judgeable from the state in hand, bundle those too and use only the selected
-branch's answer; a second call is needed only when the follow-up depends on state the
-branch itself produces. Give `choice` and
-`noul` a label→meaning map and `score` an ordered
-level list (a bare label list is accepted for `choice`/`noul` and sent as labels). Send only the text the decision needs: never secrets, credentials,
-tokens, or personal data. Every answer is advisory: `noul` returns a probability
-and never authorizes a reserved user decision (main promotion, deletion,
-credentials or permissions, software install or removal). If the call returns
-`ok: false` — the local runtime is missing, a checkpoint failed to load, or the
-request timed out — decide with your own judgment, say the call failed once, and
-continue; never retry in a loop. The runtime is prepared once with
-`bash lib/install_laya.sh`; when it is absent the tool reports that in one line
-instead of asking for a key or any credential.
-
-Every call now lands in `~/.megai/laya-calls.jsonl` with a short record id, the route
-that answered it and the checkpoint identity. Label the answers you actually consumed
-with what really happened — `python3 lib/laya_shadow.py note --id ID --actual LABEL` —
-so `python3 lib/laya_shadow.py report` can show the per-question agreement, the cutoff
-the probabilities support and the disagreements worth re-testing. An unlabeled
-ledger is only traffic.
-
-A low-confidence answer, a distribution split across acceptable alternatives or an
-answer that contradicts the table above is a signal to inspect the seam, widen
-evidence or ask — not a silent override. Explicit user or task instructions and every
-existing gate outrank an answer: Laya never replaces a check, a reviewer verdict, an
-evidence requirement or a reserved user decision.
+Every decision this flow names — triage mode, task-flow labels, isolation,
+delegation and role, verification depth, loop control, the verdict and the
+delivery handoff — is decided with Pi's own judgment on the state in hand and
+recorded on the Plane item. Nothing external substitutes for a decision: there is
+no local decision tool, no per-step companion call and no replacement compactor;
+compaction stays Pi's own. Send only the text a decision needs, never secrets,
+credentials, tokens or personal data, and never treat a decision as authorization
+for a reserved user decision (main promotion, deletion, credentials or
+permissions, software install or removal).
 
 ## Three-step default
 

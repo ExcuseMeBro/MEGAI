@@ -21,8 +21,7 @@ const agent = (name) => join(temp, name);
 function install(agentDir, ...flags) {
   execFileSync('python3', ['-B', resolve('lib/pi_model_policy.py'), ...flags], {
     stdio: 'pipe',
-    env: { ...process.env, HOME: temp, MEGAI_HOME: join(temp, 'megai'), MEGAI_SOURCE: ROOT, PI_CODING_AGENT_DIR: agentDir,
-      MEGAI_LAYA_CHECK: 'true' },
+    env: { ...process.env, HOME: temp, MEGAI_HOME: join(temp, 'megai'), MEGAI_SOURCE: ROOT, PI_CODING_AGENT_DIR: agentDir },
   });
   mkdirSync(agentDir, { recursive: true });
 }
@@ -86,7 +85,7 @@ async function blockedNetwork(fn) {
 const gpt = (model) => ({ provider: 'openai-codex', model, thinking: 'high' });
 const customRoles = {
   schema: 1,
-  roles: { planner: gpt('gpt-6-astra'), scout: gpt('gpt-6-astra'), worker: gpt('gpt-6-astra'), reviewer: gpt('gpt-5.6-sol') },
+  roles: { planner: gpt('gpt-6-astra'), scout: gpt('gpt-6-astra'), worker: gpt('gpt-6-astra'), reviewer: gpt('gpt-6-sol') },
 };
 
 try {
@@ -106,12 +105,12 @@ try {
   assert.ok(turn.prompt !== BASE && turn.prompt.includes('deepseek/deepseek-flash'),
     'Configured economy role context missing before agent start');
   const prompt = turn.prompt;
-  for (const fact of ['openai-codex/gpt-5.6-sol', 'minimax/MiniMax-M3', 'openai-codex/gpt-5.6-luna']) {
+  for (const fact of ['openai-codex/gpt-6-sol', 'minimax/MiniMax-M3', 'openai-codex/gpt-6-luna']) {
     assert.ok(prompt.includes(fact), `economy role context missing ${fact}`);
   }
   assert.ok(prompt.indexOf('deepseek/deepseek-flash') < prompt.indexOf('minimax/MiniMax-M3'),
     'economy fallback order must place MiniMax M3 after DeepSeek');
-  assert.ok(prompt.indexOf('minimax/MiniMax-M3') < prompt.indexOf('openai-codex/gpt-5.6-luna'),
+  assert.ok(prompt.indexOf('minimax/MiniMax-M3') < prompt.indexOf('openai-codex/gpt-6-luna'),
     'economy fallback order must place luna escalation last');
   assert.match(prompt, /override/i, 'economy role context must honour explicit model overrides');
   assert.match(prompt, /(stopped|diff|verif|preserv)/i, 'economy fallback must preserve stopped-writer/diff/verification');
@@ -136,7 +135,7 @@ try {
       planner: gpt('gpt-6-astra'),
       scout: { provider: 'deepseek', model: 'deepseek-flash', thinking: 'high' },
       worker: { provider: 'deepseek', model: 'deepseek-flash', thinking: 'high' },
-      reviewer: gpt('gpt-5.6-sol'),
+      reviewer: gpt('gpt-6-sol'),
     },
   }));
   const splitExtensions = await loadExtensions(split);
@@ -145,7 +144,7 @@ try {
     'a configured GPT planner primary must stay GPT, not globally forced to DeepSeek');
   assert.ok(splitTurn.prompt.includes('deepseek/deepseek-flash'),
     'the DeepSeek scout/worker primaries must come from megai-roles.json');
-  assert.ok(splitTurn.prompt.includes('openai-codex/gpt-5.6-sol'), 'reviewer Sol must be preserved');
+  assert.ok(splitTurn.prompt.includes('openai-codex/gpt-6-sol'), 'reviewer Sol must be preserved');
   assert.ok(splitTurn.prompt.includes('minimax/MiniMax-M3'),
     'the configured DeepSeek scout/worker must carry the ordered fallback chain');
   assert.ok(splitTurn.prompt.length > BASE.length && !splitTurn.prompt.includes('Parent-only economy routing'),
@@ -156,7 +155,7 @@ try {
   const customExtensions = await loadExtensions(custom);
   const customTurn = await blockedNetwork(() => beginTurn(customExtensions, BASE));
   assert.ok(customTurn.prompt.includes('openai-codex/gpt-6-astra') && !customTurn.prompt.includes('deepseek')
-    && !customTurn.prompt.includes('minimax/MiniMax-M3') && !customTurn.prompt.includes('openai-codex/gpt-5.6-luna'),
+    && !customTurn.prompt.includes('minimax/MiniMax-M3') && !customTurn.prompt.includes('openai-codex/gpt-6-luna'),
     'custom schema1+roles without preset must keep GPT roles and inject no DeepSeek fallback chain');
 
   // 4. Each new prompt rereads the current config without a reload.
@@ -185,7 +184,7 @@ try {
   const roleConfig = (roles) => JSON.stringify({ schema: 1, roles });
   const deepseekRoles = {
     planner: role('deepseek', 'deepseek-flash', 'high'), scout: role('deepseek', 'deepseek-flash', 'high'),
-    worker: role('deepseek', 'deepseek-flash', 'high'), reviewer: role('openai-codex', 'gpt-5.6-sol', 'high'),
+    worker: role('deepseek', 'deepseek-flash', 'high'), reviewer: role('openai-codex', 'gpt-6-sol', 'high'),
   };
   for (const [label, data] of [
     ['malformed', `{"schema":1,"secret":"${secret}","roles":{`],

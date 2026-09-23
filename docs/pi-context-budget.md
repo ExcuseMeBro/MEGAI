@@ -17,10 +17,7 @@ Other models, including the runtime-resolved DeepSeek alias, are untouched.
 Explicit compaction opt-out and project overrides still apply. This is an earlier
 native trigger, not a hard per-request token cap or a guarantee about accuracy,
 latency or billing. Summarization itself costs tokens and can omit details; use
-original files/receipts when exact evidence is needed. The installed Laya fast
-compaction ([`docs/pi-laya-compaction.md`](pi-laya-compaction.md)) changes what a
-compaction costs and keeps: it keeps text, calls and wanted results verbatim and
-still falls back to Pi's own summary for focused, overflow or keyless runs.
+original files/receipts when exact evidence is needed.
 
 ## Apply and activate
 
