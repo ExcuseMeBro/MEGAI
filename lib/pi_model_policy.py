@@ -59,6 +59,12 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
     # and a compaction companion; its sources and published copies are retired by
     # the same transaction so a reinstall leaves none of it behind.
     stage_pi_assets(plan, root)
+    # TypeSafe Jev is the active hosted decision extension. It remains a Pi
+    # companion to the native chat provider/model, not a replacement provider.
+    plan.asset(root / "extensions/megai-jev/index.ts",
+               (source / "pi-skill/jev/index.ts").read_bytes(), remove)
+    plan.asset(root / "extensions/megai-jev-compaction/index.ts",
+               (source / "pi-skill/jev-compaction/index.ts").read_bytes(), remove)
     plan.asset(root / "extensions/megai-antigravity/index.ts",
                (source / "pi-skill/antigravity/index.ts").read_bytes(), remove)
     delegation = root / "skills/megai/delegation.md"
