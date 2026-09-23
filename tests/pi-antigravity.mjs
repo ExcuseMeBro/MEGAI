@@ -140,14 +140,22 @@ process.stdout.write(process.env.AGY_ANSWER ?? '');
   assert.ok(!delegatedArgv.join(' ').includes('dangerously'));
   delete process.env.AGY_WRITE_REL;
   rmSync(join(linked, 'delegated.txt'));
-  writeFileSync(join(repo, '.git', 'info', 'exclude'), '.env\n*.pem\nlink*\n');
+  writeFileSync(join(repo, '.git', 'info', 'exclude'), '.env\n*.pem\n*link\n');
   writeFileSync(join(linked, '.env'), 'SECRET=do-not-send\n');
+  const ignoredEnv = await runDelegate({ task: 'x', worktree: linked });
+  assert.match(ignoredEnv.content[0].text, /credential-like path/i);
+  rmSync(join(linked, '.env'));
+
   writeFileSync(join(linked, 'quoted\t.pem'), 'PRIVATE KEY\n');
-  symlinkSync('.env', join(linked, 'link\tfile'));
-  const ignoredCredential = await runDelegate({ task: 'x', worktree: linked });
-  assert.match(ignoredCredential.content[0].text, /credential-like path/i);
+  const quotedCredential = await runDelegate({ task: 'x', worktree: linked });
+  assert.match(quotedCredential.content[0].text, /credential-like path/i, 'quoted credential filenames must be screened');
   rmSync(join(linked, 'quoted\t.pem'));
-  rmSync(join(linked, 'link\tfile'));
+
+  writeFileSync(join(linked, '.env'), 'SECRET=do-not-send\n');
+  symlinkSync('.env', join(linked, 'unicode-é\tlink'));
+  const symlinkCredential = await runDelegate({ task: 'x', worktree: linked });
+  assert.match(symlinkCredential.content[0].text, /credential-like path/i, 'unicode symlink targets must be screened');
+  rmSync(join(linked, 'unicode-é\tlink'));
   rmSync(join(linked, '.env'));
 
   // A caller inside a linked worktree must not be able to pass Git's actual primary checkout.

@@ -14,7 +14,7 @@
  * — use interactive `agy` for that.
  */
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { readFileSync, realpathSync, statSync } from "node:fs";
+import { lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { TextDecoder } from "node:util";
 import { Type } from "typebox";
@@ -110,10 +110,63 @@ function clean(text: string): string {
   return text.trim();
 }
 
+function failed(result: GitCommandResult): boolean {
+  return result.code !== 0 || result.killed;
+}
+
 function worktreePaths(list: string): string[] {
   return list.split(/\r?\n(?=worktree )/)
     .map((entry) => entry.match(/^worktree (.+)$/m)?.[1]?.trim())
     .filter((path): path is string => Boolean(path));
+}
+
+function screenWorktreeFiles(root: string): string | undefined {
+  const pending = [root];
+  let count = 0;
+  while (pending.length) {
+    const directory = pending.pop()!;
+    let entries;
+    try {
+      entries = readdirSync(directory, { withFileTypes: true });
+    } catch {
+      return "could not enumerate worktree files";
+    }
+    for (const entry of entries) {
+      // A linked worktree has a .git file at its root. Git metadata is not a
+      // source file and is deliberately excluded from the credential scan.
+      if (entry.name === ".git") continue;
+      const absolute = resolve(directory, entry.name);
+      const path = relative(root, absolute);
+      const candidates = [path];
+      let info;
+      try {
+        info = lstatSync(absolute);
+      } catch {
+        return `could not inspect worktree path ${path}`;
+      }
+      if (info.isSymbolicLink()) {
+        let resolved;
+        try {
+          resolved = realpathSync(absolute);
+          const resolvedInfo = statSync(resolved);
+          if (resolvedInfo.isDirectory()) return `directory symlink target ${path} cannot be screened safely`;
+          const resolvedRelative = relative(root, resolved);
+          if (resolvedRelative === ".." || resolvedRelative.startsWith(`..${sep}`) || isAbsolute(resolvedRelative)) {
+            return `external symlink target ${path} cannot be screened safely`;
+          }
+        } catch {
+          return `could not resolve symlink target ${path}`;
+        }
+        candidates.push(resolved);
+      }
+      if (candidates.some((candidate) => SENSITIVE_PATH.test(candidate) || SENSITIVE_SUFFIX.test(candidate))) {
+        return "worktree contains a credential-like path or symlink target";
+      }
+      if (info.isDirectory()) pending.push(absolute);
+      if (++count > 100_000) return "worktree contains too many paths to screen safely";
+    }
+  }
+  return undefined;
 }
 
 /** Only linked, clean, non-protected worktrees may receive Agy edits. */
@@ -127,7 +180,7 @@ async function verifyDelegationWorktree(pi: ExtensionAPI, parentCwd: string, req
 
   const parentRootResult = await git(pi, ["rev-parse", "--show-toplevel"], parentCwd);
   const targetRootResult = await git(pi, ["rev-parse", "--show-toplevel"], target);
-  if (parentRootResult.code !== 0 || targetRootResult.code !== 0) {
+  if (failed(parentRootResult) || failed(targetRootResult)) {
     return { error: "both the current directory and worktree must be inside Git repositories" };
   }
   const parentRoot = clean(parentRootResult.stdout);
@@ -136,27 +189,24 @@ async function verifyDelegationWorktree(pi: ExtensionAPI, parentCwd: string, req
     return { error: "refusing the primary checkout; pass a separate linked worktree" };
   }
 
-  const [branchResult, statusResult, listResult, filesResult, ignoredFilesResult, parentCommonResult, targetCommonResult, targetGitDirResult, headResult] =
+  const [branchResult, statusResult, listResult, parentCommonResult, targetCommonResult, targetGitDirResult, headResult] =
     await Promise.all([
       git(pi, ["symbolic-ref", "--quiet", "--short", "HEAD"], target),
       git(pi, ["status", "--porcelain=v1", "--untracked-files=all"], target),
       git(pi, ["worktree", "list", "--porcelain"], target),
-      git(pi, ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], target),
-      git(pi, ["ls-files", "--others", "--ignored", "--exclude-standard", "-z"], target),
       git(pi, ["rev-parse", "--git-common-dir"], parentRoot),
       git(pi, ["rev-parse", "--git-common-dir"], targetRoot),
       git(pi, ["rev-parse", "--git-dir"], targetRoot),
       git(pi, ["rev-parse", "HEAD"], target),
     ]);
   const branch = clean(branchResult.stdout);
-  if (branchResult.code !== 0 || !branch) return { error: "detached HEAD is not allowed for delegated work" };
+  if (failed(branchResult) || !branch) return { error: "detached HEAD is not allowed for delegated work" };
   if (["main", "dev", "pi", "master"].includes(branch)) {
     return { error: `protected branch ${branch} cannot receive delegated edits` };
   }
-  if (statusResult.code !== 0) return { error: "could not inspect worktree status" };
+  if (failed(statusResult)) return { error: "could not inspect worktree status" };
   if (clean(statusResult.stdout)) return { error: "worktree must be clean before delegation" };
-  if (filesResult.code !== 0 || ignoredFilesResult.code !== 0) return { error: "could not inspect worktree files" };
-  if (listResult.code !== 0) return { error: "could not verify Git worktree registration" };
+  if (failed(listResult)) return { error: "could not verify Git worktree registration" };
   const listed = worktreePaths(listResult.stdout).map((path) => {
     try { return realpathSync(path); } catch { return path; }
   });
@@ -164,27 +214,19 @@ async function verifyDelegationWorktree(pi: ExtensionAPI, parentCwd: string, req
   const primary = listed[0];
   const targetGitDir = clean(targetGitDirResult.stdout);
   const targetCommonDir = clean(targetCommonResult.stdout);
-  if (target === primary || (targetGitDirResult.code === 0 && targetCommonDir &&
+  if (failed(parentCommonResult) || failed(targetCommonResult) || failed(targetGitDirResult)) {
+    return { error: "could not inspect Git worktree metadata" };
+  }
+  if (target === primary || (!failed(targetGitDirResult) && targetCommonDir &&
       resolve(targetRoot, targetGitDir) === resolve(targetRoot, targetCommonDir))) {
     return { error: "refusing Git's primary worktree; pass a separate linked worktree" };
   }
-  const paths = [...new Set([
-    ...filesResult.stdout.split("\0"),
-    ...ignoredFilesResult.stdout.split("\0"),
-  ].filter(Boolean))];
-  if (paths.some((path) => {
-    const resolved = (() => {
-      try { return realpathSync(resolve(target, path)); } catch { return ""; }
-    })();
-    return [path, resolved].some((candidate) => SENSITIVE_PATH.test(candidate) || SENSITIVE_SUFFIX.test(candidate));
-  })) {
-    return { error: "worktree contains a credential-like path or symlink target; refusing to expose it to Agy" };
-  }
-  if (parentCommonResult.code !== 0 || targetCommonResult.code !== 0 ||
-      resolve(parentRoot, clean(parentCommonResult.stdout)) !== resolve(targetRoot, clean(targetCommonResult.stdout))) {
+  const fileError = screenWorktreeFiles(target);
+  if (fileError) return { error: `${fileError}; refusing to expose it to Agy` };
+  if (resolve(parentRoot, clean(parentCommonResult.stdout)) !== resolve(targetRoot, clean(targetCommonResult.stdout))) {
     return { error: "worktree is not attached to the current repository" };
   }
-  if (headResult.code !== 0 || !clean(headResult.stdout)) return { error: "could not capture the worktree HEAD" };
+  if (failed(headResult) || !clean(headResult.stdout)) return { error: "could not capture the worktree HEAD" };
   return { target, parentRoot, targetRoot, branch, head: clean(headResult.stdout) };
 }
 
@@ -194,9 +236,9 @@ async function delegationResult(pi: ExtensionAPI, target: string, beforeHead: st
     git(pi, ["rev-parse", "HEAD"], target),
     git(pi, ["diff", "--stat"], target),
   ]);
-  const failed = [status, head, diff].filter((result) => result.code !== 0);
+  const failedCommands = [status, head, diff].filter(failed);
   return {
-    auditError: failed.length ? `git audit failed (${failed.map((result) => result.code).join(", ")})` : "",
+    auditError: failedCommands.length ? `git audit failed (${failedCommands.map((result) => result.killed ? "killed" : result.code).join(", ")})` : "",
     status: clean(status.stdout),
     diffStat: clean(diff.stdout),
     head: clean(head.stdout),
