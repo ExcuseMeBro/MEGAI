@@ -100,6 +100,110 @@ function inlineFiles(paths: string[] | undefined, cwd: string): { block: string;
   return { block: parts.join("\n"), notes };
 }
 
+type GitCommandResult = { stdout: string; stderr: string; code: number; killed: boolean };
+
+async function git(pi: ExtensionAPI, args: string[], cwd: string): Promise<GitCommandResult> {
+  return pi.exec("git", args, { cwd, timeout: 10_000 });
+}
+
+function clean(text: string): string {
+  return text.trim();
+}
+
+function worktreePaths(list: string): string[] {
+  return list.split(/\r?\n(?=worktree )/)
+    .map((entry) => entry.match(/^worktree (.+)$/m)?.[1]?.trim())
+    .filter((path): path is string => Boolean(path));
+}
+
+/** Only linked, clean, non-protected worktrees may receive Agy edits. */
+async function verifyDelegationWorktree(pi: ExtensionAPI, parentCwd: string, requested: string) {
+  let target: string;
+  try {
+    target = realpathSync(resolve(parentCwd, requested));
+  } catch {
+    return { error: "worktree path does not exist or cannot be resolved" };
+  }
+
+  const parentRootResult = await git(pi, ["rev-parse", "--show-toplevel"], parentCwd);
+  const targetRootResult = await git(pi, ["rev-parse", "--show-toplevel"], target);
+  if (parentRootResult.code !== 0 || targetRootResult.code !== 0) {
+    return { error: "both the current directory and worktree must be inside Git repositories" };
+  }
+  const parentRoot = clean(parentRootResult.stdout);
+  const targetRoot = clean(targetRootResult.stdout);
+  if (parentRoot === targetRoot) {
+    return { error: "refusing the primary checkout; pass a separate linked worktree" };
+  }
+
+  const [branchResult, statusResult, listResult, filesResult, ignoredFilesResult, parentCommonResult, targetCommonResult, targetGitDirResult, headResult] =
+    await Promise.all([
+      git(pi, ["symbolic-ref", "--quiet", "--short", "HEAD"], target),
+      git(pi, ["status", "--porcelain=v1", "--untracked-files=all"], target),
+      git(pi, ["worktree", "list", "--porcelain"], target),
+      git(pi, ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], target),
+      git(pi, ["ls-files", "--others", "--ignored", "--exclude-standard", "-z"], target),
+      git(pi, ["rev-parse", "--git-common-dir"], parentRoot),
+      git(pi, ["rev-parse", "--git-common-dir"], targetRoot),
+      git(pi, ["rev-parse", "--git-dir"], targetRoot),
+      git(pi, ["rev-parse", "HEAD"], target),
+    ]);
+  const branch = clean(branchResult.stdout);
+  if (branchResult.code !== 0 || !branch) return { error: "detached HEAD is not allowed for delegated work" };
+  if (["main", "dev", "pi", "master"].includes(branch)) {
+    return { error: `protected branch ${branch} cannot receive delegated edits` };
+  }
+  if (statusResult.code !== 0) return { error: "could not inspect worktree status" };
+  if (clean(statusResult.stdout)) return { error: "worktree must be clean before delegation" };
+  if (filesResult.code !== 0 || ignoredFilesResult.code !== 0) return { error: "could not inspect worktree files" };
+  if (listResult.code !== 0) return { error: "could not verify Git worktree registration" };
+  const listed = worktreePaths(listResult.stdout).map((path) => {
+    try { return realpathSync(path); } catch { return path; }
+  });
+  if (!listed.includes(target)) return { error: "path is not a registered linked Git worktree" };
+  const primary = listed[0];
+  const targetGitDir = clean(targetGitDirResult.stdout);
+  const targetCommonDir = clean(targetCommonResult.stdout);
+  if (target === primary || (targetGitDirResult.code === 0 && targetCommonDir &&
+      resolve(targetRoot, targetGitDir) === resolve(targetRoot, targetCommonDir))) {
+    return { error: "refusing Git's primary worktree; pass a separate linked worktree" };
+  }
+  const paths = [...new Set([
+    ...filesResult.stdout.split("\0"),
+    ...ignoredFilesResult.stdout.split("\0"),
+  ].filter(Boolean))];
+  if (paths.some((path) => {
+    const resolved = (() => {
+      try { return realpathSync(resolve(target, path)); } catch { return ""; }
+    })();
+    return [path, resolved].some((candidate) => SENSITIVE_PATH.test(candidate) || SENSITIVE_SUFFIX.test(candidate));
+  })) {
+    return { error: "worktree contains a credential-like path or symlink target; refusing to expose it to Agy" };
+  }
+  if (parentCommonResult.code !== 0 || targetCommonResult.code !== 0 ||
+      resolve(parentRoot, clean(parentCommonResult.stdout)) !== resolve(targetRoot, clean(targetCommonResult.stdout))) {
+    return { error: "worktree is not attached to the current repository" };
+  }
+  if (headResult.code !== 0 || !clean(headResult.stdout)) return { error: "could not capture the worktree HEAD" };
+  return { target, parentRoot, targetRoot, branch, head: clean(headResult.stdout) };
+}
+
+async function delegationResult(pi: ExtensionAPI, target: string, beforeHead: string) {
+  const [status, head, diff] = await Promise.all([
+    git(pi, ["status", "--short", "--untracked-files=all"], target),
+    git(pi, ["rev-parse", "HEAD"], target),
+    git(pi, ["diff", "--stat"], target),
+  ]);
+  const failed = [status, head, diff].filter((result) => result.code !== 0);
+  return {
+    auditError: failed.length ? `git audit failed (${failed.map((result) => result.code).join(", ")})` : "",
+    status: clean(status.stdout),
+    diffStat: clean(diff.stdout),
+    head: clean(head.stdout),
+    commitCreated: Boolean(beforeHead && clean(head.stdout) && beforeHead !== clean(head.stdout)),
+  };
+}
+
 export default function antigravity(pi: ExtensionAPI) {
   pi.registerTool({
     name: "antigravity",
@@ -173,6 +277,82 @@ export default function antigravity(pi: ExtensionAPI) {
           `or use interactive agy. Output:\n${text.slice(0, 2_000)}` }], details: detail };
       }
       return { content: [{ type: "text" as const, text }], details: detail };
+    },
+  });
+
+  pi.registerTool({
+    name: "antigravity_delegate",
+    label: "Antigravity delegated worker",
+    description: "Run a bounded implementation task with Agy in a verified clean linked Git worktree. " +
+      "Agy may edit only that worktree in accept-edits+sandbox mode; main/dev/pi, dirty checkouts, detached " +
+      "HEADs, commits, pushes and merges are refused. Returns Agy's report plus the worktree diff/status for " +
+      "DeepSeek to verify and GPT to review.",
+    promptSnippet: "Delegate an implementation task to Antigravity in an isolated linked worktree",
+    promptGuidelines: [
+      "Use antigravity_delegate only for a bounded implementation subtask with explicit acceptance and a separate linked worktree; never pass the primary checkout or secrets.",
+      "DeepSeek remains the coordinating implementer; Agy returns a diff, and GPT reviews the delivered diff and tests before integration.",
+    ],
+    parameters: Type.Object({
+      task: Type.String({
+        minLength: 1, maxLength: 100_000,
+        description: "Self-contained implementation task with acceptance criteria and focused test expectations.",
+      }),
+      worktree: Type.String({
+        minLength: 1, maxLength: 2_000,
+        description: "Existing clean linked Git worktree path, relative to the current directory or absolute.",
+      }),
+      model: Type.Optional(Type.String({
+        minLength: 1, maxLength: 100, pattern: MODEL_ID.source,
+        description: "Optional exact Agy model id from `agy models`.",
+      })),
+      timeout_s: Type.Optional(Type.Integer({ minimum: 5, maximum: MAX_TIMEOUT_S })),
+    }),
+    async execute(_id, params, signal, _onUpdate, ctx: ExtensionContext) {
+      if (params.model && !MODEL_ID.test(params.model)) {
+        return { content: [{ type: "text" as const, text: "antigravity_delegate: invalid model id." }] };
+      }
+      const verified = await verifyDelegationWorktree(pi, ctx.cwd, params.worktree);
+      if ("error" in verified) {
+        return { content: [{ type: "text" as const, text: `antigravity_delegate refused: ${verified.error}` }] };
+      }
+      const timeoutS = Math.min(Math.max(params.timeout_s ?? DEFAULT_TIMEOUT_S, 5), MAX_TIMEOUT_S);
+      const prompt = [
+        "You are the Antigravity implementation worker in a supervised Pi team.",
+        "Work only in the current isolated linked worktree. Implement the task below, inspect the real code and run focused tests.",
+        "Do not commit, push, merge, change branches, access credentials, or modify anything outside this worktree.",
+        "Return a concise report with changed files, tests and results, remaining risks, and any blocker.",
+        "The DeepSeek parent will verify your diff and a GPT reviewer will review it before integration.",
+        `\nTask:\n${params.task}`,
+      ].join("\n");
+      const args = ["-p", prompt, "--mode", "accept-edits", "--sandbox", "--print-timeout", `${timeoutS}s`];
+      if (params.model) args.push("--model", params.model);
+      const bin = process.env.MEGAI_AGY_BIN || DEFAULT_BIN;
+      const started = Date.now();
+      let result: { stdout?: string; stderr?: string; code?: number | null; killed?: boolean };
+      try {
+        result = await pi.exec(bin, args, { cwd: verified.target, signal, timeout: (timeoutS + 20) * 1_000 });
+      } catch (error) {
+        return { content: [{ type: "text" as const, text: `antigravity_delegate: could not run ${bin}: ${error instanceof Error ? error.message : String(error)}` }] };
+      }
+      const audit = await delegationResult(pi, verified.target, verified.head);
+      const seconds = Math.round((Date.now() - started) / 1_000);
+      const text = (result.stdout ?? "").trim();
+      const detail = { model: params.model ?? "cli default", code: result.code ?? null, seconds,
+        worktree: verified.target, branch: verified.branch, ...audit };
+      if (audit.auditError) {
+        return { content: [{ type: "text" as const, text: `antigravity_delegate: ${audit.auditError}; refusing to report delegated work as verified.` }], details: detail };
+      }
+      if (audit.commitCreated) {
+        return { content: [{ type: "text" as const, text: "antigravity_delegate warning: Agy changed the worktree HEAD; do not integrate until the commit is inspected." }], details: detail };
+      }
+      if (result.killed) {
+        return { content: [{ type: "text" as const, text: `antigravity_delegate: timed out after ${timeoutS}s; inspect the isolated worktree diff.` }], details: detail };
+      }
+      if (!text || result.code !== 0) {
+        const tail = (result.stderr ?? "").trim().slice(-500);
+        return { content: [{ type: "text" as const, text: `antigravity_delegate: Agy failed (exit ${result.code ?? "?"}).${tail ? ` stderr: ${tail}` : ""} Inspect the isolated worktree.` }], details: detail };
+      }
+      return { content: [{ type: "text" as const, text: `${text}\n\n[worktree ${verified.branch}]\n${audit.status || "clean"}\n${audit.diffStat || "no unstaged diff"}` }], details: detail };
     },
   });
 }

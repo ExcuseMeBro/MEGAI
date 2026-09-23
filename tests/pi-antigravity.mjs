@@ -2,7 +2,8 @@
 // headless print mode and its answer comes back. Offline — a fake `agy` on the
 // configured bin path records argv and prints a canned answer; no provider, no network.
 import assert from 'node:assert/strict';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -19,7 +20,9 @@ try {
   // Records the argv it received and answers with AGY_ANSWER (empty = real failure).
   writeFileSync(fake, `#!/usr/bin/env node
 const { writeFileSync } = require('node:fs');
+const { join } = require('node:path');
 writeFileSync(process.env.AGY_ARGV_FILE, JSON.stringify(process.argv.slice(2)));
+if (process.env.AGY_WRITE_REL) writeFileSync(join(process.cwd(), process.env.AGY_WRITE_REL), 'delegated\\n');
 process.stdout.write(process.env.AGY_ANSWER ?? '');
 `);
   chmodSync(fake, 0o755);
@@ -37,8 +40,10 @@ process.stdout.write(process.env.AGY_ANSWER ?? '');
   for (const extension of loader.getExtensions().extensions)
     for (const [name, tool] of extension.tools) tools.set(name, tool.definition);
   const tool = tools.get('antigravity');
+  const delegate = tools.get('antigravity_delegate');
   assert.ok(tool, 'the extension must register the antigravity tool');
   assert.ok(tool.parameters, 'the tool must declare parameters');
+  assert.ok(delegate, 'the extension must register the delegated worker tool');
 
   const work = join(temp, 'work');
   mkdirSync(work, { recursive: true });
@@ -109,6 +114,48 @@ process.stdout.write(process.env.AGY_ANSWER ?? '');
   process.env.AGY_ANSWER = '';
   const empty = await run({ prompt: 'Say nothing' });
   assert.match(empty.content[0].text, /produced no output/);
+
+  // Delegated implementation is allowed only in a clean linked worktree and uses accept-edits+sandbox.
+  const repo = join(temp, 'repo');
+  const linked = join(temp, 'repo-task');
+  mkdirSync(repo, { recursive: true });
+  execFileSync('git', ['init', '-b', 'feature-base', repo], { stdio: 'ignore' });
+  execFileSync('git', ['-C', repo, 'config', 'user.email', 'test@example.com']);
+  execFileSync('git', ['-C', repo, 'config', 'user.name', 'Pi Test']);
+  writeFileSync(join(repo, 'README.md'), 'baseline\n');
+  execFileSync('git', ['-C', repo, 'add', 'README.md']);
+  execFileSync('git', ['-C', repo, 'commit', '-m', 'baseline'], { stdio: 'ignore' });
+  execFileSync('git', ['-C', repo, 'worktree', 'add', '-b', 'task/agy-worker', linked, 'HEAD'], { stdio: 'ignore' });
+  const delegateCtx = { ...ctx, cwd: repo };
+  const runDelegate = (params) => delegate.execute('antigravity_delegate', params, undefined, undefined, delegateCtx);
+  process.env.AGY_ANSWER = 'DELEGATED_ANSWER';
+  process.env.AGY_WRITE_REL = 'delegated.txt';
+  const delegated = await runDelegate({ task: 'Add the smallest focused change and report tests.', worktree: linked, model: 'gemini-3.1-pro-high', timeout_s: 42 });
+  assert.match(delegated.content[0].text, /DELEGATED_ANSWER/);
+  assert.ok(existsSync(join(linked, 'delegated.txt')), 'Agy must run with the linked worktree as cwd');
+  const delegatedArgv = argv();
+  assert.equal(delegatedArgv[delegatedArgv.indexOf('--mode') + 1], 'accept-edits');
+  assert.ok(delegatedArgv.includes('--sandbox'));
+  assert.equal(delegatedArgv[delegatedArgv.indexOf('--print-timeout') + 1], '42s');
+  assert.ok(!delegatedArgv.join(' ').includes('dangerously'));
+  delete process.env.AGY_WRITE_REL;
+  rmSync(join(linked, 'delegated.txt'));
+  writeFileSync(join(repo, '.git', 'info', 'exclude'), '.env\n*.pem\nlink*\n');
+  writeFileSync(join(linked, '.env'), 'SECRET=do-not-send\n');
+  writeFileSync(join(linked, 'quoted\t.pem'), 'PRIVATE KEY\n');
+  symlinkSync('.env', join(linked, 'link\tfile'));
+  const ignoredCredential = await runDelegate({ task: 'x', worktree: linked });
+  assert.match(ignoredCredential.content[0].text, /credential-like path/i);
+  rmSync(join(linked, 'quoted\t.pem'));
+  rmSync(join(linked, 'link\tfile'));
+  rmSync(join(linked, '.env'));
+
+  // A caller inside a linked worktree must not be able to pass Git's actual primary checkout.
+  const linkedCtx = { ...ctx, cwd: linked };
+  const runFromLinked = (params) => delegate.execute('antigravity_delegate', params, undefined, undefined, linkedCtx);
+  const refused = await runFromLinked({ task: 'x', worktree: repo });
+  assert.match(refused.content[0].text, /refused/i);
+  assert.match(refused.content[0].text, /primary worktree/i);
 
   console.log('pi-antigravity: PASS');
 } finally {
