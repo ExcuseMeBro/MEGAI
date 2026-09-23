@@ -140,7 +140,7 @@ process.stdout.write(process.env.AGY_ANSWER ?? '');
   assert.ok(!delegatedArgv.join(' ').includes('dangerously'));
   delete process.env.AGY_WRITE_REL;
   rmSync(join(linked, 'delegated.txt'));
-  writeFileSync(join(repo, '.git', 'info', 'exclude'), '.env\n*.pem\n*link\n');
+  writeFileSync(join(repo, '.git', 'info', 'exclude'), '.env\n*.pem\n*link\nvendor/\n');
   writeFileSync(join(linked, '.env'), 'SECRET=do-not-send\n');
   const ignoredEnv = await runDelegate({ task: 'x', worktree: linked });
   assert.match(ignoredEnv.content[0].text, /credential-like path/i);
@@ -157,6 +157,12 @@ process.stdout.write(process.env.AGY_ANSWER ?? '');
   assert.match(symlinkCredential.content[0].text, /credential-like path/i, 'unicode symlink targets must be screened');
   rmSync(join(linked, 'unicode-é\tlink'));
   rmSync(join(linked, '.env'));
+
+  mkdirSync(join(linked, 'vendor'));
+  symlinkSync(join(linked, '.env'), join(linked, 'vendor', '.git'));
+  const nestedGit = await runDelegate({ task: 'x', worktree: linked });
+  assert.match(nestedGit.content[0].text, /nested \.git entry/i, 'nested .git entries must be rejected');
+  rmSync(join(linked, 'vendor'), { recursive: true, force: true });
 
   // A caller inside a linked worktree must not be able to pass Git's actual primary checkout.
   const linkedCtx = { ...ctx, cwd: linked };

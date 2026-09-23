@@ -132,18 +132,21 @@ function screenWorktreeFiles(root: string): string | undefined {
       return "could not enumerate worktree files";
     }
     for (const entry of entries) {
-      // A linked worktree has a .git file at its root. Git metadata is not a
-      // source file and is deliberately excluded from the credential scan.
-      if (entry.name === ".git") continue;
       const absolute = resolve(directory, entry.name);
       const path = relative(root, absolute);
-      const candidates = [path];
       let info;
       try {
         info = lstatSync(absolute);
       } catch {
         return `could not inspect worktree path ${path}`;
       }
+      // A linked worktree has one root .git metadata file. Nested .git entries
+      // are source-controlled escape points and must be rejected, not skipped.
+      if (entry.name === ".git") {
+        if (directory === root && info.isFile() && !info.isSymbolicLink()) continue;
+        return `nested .git entry ${path} cannot be screened safely`;
+      }
+      const candidates = [path];
       if (info.isSymbolicLink()) {
         let resolved;
         try {
