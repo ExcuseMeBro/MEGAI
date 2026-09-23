@@ -30,7 +30,10 @@ description: Start and deliver tracked project changes with Plane, dev/main bran
 5. Run task acceptance checks, inspect the full diff, and fix review findings.
    After acceptance and required review, reserve all integration targets using
    `megai queue`, then automatically fast-forward verified task commits to local dev
-   without waiting for another user confirmation. Verify exact delivered commits and
+   without waiting for another user confirmation. Use
+   `git merge --ff-only --no-overwrite-ignore`; preserve a colliding ignored file
+   outside the checkout before a bounded retry; never overwrite or delete it.
+   Verify exact delivered commits and
    complete the reservation; on a moved/dirty target, stale evidence or uncertain
    result, retain task resources and reconcile instead of forcing or assuming success.
    Push only with separate explicit approval. Perform safe task-owned post-merge

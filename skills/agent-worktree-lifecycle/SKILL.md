@@ -122,7 +122,10 @@ Production deployment, secrets and destructive migrations retain separate approv
    dev merge is the only permitted task-related change in the primary dev checkout;
    never edit, stage or commit task source there. Record the exact source/dev
    commit vector. Integrate each ready task into its own existing dev checkout:
-   `git -C DEV_CHECKOUT merge --ff-only task/adam-123`. Do not switch a shared checkout.
+   `git -C DEV_CHECKOUT merge --ff-only --no-overwrite-ignore task/adam-123`.
+   An ignored-file collision is a recoverable refusal, not permission to overwrite:
+   preserve the named file in a verified private backup outside the checkout before
+   retrying, and report its new location. Never delete it or switch a shared checkout.
    A moved dev requires integrating that new base into the owned task worktree and
    fresh tests/review; conflicts stay isolated, never force/reset another task.
 4. Push only if explicitly included in delivery scope, using normal non-force pushes
