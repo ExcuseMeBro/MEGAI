@@ -27,6 +27,10 @@ Workspace safety and integration reservations remain unchanged in both modes.
 3. Reuse a known work-item pair directly. Otherwise consume every project work-item page and compare the exact requested title. One match: reuse; multiple: ask. Zero matches after a successful complete lookup: automatically create exactly one item without asking for approval at step 4, using that exact title and the resolved `In Progress` state UUID. Failed or incomplete lookup is never zero matches. For a supplied historical Asana identity, match both `external_id=GID` and `external_source=asana-migration-v1`; zero/multiple matches block reconciliation, never create a replacement. Preserve historical source identity/markers until the Plane pair is confirmed.
 4. Resolve the required labels using **Task labels** below before creating/updating the item. Create with resolved label UUIDs and `In Progress`, or update the existing item to `In Progress` once and add only missing labels. Inspect the returned state and read back labels before project edits. Reconcile an uncertain write by lookup before retrying; never duplicate it. Retain the returned pair in session context. Acceptance belongs in that Plane item, not a second execution board.
 
+`/factory` is an existing-item-only exception: select a unique eligible factory-ready
+Todo item, then use UUID-bound `pi-workflow factory-start`; never create a replacement,
+create the eligibility label, or also call generic `pi-workflow start` in that invocation.
+
 Unavailable or unauthenticated Plane blocks project edits. Pure questions/read-only work need no mutation. Resume with the known pair; fetch when its boundary state or labels need verification.
 
 ## Task labels

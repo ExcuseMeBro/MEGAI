@@ -14,6 +14,9 @@ description: Start and deliver tracked project changes with Plane, dev/main bran
    pages, reuses an exact match or creates Todo, then moves it to In Progress.
    Keep its project/task UUID pair throughout refinements. Missing or ambiguous
    identity or workflow states block edits. Children inherit this pair read-only.
+   For `/factory` only, use `pi-workflow factory-start --project-id UUID --task-id UUID
+   --title "EXACT TASK TITLE"` instead of `start`: it validates the selected existing
+   factory-ready Todo item and never creates a replacement. Do not invoke both.
 3. Define task acceptance in the same Plane item. Use a managed Paseo worktree
    from dev per task. For a monorepo, one worktree contains all packages. For a
    grouped project, create one worktree per affected Git repo under the same
