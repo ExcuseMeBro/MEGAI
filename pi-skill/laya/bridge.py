@@ -158,7 +158,7 @@ def _predict(state: str, questions: dict, router: list) -> dict:
                 answers[name] = {"type": kind, "score": 0.5,
                                  "probabilities": {str(i): 1 / len(question["criteria"]) for i in range(len(question["criteria"]))}}
             else:
-                answers[name] = {"type": kind, "noul": 0.5}
+                answers[name] = {"type": kind, "noul": float(os.environ.get("LAYA_TEST_NOUL", "0.75"))}
         if len(state) > 3000:
             raise ValueError("test state exceeds token budget")
         return {"model": "laya-multilingual-test", "routing": {"model": MODEL}, "answers": answers,

@@ -14,7 +14,7 @@ export function registerCompaction(pi: ExtensionAPI, decide: Decide): void {
       const messages = convertToLlm([
         ...preparation.messagesToSummarize, ...preparation.turnPrefixMessages,
       ]);
-      const lines: Array<{ text: string; duplicate?: boolean }> = [];
+      const lines: Array<{ text: string; duplicate?: boolean; meta?: string }> = [];
       const seen = new Set<string>();
       let originalChars = 0;
       let duplicateCount = 0;
@@ -32,10 +32,18 @@ export function registerCompaction(pi: ExtensionAPI, decide: Decide): void {
         const text = pieces.join("\n");
         if (!text) continue;
         originalChars += text.length;
-        const duplicate = message.role === "toolResult" && seen.has(text) && text.length >= 500;
-        if (message.role === "toolResult") seen.add(text);
+        // Text alone is not enough identity: an error and a successful result,
+        // or two different tools, may legitimately emit the same bytes.
+        const meta = message.role === "toolResult"
+          ? ` tool=${message.toolName ?? "unknown"} call=${message.toolCallId ?? "unknown"} error=${Boolean(message.isError)}`
+          : "";
+        const identity = message.role === "toolResult"
+          ? JSON.stringify([message.toolName ?? "", Boolean(message.isError), text])
+          : "";
+        const duplicate = message.role === "toolResult" && seen.has(identity) && text.length >= 500;
+        if (message.role === "toolResult") seen.add(identity);
         if (duplicate) duplicateCount++;
-        lines.push({ text: `[${message.role}]: ${text}`, duplicate });
+        lines.push({ text: `[${message.role}${meta}]: ${text}`, duplicate, meta });
       }
       if (!duplicateCount || !originalChars || originalChars > 20_000) return;
       const answers = await decide(
@@ -44,9 +52,11 @@ export function registerCompaction(pi: ExtensionAPI, decide: Decide): void {
         signal,
       );
       const safety = answers.answers?.redundant?.noul;
-      if (typeof safety !== "number" || !Number.isFinite(safety) || safety < 0.5) return;
+      if (typeof safety !== "number" || !Number.isFinite(safety) || safety <= 0.5) return;
       const summary = [preparation.previousSummary || "", "Compacted transcript (only byte-identical repeated tool outputs omitted):",
-        ...lines.map(line => line.duplicate ? "[Tool result]: repeated exact text retained earlier." : line.text)]
+        ...lines.map(line => line.duplicate
+          ? `[Tool result${line.meta ?? ""}]: repeated exact text retained earlier.`
+          : line.text)]
         .filter(Boolean).join("\n\n");
       if (summary.length > 8_192 || summary.length >= originalChars * 0.85) return;
       const modified = new Set<string>([...(preparation.fileOps?.written ?? []), ...(preparation.fileOps?.edited ?? [])]);

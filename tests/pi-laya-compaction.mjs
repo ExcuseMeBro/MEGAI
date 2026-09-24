@@ -13,6 +13,7 @@ mkdirSync(extension, { recursive: true });
 for (const name of ['index.ts', 'compaction.ts', 'bridge.py']) copyFileSync(resolve('pi-skill/laya', name), join(extension, name));
 process.env.LAYA_PYTHON = 'python3';
 process.env.LAYA_BRIDGE_TEST = '1';
+process.env.LAYA_TEST_NOUL = '0.5';
 process.env.PI_CODING_AGENT_DIR = agent;
 const user = { role: 'user', content: [{ type: 'text', text: 'Keep the facts.' }], timestamp: 1 };
 const result = (text, id) => ({ role: 'toolResult', toolCallId: id, toolName: 'read', content: [{ type: 'text', text }], isError: false, timestamp: id.length + 2 });
@@ -37,12 +38,28 @@ try {
     'a still-large summary must use native summarization');
   assert.equal(await handler(event([user, result(unique, 'one'), result(unique, 'two')], { reason: 'overflow' })), undefined);
   assert.equal(await handler(event([user, result(unique, 'one'), result(unique, 'two')], { customInstructions: 'summarize risks' })), undefined);
+  assert.equal(await handler(event([user, result(unique, 'one'), result(unique, 'two')])), undefined,
+    'an uncertain boundary result uses Pi native summarization');
+  for (const fn of loaded.extensions.flatMap(e => e.handlers.get('session_shutdown') ?? [])) await fn({}, {});
+  process.env.LAYA_TEST_NOUL = '0.75';
   const paired = await handler(event([user, result(unique, 'one'), result(unique, 'two')]));
   assert.ok(paired?.compaction, 'only exact repeated outputs are safely reduced');
   assert.ok(paired.compaction.summary.includes(unique), 'the first exact copy remains');
   assert.ok(!paired.compaction.summary.includes('Jev'));
   assert.equal(paired.compaction.details.laya.uniqueResultsOmitted, 0);
   assert.equal(paired.compaction.firstKeptEntryId, 'entry-7');
+  const sameTextDifferentTools = await handler(event([
+    user,
+    {...result(unique, 'one'), toolName: 'read'},
+    {...result(unique, 'two'), toolName: 'search'},
+  ]));
+  assert.equal(sameTextDifferentTools, undefined, 'same text from different tools is not a safe duplicate');
+  const sameTextDifferentErrors = await handler(event([
+    user,
+    {...result(unique, 'one'), toolName: 'read', isError: false},
+    {...result(unique, 'two'), toolName: 'read', isError: true},
+  ]));
+  assert.equal(sameTextDifferentErrors, undefined, 'same text with different error status is not a safe duplicate');
   for (const fn of loaded.extensions.flatMap(e => e.handlers.get('session_shutdown') ?? [])) await fn({}, {});
   process.env.LAYA_PYTHON = '/no/such/local/python';
   assert.equal(await handler(event([user, result(unique, 'one'), result(unique, 'two')])), undefined,

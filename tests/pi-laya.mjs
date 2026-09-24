@@ -67,6 +67,10 @@ try {
   const crashed = parse(await tools.get('laya').execute('local-5', { state: 'Recover from crash', questions }, undefined, undefined, context));
   assert.equal(crashed.ok, false, 'missing subprocess fails locally');
   assert.ok(!JSON.stringify(crashed).includes('forbidden-in-local-call'));
+  process.env.LAYA_PYTHON = '/usr/bin/false';
+  const pipeFailure = parse(await tools.get('laya').execute('local-5b', { state: 'Recover from a broken pipe', questions }, undefined, undefined, context));
+  assert.equal(pipeFailure.ok, false, 'early worker exit must become a bounded local error');
+  assert.ok(!JSON.stringify(pipeFailure).includes('write EPIPE'));
   process.env.LAYA_PYTHON = 'python3';
   process.env.LAYA_TEST_DELAY_MS = '500';
   process.env.LAYA_TIMEOUT_MS = '50';

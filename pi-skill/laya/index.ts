@@ -63,12 +63,14 @@ function send(state: string, questions: Record<string, unknown>, signal?: AbortS
       child.stdout.off("data", data);
       child.off("error", crash);
       child.off("exit", exit);
+      child.stdin.off("error", pipeError);
       signal?.removeEventListener("abort", abort);
       if (error) { stop(); fail(error); }
       else done(reply);
     }
     function crash(): void { finish(new Error("local model process failed")); }
     function exit(): void { finish(new Error("local model process exited")); }
+    function pipeError(error: Error): void { finish(new Error(`local model pipe failed: ${error.message}`)); }
     function abort(): void { finish(new Error("local request cancelled")); }
     function data(chunk: Buffer): void {
       buffer += chunk.toString("utf8");
@@ -87,6 +89,7 @@ function send(state: string, questions: Record<string, unknown>, signal?: AbortS
     child.stdout.on("data", data);
     child.once("error", crash);
     child.once("exit", exit);
+    child.stdin.once("error", pipeError);
     signal?.addEventListener("abort", abort, { once: true });
     child.stdin.write(request + "\n", (error) => { if (error) finish(new Error("local model pipe failed")); });
   });

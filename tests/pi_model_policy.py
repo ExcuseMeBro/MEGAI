@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Offline model-policy wiring; real HOME and credentials remain untouched."""
 import json
+import hashlib
 import shutil
 import sys
 import unittest
@@ -33,9 +34,26 @@ class ModelPolicy(Slim):
         for path in ("extensions/megai-jev/index.ts", "extensions/megai-jev-compaction/index.ts",
                      "skills/jev-browser/SKILL.md"):
             self.assertFalse((agent / path).exists(), path)
+        self.assertFalse((self.megai / "bin/jev-browser").exists())
+        browser = self.megai / "bin/jev-browser"
+        self.write(browser, "previously owned browser\n")
+        receipt_file = self.megai / "slim-wiring.json"
+        receipt = json.loads(receipt_file.read_text())
+        receipt[str(browser)] = hashlib.sha256(browser.read_bytes()).hexdigest()
+        receipt_file.write_text(json.dumps(receipt))
+        self.wire()
+        self.assertFalse(browser.exists())
         self.wire("--verify")
         self.wire("--remove")
         self.assertFalse((agent / "extensions/megai-laya/index.ts").exists())
+
+    def test_preserves_custom_browser_cli_instead_of_deleting_it(self):
+        self.wire()
+        browser = self.megai / "bin/jev-browser"
+        self.write(browser, "operator browser replacement\n")
+        before = self.snapshot()
+        self.assertIn("custom/legacy browser asset preserved", self.wire(ok=False).stderr)
+        self.assertEqual(self.snapshot(), before)
 
     def test_retires_only_receipt_owned_jev_assets_and_preserves_conflicts(self):
         import hashlib

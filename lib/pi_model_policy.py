@@ -6,6 +6,21 @@ from pathlib import Path
 
 BEGIN = "<!-- megai:subagent-models:begin -->"
 END = "<!-- megai:subagent-models:end -->"
+KNOWN_JEV_BROWSER_SHA256 = "d7f4e46265e2dfafd9866f78ffb75b6106e4b3352af62dbb2d72e16b0c5fd28e"
+
+
+def retire_jev_browser(plan, path: Path) -> None:
+    """Retire the exact archived browser asset, preserving custom replacements."""
+    from slim_wiring import digest, read
+
+    current = read(path)
+    if current is None:
+        plan.receipt.pop(str(path), None)
+        return
+    if not plan.owned(path, current) and digest(current) != KNOWN_JEV_BROWSER_SHA256:
+        raise ValueError(f"custom/legacy browser asset preserved: {path}; reconcile manually")
+    plan.stage(path, None, current)
+    plan.receipt.pop(str(path), None)
 
 
 def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> None:
@@ -78,6 +93,7 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
         plan.asset(delegation, policy, remove)
     # No browser automation is offered by the Laya profile; unknown edits block.
     plan.retire(root / "skills/jev-browser/SKILL.md")
+    retire_jev_browser(plan, MEGAI / "bin/jev-browser")
     # An unowned, operator-edited policy is preserved instead of claimed.
     if remove:
         # Removing policy does not undo the user's native model preferences.
