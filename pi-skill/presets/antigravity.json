@@ -1,6 +1,7 @@
 {
   "schema": 1,
   "preset": "antigravity",
+  "workerExecutor": "antigravity_delegate",
   "roles": {
     "planner": {"provider": "openai-codex", "model": "gpt-6-sol", "thinking": "high"},
     "scout": {"provider": "openai-codex", "model": "gpt-6-sol", "thinking": "low"},

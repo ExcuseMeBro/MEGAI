@@ -146,6 +146,8 @@ try {
   assert.equal(agySettings.modelThinkingLevels['deepseek/deepseek-flash'], 'high',
     'operator model settings outside startup selection must be retained');
   assert.equal(agyRoles.preset, 'antigravity', 'Antigravity routing must be marked for runtime guidance');
+  assert.equal(agyRoles.workerExecutor, 'antigravity_delegate',
+    'Antigravity preset must bind the worker role to the real delegated executor');
   assert.equal(agyRoles.roles.worker.provider, 'openai-codex');
   assert.equal(agyRoles.roles.reviewer.model, 'gpt-6-astra');
   assert.deepEqual(JSON.parse(readFileSync(join(agy, 'model-fallback.json'), 'utf8')),
@@ -156,8 +158,8 @@ try {
   assert.ok(!agyTurn.prompt.includes('deepseek/deepseek-flash'), 'no DeepSeek routing in Agy profile');
   assert.match(agyTurn.prompt, /antigravity_delegate/,
     'Antigravity profile must route eligible implementation work through the real Agy worker tool');
-  assert.match(agyTurn.prompt, /primary worker|eligible.*linked worktree/i,
-    'Antigravity profile must explain when Agy is the primary implementation path');
+  assert.match(agyTurn.prompt, /mandatory|must not implement.*parent/i,
+    'Antigravity profile must make Agy the mandatory primary worker for eligible implementation');
   install(agy);
   assert.equal(JSON.parse(readFileSync(join(agy, 'settings.json'), 'utf8')).defaultModel, 'gpt-6-sol');
   assert.deepEqual(JSON.parse(readFileSync(join(agy, 'model-fallback.json'), 'utf8')),

@@ -127,6 +127,11 @@ def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
             or not isinstance(roles, dict)
             or set(roles) != {"planner", "scout", "worker", "reviewer"}):
         raise ValueError("invalid role preset")
+    worker_executor = config.get("workerExecutor")
+    if preset == "antigravity" and worker_executor != "antigravity_delegate":
+        raise ValueError("Antigravity preset must bind workerExecutor to antigravity_delegate")
+    if preset != "antigravity" and worker_executor is not None:
+        raise ValueError("only the Antigravity preset may configure workerExecutor")
     levels = {}
     # The planner is declared first and owns the native startup level for a shared
     # model; every other role keeps its own level in megai-roles.json. That lets one
