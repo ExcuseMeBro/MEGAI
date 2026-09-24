@@ -1,7 +1,63 @@
-# Optional economy Pi preset
+# Optional Pi presets
 
-Use after explicitly choosing DeepSeek execution with GPT review. The
-authoritative model and thinking values are in [economy.json](economy.json):
+`--preset antigravity` is the opt-in local Pi profile: fresh sessions start on
+`openai-codex/gpt-6-sol` at high thinking, all native roles are GPT (reviewer
+`gpt-6-astra`), and `model-fallback.json` has an empty map so a GPT provider
+failure never silently moves to DeepSeek. Agy is a sandboxed tool for eligible
+clean linked Git worktrees, **not** a native Pi/Paseo provider. Existing auth,
+other settings and model catalog entries remain operator-owned. Before opting in,
+back up the local Pi configuration privately and verify that its AGENTS base is the
+current reviewed `pi-defaults/AGENTS.md`. An older MEGAI default profile must first
+refresh that base while preserving injected `<!-- megai:* -->` blocks; never overwrite
+custom/unowned instructions. The complete owned-policy refresh also needs the
+adaptive skill and delegation guide, so preview/apply from the reviewed task checkout:
+
+```sh
+MEGAI_SOURCE="$PWD" python3 -B lib/pi_model_policy.py --adaptive --preset antigravity --check
+MEGAI_SOURCE="$PWD" python3 -B lib/pi_model_policy.py --adaptive --preset antigravity
+```
+
+The preset fails before writing if the AGENTS base remains stale or the adaptive
+skill/delegation guide cannot be safely refreshed; `--adaptive` updates only owned
+assets, not the AGENTS base.
+For a verified copy of the exact pre-Agy MEGAI default profile in
+`tests/fixtures/pi-agents-pre-antigravity.md`, the scoped upgrade below backs up
+`~/.pi/agent/AGENTS.md` privately and preserves injected blocks. It refuses any
+custom/unrecognized base; run from this reviewed checkout **before** the preset:
+
+```sh
+python3 -B - <<'PY'
+from pathlib import Path
+import runpy, shutil, tempfile
+
+path = Path.home() / '.pi/agent/AGENTS.md'
+if path.is_symlink() or not path.is_file():
+    raise SystemExit('Refusing missing or symlinked AGENTS.md')
+old = path.read_bytes()
+profile = runpy.run_path('pi-defaults/install.py')
+legacy = Path('tests/fixtures/pi-agents-pre-antigravity.md').read_bytes().strip()
+if profile['INJECTED_BLOCK'].sub(b'', old).strip() != legacy:
+    raise SystemExit('Custom AGENTS base: reconcile manually; no changes made')
+source = Path('pi-defaults/AGENTS.md').read_bytes()
+backup = Path(tempfile.mkdtemp(prefix='pi-agents-backup-', dir=Path.home() / '.pi'))
+shutil.copy2(path, backup / 'AGENTS.md')
+path.write_bytes(profile['profile_agents_md'](old, source))
+print('Private backup:', backup)
+PY
+```
+
+Stop for manual reconciliation if the base differs; do not use the full default
+installer or `--reset` to bypass an ownership refusal. The test seeds that
+historical profile, verifies safe refusal, then upgrades the base with `--adaptive`.
+The fallback file changes only on explicit Antigravity opt-in; an unowned,
+conflicting file is refused, not overwritten. A normal policy refresh leaves
+that file and native model settings alone. The preset-free role file is valid
+schema-1 Pi guidance and does not enable `economy` routing. Reopen Pi for startup
+defaults; an active session retains its selected model.
+
+`--preset economy` remains available after explicitly choosing DeepSeek execution
+with GPT review. Its authoritative model and thinking values are in
+[economy.json](economy.json):
 planner, scout, worker and reviewer. This is a user-selected default, not a model
 allowlist or a guarantee that economy routing wins on other tasks. The three-task
 pilot found scope and reporting errors even when functional tests passed.
@@ -20,8 +76,8 @@ older preset, explicitly reapply the same preset; ordinary wiring preserves it.
 Historical model-specific settings remain user-owned and are not active role
 routing. No credentials or provider registrations are removed.
 
-`economy` is the only preset: `--preset mixed` is rejected before any write, and a
-role file that still names `mixed` is ignored rather than honoured. Reapply
+`economy` and `antigravity` are the only presets: `--preset mixed` is rejected
+before any write, and a role file that still names `mixed` is ignored. Reapply
 `economy` to replace an owned `mixed` role file, or keep selecting a GPT planner
 per task instead.
 
@@ -45,25 +101,20 @@ receipts; repeating the same preset is idempotent.
 profile, automatic dispatcher or sandbox. The parent reads it only when selecting
 a needed role, then passes the explicit `pi/PROVIDER/MODEL` and thinking to Paseo.
 Direct tools remain preferable for a bounded task; no mandatory scout/planner/worker/
-reviewer fanout. Explicit user/task model choices override the preset. Missing
-primary models may use the documented
-[DeepSeek-first subagent fallback](../delegation.md#deepseek-first-subagent-fallback)
-when permitted. Native-thinking mismatch or unavailable verification evidence stays
-BLOCKED, not silent fallback. Apply [verified launch](../delegation.md#verified-launch) before context;
+reviewer fanout. Explicit user/task model choices override the preset. The existing
+economy role-context extension retains its DeepSeek-specific fallback guidance when
+those roles are explicitly selected. The Antigravity preset has no DeepSeek fallback.
+Native-thinking mismatch or unavailable verification evidence stays BLOCKED, not
+silent fallback. Apply [verified launch](../delegation.md#verified-launch) before context;
 Paseo may report `xhigh` while the native Pi session actually uses `high`.
 
-## Subagent-only fallback, parent unchanged
+## Native models and event handoff
 
-The delegation policy keeps configured DeepSeek planner/scout/worker roles primary
-and uses `openai-codex/gpt-6-luna` (at the role's configured thinking level) for a permitted model-failure fallback or
-confirmed DeepSeek `402: Insufficient Balance`. For that billing error, the parent
-continues unfinished child work on that fallback without retrying DeepSeek or waiting
-for a top-up; see the
-[exact trigger and boundaries](../delegation.md#confirmed-deepseek-balance-exhaustion).
-Reviewer routing is unchanged. This is a parent-consumed instruction, not an automatic Pi failover
-engine or a new `settings.json` key. Refresh the owned delegation policy without
-`--preset` when only this child fallback is wanted; primary role data and all native
-model settings stay untouched. Do not select a preset just to add a fallback.
+Model preferences and verified launches remain explicit; selecting either preset
+is not an automatic agent dispatch. Paseo Pi children use `notifyOnFinish: true`
+on creation and each background send, with no child-wait deadline or polling.
+Provider request/stall safeguards and Agy's bounded CLI calls remain separate.
+Refresh policy without `--preset` when no model/default change is wanted.
 
 After a policy-only refresh, reload/reopen Pi; no startup defaults change.
 After explicitly applying a full preset, restart Pi to use its new startup defaults.
