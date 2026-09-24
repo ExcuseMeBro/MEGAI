@@ -1,7 +1,7 @@
 ## 1. Preserve and contract
 
-- [ ] 1.1 Verify `archive/megai-156-jev-config` points to the baseline Jev source SHA and the installed extension hashes match; record branch and local private-backup paths in the Plane item (no remote push).
-- [ ] 1.2 Freeze a guarded acceptance contract outside the worktree, store its hash on the Plane item, and verify `openspec validate local-laya-pi-harness --strict` succeeds before source implementation.
+- [x] 1.1 Verify `archive/megai-156-jev-config` points to the baseline Jev source SHA and the installed extension hashes match; record branch and local private-backup paths in the Plane item (no remote push).
+- [x] 1.2 Freeze a guarded acceptance contract outside the worktree, store its hash on the Plane item, and verify `openspec validate local-laya-pi-harness --strict` succeeds before source implementation.
 
 ## 2. Local runtime and typed tool
 
