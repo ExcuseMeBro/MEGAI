@@ -10,6 +10,22 @@ from slim_distribution import ROOT, Slim
 
 
 class Adaptive(Slim):
+    def test_shared_policy_does_not_make_formal_review_universal(self):
+        policy = (ROOT / "pi-skill/SKILL.md").read_text()
+        self.assertIn("Routine bounded work uses the smallest focused test", policy)
+        self.assertIn("does not require a contract hash", policy)
+        self.assertIn("Guarded Pi work loads `megai-acceptance`", policy)
+        self.assertIn("one fresh independent Pi review", policy)
+        self.assertIn("routine task grows into a guarded risk", " ".join(policy.split()))
+        self.assertNotIn("On Pi, load `megai-acceptance` once before implementation", policy)
+
+    def test_shared_slim_block_preserves_mode_appropriate_review(self):
+        source = (ROOT / "lib/slim_wiring.py").read_text()
+        self.assertIn("Use task-appropriate verification", source)
+        self.assertIn("Do not launch a second reviewer for routine work", source)
+        self.assertIn("behavior-changing safety/acceptance/installer policy", source)
+        self.assertNotIn("On Pi, load `megai-acceptance` before implementation", source)
+
     def test_small_bootstrap_and_on_demand_policy(self):
         self.wire()
         agent = self.home / ".pi/agent"
