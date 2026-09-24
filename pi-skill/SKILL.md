@@ -38,15 +38,23 @@ Use the user's configured providers, models and thinking preferences; MEGAI adds
 no model allowlist. Verify the selected identity before sending task context and
 preserve explicit resource opt-outs.
 
-## Pi acceptance gate
+## Verification modes
 
-On Pi, load `megai-acceptance` once before implementation and reuse its frozen
-criteria at handoff. Record the contract hash in the same Plane item. Bug fixes
-require captured red → green evidence. Collect real tests/runtime receipts with
-`megai acceptance collect`, obtain fresh independent Pi review, and require a
-source-current `megai acceptance check` PASS before delivery. Missing prerequisites,
-observations or review are BLOCKED, not PASS; live targets need explicit approval.
-Other harnesses retain their existing verification and resource-selection behavior.
+Routine bounded work uses the smallest focused test or observable check, followed
+by inline parent self-review and delivery. It does not require a contract hash,
+`megai acceptance collect`, or a second reviewer.
+
+Guarded Pi work loads `megai-acceptance` before implementation and reuses its
+frozen criteria at handoff. Guarded work includes security/auth/permissions,
+sensitive data, payments, destructive operations, migrations, concurrency/shared
+state, consequential cross-module or multi-repo changes, behavior-changing
+safety/acceptance/installer policy, or explicitly requested formal assurance. It
+requires real test/runtime receipts, one fresh independent Pi review and a
+source-current `megai acceptance check` PASS. Missing prerequisites, observations
+or review are BLOCKED, not PASS; live targets need explicit approval.
+
+Classify the actual effect, not the filename. If a routine task grows into a
+guarded risk, escalate once on that evidence; do not run the formal gate by default.
 
 ## Headroom matrix
 
