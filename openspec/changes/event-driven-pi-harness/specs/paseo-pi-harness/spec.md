@@ -19,6 +19,10 @@ The Pi parent SHALL request completion notifications when creating a Paseo Pi ch
 - **WHEN** the parent cannot confirm that completion notifications can reach it
 - **THEN** it SHALL use a supported native event-backed wait without an artificial timeout if safe, or report the blocked handoff, never schedule a polling loop or claim the notification worked.
 
+#### Scenario: General waiting budget
+- **WHEN** a notified Paseo Pi child is still progressing after the general five-minute external-wait budget
+- **THEN** the parent SHALL remain yielded until the matching event rather than interrupt the child or ask for an arbitrary deadline decision; provider-stall and bounded CLI protections remain separate.
+
 ### Requirement: Safety timeouts stay distinct
 The harness SHALL retain provider request/stall safeguards and tool-specific timeout semantics independently of child-result waiting. Antigravity CLI delegation SHALL remain bounded and SHALL NOT be represented as a Paseo Pi agent notification source.
 
@@ -36,3 +40,7 @@ The installer SHALL offer an explicit Antigravity-first local Pi preset whose na
 #### Scenario: Existing configuration
 - **WHEN** the installer refreshes Pi policy without the new preset
 - **THEN** it leaves the operator's native provider/model, thinking, credentials, existing fallback file, and explicit economy choice unchanged.
+
+#### Scenario: Stale pre-Antigravity execution policy
+- **WHEN** the operator selects the new preset with an old/custom AGENTS base or without a complete owned adaptive/delegation policy refresh
+- **THEN** installation SHALL refuse the combined write without changing roles, fallback, or native defaults; a privately backed-up, verified base update followed by `--adaptive --preset antigravity` SHALL succeed without losing injected policy blocks.

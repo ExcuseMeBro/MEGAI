@@ -122,12 +122,18 @@ try {
   // 3. Explicit Antigravity preset keeps native Pi roles GPT and disables a
   // DeepSeek runtime swap; an ordinary policy refresh leaves operator choices alone.
   const agy = agent('antigravity');
+  const currentPolicy = readFileSync(join(ROOT, 'pi-defaults/AGENTS.md'), 'utf8');
   mkdirSync(agy, { recursive: true });
+  writeFileSync(join(agy, 'AGENTS.md'), currentPolicy);
   writeFileSync(join(agy, 'settings.json'), JSON.stringify({
     theme: 'custom', defaultProvider: 'deepseek', defaultModel: 'deepseek-flash',
     modelThinkingLevels: { 'deepseek/deepseek-flash': 'high' },
   }));
-  install(agy, '--preset', 'antigravity');
+  assert.throws(() => install(agy, '--preset', 'antigravity'),
+    (error) => String(error.stderr).includes('--preset antigravity requires --adaptive'),
+    'Antigravity opt-in must require the adaptive policy refresh');
+  assert.ok(!existsSync(join(agy, 'megai-roles.json')));
+  install(agy, '--adaptive', '--preset', 'antigravity');
   const agySettings = JSON.parse(readFileSync(join(agy, 'settings.json'), 'utf8'));
   const agyRoles = JSON.parse(readFileSync(join(agy, 'megai-roles.json'), 'utf8'));
   assert.equal(agySettings.theme, 'custom', 'opt-in must retain unrelated settings');
@@ -148,6 +154,25 @@ try {
   assert.equal(JSON.parse(readFileSync(join(agy, 'settings.json'), 'utf8')).defaultModel, 'gpt-6-sol');
   assert.deepEqual(JSON.parse(readFileSync(join(agy, 'model-fallback.json'), 'utf8')),
     { fallbacks: {} }, 'refresh must preserve opt-in fallback config');
+
+  // A pre-Agy dev profile must not retain DeepSeek execution with the GPT/Agy preset.
+  const upgrade = agent('antigravity-upgrade');
+  const previousPolicy = readFileSync(join(ROOT, 'tests/fixtures/pi-agents-pre-antigravity.md'), 'utf8');
+  assert.match(previousPolicy, /Implementation defaults to one native Paseo Pi agent for DeepSeek/);
+  mkdirSync(upgrade, { recursive: true });
+  writeFileSync(join(upgrade, 'AGENTS.md'), previousPolicy);
+  assert.throws(() => install(upgrade, '--adaptive', '--preset', 'antigravity'),
+    (error) => String(error.stderr).includes('Antigravity preset requires the current Pi AGENTS base policy'),
+    'stale execution policy must block the combined preset');
+  assert.equal(readFileSync(join(upgrade, 'AGENTS.md'), 'utf8'), previousPolicy);
+  assert.ok(!existsSync(join(upgrade, 'megai-roles.json')) && !existsSync(join(upgrade, 'model-fallback.json')),
+    'failed upgrade must leave roles and fallback untouched');
+  writeFileSync(join(upgrade, 'AGENTS.md'), currentPolicy);
+  install(upgrade, '--adaptive', '--preset', 'antigravity');
+  assert.equal(readFileSync(join(upgrade, 'skills/megai/SKILL.md'), 'utf8'),
+    readFileSync(join(ROOT, 'pi-skill/ADAPTIVE.md'), 'utf8'));
+  assert.match(readFileSync(join(upgrade, 'AGENTS.md'), 'utf8'), /Antigravity profile/);
+  assert.ok(!readFileSync(join(upgrade, 'AGENTS.md'), 'utf8').includes('Implementation defaults to one native Paseo Pi agent for DeepSeek'));
 
   // 4. Only explicit presets: `--preset mixed` is rejected before any write. Fallback
   // guidance follows configured primaries, not a preset name: a custom schema1 file

@@ -28,6 +28,11 @@ class EventHandoff(unittest.TestCase):
         self.assertIn("notifyOnFinish: true", policy)
         self.assertIn("Provider timeouts", policy)
         self.assertIn("Do not weaken these gates", policy)
+        wait_policy = policy.split("## Waits and pending decisions", 1)[1].split(
+            "## User-approved Antigravity execution", 1
+        )[0]
+        self.assertIn("Paseo Pi child handoffs", wait_policy)
+        self.assertIn("not subject to the five-minute limit", wait_policy)
 
 
 if __name__ == "__main__":

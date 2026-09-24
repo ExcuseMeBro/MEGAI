@@ -5,15 +5,51 @@
 `gpt-6-astra`), and `model-fallback.json` has an empty map so a GPT provider
 failure never silently moves to DeepSeek. Agy is a sandboxed tool for eligible
 clean linked Git worktrees, **not** a native Pi/Paseo provider. Existing auth,
-other settings and model catalog entries remain operator-owned. Preview/apply from
-the reviewed task checkout:
+other settings and model catalog entries remain operator-owned. Before opting in,
+back up the local Pi configuration privately and verify that its AGENTS base is the
+current reviewed `pi-defaults/AGENTS.md`. An older MEGAI default profile must first
+refresh that base while preserving injected `<!-- megai:* -->` blocks; never overwrite
+custom/unowned instructions. The complete owned-policy refresh also needs the
+adaptive skill and delegation guide, so preview/apply from the reviewed task checkout:
 
 ```sh
-MEGAI_SOURCE="$PWD" python3 -B lib/pi_model_policy.py --preset antigravity --check
-MEGAI_SOURCE="$PWD" python3 -B lib/pi_model_policy.py --preset antigravity
+MEGAI_SOURCE="$PWD" python3 -B lib/pi_model_policy.py --adaptive --preset antigravity --check
+MEGAI_SOURCE="$PWD" python3 -B lib/pi_model_policy.py --adaptive --preset antigravity
 ```
 
-The fallback file is changed only on explicit Antigravity opt-in; an unowned,
+The preset fails before writing if the AGENTS base remains stale or the adaptive
+skill/delegation guide cannot be safely refreshed; `--adaptive` updates only owned
+assets, not the AGENTS base.
+For a verified copy of the exact pre-Agy MEGAI default profile in
+`tests/fixtures/pi-agents-pre-antigravity.md`, the scoped upgrade below backs up
+`~/.pi/agent/AGENTS.md` privately and preserves injected blocks. It refuses any
+custom/unrecognized base; run from this reviewed checkout **before** the preset:
+
+```sh
+python3 -B - <<'PY'
+from pathlib import Path
+import runpy, shutil, tempfile
+
+path = Path.home() / '.pi/agent/AGENTS.md'
+if path.is_symlink() or not path.is_file():
+    raise SystemExit('Refusing missing or symlinked AGENTS.md')
+old = path.read_bytes()
+profile = runpy.run_path('pi-defaults/install.py')
+legacy = Path('tests/fixtures/pi-agents-pre-antigravity.md').read_bytes().strip()
+if profile['INJECTED_BLOCK'].sub(b'', old).strip() != legacy:
+    raise SystemExit('Custom AGENTS base: reconcile manually; no changes made')
+source = Path('pi-defaults/AGENTS.md').read_bytes()
+backup = Path(tempfile.mkdtemp(prefix='pi-agents-backup-', dir=Path.home() / '.pi'))
+shutil.copy2(path, backup / 'AGENTS.md')
+path.write_bytes(profile['profile_agents_md'](old, source))
+print('Private backup:', backup)
+PY
+```
+
+Stop for manual reconciliation if the base differs; do not use the full default
+installer or `--reset` to bypass an ownership refusal. The test seeds that
+historical profile, verifies safe refusal, then upgrades the base with `--adaptive`.
+The fallback file changes only on explicit Antigravity opt-in; an unowned,
 conflicting file is refused, not overwritten. A normal policy refresh leaves
 that file and native model settings alone. The preset-free role file is valid
 schema-1 Pi guidance and does not enable `economy` routing. Reopen Pi for startup
