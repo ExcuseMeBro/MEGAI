@@ -364,9 +364,10 @@ export default function antigravity(pi: ExtensionAPI) {
       const timeoutS = Math.min(Math.max(params.timeout_s ?? DEFAULT_TIMEOUT_S, 5), MAX_TIMEOUT_S);
       const prompt = [
         "You are the Antigravity implementation worker in a supervised Pi team.",
-        "Work only in the current isolated linked worktree. Implement the task below, inspect the real code and run focused tests.",
+        "Work only in the current isolated linked worktree. Use one scoped inspection, make the smallest complete change, and run the nearest focused test.",
+        "Run all task-specific required checks and bug red/green; use a broader suite only for a concrete risk or repository requirement. After a passing check, avoid rerunning passing checks unless the source changed or a concrete risk remains.",
         "Do not commit, push, merge, change branches, access credentials, or modify anything outside this worktree.",
-        "Return a concise report with changed files, tests and results, remaining risks, and any blocker.",
+        "Return a concise report with changed files, the exact test command and exit status, relevant results, remaining risks, and any blocker.",
         "The coordinating parent will verify your diff and an independent GPT reviewer will review it before integration.",
         `\nTask:\n${params.task}`,
       ].join("\n");
