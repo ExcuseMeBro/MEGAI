@@ -422,7 +422,10 @@ class Distribution(unittest.TestCase):
                           (DEFAULTS / f"prompts/{name}.md").read_text())
         mdev = (DEFAULTS / "prompts/mdev.md").read_text()
         for clause in ("`pi-workflow status`", "ignored-untracked", "pi-workflow start --title",
-                       "--no-overwrite-ignore"):
+                       "--no-overwrite-ignore", "candidate ledger", "every eligible task branch",
+                       "merge --no-edit --no-overwrite-ignore", "never wait indefinitely",
+                       "continue with the next repository", "monorepo", "multi-repo",
+                       "cleanup each delivered repository independently"):
             self.assertIn(clause, mdev)
         prdev = (DEFAULTS / "prompts/prdev.md").read_text()
         for clause in ("github.com", "Missing evidence for the captured `dev` SHA",
