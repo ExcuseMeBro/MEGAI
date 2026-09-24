@@ -1,290 +1,207 @@
 #!/usr/bin/env python3
-"""Local Laya JSONL bridge: one session-scoped process, one router, two checkpoints.
+"""megai-laya-current-0.3.20: offline JSON-lines bridge for pinned inference.
 
-The Pi extension spawns this file once per session and talks to it in newline-delimited
-JSON — one request object in, one response object out, in order. The first request
-builds `laya.Router(max_loaded=2, device=$LAYA_DEVICE)`, and the router then loads the
-upstream English `convaiinnovations/laya` checkpoint or its bundled `multilingual`
-subfolder on first use and keeps both resident, so alternating English and
-Uzbek-hinted decisions never reload a model. The specialized `typed-decisions`
-checkpoint is present in the router (as upstream) but is never selectable here: any
-other route is refused before it can be loaded.
-
-A request is `{"id", "state", "questions", "lang"?}`. `lang` is an optional
-BCP-47-style hint — Latin-script Uzbek is read as English by the upstream detector,
-which is why the hint exists — and `LAYA_LANG` is only an operator fallback when a
-request carries none. Nothing here reads a credential or opens a socket: the model
-comes from the local Hugging Face cache, and the response reports the route that
-answered plus the local checkpoint identity.
-
-`--check` builds the router and preloads both routed checkpoints so the installer can
-verify them before any extension is activated; it exits non-zero with the failure on
-stderr.
-
-Everything the model prints goes to stderr: file descriptor 1 is duplicated onto the
-protocol channel at startup, so even a native library print cannot corrupt a response.
+Stdout is protocol only. No network fallback or background listener; stdin EOF exits.
 """
 from __future__ import annotations
 
-import argparse
 import json
+import math
 import os
-import re
 import sys
 
-MAX_QUESTIONS = 8
-MAX_CRITERIA = 12
+MODEL = "multilingual"
+VERSION = "0.3.20"
+MAX_LINE = 256 * 1024
 MAX_STATE = 24_000
-MAX_INSTRUCTIONS = 2_000
-MAX_LANG = 16
-MAX_ERROR = 400
-KINDS = ("choice", "score", "noul")
-ROUTES = ("english", "multilingual")
-LANG = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
-QUESTION_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,31}$")
-REQUEST_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$")
-_KEEP = ("type", "choice", "score", "noul", "probabilities", "confidence", "legend", "action")
+MAX_QUESTIONS = 8
 
 
-class RequestError(ValueError):
-    """A caller error: answered as `ok: false` without touching the model."""
-
-
-def log(message: str) -> None:
-    """One diagnostic line on stderr; never on the protocol channel."""
-    print(f"laya: {message}", file=sys.stderr, flush=True)
-
-
-def _text(value, limit: int, what: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise RequestError(f"invalid {what}")
-    if len(value) > limit:
-        raise RequestError(f"invalid {what}")
-    return value
-
-
-def _lang(value) -> str | None:
-    if value is None:
-        return None
-    if not isinstance(value, str) or len(value) > MAX_LANG or not LANG.match(value.strip()):
-        raise RequestError("invalid lang hint")
-    return value.strip()
-
-
-def _criteria(kind: str, value, qid: str):
-    """The upstream shapes: an ordered level list for `score`, a label→meaning map for
-    `choice`/`noul`. A bare label list is normalized here, never forwarded blind."""
-    if isinstance(value, list):
-        if not value or len(value) > MAX_CRITERIA:
-            raise RequestError(f'invalid criteria for "{qid}"')
-        labels = []
-        for item in value:
-            if not isinstance(item, str) or not item.strip():
-                raise RequestError(f'invalid criteria for "{qid}"')
-            labels.append(item.strip())
-        return labels if kind == "score" else dict.fromkeys(labels)
-    if not isinstance(value, dict) or not value or len(value) > MAX_CRITERIA:
-        raise RequestError(f'invalid criteria for "{qid}"')
-    shaped: dict = {}
-    for name, meaning in value.items():
-        if not isinstance(name, str) or not name.strip():
-            raise RequestError(f'invalid criteria for "{qid}"')
-        if meaning is not None and (not isinstance(meaning, str) or not meaning.strip()):
-            raise RequestError(f'invalid criteria for "{qid}"')
-        shaped[name.strip()] = None if meaning is None else meaning.strip()
-    return list(shaped) if kind == "score" else shaped
-
-
-def questions_of(raw) -> dict:
-    """Validate the caller's questions; a malformed question never reaches the model."""
-    if not isinstance(raw, dict):
-        raise RequestError("invalid questions")
-    if not 1 <= len(raw) <= MAX_QUESTIONS:
-        raise RequestError(f"1-{MAX_QUESTIONS} questions required")
-    payload: dict = {}
-    for qid, question in raw.items():
-        if not isinstance(qid, str) or not QUESTION_ID.match(qid):
-            raise RequestError(f'invalid question id "{qid}"')
-        if not isinstance(question, dict):
-            raise RequestError(f'invalid question "{qid}"')
+def validate_request(request: object) -> tuple[str, dict]:
+    if not isinstance(request, dict):
+        raise ValueError("request must be an object")
+    state = request.get("state")
+    questions = request.get("questions")
+    if not isinstance(state, str) or not state.strip() or len(state) > MAX_STATE:
+        raise ValueError("state must be a non-empty string within 24000 characters")
+    if not isinstance(questions, dict) or not 1 <= len(questions) <= MAX_QUESTIONS:
+        raise ValueError("questions must contain 1-8 entries")
+    for name, question in questions.items():
+        if not isinstance(name, str) or not name or len(name) > 100 or not isinstance(question, dict):
+            raise ValueError("invalid question name or definition")
+        if set(question) - {"type", "instructions", "criteria"}:
+            raise ValueError("unsupported question fields; refusing partial token preflight")
         kind = question.get("type")
-        if kind not in KINDS:
-            raise RequestError(f'invalid question type for "{qid}"')
-        instructions = _text(question.get("instructions"), MAX_INSTRUCTIONS, f'instructions for "{qid}"')
-        if question.get("criteria") is None:
-            if kind in ("choice", "score"):
-                raise RequestError(f'criteria required for "{qid}" ({kind})')
-            payload[qid] = {"type": kind, "instructions": instructions.strip()}
-        else:
-            payload[qid] = {"type": kind, "instructions": instructions.strip(),
-                            "criteria": _criteria(kind, question["criteria"], qid)}
-    return payload
+        instructions = question.get("instructions")
+        if kind not in ("choice", "score", "noul") or not isinstance(instructions, str) or not instructions.strip() or len(instructions) > 2000:
+            raise ValueError("invalid question type or instructions")
+        criteria = question.get("criteria")
+        if kind == "choice":
+            if isinstance(criteria, list):
+                if any(not isinstance(item, str) for item in criteria) or len(set(criteria)) != len(criteria):
+                    raise ValueError("invalid choice criteria")
+                criteria = {item: None for item in criteria}
+            if not isinstance(criteria, dict) or not 1 <= len(criteria) <= 12 or any(
+                not isinstance(label, str) or not label or len(label) > 200 for label in criteria
+            ):
+                raise ValueError("invalid choice criteria")
+            if any(value is not None and (not isinstance(value, str) or len(value) > 200)
+                   for value in criteria.values()):
+                raise ValueError("invalid choice descriptions")
+            question["criteria"] = criteria
+        elif kind == "score":
+            if isinstance(criteria, dict):
+                criteria = list(criteria)
+            if not isinstance(criteria, list) or not 2 <= len(criteria) <= 12 or any(
+                not isinstance(item, str) or len(item) > 200 for item in criteria
+            ):
+                raise ValueError("invalid score criteria")
+            question["criteria"] = criteria
+        elif criteria is not None:
+            if isinstance(criteria, list):
+                if any(not isinstance(key, str) for key in criteria) or len(set(criteria)) != len(criteria):
+                    raise ValueError("invalid noul criteria")
+                criteria = {key: None for key in criteria}
+            if not isinstance(criteria, dict) or not set(criteria) <= {"true", "false"} or any(
+                value is not None and (not isinstance(value, str) or len(value) > 200)
+                for value in criteria.values()
+            ):
+                raise ValueError("invalid noul criteria")
+            question["criteria"] = criteria
+    return state, questions
 
 
-def request_of(raw) -> tuple[str, str, dict, str | None]:
-    """`(id, state, questions, lang)` for one parsed request line."""
-    if not isinstance(raw, dict):
-        raise RequestError("invalid request")
-    request_id = raw.get("id")
-    if not isinstance(request_id, str) or not REQUEST_ID.match(request_id):
-        raise RequestError(f'invalid request id "{request_id}"')
-    state = _text(raw.get("state"), MAX_STATE, "state")
-    lang = _lang(raw.get("lang")) or _lang(os.environ.get("LAYA_LANG")) or None
-    return request_id, state, questions_of(raw.get("questions")), lang
+def _options(question: dict) -> list[str]:
+    """Match the pinned Laya 0.3.20 laya.common.render_options text exactly."""
+    kind = question["type"]
+    criteria = question.get("criteria")
+    if kind == "choice":
+        return [key if value is None or value == "" else f"{key}: {value}" for key, value in criteria.items()]
+    if kind == "score":
+        return [f"level {index}: {value}" for index, value in enumerate(criteria)]
+    criteria = criteria or {}
+    return [
+        "false: " + (criteria.get("false") or "no, the statement does not hold"),
+        "true: " + (criteria.get("true") or "yes, the statement holds"),
+    ]
 
 
-def answers_of(raw, questions: dict) -> dict:
-    """Only the questions that were asked, with only the typed fields a caller reads.
-
-    A model-side shape problem raises a plain failure, not a caller error: it is
-    answered as `inference failed`, and the caller falls back on its own judgment."""
-    if not isinstance(raw, dict):
-        raise RuntimeError("the local model returned no answers")
-    answers: dict = {}
-    for qid, question in questions.items():
-        answer = raw.get(qid)
-        if not isinstance(answer, dict) or answer.get(question["type"]) is None:
-            raise RuntimeError(f'the local model returned no {question["type"]} value for "{qid}"')
-        kept = {name: answer[name] for name in _KEEP if name in answer}
-        kept["type"] = question["type"]
-        answers[qid] = kept
-    return answers
-
-
-def usage_of(raw) -> dict:
-    """A local checkpoint generates no tokens. `output_tokens` stays 0 for the schema
-    the callers already read; `input_tokens` is what the model reported, or 0."""
-    usage = raw.get("usage") if isinstance(raw, dict) else None
-    tokens = usage.get("input_tokens") if isinstance(usage, dict) else None
-    if not isinstance(tokens, (int, float)) or isinstance(tokens, bool) or tokens < 0:
-        tokens = 0
-    return {"input_tokens": int(tokens), "output_tokens": 0}
+def preflight(agent: object, state: str, questions: dict) -> None:
+    """Reject every upstream state/head/option truncation before model.predict()."""
+    tok = agent.tok
+    max_len = min(1024, int(agent.cfg.get("max_len", 512)))
+    head_max = int(agent.cfg.get("head_max_len", 192))
+    state_ids = tok(state.replace(tok.mask_token, " "), add_special_tokens=False)["input_ids"]
+    for question in questions.values():
+        head = tok(f"{question['type']} question: {question['instructions'].replace(tok.mask_token, ' ')}",
+                   add_special_tokens=False)["input_ids"]
+        option_lengths = [len(tok(" " + option.replace(tok.mask_token, " "),
+                                  add_special_tokens=False)["input_ids"]) for option in _options(question)]
+        if any(length > 48 for length in option_lengths):
+            raise ValueError("criterion exceeds 48 tokens; refusing truncated input")
+        opt_budget = head_max - sum(1 + length for length in option_lengths)
+        if opt_budget < 16 or len(head) > max(8, opt_budget):
+            raise ValueError("question head exceeds token budget; refusing truncation")
+        if 4 + len(head) + sum(1 + length for length in option_lengths) + len(state_ids) > max_len:
+            raise ValueError("state and questions exceed checkpoint context token budget")
 
 
-def checkpoint(decision: dict) -> str:
-    """The local checkpoint identity behind a route, e.g. `convaiinnovations/laya`."""
-    return str(decision.get("repo") or decision.get("model") or "unknown")
+def validate_output(result: object, questions: dict) -> dict:
+    if not isinstance(result, dict) or not isinstance(result.get("answers"), dict) or set(result["answers"]) != set(questions):
+        raise ValueError("missing or unexpected model answers")
+    for name, question in questions.items():
+        answer = result["answers"][name]
+        if not isinstance(answer, dict) or answer.get("type") != question["type"]:
+            raise ValueError("invalid answer type")
+        kind = question["type"]
+        value = answer.get(kind)
+        if kind == "choice":
+            if value not in question["criteria"]:
+                raise ValueError("choice answer outside criteria")
+        elif not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value) or not 0 <= value <= 1:
+            raise ValueError("invalid answer probability or score")
+        for confidence in ("confidence", "answer_confidence"):
+            metric = answer.get(confidence)
+            if metric is not None and (isinstance(metric, bool) or not isinstance(metric, (int, float))
+                                       or not math.isfinite(metric) or not 0 <= metric <= 1):
+                raise ValueError("invalid answer confidence probability")
+        probabilities = answer.get("probabilities")
+        if kind in ("choice", "score") and not isinstance(probabilities, dict):
+            raise ValueError("missing answer probabilities")
+        if probabilities is not None:
+            if not isinstance(probabilities, dict) or any(
+                isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or not 0 <= v <= 1
+                for v in probabilities.values()
+            ):
+                raise ValueError("invalid answer probabilities")
+            expected = set(question["criteria"]) if kind == "choice" else {str(i) for i in range(len(question["criteria"]))} if kind == "score" else {"true", "false"}
+            if set(probabilities) != expected or abs(sum(probabilities.values()) - 1) > 0.02:
+                raise ValueError("incomplete answer probabilities")
+    return result
 
 
-class Runtime:
-    """The router, built once, plus the two allowed routes."""
+def _predict(state: str, questions: dict, router: list) -> dict:
+    if os.environ.get("LAYA_BRIDGE_TEST") == "1":
+        delay = os.environ.get("LAYA_TEST_DELAY_MS", "")
+        if delay.isdigit() and 0 < int(delay) <= 2000:
+            from time import sleep
 
-    def __init__(self) -> None:
-        self._router = None
-
-    def router(self):
-        if self._router is None:
-            import laya  # the only third-party import, and the only model source
-
-            device = (os.environ.get("LAYA_DEVICE") or "").strip() or None
-            self._router = laya.Router(max_loaded=2, device=device)
-            log(f"router ready (max_loaded=2 device={device or 'auto'})")
-        return self._router
-
-    def targets(self) -> dict:
-        models = getattr(self.router(), "models", {}) or {}
-        chosen = {}
-        for route in ROUTES:
-            entry = models.get(route)
-            if isinstance(entry, (list, tuple)):
-                repo, sub = (list(entry) + [None, None])[:2]
-                chosen[route] = f"{repo}:{sub}" if sub else str(repo)
+            sleep(int(delay) / 1000)
+        answers = {}
+        for name, question in questions.items():
+            kind = question["type"]
+            if kind == "choice":
+                chosen = next(iter(question["criteria"]))
+                answers[name] = {"type": kind, "choice": chosen,
+                                 "probabilities": {label: float(label == chosen) for label in question["criteria"]}}
+            elif kind == "score":
+                answers[name] = {"type": kind, "score": 0.5,
+                                 "probabilities": {str(i): 1 / len(question["criteria"]) for i in range(len(question["criteria"]))}}
             else:
-                chosen[route] = str(entry)
-        return chosen
-
-    def predict(self, state: str, questions: dict, lang: str | None) -> dict:
-        """Route, then answer on the chosen checkpoint. `typed-decisions` cannot be
-        selected: the router is built without task detection and any other route is
-        refused before a load."""
-        router = self.router()
-        hint = {"lang": lang} if lang else {}
-        decision = dict(router.route(state, questions, **hint))
-        route = str(decision.get("model") or "")
-        if route not in ROUTES:
-            raise RequestError(f"refused local route {route!r}: only {list(ROUTES)} are enabled")
-        before = set(getattr(router, "loaded", ()) or ())
-        result = router.predict(state, questions, **hint)
-        if route not in before:
-            log(f"loaded {route}={checkpoint(decision)}")
-        if not isinstance(result, dict):
-            raise RequestError("the local model returned no result")
-        routing = result.get("routing") if isinstance(result.get("routing"), dict) else decision
-        model = str(routing.get("repo") or checkpoint(decision))
-        log(f"answered route={route} model={model} lang={lang or 'auto'}")
-        return {
-            "route": route,
-            "model": model,
-            "lang": lang,
-            "reason": str(routing.get("reason") or decision.get("reason") or ""),
-            "answers": answers_of(result.get("answers"), questions),
-            "usage": usage_of(result),
-        }
+                answers[name] = {"type": kind, "noul": float(os.environ.get("LAYA_TEST_NOUL", "0.75"))}
+        if len(state) > 3000:
+            raise ValueError("test state exceeds token budget")
+        return {"model": "laya-multilingual-test", "routing": {"model": MODEL}, "answers": answers,
+                "usage": {"input_tokens": 0, "output_tokens": 0}}
+    if not router:
+        from importlib.metadata import version
+        if version("laya") != VERSION:
+            raise RuntimeError("unsupported Laya version; install pinned laya==0.3.20")
+        from laya import Router
+        router.append(Router(device="mps", default=MODEL))
+    agent = router[0].load(MODEL)
+    preflight(agent, state, questions)
+    result = router[0].predict(state, questions, model=MODEL)
+    if result.get("routing", {}).get("model") != MODEL:
+        raise ValueError("unexpected checkpoint route")
+    return result
 
 
-def handle(runtime: Runtime, line: str) -> dict:
-    """One request line to one response object; every failure stays bounded."""
-    request_id = "?"
-    try:
-        raw = json.loads(line)
-        if isinstance(raw, dict) and isinstance(raw.get("id"), str):
-            request_id = raw["id"]
-        request_id, state, questions, lang = request_of(raw)
-        return {"id": request_id, "ok": True, **runtime.predict(state, questions, lang)}
-    except json.JSONDecodeError:
-        return {"id": request_id, "ok": False, "error": "invalid request: not JSON"}
-    except RequestError as error:
-        return {"id": request_id, "ok": False, "error": f"invalid request: {error}"[:MAX_ERROR]}
-    except Exception as error:  # a model or runtime failure, never a crash
-        detail = str(error).strip() or error.__class__.__name__
-        return {"id": request_id, "ok": False, "error": f"inference failed: {detail}"[:MAX_ERROR], "route": None}
-
-
-def serve(runtime: Runtime) -> int:
-    """Read requests until EOF; write one response per request in order."""
-    out = _protocol_channel()
-    for line in sys.stdin:
-        line = line.strip()
-        response = handle(runtime, line) if line else {"id": "?", "ok": False,
-                                                       "error": "invalid request: empty line"}
-        out.write(json.dumps(response, ensure_ascii=False) + "\n")
-        out.flush()
-    return 0
-
-
-def _protocol_channel():
-    """Take fd 1 for responses and hand every other stdout write to stderr, so a
-    checkpoint that prints (or a native library that writes to fd 1) cannot corrupt
-    the JavaScript Object Notation Lines channel."""
-    saved = os.dup(1)
-    os.dup2(2, 1)
-    sys.stdout = sys.stderr
-    return os.fdopen(saved, "w", buffering=1, encoding="utf-8")
-
-
-def check(runtime: Runtime) -> int:
-    targets = runtime.targets()
-    runtime.router().preload(list(ROUTES))
-    for route in ROUTES:
-        log(f"loaded {route}={targets[route]}")
-    print("\n".join(f"{route}={targets[route]}" for route in ROUTES))
-    return 0
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="local Laya stdio bridge for Pi")
-    parser.add_argument("--check", action="store_true",
-                        help="build the router, preload both routed checkpoints and report them")
-    args = parser.parse_args(argv)
-    runtime = Runtime()
-    if args.check:
+def main() -> None:
+    # Never let the model fetch a checkpoint silently. Provision/cache it explicitly.
+    os.environ["HF_HUB_OFFLINE"] = "1"
+    router: list = []
+    while True:
+        line = sys.stdin.buffer.readline(MAX_LINE + 1)
+        if not line:
+            return
         try:
-            return check(runtime)
+            if len(line) > MAX_LINE:
+                raise ValueError("request exceeds maximum message length")
+            request = json.loads(line)
+            state, questions = validate_request(request)
+            result = validate_output(_predict(state, questions, router), questions)
+            reply = {"id": request.get("id"), "result": result, "ok": True}
+        except (ValueError, TypeError, KeyError, ImportError, RuntimeError, OSError) as error:
+            # Errors are bounded and contain no request state or credential material.
+            reply = {"id": None, "ok": False, "error": str(error)[:200]}
         except Exception as error:
-            print(f"laya runtime check failed: {error}", file=sys.stderr)
-            return 1
-    return serve(runtime)
+            reply = {"id": None, "ok": False, "error": type(error).__name__}
+        sys.stdout.write(json.dumps(reply, allow_nan=False) + "\n")
+        sys.stdout.flush()
+        if len(line) > MAX_LINE and not line.endswith(b"\n"):
+            return  # Never parse an unbounded continuation as a new request.
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

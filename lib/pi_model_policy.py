@@ -2,45 +2,34 @@
 """Install Pi policy; change native model defaults only with an explicit --preset."""
 from __future__ import annotations
 
-import os
-import shlex
-import subprocess
 from pathlib import Path
 
 BEGIN = "<!-- megai:subagent-models:begin -->"
 END = "<!-- megai:subagent-models:end -->"
+KNOWN_JEV_BROWSER_SHA256 = "d7f4e46265e2dfafd9866f78ffb75b6106e4b3352af62dbb2d72e16b0c5fd28e"
 
-def laya_runtime_failure(source: Path) -> str | None:
-    """Return the runtime verification failure, or None when it is ready.
 
-    MEGAI_LAYA_CHECK is a deterministic test seam so migration gating can be exercised
-    without a checkpoint download; production runs the pinned installer's `--check`,
-    which fails for a missing, unowned or unverifiable runtime.
-    """
-    seam = os.environ.get("MEGAI_LAYA_CHECK")
-    argv = shlex.split(seam) if seam else ["bash", str(source / "lib/install_laya.sh"), "--check"]
-    try:
-        result = subprocess.run(argv, capture_output=True, text=True)
-    except OSError as error:
-        return str(error)[:200]
-    if result.returncode == 0:
-        return None
-    return ((result.stderr or "").strip().splitlines() or ["verification failed"])[-1][:200]
+def retire_jev_browser(plan, path: Path) -> None:
+    """Retire the exact archived browser asset, preserving custom replacements."""
+    from slim_wiring import digest, read
+
+    current = read(path)
+    if current is None:
+        plan.receipt.pop(str(path), None)
+        return
+    if not plan.owned(path, current) and digest(current) != KNOWN_JEV_BROWSER_SHA256:
+        raise ValueError(f"custom/legacy browser asset preserved: {path}; reconcile manually")
+    plan.stage(path, None, current)
+    plan.receipt.pop(str(path), None)
 
 
 def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> None:
-    from slim_wiring import digest, read
+    from retire_local_decisions import stage_pi_assets
+    from slim_wiring import MEGAI, digest, read
+    from laya_runtime import preflight as laya_preflight
 
     if not remove:
-        reason = laya_runtime_failure(source)
-        if reason is not None:
-            # Migrate atomically or not at all: a missing, unowned or unverifiable
-            # runtime keeps the working retired extension in place instead of
-            # activating a Laya tool that cannot load.
-            raise ValueError(
-                "the Laya runtime is not verified; Laya is not activated "
-                f"({reason}); run `bash lib/install_laya.sh` and retry"
-            )
+        laya_preflight(MEGAI)
 
     policy = (source / "pi-skill/delegation.md").read_bytes()
     path = root / "AGENTS.md"
@@ -85,20 +74,26 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
                (source / "pi-skill/role-routing/index.ts").read_bytes(), remove)
     plan.asset(root / "extensions/megai-model-fallback/index.ts",
                (source / "pi-skill/model-fallback/index.ts").read_bytes(), remove)
-    # Place the Laya extension, its stdio bridge (a sibling file, loaded by relative
-    # path) and the compaction companion that shares the same bridge process.
-    plan.asset(root / "extensions/megai-laya/index.ts",
-               (source / "pi-skill/laya/index.ts").read_bytes(), remove)
-    plan.asset(root / "extensions/megai-laya/bridge.py",
-               (source / "pi-skill/laya/bridge.py").read_bytes(), remove)
-    plan.asset(root / "extensions/megai-laya/compaction.ts",
-               (source / "pi-skill/laya/compaction.ts").read_bytes(), remove)
+    # The retired local decision tool shipped here as an extension, a stdio bridge
+    # and a compaction companion; its sources and published copies are retired by
+    # the same transaction so a reinstall leaves none of it behind.
+    stage_pi_assets(plan, root)
+    # Retire only receipt-owned hosted decision resources before staging the
+    # locally pinned extension. No TypeSafe endpoint or credential is consulted.
+    plan.retire(root / "extensions/megai-jev/index.ts")
+    plan.retire(root / "extensions/megai-jev-compaction/index.ts")
+    for filename in ("index.ts", "bridge.py", "compaction.ts"):
+        plan.asset(root / "extensions/megai-laya" / filename,
+                   (source / "pi-skill/laya" / filename).read_bytes(), remove)
     plan.asset(root / "extensions/megai-antigravity/index.ts",
                (source / "pi-skill/antigravity/index.ts").read_bytes(), remove)
     delegation = root / "skills/megai/delegation.md"
     installed = read(delegation)
     if installed is None or installed == policy or plan.owned(delegation, installed):
         plan.asset(delegation, policy, remove)
+    # No browser automation is offered by the Laya profile; unknown edits block.
+    plan.retire(root / "skills/jev-browser/SKILL.md")
+    retire_jev_browser(plan, MEGAI / "bin/jev-browser")
     # An unowned, operator-edited policy is preserved instead of claimed.
     if remove:
         # Removing policy does not undo the user's native model preferences.
@@ -120,13 +115,15 @@ def stage_adaptive_policy(plan, root: Path, source: Path) -> None:
 
 
 def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
+    import re
     from slim_wiring import encoded, load_json, read
 
-    if preset not in ("economy",):
+    if preset not in ("economy", "antigravity"):
         raise ValueError(f"unknown Pi preset: {preset}")
     config = load_json(source / f"pi-skill/presets/{preset}.json")
     roles = config.get("roles")
-    if (config.get("schema") != 1 or config.get("preset") != preset
+    expected_marker = preset if preset == "economy" else None
+    if (config.get("schema") != 1 or config.get("preset") != expected_marker
             or not isinstance(roles, dict)
             or set(roles) != {"planner", "scout", "worker", "reviewer"}):
         raise ValueError("invalid role preset")
@@ -147,7 +144,27 @@ def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
             raise ValueError("invalid preset role identity/thinking")
         identity = role["provider"] + "/" + role["model"]
         levels.setdefault(identity, role["thinking"])
+    if preset == "antigravity":
+        # Fail closed if an old/custom execution policy would outlive the new roles.
+        agents = root / "AGENTS.md"
+        current = plan.changes.get(agents, read(agents)) or b""
+        base = re.sub(
+            rb"\s*<!-- megai:(slim|subagent-models):begin -->.*?<!-- megai:\1:end -->",
+            b"", current, flags=re.S,
+        ).strip()
+        if base != (source / "pi-defaults/AGENTS.md").read_bytes().strip():
+            raise ValueError("Antigravity preset requires the current Pi AGENTS base policy; "
+                             "back up and reconcile it before retrying")
+        for relative, target in (("pi-skill/ADAPTIVE.md", "skills/megai/SKILL.md"),
+                                 ("pi-skill/delegation.md", "skills/megai/delegation.md")):
+            path = root / target
+            if plan.changes.get(path, read(path)) != (source / relative).read_bytes():
+                raise ValueError(f"Antigravity preset requires current {target}; "
+                                 "refresh owned policy with --adaptive or reconcile a custom file")
     plan.asset(root / "megai-roles.json", encoded(config), False)
+    if preset == "antigravity":
+        # Explicit opt-in only; asset() refuses to replace an unowned custom map.
+        plan.asset(root / "model-fallback.json", encoded({"fallbacks": {}}), False)
     path = root / "settings.json"
     before = read(path)
     settings = load_json(path)
@@ -166,7 +183,8 @@ def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
 def main() -> None:
     import argparse
     import os
-    from slim_wiring import Plan, SOURCE
+    from retire_local_decisions import apply_with_runtime, stage_published
+    from slim_wiring import MEGAI, Plan, SOURCE
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -174,19 +192,25 @@ def main() -> None:
                         help="refresh only owned Pi workflow policy, not unrelated legacy resources")
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument("--remove", action="store_true")
-    selection.add_argument("--preset", choices=("economy",),
+    selection.add_argument("--preset", choices=("economy", "antigravity"),
                            help="explicitly apply role and native startup model preferences")
     args = parser.parse_args()
     if args.adaptive and args.remove:
         parser.error("--adaptive cannot be combined with --remove")
+    if args.preset == "antigravity" and not args.adaptive:
+        parser.error("--preset antigravity requires --adaptive for complete Pi policy refresh")
     plan = Plan()
     root = Path(os.environ.get("PI_CODING_AGENT_DIR", Path.home() / ".pi/agent"))
     if args.adaptive:
         stage_adaptive_policy(plan, root, SOURCE)
     stage_model_policy(plan, root, SOURCE, args.remove)
+    stage_published(plan, MEGAI)
     if args.preset:
         stage_preset(plan, root, SOURCE, args.preset)
-    plan.apply(args.check)
+    moved = apply_with_runtime(plan, MEGAI, dry_run=args.check,
+                               defer=bool(os.environ.get("MEGAI_TRANSACTION_LOG")))
+    if moved is not None:
+        print(f"retired runtime moved aside: {moved}")
 
 
 if __name__ == "__main__":

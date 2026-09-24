@@ -34,53 +34,16 @@ behavior requires it, in either mode; exit zero alone is insufficient. A bug nee
 an observed failing reproduction and passing regression, even in routine mode.
 No formal-gate claim without running that gate. Existing stricter repo/user rules win.
 
-### Laya at every decision step
+### Decisions use the on-device Laya helper when useful
 
-The `laya` tool answers typed decision questions (`choice`, `score`, `noul`) in about
-a second from a small local checkpoint: no key, no account and no network request.
-Every decision this flow names is one `laya` call on the supplied state instead of a
-model prompt, recorded with its probabilities on
-the task item:
-
-| Step | Decision | Questions |
-| --- | --- | --- |
-| Triage, once at start/resume | mode, type, areas, effort, approval, delegation, review | `mode` choice (routine/guarded), `task_type` choice, `area` choice plus a `noul` per open secondary area, `effort` score (0 one file – 3 architecture), `needs_approval` `noul`, `delegate` choice (parent/one worker), `review` `noul` |
-| Task flow | the Plane labels and a scope change | `label_type` choice, `label_area` choice, `reconcile` choice on a contradiction (reuse/create/ask), `reclassify` `noul` on resume |
-| Isolation | commit target and cleanup | `isolation` choice (managed worktree/clean checkout/blocked), `delivery_target` choice, `cleanup` choice (archive/retain/blocked) |
-| Delegation | whether, who, fallback | `delegate` choice, `role` choice among the configured roles, `fallback` choice, `timeout_action` choice |
-| Verification | the smallest sufficient check and the verdict | `check` choice, `sufficiency` choice (sufficient/gap), `verdict` choice (PASS/PASS WITH FINDINGS/BLOCKED), `escalate` `noul` |
-| Loop control | is the task actually finished, and who decides next | `done` `noul`, `next` choice (continue/stop/escalate), `missing` `noul`, `human` `noul` |
-| First-pass judge | whether an output is good enough to keep or needs the expensive review | `keep` `noul`, `judge` choice (accept/expensive review/human) |
-| Delivery and handoff | readiness and state | `delivery_ready` choice, `handoff_state` choice (In Review/blocked) |
-
-One call per decision boundary bundles that step's questions, which run in parallel
-and cannot see each other's answers (8-question limit). When every branch's follow-up
-is judgeable from the state in hand, bundle those too and use only the selected
-branch's answer; a second call is needed only when the follow-up depends on state the
-branch itself produces. Give `choice` and
-`noul` a label→meaning map and `score` an ordered
-level list (a bare label list is accepted for `choice`/`noul` and sent as labels). Send only the text the decision needs: never secrets, credentials,
-tokens, or personal data. Every answer is advisory: `noul` returns a probability
-and never authorizes a reserved user decision (main promotion, deletion,
-credentials or permissions, software install or removal). If the call returns
-`ok: false` — the local runtime is missing, a checkpoint failed to load, or the
-request timed out — decide with your own judgment, say the call failed once, and
-continue; never retry in a loop. The runtime is prepared once with
-`bash lib/install_laya.sh`; when it is absent the tool reports that in one line
-instead of asking for a key or any credential.
-
-Every call now lands in `~/.megai/laya-calls.jsonl` with a short record id, the route
-that answered it and the checkpoint identity. Label the answers you actually consumed
-with what really happened — `python3 lib/laya_shadow.py note --id ID --actual LABEL` —
-so `python3 lib/laya_shadow.py report` can show the per-question agreement, the cutoff
-the probabilities support and the disagreements worth re-testing. An unlabeled
-ledger is only traffic.
-
-A low-confidence answer, a distribution split across acceptable alternatives or an
-answer that contradicts the table above is a signal to inspect the seam, widen
-evidence or ask — not a silent override. Explicit user or task instructions and every
-existing gate outrank an answer: Laya never replaces a check, a reviewer verdict, an
-evidence requirement or a reserved user decision.
+Pi may consult the local `laya` tool for typed decision advice and `sift` for
+local file relevance. Laya's multilingual judgments are not calibrated to the
+retired Jev gate: they cannot block tools, replace Pi permissions or authorize
+reserved user decisions (main promotion, deletion, credentials, installs or
+permissions). Keep prompts narrow and avoid secrets. When Laya cannot safely
+reduce a compaction span, Pi's native summarizer handles the original history;
+only repeated byte-identical results may be omitted locally. Pi's provider,
+chat model and thinking level remain unchanged. No hosted decision fallback.
 
 ## Three-step default
 
@@ -149,27 +112,19 @@ auto-compaction setting or transcript edits; do not claim savings without measur
 
 ## Delegation and cost
 
-Direct parent tools are the default. Create a child only for a concrete isolated
-job, required review or configured economy routing, not speculative standby.
-Load [delegation.md](delegation.md) only before delegation or a model failure.
-Choose one task-appropriate
-engineering skill, not an entire workflow stack. A worker replaces parent writing;
-a reviewer receives a bounded diff and evidence, not the full conversation. A
-healthy DeepSeek parent performs its own routine work directly; it does not launch
-a child just to use the same model. With the explicit `economy` preset and an
-inherited GPT/Paseo parent, route substantial bounded implementation to ONE
-DeepSeek worker instead of duplicating it in GPT; a trivial read-only or single
-edit may remain direct when launching a worker is disproportionate. The parent
-still owns scope, validation, and guarded review or integration.
-
-Respect `megai-roles.json` and native preferences. With the explicit `economy` preset,
-DeepSeek handles planning and implementation; GPT is reserved for guarded independent
-review or a concrete DeepSeek failure requiring escalation. Routine tasks do not spend
-GPT on automatic scouting, planning or review. Explicit user/task model choices
-always override this default; never silently switch the parent's model or lower
-its thinking. Auth/shared quota failures require reconciliation, not model hopping;
-any missing required reviewer is BLOCKED. Never require an agent team or every role
-to launch.
+Direct parent tools are the default for trivial and non-Git local work. Load
+[delegation.md](delegation.md) before delegation or model-error escalation. For
+eligible bounded Git implementation under the Antigravity profile in a clean linked
+task worktree, prefer the existing `antigravity_delegate` tool to a Pi model-backed
+worker. Agy replaces parent writing in that worktree; the GPT parent owns acceptance
+and integration. An explicitly selected `economy` preset retains native role routing.
+Use one writer, verify the returned diff/tests and obtain the required independent
+GPT review. Agy is not a native Pi model or Paseo child; do not send it through
+`megai-roles.json` or invent a provider. The role file lists only Pi-native model
+choices for other explicitly selected native roles. Explicit user/task choices
+supersede routing; never silently change the parent's model/thinking. Auth or
+permission failures and uncertain writes need reconciliation, not model hopping.
+Missing required reviewer remains BLOCKED. No speculative extra team.
 
 Provider stall protection and Headroom remain available without new daemons or hooks.
 These are workflow/cost defaults, not a sandbox or a measured latency/token guarantee.

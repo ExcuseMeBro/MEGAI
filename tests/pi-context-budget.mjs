@@ -19,7 +19,7 @@ try {
   assert.equal(tuned.getError(), undefined);
   const settings = DEFAULT_COMPACTION_SETTINGS;
   assert.equal(settings.keepRecentTokens, 20000, 'Retain native recent-history policy');
-  for (const id of ['gpt-6-astra', 'gpt-5.6-sol']) {
+  for (const id of ['gpt-6-astra', 'gpt-6-sol']) {
     const before = baseline.getModel('openai-codex', id);
     const after = tuned.getModel('openai-codex', id);
     assert.ok(before && after, 'Required native model must exist: ' + id);
@@ -36,7 +36,7 @@ try {
   }
   assert.deepEqual(tuned.getModels().map(m => `${m.provider}/${m.id}`).sort(), baseline.getModels().map(m => `${m.provider}/${m.id}`).sort(), 'No model added or removed');
   for (const before of baseline.getModels()) {
-    if (before.provider === 'openai-codex' && ['gpt-6-astra', 'gpt-5.6-sol'].includes(before.id)) continue;
+    if (before.provider === 'openai-codex' && ['gpt-6-astra', 'gpt-6-sol'].includes(before.id)) continue;
     assert.deepEqual(tuned.getModel(before.provider, before.id), before, 'Other model unchanged');
   }
   console.log('PASS: native configuration/threshold regression only; not an end-to-end latency, cost or summary-quality benchmark');

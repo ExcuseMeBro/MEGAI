@@ -19,8 +19,10 @@ detect_runtimes
 [ "$MEGAI_HAS_CURL" = "1" ] || die "curl required"
 [ "$MEGAI_HAS_PY" = "1" ] || die "Python 3.11+ required for safe policy/config validation"
 python3 -c 'import tomllib' || die "Python 3.11+ required"
-# Validate every selected client and every retirement manifest before any
-# third-party installer, source publication, or config mutation.
+# Provision the isolated, cached Laya runtime before policy preflight. This
+# never touches Pi settings; an unowned runtime blocks without replacement.
+python3 "${MEGAI_SOURCE:-$MEGAI_HOME}/lib/laya_runtime.py" --install || die "Pinned local Laya runtime unavailable offline"
+# Validate every selected client before source publication or Pi config mutation.
 python3 "$LIB/slim_wiring.py" all --check
 python3 "$LIB/retire_legacy_sources.py" --check
 command -v git >/dev/null 2>&1 || die "Git required"
@@ -46,7 +48,7 @@ bash "$LIB/retire_numasec.sh"
 bash "$LIB/retire_openspec.sh"
 python3 "$LIB/retire_legacy_sources.py"
 
-step 3 7 "Installing core search (indexing starts only on request)"
+step 3 7 "Installing core search and local tools (indexing starts only on request)"
 bash "$LIB/install_tgrep.sh" || die "tgrep install failed"
 bash "$LIB/install_codedb.sh" || die "codedb install failed"
 

@@ -186,6 +186,50 @@ printf '{}'
             self.assertEqual(entrypoint.stat().st_mode & 0o777, original_mode)
             self.assertFalse((self.home / ".pi/agent/extensions/megai-headroom/index.ts").exists())
 
+    def test_wiring_only_retires_owned_runtime_only_after_success(self):
+        """A late verification failure restores wiring with its original runtime."""
+        self.wire()
+        sys.path.insert(0, str(self.megai / "lib"))
+        from retire_local_decisions import EXTENSIONS, PUBLISHED, RUNTIME, RUNTIME_OWNER, STATE_TOOL
+
+        source = self.root / "source"
+        for folder in ("bin", "lib", "pi-skill", "task-flow", "skills"):
+            shutil.copytree(self.megai / folder, source / folder)
+        self.write(source / "lib/install_headroom.sh", "#!/bin/sh\nexit 0\n")
+        verifier = source / "lib/verify_headroom_activation.sh"
+        self.write(verifier, "#!/bin/sh\nexit 42\n")
+        fake_python = self.write(self.megai / "venv/headroom/bin/python", "#!/bin/sh\nexit 0\n")
+        fake_python.chmod(0o700)
+        agent = self.home / ".pi/agent"
+        extension = self.write(agent / next(iter(EXTENSIONS)) / "index.ts", "old extension\n")
+        published = self.write(self.megai / next(iter(PUBLISHED)), "old published source\n")
+        runtime = self.megai / RUNTIME
+        self.write(runtime / ".megai-owned", f"owner={RUNTIME_OWNER}\n")
+        self.write(runtime / "bin/python", "old runtime\n")
+        receipt_path = self.megai / "slim-wiring.json"
+        receipt = json.loads(receipt_path.read_text())
+        for path in (extension, published):
+            receipt[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+        receipt_path.write_text(json.dumps(receipt))
+        state_path = self.megai / "state.json"
+        state = json.loads(state_path.read_text())
+        state["tools"][STATE_TOOL] = {"installed": True}
+        state_path.write_text(json.dumps(state))
+        before = {p: p.read_bytes() for p in (extension, published, runtime / ".megai-owned",
+                                               runtime / "bin/python", receipt_path, state_path)}
+        command = (sys.executable, str(source / "lib/install_transaction.py"), str(source), "--wiring-only")
+        self.run_cmd(*command, ok=False)
+        for path, data in before.items():
+            self.assertEqual(path.read_bytes(), data, str(path))
+        self.assertFalse(list((self.megai / "backups").glob("retired-decision-runtime*")))
+        self.write(verifier, "#!/bin/sh\nexit 0\n")
+        self.run_cmd(*command)
+        self.assertFalse(extension.exists())
+        self.assertFalse(published.exists())
+        self.assertFalse(runtime.exists())
+        self.assertNotIn(STATE_TOOL, json.loads(state_path.read_text())["tools"])
+        self.assertEqual(len(list((self.megai / "backups").glob("retired-decision-runtime*"))), 1)
+
     def test_credential_and_model_settings_preserved(self):
         auth = self.write(self.home / ".pi/agent/auth.json", '{"secret":"test-only"}')
         models = self.write(self.home / ".pi/agent/models.json", '{"test":"unchanged"}')

@@ -2,7 +2,7 @@
 name: sol-gate
 description: Fail-closed critical planning and final integrated acceptance gate.
 managed-by: megai
-model: openai-codex/gpt-5.6-sol
+model: openai-codex/gpt-6-sol
 thinking: high
 blocking: true
 tools: read, grep, glob, lsp, bash, hub

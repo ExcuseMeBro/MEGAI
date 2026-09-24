@@ -6,8 +6,6 @@ TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 export HOME="$TMP/home" MEGAI_HOME="$TMP/megai" MEGAI_SOURCE="$ROOT"
 export PI_CODING_AGENT_DIR="$HOME/.pi/agent" CODEX_HOME="$HOME/.codex"
 export PATH="$TMP/bin:$PATH"
-# Deterministic seam: this suite asserts neutral wiring, not the checkpoint download.
-export MEGAI_LAYA_CHECK=true
 mkdir -p "$HOME" "$MEGAI_HOME" "$TMP/bin"
 printf '{"tools":{},"agents":{},"ports":{"agent-memory":3111},"keep":true}\n' > "$MEGAI_HOME/state.json"
 for command in codedb zg; do printf '#!/bin/sh\nexit 0\n' >"$TMP/bin/$command"; chmod +x "$TMP/bin/$command"; done

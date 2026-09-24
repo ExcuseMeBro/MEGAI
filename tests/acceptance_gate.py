@@ -112,7 +112,7 @@ class AcceptanceGateTest(unittest.TestCase):
             "review": {
                 "session_id": "reviewer",
                 "harness": "pi",
-                "model": "openai-codex/gpt-5.6-sol",
+                "model": "openai-codex/gpt-6-sol",
                 "thinking": "high",
                 "verdict": "PASS",
                 "snapshot": snap,
@@ -263,7 +263,7 @@ class AcceptanceGateTest(unittest.TestCase):
                 self.check(directory, 2)
 
     def frozen_fixture(self, reviewer=None, harness="pi", thinking="medium",
-                       model="openai-codex/gpt-5.6-luna"):
+                       model="openai-codex/gpt-6-luna"):
         directory, contract, evidence = self.fixture()
         contract["schema"] = 2
         contract["task_type"] = "change"
@@ -275,12 +275,12 @@ class AcceptanceGateTest(unittest.TestCase):
         return directory
 
     def test_frozen_reviewer_policy_accepts_explicit_medium(self):
-        reviewer = {"harness": "pi", "model": "openai-codex/gpt-5.6-luna",
+        reviewer = {"harness": "pi", "model": "openai-codex/gpt-6-luna",
                     "thinking": "medium"}
         self.check(self.frozen_fixture(reviewer=reviewer, thinking="medium"), 0)
 
     def test_frozen_reviewer_policy_mismatch_is_blocked(self):
-        reviewer = {"harness": "pi", "model": "openai-codex/gpt-5.6-luna",
+        reviewer = {"harness": "pi", "model": "openai-codex/gpt-6-luna",
                     "thinking": "medium"}
         for key, value in (("harness", "codex"),
                            ("model", "anthropic/claude-sonnet-4-6"),
@@ -293,7 +293,7 @@ class AcceptanceGateTest(unittest.TestCase):
         self.check(self.frozen_fixture(reviewer=None, thinking="medium"), 2)
 
     def test_collect_emits_frozen_reviewer_policy_into_template(self):
-        reviewer = {"harness": "pi", "model": "openai-codex/gpt-5.6-luna",
+        reviewer = {"harness": "pi", "model": "openai-codex/gpt-6-luna",
                     "thinking": "medium"}
         directory, contract, evidence = self.fixture()
         contract["schema"] = 2
@@ -313,10 +313,10 @@ class AcceptanceGateTest(unittest.TestCase):
         )
 
     def test_malformed_and_schema_one_reviewer_policies_are_blocked(self):
-        valid = {"harness": "pi", "model": "openai-codex/gpt-5.6-luna",
+        valid = {"harness": "pi", "model": "openai-codex/gpt-6-luna",
                  "thinking": "medium"}
         for label, reviewer in (
-            ("partial", {"harness": "pi", "model": "openai-codex/gpt-5.6-luna"}),
+            ("partial", {"harness": "pi", "model": "openai-codex/gpt-6-luna"}),
             ("extra", {**valid, "session": "reviewer"}),
             ("empty-harness", {**valid, "harness": " "}),
             ("invalid-model", {**valid, "model": "unknown"}),

@@ -17,7 +17,7 @@ const PROVIDER = /^[A-Za-z0-9._:-]{1,64}$/;
 const MODEL = /^[A-Za-z0-9._:/-]{1,96}$/;
 const DEEPSEEK_FLASH = "deepseek/deepseek-flash";
 const ELIGIBLE = new Set(["planner", "scout", "worker"]);
-const FALLBACK = `${DEEPSEEK_FLASH} -> minimax/MiniMax-M3 -> openai-codex/gpt-5.6-luna`;
+const FALLBACK = `${DEEPSEEK_FLASH} -> minimax/MiniMax-M3 -> openai-codex/gpt-6-luna`;
 const BLOCKED =
   "\n\nMEGAI role context BLOCKED: the global megai-roles.json is unreadable or " +
   "invalid. Continue only with explicit user model choices and current evidence; do " +

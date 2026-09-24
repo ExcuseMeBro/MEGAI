@@ -36,6 +36,7 @@ Pi startup never updates packages or builds indexes automatically.
 | 📐 OpenSpec 1.13.0 | Global core skills and `/opsx-*` commands, telemetry disabled |
 | 🔌 pi-mcp-adapter 2.33.0 | Lazy Plane and zvec MCP |
 | 🌐 pi-web-access 0.29.0 | Exa public search without a separate key, page fetching |
+| ⚡ Local Laya multilingual | On-device typed decisions and file relevance; compaction falls back to Pi when not safely reducible. No browser agent. |
 | 🧑‍🤝‍🧑 Native Paseo agents | Bounded children and required independent review; no Pi package |
 
 Package versions and integrity hashes are in [package-lock.json](pi-defaults/package-lock.json).
@@ -134,17 +135,35 @@ A missing merge or changed item leaves the task In Review. Plane lacks condition
 updates: serialize task boundary edits; the command checks for concurrent changes
 immediately before its final write. There is no unattended watcher or automatic merge.
 
+The `/factory` prompt template is installed globally: `/factory` runs one existing
+`factory-ready`-labelled Todo item from the current Plane project when it has actionable
+acceptance and is the only eligible item. Use `/factory "exact ticket title"` to select
+one explicitly. Ambiguous or incomplete lookups stop; the UUID-bound
+`pi-workflow factory-start` never creates a ticket or starts a daemon, and the
+prompt never pushes, promotes main or marks Done. It follows the normal worktree,
+verification, local dev delivery and In Review rules. Run `/reload` in an existing Pi
+session after installation. This is an agent prompt, not an enforcement boundary.
+
 The `/mdev` and `/prdev` prompt templates are installed globally: `/mdev` is explicit
 authorization to reconcile, review, merge and push task work into `dev` (no repeated approval)
 and to clean safe local task workspaces, and `/prdev` opens the `dev` → `main` pull request
 without merging. Neither promotes `main`, and both keep delivery evidence bound to the exact
 recorded SHAs.
 
+Both complete recoverable prerequisites instead of stopping: a local `dev` ahead of its remote,
+ignored or ignored-untracked files, a missing Plane identity, missing or stale evidence, a moved
+ref and an ordinary `dev`-vs-`main` difference are work to finish, not blockers. They stop only
+for a write into another owner's work, an ambiguous product decision, or an action outside their
+authorization (main promotion, force, remote branch deletion, another project). Ignored files
+never block that decision, but the `dev` fast-forward uses `--no-overwrite-ignore` so a
+colliding ignored file is preserved and reported instead of silently overwritten.
+
 The persistent branches are `dev` and `main`. Normal task branches start from dev
 in managed Paseo worktrees and deliver to dev after tests/review. Main promotion
 requires explicit approval. A specifically requested persistent branch overrides
 dev delivery: push only that branch, retain its worktree, leave the task In Review
-until it reaches main. `pi` is this task's explicitly requested delivery branch.
+until it reaches main. A persistent branch such as `pi` is used only when the task or
+the user explicitly requests it.
 
 A monorepo gets one worktree per task. A folder containing separate repositories
 gets one worktree per affected repository under the same existing Paseo project and

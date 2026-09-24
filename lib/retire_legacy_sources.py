@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Archive only recognized retired distribution sources through the wiring plan."""
+"""Archive only recognized retired distribution sources through the wiring plan.
+
+The retired local decision runtime is staged by lib/retire_local_decisions.py, whose
+path and digest table lives beside the code that uses it.
+"""
 import argparse
 import json
 from pathlib import Path
@@ -52,6 +56,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
+    from retire_local_decisions import stage_published
+
     plan = Plan()
     stage_retirements(plan)
+    stage_published(plan, MEGAI)
     plan.apply(args.check)

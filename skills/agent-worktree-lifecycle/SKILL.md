@@ -9,7 +9,9 @@ managed-by: megai
 One existing Paseo folder/project and one Plane task coordinate the work. Git
 source writers use separate managed worktrees; non-Git configuration uses a local
 owned scope. Workspaces do not imply new project/repository registration. Parents
-own integration; children never delegate, mutate Plane, merge or promote.
+own integration; children never delegate, mutate Plane, merge or promote. Every Git
+change, however small, uses a task-owned managed worktree; direct source edits,
+staging or commits in the dev/main checkout are forbidden.
 
 ## Pi verification mode
 
@@ -66,16 +68,13 @@ worktrees isolate files/indexes, not shared Git refs, services, secrets or an OS
    Verify returned projectId/workspaceId, real Git primary/common directory, branch,
    base HEAD and owned worktree path before writing. Same-name collisions or uncertain
    creation are reconciled by lookup; never delete or adopt an unknown owner's work.
+   If isolated ownership cannot be proved, stop Git edits; never fall back to the
+   primary dev checkout.
 3. Open agent tabs with `create_agent`, each repo's verified workspaceId, explicit
    Pi model and supported thinking; perform neutral/native launch verification.
    One writer per worktree; read-only reviewers may share it. Parallel task writers
    get different task branches/worktrees even within one repo. Cross-repo tasks can
    implement independently, while integration reserves shared target resources.
-
-When the `laya` tool is available, one call covers isolation (managed worktree / clean
-checkout / blocked) and the delivery target, and one covers cleanup (archive /
-retain / blocked), recorded on the same Plane item. The answers are advisory and
-never authorize main, push or deletion.
 
 ## Non-Git local work
 
@@ -100,8 +99,10 @@ Production deployment, secrets and destructive migrations retain separate approv
 1. Preserve mode-appropriate review and actual acceptance for **all affected repos and
    configuration scopes before the first dev mutation**: routine Pi uses focused tests
    and parent self-review; guarded Pi (including multi-repo delivery) requires the
-   independent formal gate. Other harnesses retain their required independent review. Commit only owned changes
-   when Git delivery is agreed, then capture source-current evidence per worktree.
+   independent formal gate. Other harnesses retain their required independent review.
+   Commit only owned changes in task worktrees, then capture source-current evidence
+   per worktree. Once ready, proceed to local dev delivery without an extra user
+   confirmation; a task request already authorizes this step, not push or main.
    Include cross-repo/API compatibility tests and runtime resource ownership when
    relevant; one green repository does not make the multi-repo task ready.
 2. Release all task writers before integration. Reserve **all target repo resources
@@ -117,9 +118,14 @@ Production deployment, secrets and destructive migrations retain separate approv
    approval. If queue support is unavailable, integration is BLOCKED; isolated
    implementation may continue.
 3. Under the reservation, preflight every source/destination commit, clean target
-   checkout and remote policy before mutating any repo. Record the exact source/dev
+   checkout and remote policy before mutating any repo. This parent-owned automatic
+   dev merge is the only permitted task-related change in the primary dev checkout;
+   never edit, stage or commit task source there. Record the exact source/dev
    commit vector. Integrate each ready task into its own existing dev checkout:
-   `git -C DEV_CHECKOUT merge --ff-only task/adam-123`. Do not switch a shared checkout.
+   `git -C DEV_CHECKOUT merge --ff-only --no-overwrite-ignore task/adam-123`.
+   An ignored-file collision is a recoverable refusal, not permission to overwrite:
+   preserve the named file in a verified private backup outside the checkout before
+   retrying, and report its new location. Never delete it or switch a shared checkout.
    A moved dev requires integrating that new base into the owned task worktree and
    fresh tests/review; conflicts stay isolated, never force/reset another task.
 4. Push only if explicitly included in delivery scope, using normal non-force pushes
@@ -139,9 +145,10 @@ Production deployment, secrets and destructive migrations retain separate approv
    actual delivery checks the candidate vector; it never substitutes for mode-appropriate
    current acceptance (independent formal evidence for guarded Pi; focused tests and
    self-review for routine Pi). Queue release/recovery follows its contract.
-5. Verify the delivered dev vector and task-wide behavior, then run **Post-merge
-   cleanup** below before handoff In Review, never Done. Capture actual evidence;
-   historical receipt cwd values stay unchanged.
+5. Verify the delivered dev vector and task-wide behavior, then automatically run
+   **Post-merge cleanup** below without another user prompt, before handoff In Review,
+   never Done. Do not clean up when delivery is partial or uncertain. Capture actual
+   evidence; historical receipt cwd values stay unchanged.
 
 ## Release notes for main pushes (Pi)
 
@@ -233,10 +240,11 @@ the same journal/stop/reconcile rules; no automatic rollback across repositories
 
 ## Post-merge cleanup
 
-Cleanup is part of delivery, not optional polish. Run it after verified task-to-dev
-integration, and again for remaining task resources after separately approved
-main promotion. Do not keep a delivered task workspace merely to wait for main:
-its commit and evidence must already be preserved in dev and private artifacts.
+Cleanup is part of delivery, not optional polish or a new approval round trip.
+Automatically run it after verified task-to-dev integration, and again for remaining
+task resources after separately approved main promotion. Do not keep a delivered
+task workspace merely to wait for main: its commit and evidence must already be
+preserved in dev and private artifacts.
 An explicitly named persistent target such as MEGAI `pi` uses the same procedure
 after verified delivery to that target; retain `pi` itself and any explicitly
 retained workspace. This procedure grants no merge, main, push or remote-deletion

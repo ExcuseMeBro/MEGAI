@@ -27,6 +27,10 @@ PACKAGE_ROOT = os.environ.get("PI_PACKAGE_ROOT", "").strip()
 NATIVE = bool(shutil.which("node")) and (
     bool(PACKAGE_ROOT) or bool(shutil.which("pi")))
 
+# The tracked template, never the installed published copy this process would find
+# through MEGAI_HOME: these contracts describe the repository, not this machine.
+TEMPLATE = ROOT / "pi-skill/context-budget.models.json"
+
 
 class BudgetCase(unittest.TestCase):
     def setUp(self) -> None:
@@ -61,8 +65,8 @@ class BudgetCase(unittest.TestCase):
 
 class TemplateTests(BudgetCase):
     def test_template_targets_are_positive_integers(self):
-        targets = budget.template_targets()
-        self.assertEqual(sorted(targets), ["openai-codex/gpt-5.6-sol", "openai-codex/gpt-6-astra"])
+        targets = budget.template_targets(TEMPLATE)
+        self.assertEqual(sorted(targets), ["openai-codex/gpt-6-astra", "openai-codex/gpt-6-sol"])
         for target, window in targets.items():
             with self.subTest(target=target):
                 self.assertIsInstance(window, int)
@@ -78,7 +82,7 @@ class TemplateTests(BudgetCase):
                 with self.assertRaises(ValueError):
                     budget.check_window(value)  # type: ignore[arg-type]
         self.assertEqual(budget.check_window(budget.MIN_WINDOW), budget.MIN_WINDOW)
-        for target, window in budget.resolved(131072).items():
+        for target, window in budget.resolved(131072, TEMPLATE).items():
             self.assertEqual(window, 131072, target)
 
 
@@ -141,7 +145,7 @@ class InstallerTests(BudgetCase):
         self.assertEqual(data["theme"], "dark")
         self.assertEqual(data["providers"]["deepseek"]["modelOverrides"]["deepseek-flash"],
                          {"contextWindow": 200000})
-        targets = budget.template_targets()
+        targets = budget.template_targets(TEMPLATE)
         for target, window in targets.items():
             provider, model = target.split("/")
             self.assertEqual(data["providers"][provider]["modelOverrides"][model]["contextWindow"], window)
@@ -238,7 +242,7 @@ class NativeTests(BudgetCase):
         self.assertEqual(self.run_cli("--apply", "--window", "131072").returncode, 0)
         result = self.run_cli("--verify", "--window", "131072")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("gpt-5.6-sol=131072", result.stdout)
+        self.assertIn("gpt-6-sol=131072", result.stdout)
 
 
 if __name__ == "__main__":

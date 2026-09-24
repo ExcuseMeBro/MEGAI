@@ -2,10 +2,10 @@
 
 Load only for actual delegation or model-error escalation. Routine Pi work follows
 `megai` with one parent and self-review; delegation is not a required stage.
-With an explicitly selected `economy` preset, use DeepSeek planning/implementation
-roles first and reserve GPT for guarded review or a concrete model-specific failure.
-Role preferences do not require launching agents: a healthy DeepSeek parent does its
-own routine work. Keep GPT review bounded to the diff, criteria and test evidence.
+Under the Antigravity profile use the existing sandboxed Agy tools for eligible
+work instead of DeepSeek; an explicitly selected economy preset retains its native
+role routing. GPT coordinates and reviews Agy work; `megai-roles.json` describes
+native Pi roles only, not the Antigravity CLI. Keep review bounded to diff, criteria and test evidence.
 
 ## Handoffs — fewer agents, not cheaper agents
 
@@ -60,28 +60,28 @@ timeouts and queue leases remain separate from task decomposition.
    parent turn with a short pending status and let the completion notification
    resume it. This is a yield, not task completion: keep the Plane item In Progress
    and the child's workspace intact. Do not keep the turn alive with shell
-   `sleep` or another fixed-duration timer (the native wait is in step 4),
-   repeated status/activity/file reads, or a heartbeat/scheduled poll.
+   `sleep` or a fixed-duration timer, repeated status/activity/file reads, or
+   a heartbeat/scheduled poll. The parent yields instead of spinning.
 3. On notification, match it to the expected child and current dispatch; read the
    result/evidence once when needed. Finished, errored and permission-needed events
    are distinct: idle/finished alone is not acceptance. Reconcile errors or request
    the required permission without automatically approving it. Ignore stale or
    duplicate events for already-consumed work; never replay a task just to wait.
 4. Notifications require a supported delivery path to this parent; the flag alone
-   is not proof. If unavailable, block on the child's state through Paseo's native
-   wait, `paseo agent wait <id>`: `--json` gives a machine-readable result, it
-   returns as soon as the child goes idle, and with `--timeout` it prints the last
-   activity items instead — so one bounded wait doubles as the single status read.
-   `paseo agent attach <id>` streams live output, and `paseo agent send` already
-   waits for its result unless `--no-wait`. Alternatively select
-   `background: false` on the initial `send_agent_prompt` to use its synchronous
-   result. There is no assumed Paseo `wait_agent` API. For an already-running child,
-   never resend its prompt as a wait: one diagnostic status/activity read may
-   reconcile a missing event; if still pending with no supported wait, report the
-   delivery blocker and yield. On resume, reconcile that same child before reuse.
+   is not proof. If delivery is unavailable and waiting is safe, use Paseo's
+   event-backed native `paseo agent wait <id> --json` without a child deadline:
+   it returns on idle, not at a guessed completion time. This is a blocking fallback,
+   not a notification subscription; never present it as a delivered event. If a
+   blocking wait is unsafe or unsupported, report the delivery blocker and yield.
+   `paseo agent attach <id>` streams live output; synchronous `send_agent_prompt`
+   is an option for an initial run, not a way to wait on an already-running child.
+   Never resend a task merely to wait. One diagnostic status/activity read can
+   reconcile a missed event, but never turn it into a polling loop. On resume,
+   reconcile that same child before reuse.
 
-These rules cover child-result waiting, not test timing, provider inactivity
-protection or integration-queue lease/claim semantics; those contracts stay intact.
+These rules cover child-result waiting, not test timing, provider request timeout
+and inactivity protection, bounded Antigravity CLI calls, or integration-queue
+lease/claim semantics; those contracts stay intact.
 MEGAI supplies instructions here, not a runtime sleep interceptor or notification
 transport. Standalone Pi needs its connected adapter to deliver completion events.
 
@@ -102,123 +102,47 @@ planner and reviewer are read-only; a worker gets only its assigned managed path
 Read-only checks use `python3 -B` and Ruff with
 `--no-fix --no-fix-only --force-exclude --no-cache`; avoid cache-producing checks.
 
-When the `laya` tool is available, delegation, role, fallback and timeout are each one
-call on the task state (`delegate`, `role`, `fallback` and `timeout_action` choices,
-with a `noul` for whether escalation is required), recorded on the same Plane item.
-The answers are advisory: the configured roles, quota rules and fallback chain above
-still decide, and a low-confidence answer means look at the evidence again, not swap
-models silently.
+### Antigravity CLI team pool (`agy`)
 
-### Antigravity CLI pool (`agy`)
+Under the Antigravity profile Agy is the primary eligible Git worker and can spend
+the user's Antigravity subscription instead of GPT quota. Use `antigravity` for
+read-only second opinions, long-context reads, research or bulk analysis; it runs
+`agy --mode plan --sandbox`, inlines only explicitly supplied files and returns
+untrusted prose.
 
-The installed Antigravity CLI is a third pool for work the user's Antigravity
-subscription can pay for instead of DeepSeek or GPT quota: a second opinion, a
-long-context read, research or bulk analysis. Use the native `antigravity` tool — it
-runs `agy` with `--mode plan --sandbox`, grants no permission, returns plain text and
-inlines the files Pi already read with native tools via `files`.
+Use `antigravity_delegate` only for a bounded implementation subtask with explicit
+acceptance and an existing clean linked Git worktree. It runs `agy` with
+`--mode accept-edits --sandbox` in that worktree, refuses the primary checkout,
+protected branches, dirty worktrees and detached HEADs, and must not commit, push or
+merge. The tool returns Agy's report plus status/diff evidence for the GPT parent
+and independent reviewer. It never passes `--dangerously-skip-permissions` and
+never sends secrets or personal data.
 
-The prompt must be self-contained: the tool tells `agy` not to use tools and never
-passes `--dangerously-skip-permissions`. It requests no edits, refuses
-credential-like, binary and out-of-workspace files, and never sends secrets or
-personal data. Existing `agy` settings remain user-owned. Interactive `agy` stays
-the user's own tool for agentic work; do not launch it without a request.
+Team ownership stays explicit: GPT coordinates and accepts, Agy edits only its
+eligible isolated worktree or advises, and an independent GPT reviewer checks the
+delivered diff and tests. For non-Git local configuration the parent works directly
+with a private backup. Paseo remains the native control path for provider-backed
+children; Agy is invoked through these bounded Pi tools, not as a Paseo provider.
 
-This pool is an option, not a role: `megai-roles.json` keeps its DeepSeek and GPT
-roles, because Paseo has no Antigravity provider and a configured `agy` role could
-not be launched. Its output is untrusted prose like any other model's — verify what
-it claims before recording it as evidence.
+The safe flow is: create or reuse the verified Paseo-linked worktree, dispatch one
+bounded task to `antigravity_delegate`, inspect its returned status/diff and focused
+test evidence, then send that artifact to the configured GPT reviewer before the
+parent integrates it. Never delegate two writers to the same worktree and never let
+Agy choose the integration target.
 
-## DeepSeek-first subagent fallback
+## Antigravity failure and Pi provider fallback
 
-For delegated planner/scout/worker roles whose configured primary is
-`deepseek/deepseek-flash`, keep DeepSeek first. After a confirmed
-provider/model-specific failure, timeout, reasoning dead-end or unavailable
-primary, use this exact chain, keeping each role's configured thinking level:
-`deepseek/deepseek-flash` -> `openai-codex/gpt-5.6-luna`.
-Explicit task model/provider restrictions override this preference; do not replace
-other configured primaries or the independent reviewer's configured model.
-A confirmed provider-specific insufficient balance or unavailability permits the
-next user-approved provider in this chain; do not stop at the first failed provider
-while a safe, configured alternative remains.
-
-This is parent-driven **child** routing. It is separate from the Pi runtime provider
-fallback below, which belongs to the failing parent session. Keep the parent's
-native startup defaults, model-thinking settings, credentials and provider catalog
-unchanged. Keep primary roles in `megai-roles.json`; do not
-reapply a preset merely to enable this fallback, because `--preset` also changes
-native startup defaults.
-
-Apply the escalation and verified-launch rules below to every fallback. Record the
-reason and failed identity, reconcile writes and confirm the old writer has stopped
-before a replacement. Verify the next model's availability and native model/thinking
-before sending task context; missing evidence or a mismatch remains BLOCKED. At most
-two transitions per blocker; never cycle back to a failed primary or start
-speculative standby agents. New independent tasks start with the configured primary
-unless its balance is already known to be exhausted in this parent session (below);
-a healthy fallback child may handle the same task's refinements. Auth/permission
-failures, shared quota/outages and uncertain writes still require reconciliation,
-not blind fallback. Use completion notifications, not sleep polling.
-
-### Pi runtime provider fallback
-
-The installed `megai-model-fallback` extension continues a parent session that ended
-on a provider-level failure on the other configured provider:
-`deepseek/deepseek-flash` <-> `openai-codex/gpt-5.6-sol`. It swaps at most once per
-failed model in a session — a partner that also fails is never swapped back to the
-first, so failures cannot cycle between providers — then notifies the user, records a
-`megai-model-fallback` session entry and continues the unfinished task in the same
-session. Authorization/permission errors and a quota shared across the pair never
-trigger it — those need reconciliation — and neither does a context overflow, which
-needs compaction: a different provider does not shrink the prompt. An exhausted
-balance, plan limit or 429 does trigger it, because that is what the partner is for.
-
-The pair comes from `model-fallback.json` in the Pi agent directory; the built-in
-pair applies when the file is missing or unusable, and an empty map disables the
-swap:
-
-```json
-{"fallbacks": {"deepseek/deepseek-flash": "openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-sol": "deepseek/deepseek-flash"}}
-```
-
-Editing that file needs no reinstall. The continuation is queued as a follow-up into
-the still-live run, so it also reaches headless (`pi -p`) sessions. With native Pi
-auto-retry enabled (`retry.enabled`, which the MEGAI profile disables), a transient
-error that a retry already recovered still receives that continuation turn. The
-extension changes no role, credential, tool or thinking level, and it reports every
-swap, so a switched model is never silent.
-
-### Confirmed DeepSeek balance exhaustion
-
-A terminal child **provider** error with `model=deepseek/deepseek-flash`,
-`stopReason=error`, HTTP `402` and message `Insufficient Balance` is an explicit
-fallback trigger, even when the payload says `type=unknown_error` and
-`code=invalid_request_error`. Classify the actual provider response, not those
-broad type/code fields alone or a quoted error in repository/tool/test output.
-
-For this confirmed case, the parent routes the unfinished subagent task to the next
-provider in the chain — `openai-codex/gpt-5.6-luna` (the role's configured thinking level) — after the stopped-writer
-and verified-launch checks. Notify the user briefly and continue without requesting
-the same fallback
-approval again, retrying DeepSeek, sleeping or waiting for a balance top-up. Carry
-the task's existing diff/evidence and resume only unfinished work; never replay
-uncertain mutations. Keep a confirmed-unavailable provider marked unavailable in this
-parent session so additional eligible subagents skip it while the failure persists.
-Return to the configured primary only after the user confirms funding is restored or
-a separately authorized readiness check succeeds; do not poll the balance.
-This is session-local routing knowledge, not a change to native defaults or roles.
-
-Advance the chain only on an eligible confirmed provider/model-specific failure,
-including a known provider-specific balance failure. Unresolved `401`/`403`, generic
-`429`, shared quota/outages, unknown `402` responses and uncertain writes are BLOCKED
-until reconciled, not fallback triggers. Do not cycle providers, buy credits or
-modify credentials. If `openai-codex/gpt-5.6-luna` also fails, stop as BLOCKED: the
-current parent does not silently implement in its place and the chain does not
-restart. If no eligible chain provider is available, report BLOCKED.
-
-A fallback plan's advertised concurrency is capacity, not a required
-fanout. Keep the existing independent-scope/one-writer rules and initial two-child
-limit. Do not rewrite native context limits or infer available quota from plan copy;
-text, image and speech may share the account quota.
+The opt-in Antigravity preset installs `model-fallback.json` with
+`{"fallbacks": {}}`, disabling that local Pi runtime provider swap. Refreshing
+policy without the preset preserves the operator's existing fallback configuration.
+This is not an Antigravity provider registration. On Agy refusal,
+timeout, permission failure or uncertain write, inspect the isolated worktree and
+reconcile before assigning another writer. Do not bypass the clean-worktree or
+credential gates, retry a possibly mutating request blindly, or switch this Agy
+profile to DeepSeek. If an explicitly chosen native Pi role fails, verify the old
+agent has stopped, carry its diff/evidence and ask for a new model decision rather
+than using a stale
+DeepSeek fallback chain. Keep the parent model and thinking unchanged.
 
 ## Immediate escalation — model failure or stalled progress
 
@@ -233,8 +157,6 @@ continue a smaller safe non-model-dependent step.
 
 Auth/permission failures, shared quota/outages and uncertain writes are not fixed
 by model hopping: report them, preserve evidence and reconcile writes read-only.
-The confirmed DeepSeek `402` balance-exhaustion exception above permits the named
-cross-provider fallback; it does not waive write reconciliation or authorization.
 An ordinary code/test failure needs a focused diagnosis, not automatic rerouting.
 Confirm the old writer has stopped before transferring write authority; retain
 its diff and completed tests. Reuse a healthy child for refinements; replace a
@@ -250,8 +172,8 @@ harness, exact model and effective thinking via agent status before sending task
 context. Verify the Paseo harness is `pi` separately from the model provider.
 The status-provided session handle must identify the same current native session ID.
 Match the provider-qualified status model to native `model_change.provider` and
-`model_change.modelId`: `deepseek/deepseek-flash` means `deepseek` + `deepseek-flash`,
-not `pi` + `deepseek-flash`. Match native `thinking_level_change.thinkingLevel` to the
+`model_change.modelId` (for example `openai-codex/gpt-6-astra` is not
+`pi/gpt-6-astra`). Match native `thinking_level_change.thinkingLevel` to the
 effective thinking reported in status. When these current records agree, prefer those records
 and do not run a second neutral runtime-check model prompt; identity is already proven. If
 those native records are missing, stale, ambiguous, or come from a restored
@@ -277,14 +199,15 @@ provider availability and project rules still apply to agent launches.
 Moved out of the always-loaded `AGENTS.md` so the parent pays for it only when it
 delegates or escalates.
 
-A confirmed DeepSeek provider timeout means no resend to DeepSeek and no second long
-wait: use the approved `openai-codex/gpt-5.6-luna` (the role's configured thinking
-level) fallback once and report the
-model that actually ran. A native wait timeout alone is not a provider failure.
+A confirmed provider timeout is not a reason to resend the same task blindly;
+report the actual model and reconcile before choosing an explicitly approved next
+step. A native wait timeout alone is not a provider failure.
 For a suspected stall, do one bounded native wait of at most 180 seconds and inspect
 progress/errors once — never repeated 600-second waits and never routine polling. If
 no model or tool progress is observable in that interval while only a provider
-response is pending, the owning parent may abort that request and use the fallback.
+response is pending, the owning parent may abort that request and reconcile before
+assigning a different writer. Agy CLI timeouts return to Pi with a worktree audit;
+inspect it instead of assuming no writes occurred.
 Never interrupt a progressing stream, an active tool or test, or a pending permission.
 
 Before replacement: the original writer is idle, with no queued work and no pending
@@ -316,10 +239,10 @@ unless already verified in this session. Spark is text-only: no images.
 Give only necessary paths/excerpts, one goal, explicit read-only or scoped write
 authority and observable acceptance. Reading and log tasks stay read-only; fixes need a
 safe checkout, one writer, focused tests and the same GPT review. Not for architecture,
-security/data-integrity, consequential cross-module work or final approval. DeepSeek
-remains the primary implementation worker with its Luna fallback; GPT remains the
-reviewer. A Spark failure or outgrown scope returns to the parent with no silent
-substitution — quiesce any writer first. No scout when direct tools suffice, no
+security/data-integrity, consequential cross-module work or final approval. Antigravity
+is the primary eligible isolated implementation worker; GPT remains the
+coordinator and reviewer. A Spark failure or outgrown scope returns to the parent
+with no silent substitution — quiesce any writer first. No scout when direct tools suffice, no
 splitting one fix across extra agents and no launches to consume quota. The existing
 workspace, background launch, Plane tracking, leaf-agent and task-end archive rules
 apply.

@@ -10,6 +10,22 @@ from slim_distribution import ROOT, Slim
 
 
 class Adaptive(Slim):
+    def test_shared_policy_does_not_make_formal_review_universal(self):
+        policy = (ROOT / "pi-skill/SKILL.md").read_text()
+        self.assertIn("Routine bounded work uses the smallest focused test", policy)
+        self.assertIn("does not require a contract hash", policy)
+        self.assertIn("Guarded Pi work loads `megai-acceptance`", policy)
+        self.assertIn("one fresh independent Pi review", policy)
+        self.assertIn("routine task grows into a guarded risk", " ".join(policy.split()))
+        self.assertNotIn("On Pi, load `megai-acceptance` once before implementation", policy)
+
+    def test_shared_slim_block_preserves_mode_appropriate_review(self):
+        source = (ROOT / "lib/slim_wiring.py").read_text()
+        self.assertIn("Use task-appropriate verification", source)
+        self.assertIn("Do not launch a second reviewer for routine work", source)
+        self.assertIn("behavior-changing safety/acceptance/installer policy", source)
+        self.assertNotIn("On Pi, load `megai-acceptance` before implementation", source)
+
     def test_small_bootstrap_and_on_demand_policy(self):
         self.wire()
         agent = self.home / ".pi/agent"
@@ -199,24 +215,29 @@ class Adaptive(Slim):
                 self.assertIn("routine", text)
                 self.assertIn("guarded", text)
 
-    def test_laya_reaches_every_decision_step(self):
+    def test_decisions_use_native_judgment_and_no_local_tool(self):
+        """Every workflow step is decided natively; no retired tool is referenced.
+
+        The retired decision runtime is gone from the tree, so no reachable policy may
+        still route a decision, or a compaction, through it.
+        """
+        sys.path.insert(0, str(ROOT / "lib"))
+        from retire_local_decisions import TOOL
+
         policy = (ROOT / "pi-skill/ADAPTIVE.md").read_text().lower()
-        self.assertIn("### laya at every decision step", policy)
-        for step in ("triage", "task flow", "isolation", "delegation", "verification",
-                     "loop control", "first-pass judge", "delivery and handoff"):
+        self.assertIn("### decisions use native judgment", policy)
+        for step in ("triage", "task-flow labels", "isolation", "delegation",
+                     "verification", "loop control", "verdict", "delivery handoff"):
             self.assertIn(step, policy)
-        self.assertIn("one call per decision boundary", policy)
-        self.assertIn("never replaces a check", policy)
+        self.assertIn("no local decision tool", policy)
+        self.assertIn("compaction stays pi's own", policy)
         for path in ("pi-defaults/skills/pi-workflow/SKILL.md",
                      "task-flow/skills/megai-task-flow/SKILL.md",
                      "pi-skill/acceptance/SKILL.md", "pi-skill/delegation.md",
-                     "skills/agent-worktree-lifecycle/SKILL.md"):
+                     "skills/agent-worktree-lifecycle/SKILL.md",
+                     "pi-skill/ADAPTIVE.md", "pi-defaults/AGENTS.md"):
             with self.subTest(path=path):
-                self.assertIn("`laya`", (ROOT / path).read_text().lower())
-        self.assertIn("`laya`", (ROOT / "pi-defaults/AGENTS.md").read_text().lower())
-        tool = (ROOT / "pi-skill/laya/index.ts").read_text()
-        self.assertIn("every workflow step decision", tool)
-        self.assertIn("one call per decision boundary", tool)
+                self.assertNotIn(TOOL, (ROOT / path).read_text().lower())
 
 
 def load_tests(loader, tests, pattern):

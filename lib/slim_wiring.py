@@ -124,8 +124,13 @@ class Plan:
             "Missing or ambiguous identity is BLOCKED; ask the user instead of registering another project. "
             "Apply this to every project; coordinate task workspaces under the registered folder and return to one primary workspace after verified delivery. "
             "Use one task identity and same task branch/slug across isolated worktrees for each affected Git repo; non-Git configuration uses scoped local workspaces with private backups. No child repository registration. Require all-repo acceptance and atomic `megai queue` target reservation before per-repo dev delivery; main promotion needs separate explicit approval of the commit vector. "
-            "On Pi, load `megai-acceptance` before implementation: freeze criteria, capture actual tests/runtime evidence, "
-            "require fresh independent Pi review and a source-current PASS before verified handoff. "
+            "Use task-appropriate verification: routine bounded work uses focused tests and parent self-review; "
+            "guarded work loads `megai-acceptance`, freezes criteria, captures actual tests/runtime evidence, "
+            "requires one fresh independent review and a source-current PASS before verified handoff. "
+            "Guarded risks include security/auth/permissions, sensitive data, payments, destructive operations, "
+            "migrations, concurrency/shared state, consequential cross-module or multi-repo changes, "
+            "behavior-changing safety/acceptance/installer policy, and explicit formal assurance. "
+            "Do not launch a second reviewer for routine work; escalate when the actual effect becomes guarded. "
             "Missing tools, authorization or evidence are BLOCKED, not PASS. "
             "Security/data-integrity risks require independent review. "
             "Hand off at In Review, never Done. Main promotion requires separate explicit approval.\n"
@@ -210,6 +215,9 @@ class Plan:
         from pi_model_policy import stage_model_policy
 
         stage_model_policy(self, root, SOURCE, remove)
+        if not remove:
+            from retire_local_decisions import stage_published
+            stage_published(self, MEGAI)
         path = root / "settings.json"
         before = read(path)
         settings = load_json(path)
@@ -595,7 +603,12 @@ def main() -> int:
         plan.shell_paths(args.remove)
     if not args.check and not args.remove and args.client in ("all", "pi") and not shutil.which("codedb"):
         raise ValueError("codedb is missing; run megai install before using slim")
-    plan.apply(args.check or args.verify, args.verify)
+    if args.client in ("all", "pi") and not args.remove:
+        from retire_local_decisions import apply_with_runtime
+        apply_with_runtime(plan, MEGAI, dry_run=args.check, verify=args.verify,
+                           defer=bool(os.environ.get("MEGAI_TRANSACTION_LOG")))
+    else:
+        plan.apply(args.check or args.verify, args.verify)
     return 0
 
 
