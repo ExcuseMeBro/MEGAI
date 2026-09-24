@@ -66,6 +66,7 @@ function parseConfig(text: string): Config | undefined {
   const roles = record(config?.roles);
   if (!config || config.schema !== 1 || !roles) return undefined;
   if ("preset" in config && config.preset !== "economy" && config.preset !== "antigravity") return undefined;
+  if (config.preset === "antigravity" && config.workerExecutor !== "antigravity_delegate") return undefined;
   if (config.workerExecutor !== undefined &&
       (config.preset !== "antigravity" || config.workerExecutor !== "antigravity_delegate")) return undefined;
   const keys = Object.keys(roles);
@@ -81,7 +82,7 @@ function parseConfig(text: string): Config | undefined {
   }
   return {
     preset: typeof config.preset === "string" ? config.preset : undefined,
-    workerExecutor: config.workerExecutor === "antigravity_delegate" ? config.workerExecutor : undefined,
+    workerExecutor: config.workerExecutor,
     roles: parsed,
   };
 }
@@ -108,7 +109,7 @@ function render(config: Config): string {
   }
   if (config.preset === "antigravity") {
     parts.push(
-      `Antigravity execution: the configured worker executor is ${config.workerExecutor ?? "antigravity_delegate"}. ` +
+      `Antigravity execution: the configured worker executor is ${config.workerExecutor}. ` +
         "For every eligible bounded Git implementation task, it is mandatory to call " +
         "`antigravity_delegate` as the primary worker in an existing clean linked Git " +
         "worktree; the parent must not implement that task directly. Inspect its returned " +
