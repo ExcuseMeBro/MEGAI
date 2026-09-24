@@ -122,7 +122,7 @@ def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
         raise ValueError(f"unknown Pi preset: {preset}")
     config = load_json(source / f"pi-skill/presets/{preset}.json")
     roles = config.get("roles")
-    expected_marker = preset if preset == "economy" else None
+    expected_marker = preset
     if (config.get("schema") != 1 or config.get("preset") != expected_marker
             or not isinstance(roles, dict)
             or set(roles) != {"planner", "scout", "worker", "reviewer"}):
