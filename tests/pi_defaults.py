@@ -396,13 +396,24 @@ class Distribution(unittest.TestCase):
         self.assertNotIn("Use pi-subagents", policy)
         self.assertIn("Do not reinstall it", policy)
         names = sorted(p.stem for p in (DEFAULTS / "prompts").glob("*.md"))
-        self.assertEqual(names, ["mdev", "prdev"])
+        self.assertEqual(names, ["factory", "mdev", "prdev"])
         verify = (DEFAULTS / "verify.mjs").read_text()
         for name in names:
             front = (DEFAULTS / f"prompts/{name}.md").read_text().split("---")[1]
             self.assertIn("description:", front)
             self.assertIn(f"'{name}'", verify)
         self.assertIn('SOURCE / "prompts"', (DEFAULTS / "install.py").read_text())
+
+    def test_factory_prompt_is_one_shot_and_fail_closed(self):
+        prompt = (DEFAULTS / "prompts/factory.md").read_text()
+        for clause in (
+            "${@:-}", "factory-ready", "Todo", "exactly one", "current project",
+            "all pages", "pi-workflow factory-start", "Paseo", "In Review", "--no-overwrite-ignore",
+            "not a daemon", "no push", "no main", "no Done",
+        ):
+            with self.subTest(clause=clause):
+                self.assertIn(clause, prompt)
+        self.assertNotIn("pi-workflow start --title", prompt)
 
     def test_never_block_prompts_and_status_reasons(self):
         """Delivery prompts finish recoverable work; status stops blocking on it."""
