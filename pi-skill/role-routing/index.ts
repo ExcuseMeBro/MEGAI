@@ -57,7 +57,7 @@ function readConfig(path: string): Read {
   }
 }
 
-/** Accept only schema 1, the one `economy` preset and four role identities; custom
+/** Accept schema 1, the supported presets and four role identities; custom
  * directories and a missing preset are fine. */
 function parseConfig(text: string): Config | undefined {
   let value: unknown;
@@ -65,7 +65,7 @@ function parseConfig(text: string): Config | undefined {
   const config = record(value);
   const roles = record(config?.roles);
   if (!config || config.schema !== 1 || !roles) return undefined;
-  if ("preset" in config && config.preset !== "economy") return undefined;
+  if ("preset" in config && config.preset !== "economy" && config.preset !== "antigravity") return undefined;
   const keys = Object.keys(roles);
   if (keys.length !== ROLE_KEYS.length || !ROLE_KEYS.every((key) => keys.includes(key))) return undefined;
   const parsed: Record<string, Role> = {};
@@ -99,6 +99,15 @@ function render(config: Config): string {
         "to ONE configured worker instead of doing it in GPT; keep trivial or read-only " +
         "work direct, and a healthy configured worker parent still does its own routine " +
         "work. This routing belongs to the parent; delegated workers never re-delegate.");
+  }
+  if (config.preset === "antigravity") {
+    parts.push(
+      "Antigravity execution: for an eligible bounded implementation task, call " +
+        "`antigravity_delegate` as the primary worker in an existing clean linked Git " +
+        "worktree. Inspect its returned diff and focused test evidence before delivery; " +
+        "do not silently replace Agy with parent implementation. Keep trivial or " +
+        "read-only work direct, and if no eligible linked worktree exists, report that " +
+        "blocker rather than claiming Agy was used.");
   }
   const eligible = ROLE_KEYS.filter((key) => ELIGIBLE.has(key) && identity(config.roles[key]) === DEEPSEEK_FLASH);
   if (eligible.length > 0) {

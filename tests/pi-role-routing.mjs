@@ -19,9 +19,13 @@ const temp = mkdtempSync(join(tmpdir(), 'pi-role-routing-'));
 const agent = (name) => join(temp, name);
 
 function install(agentDir, ...flags) {
+  const megai = join(temp, 'megai');
+  mkdirSync(join(megai, 'laya-runtime', 'bin'), { recursive: true });
+  writeFileSync(join(megai, 'laya-runtime', '.megai-owned'), 'megai-laya\nversion=0.3.20\n');
+  writeFileSync(join(megai, 'laya-runtime', 'bin', 'python'), 'test fixture\n');
   execFileSync('python3', ['-B', resolve('lib/pi_model_policy.py'), ...flags], {
     stdio: 'pipe',
-    env: { ...process.env, HOME: temp, MEGAI_HOME: join(temp, 'megai'), MEGAI_SOURCE: ROOT, PI_CODING_AGENT_DIR: agentDir },
+    env: { ...process.env, HOME: temp, MEGAI_HOME: megai, MEGAI_SOURCE: ROOT, PI_CODING_AGENT_DIR: agentDir },
   });
   mkdirSync(agentDir, { recursive: true });
 }
@@ -141,7 +145,7 @@ try {
   assert.equal(agySettings.defaultModel, 'gpt-6-sol');
   assert.equal(agySettings.modelThinkingLevels['deepseek/deepseek-flash'], 'high',
     'operator model settings outside startup selection must be retained');
-  assert.equal(agyRoles.preset, undefined, 'Antigravity is not an invented native Pi provider/preset role');
+  assert.equal(agyRoles.preset, 'antigravity', 'Antigravity routing must be marked for runtime guidance');
   assert.equal(agyRoles.roles.worker.provider, 'openai-codex');
   assert.equal(agyRoles.roles.reviewer.model, 'gpt-6-astra');
   assert.deepEqual(JSON.parse(readFileSync(join(agy, 'model-fallback.json'), 'utf8')),
@@ -150,6 +154,10 @@ try {
   const agyTurn = await blockedNetwork(() => beginTurn(agyExtensions, BASE));
   assert.match(agyTurn.prompt, /openai-codex\/gpt-6-sol/);
   assert.ok(!agyTurn.prompt.includes('deepseek/deepseek-flash'), 'no DeepSeek routing in Agy profile');
+  assert.match(agyTurn.prompt, /antigravity_delegate/,
+    'Antigravity profile must route eligible implementation work through the real Agy worker tool');
+  assert.match(agyTurn.prompt, /primary worker|eligible.*linked worktree/i,
+    'Antigravity profile must explain when Agy is the primary implementation path');
   install(agy);
   assert.equal(JSON.parse(readFileSync(join(agy, 'settings.json'), 'utf8')).defaultModel, 'gpt-6-sol');
   assert.deepEqual(JSON.parse(readFileSync(join(agy, 'model-fallback.json'), 'utf8')),

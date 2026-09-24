@@ -3,7 +3,9 @@
 `--preset antigravity` is the opt-in local Pi profile: fresh sessions start on
 `openai-codex/gpt-6-sol` at high thinking, all native roles are GPT (reviewer
 `gpt-6-astra`), and `model-fallback.json` has an empty map so a GPT provider
-failure never silently moves to DeepSeek. Agy is a sandboxed tool for eligible
+failure never silently moves to DeepSeek. Its internal role marker enables explicit
+runtime guidance to call antigravity_delegate for eligible implementation work.
+Agy is a sandboxed tool for eligible
 clean linked Git worktrees, **not** a native Pi/Paseo provider. Existing auth,
 other settings and model catalog entries remain operator-owned. Before opting in,
 back up the local Pi configuration privately and verify that its AGENTS base is the
