@@ -504,8 +504,8 @@ def _repo_row(repo, root, policy):
         blocked.append("dirty")
     if operation:
         blocked.append(f"operation:{operation}")
-    if ignored:
-        blocked.append("ignored-untracked")
+    # Ignored files alone do not block inventory; they still protect cleanup per
+    # workspace, and delivery merges must use --no-overwrite-ignore.
 
     remote = "origin"
     persistent = []
@@ -758,9 +758,12 @@ def _inspect_problem(inspect):
                   "CreatedAt", "UpdatedAt", "ParentAgentId"):
         if field in inspect and inspect[field] is not None and not isinstance(inspect[field], str):
             return f"inspect-field:{field}"
-    for field in ("Capabilities", "AvailableModes", "PendingPermissions"):
-        if field in inspect and not isinstance(inspect[field], list):
-            return f"inspect-field:{field}"
+    # Capabilities and AvailableModes are informational and their payload shape
+    # varies across Paseo versions, so they never block. Only pending permissions
+    # gate safety and keep their strict type check.
+    permissions = inspect.get("PendingPermissions")
+    if permissions is not None and not isinstance(permissions, list):
+        return "inspect-field:PendingPermissions"
     return None
 
 
@@ -1005,6 +1008,11 @@ def main():
     cmd = sub.add_parser("start")
     cmd.add_argument("--title", required=True)
     cmd.add_argument("--cwd", default=os.getcwd())
+    cmd = sub.add_parser("factory-start")
+    cmd.add_argument("--project-id", required=True)
+    cmd.add_argument("--task-id", required=True)
+    cmd.add_argument("--title", required=True)
+    cmd.add_argument("--cwd", default=os.getcwd())
     for name in ("review", "done"):
         cmd = sub.add_parser(name)
         cmd.add_argument("--project-id", required=True)
@@ -1021,6 +1029,42 @@ def main():
         return status(args.cwd, args.workspace)
     if args.command == "verify-main":
         return verify_main(json.loads(Path(args.receipt).read_text()))
+    if args.command == "factory-start":
+        project = unique(pages("project"), context(args.cwd)["planeProject"])["id"]
+        if project != args.project_id:
+            raise ValueError("Selected task belongs to another Plane project")
+        workflow = states(project)
+        labels = [row for row in pages("label", project_id=project)
+                  if row["name"].strip().casefold() == "factory-ready"]
+        if len(labels) != 1:
+            raise ValueError("Factory requires one existing factory-ready label")
+
+        def selected():
+            item = call("workitem", {"action": "retrieve", "project_id": project,
+                                     "workitem_id": args.task_id})
+            if (not isinstance(item, dict) or item.get("id") != args.task_id
+                    or item.get("project", project) != project
+                    or item.get("name") != args.title
+                    or item.get("state") != workflow["Todo"]
+                    or not isinstance(item.get("labels"), list)
+                    or labels[0]["id"] not in item["labels"]
+                    or not (item.get("description_stripped") or "").strip()):
+                raise ValueError("Selected factory item is missing or no longer eligible")
+            return item
+
+        first = selected()
+        latest = selected()
+        if any(first.get(key) != latest.get(key) for key in
+               ("id", "name", "state", "labels", "description_stripped",
+                "description_html", "updated_at")):
+            raise ValueError("Selected factory item changed before start")
+        # Plane has no conditional update; only the selected UUID is ever mutated.
+        result = call("workitem", {"action": "update", "project_id": project,
+                                   "workitem_id": args.task_id,
+                                   "state": workflow["In Progress"]})
+        if result.get("id") != args.task_id or result.get("state") != workflow["In Progress"]:
+            raise ValueError("Plane did not confirm selected factory item In Progress")
+        return {"project_id": project, "task_id": args.task_id, "state": "In Progress"}
     if args.command == "start":
         project = unique(pages("project"), context(args.cwd)["planeProject"])["id"]
         workflow = states(project)

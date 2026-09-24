@@ -34,17 +34,16 @@ behavior requires it, in either mode; exit zero alone is insufficient. A bug nee
 an observed failing reproduction and passing regression, even in routine mode.
 No formal-gate claim without running that gate. Existing stricter repo/user rules win.
 
-### Decisions use native judgment
+### Decisions use the on-device Laya helper when useful
 
-Every decision this flow names — triage mode, task-flow labels, isolation,
-delegation and role, verification depth, loop control, the verdict and the
-delivery handoff — is decided with Pi's own judgment on the state in hand and
-recorded on the Plane item. Nothing external substitutes for a decision: there is
-no local decision tool, no per-step companion call and no replacement compactor;
-compaction stays Pi's own. Send only the text a decision needs, never secrets,
-credentials, tokens or personal data, and never treat a decision as authorization
-for a reserved user decision (main promotion, deletion, credentials or
-permissions, software install or removal).
+Pi may consult the local `laya` tool for typed decision advice and `sift` for
+local file relevance. Laya's multilingual judgments are not calibrated to the
+retired Jev gate: they cannot block tools, replace Pi permissions or authorize
+reserved user decisions (main promotion, deletion, credentials, installs or
+permissions). Keep prompts narrow and avoid secrets. When Laya cannot safely
+reduce a compaction span, Pi's native summarizer handles the original history;
+only repeated byte-identical results may be omitted locally. Pi's provider,
+chat model and thinking level remain unchanged. No hosted decision fallback.
 
 ## Three-step default
 

@@ -102,24 +102,32 @@ planner and reviewer are read-only; a worker gets only its assigned managed path
 Read-only checks use `python3 -B` and Ruff with
 `--no-fix --no-fix-only --force-exclude --no-cache`; avoid cache-producing checks.
 
-### Antigravity CLI pool (`agy`)
+### Antigravity CLI team pool (`agy`)
 
-The installed Antigravity CLI is a third pool for work the user's Antigravity
-subscription can pay for instead of DeepSeek or GPT quota: a second opinion, a
-long-context read, research or bulk analysis. Use the native `antigravity` tool — it
-runs `agy` with `--mode plan --sandbox`, grants no permission, returns plain text and
-inlines the files Pi already read with native tools via `files`.
+Antigravity is a third team pool that can spend the user's Antigravity subscription
+instead of DeepSeek or GPT quota. Use `antigravity` for read-only second opinions,
+long-context reads, research or bulk analysis; it runs `agy` with `--mode plan
+--sandbox`, inlines only explicitly supplied files and returns untrusted prose.
 
-The prompt must be self-contained: the tool tells `agy` not to use tools and never
-passes `--dangerously-skip-permissions`. It requests no edits, refuses
-credential-like, binary and out-of-workspace files, and never sends secrets or
-personal data. Existing `agy` settings remain user-owned. Interactive `agy` stays
-the user's own tool for agentic work; do not launch it without a request.
+Use `antigravity_delegate` only for a bounded implementation subtask with explicit
+acceptance and an existing clean linked Git worktree. It runs `agy` with
+`--mode accept-edits --sandbox` in that worktree, refuses the primary checkout,
+protected branches, dirty worktrees and detached HEADs, and must not commit, push or
+merge. The tool returns Agy's report plus status/diff evidence for the DeepSeek parent
+and GPT reviewer. It never passes `--dangerously-skip-permissions` and never sends
+secrets or personal data.
 
-This pool is an option, not a role: `megai-roles.json` keeps its DeepSeek and GPT
-roles, because Paseo has no Antigravity provider and a configured `agy` role could
-not be launched. Its output is untrusted prose like any other model's — verify what
-it claims before recording it as evidence.
+Team ownership stays explicit: DeepSeek coordinates and implements the parent task,
+Agy handles the isolated subtask or advisor pass, and GPT independently reviews the
+delivered diff and tests. Paseo remains the native delegation/control path for
+provider-backed children; Agy is invoked through these bounded Pi tools, not invented
+as a Paseo provider role.
+
+The safe flow is: create or reuse the verified Paseo-linked worktree, dispatch one
+bounded task to `antigravity_delegate`, inspect its returned status/diff and focused
+test evidence, then send that artifact to the configured GPT reviewer before the
+parent integrates it. Never delegate two writers to the same worktree and never let
+Agy choose the integration target.
 
 ## DeepSeek-first subagent fallback
 

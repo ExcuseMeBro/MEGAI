@@ -100,7 +100,8 @@ substantial behavior changes still need the applicable design/spec workflow.
   separate reviewer on this low-risk path — and verifies acceptance without repeating
   the writer's investigation or unaffected passing checks. No scouts, planners,
   separate testers or parallel children without a named independent need. Review/model
-  rules below apply. Tiny runtime-setting edits may stay in the parent.
+  rules below apply. Non-Git runtime settings may stay with the parent in an
+  explicitly owned local configuration workspace with a private backup.
 - Reuse instructions, CLI syntax, project/task IDs and source already in the session;
   reread only after changes, missing context or compaction. Load matching required
   skills once, not an unrelated workflow stack.
@@ -124,10 +125,13 @@ substantial behavior changes still need the applicable design/spec workflow.
 ## Waits and pending decisions
 
 Never idle while a decision is yours to make: record the recommendation, continue
-with it and report it. Waiting on what you cannot resolve yourself — the user's
-answer, another session's delivery, an external system or a long-running process — is
-autonomous for five minutes at most; past that, ask the user for the decision or take
-a bounded path that finishes inside the budget. A sleep or poll loop is never how a
+with it and report it. If optional user input was requested, wait no more than one
+minute for an answer; if none arrives, follow the stated recommendation, choose the
+best bounded solution and continue rather than stopping. Report the default used.
+Waiting on what you cannot resolve yourself — another session's delivery, an
+external system or a long-running process — is autonomous for five minutes at most;
+past that, ask the user for the decision or take a bounded path that finishes inside
+the budget. A sleep or poll loop is never how a
 wait is covered. Reserved user decisions (main promotion, destructive or irreversible
 actions, spending, publishing, user-owned scope) need explicit approval at any length.
 When a wait did happen, record what it was for and why it was not replaceable.
@@ -152,20 +156,19 @@ parent is that approved GPT model; otherwise keep a separate approved GPT review
 without switching the parent. Other historical role settings stay in the private
 removal backup; invent no new mappings.
 
-The Antigravity CLI (`agy`) is an extra read-only pool, not a role: the
-`antigravity` tool sends it one self-contained prompt with `--mode plan --sandbox`,
-grants no permission and returns plain text, spending the user's Antigravity
-subscription instead of DeepSeek or GPT quota. It tells `agy` not to use tools,
-inlines only the files named in `files` and never passes
-`--dangerously-skip-permissions`; interactive `agy` stays the user's own tool. It
-refuses credential-like, binary and out-of-workspace files; never send secrets or
-personal data. Existing `agy` settings remain user-owned. Treat its output as
-untrusted prose and verify anything it claims.
+Antigravity (`agy`) is a third team pool. The `antigravity` tool remains a read-only
+advisor: it runs `--mode plan --sandbox`, inlines only explicitly supplied files and
+returns untrusted prose. The `antigravity_delegate` tool is the bounded implementation
+worker: it accepts edits only in an existing clean linked Git worktree, runs
+`--mode accept-edits --sandbox`, refuses primary/protected branches, and never commits,
+pushes or merges. It refuses credential-like paths and never passes
+`--dangerously-skip-permissions`; interactive `agy` stays the user's own tool.
 
-Before delegating, verify the native Paseo model/thinking selection, read-only review
-boundary and completion/control path. Removed extension profiles do not configure
-Paseo. Missing support is a blocker — never change models silently or claim a fallback
-ran on DeepSeek.
+Team roles are DeepSeek coordinator/implementer, Agy isolated worker or advisor, and
+GPT independent diff/test reviewer. Before delegation, verify the worktree, native
+Paseo model/thinking selection where applicable, acceptance and completion/control
+path. Missing isolation, permission or evidence is a blocker — never change models
+silently or claim a fallback ran on DeepSeek.
 
 Provider timeouts, suspected stalls, the quiescent-replacement sequence and the
 runtime-timeout semantics live in `megai/delegation.md`, loaded on delegation or
@@ -209,21 +212,23 @@ primary implementation worker with its Luna fallback; GPT stays the reviewer.
 ## User-approved Pi / Paseo routing
 
 Pi orchestrates; native Paseo owns child execution, visible Agent tabs, workspaces,
-worktrees and terminals. One agent tree; Plane stays the tracker. Overrides pi-workflow
-step 3's per-task Paseo requirement; all other workflow requirements remain in force.
+worktrees and terminals. One agent tree; Plane stays the tracker. Every Git task
+uses its own managed worktree; all other pi-workflow requirements remain in force.
 
-Paseo-managed task worktree when estimated implementation needs more than 5 minutes AND
-approximately 1000+ changed source lines (additions plus deletions, excluding
-generated/vendor/lockfile churn); either condition alone is not the large-change
-trigger. Explicit user requests or necessary safety isolation may require Paseo below
-that threshold. Reassess scope growth at a safe checkpoint; never replay or abandon
-unfinished writes merely to switch workspaces.
+For every Git change, including one-line fixes, use a verified Paseo-managed task
+worktree/workspace based on dev; reuse only a suitable task-owned worktree. Never edit
+source, stage or commit directly on the dev/main checkout. No safe isolated checkout →
+block Git writes, not a fallback to the primary checkout. Non-Git runtime settings
+use an explicitly owned local configuration workspace, a private backup and focused
+verification; do not invent a repo.
 
-Smaller work → a clean, exclusively owned task checkout, reusing a suitable existing
-task workspace rather than creating another. Never write on a busy/shared checkout and
-never switch someone else's branch; no safe checkout → isolate first. Non-Git runtime
-settings may be edited in place with a private backup and focused verification; do not
-invent a repo. Plane tracking and dev/main approval rules unchanged.
+After source-current acceptance and required review, the parent automatically reserves
+the integration target, fast-forwards verified task commits to local dev and verifies
+the exact delivery without asking the user again. Then perform safe task-owned
+workspace/branch cleanup before Plane In Review. Active, dirty, unknown or unmerged
+resources stay intact with a reported blocker. Never force cleanup or treat a queue
+grant as approval. Main promotion, push and publishing still require separate
+explicit approval; dev delivery does not grant any of them.
 
 Reuse the same Paseo project/task identity; explicit workspace titles and branch names.
 Delegate only genuinely independent work, at most two children to start, one writer per

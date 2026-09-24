@@ -37,7 +37,7 @@ const promptNames = prompts.prompts.map(p => p.name);
 const requiredTools = ['mcp', 'web_search', 'fetch_content', 'headroom_retrieve', 'headroom_memory'];
 const removedTools = ['subagent'];
 const requiredSkills = ['pi-workflow', 'using-superpowers', 'test-driven-development', 'ponytail', 'openspec-propose', 'openspec-apply-change'];
-const requiredPrompts = ['mdev', 'prdev'];
+const requiredPrompts = ['factory', 'mdev', 'prdev'];
 const policy = existsSync(join(agentDir, 'AGENTS.md')) ? readFileSync(join(agentDir, 'AGENTS.md'), 'utf8') : '';
 const missing = [...requiredTools.filter(t => !tools.includes(t)), ...requiredSkills.filter(s => !skills.skills.some(v => v.name === s))];
 for (const name of requiredPrompts) if (!promptNames.includes(name)) missing.push(`/${name}`);

@@ -396,13 +396,46 @@ class Distribution(unittest.TestCase):
         self.assertNotIn("Use pi-subagents", policy)
         self.assertIn("Do not reinstall it", policy)
         names = sorted(p.stem for p in (DEFAULTS / "prompts").glob("*.md"))
-        self.assertEqual(names, ["mdev", "prdev"])
+        self.assertEqual(names, ["factory", "mdev", "prdev"])
         verify = (DEFAULTS / "verify.mjs").read_text()
         for name in names:
             front = (DEFAULTS / f"prompts/{name}.md").read_text().split("---")[1]
             self.assertIn("description:", front)
             self.assertIn(f"'{name}'", verify)
         self.assertIn('SOURCE / "prompts"', (DEFAULTS / "install.py").read_text())
+
+    def test_factory_prompt_is_one_shot_and_fail_closed(self):
+        prompt = (DEFAULTS / "prompts/factory.md").read_text()
+        for clause in (
+            "${@:-}", "factory-ready", "Todo", "exactly one", "current project",
+            "all pages", "pi-workflow factory-start", "Paseo", "In Review", "--no-overwrite-ignore",
+            "not a daemon", "no push", "no main", "no Done",
+        ):
+            with self.subTest(clause=clause):
+                self.assertIn(clause, prompt)
+        self.assertNotIn("pi-workflow start --title", prompt)
+
+    def test_never_block_prompts_and_status_reasons(self):
+        """Delivery prompts finish recoverable work; status stops blocking on it."""
+        for name in ("mdev", "prdev"):
+            self.assertIn("**Never stop for a recoverable prerequisite**",
+                          (DEFAULTS / f"prompts/{name}.md").read_text())
+        mdev = (DEFAULTS / "prompts/mdev.md").read_text()
+        for clause in ("`pi-workflow status`", "ignored-untracked", "pi-workflow start --title",
+                       "--no-overwrite-ignore"):
+            self.assertIn(clause, mdev)
+        prdev = (DEFAULTS / "prompts/prdev.md").read_text()
+        for clause in ("github.com", "Missing evidence for the captured `dev` SHA",
+                       "No commits in that diff means no PR"):
+            self.assertIn(clause, prdev)
+        # Ignored files affect cleanup or colliding merges, not inventory readiness.
+        self.assertNotIn('blocked.append("ignored-untracked")',
+                         (DEFAULTS / "workflow.py").read_text())
+        base = {"Id": "a", "Status": "idle", "Cwd": "/tmp", "Archived": False}
+        self.assertIsNone(w._inspect_problem(
+            {**base, "Capabilities": {"tools": True}, "AvailableModes": "all"}))
+        self.assertEqual(w._inspect_problem({**base, "PendingPermissions": "unknown"}),
+                         "inspect-field:PendingPermissions")
 
     def test_pi_version_is_resolved_at_install_and_read_back_from_the_manifest(self):
         """The profile installs the newest Pi and records what it resolved.
