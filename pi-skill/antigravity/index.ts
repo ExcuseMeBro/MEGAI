@@ -2,10 +2,8 @@
  * MEGAI Antigravity pool.
  *
  * One self-contained question goes to the installed Antigravity CLI (`agy`) in
- * headless print mode and only its answer comes back. That gives a session a third
- * model pool — the user's Antigravity/Google subscription — next to DeepSeek
- * implementation work and GPT review, without touching another provider's quota or
- * credentials.
+ * headless print mode and only its answer comes back. That uses the user's
+ * Antigravity/Google subscription for advice without touching GPT credentials.
  *
  * The wrapper grants no permission, requests plan+sandbox mode and tells `agy` not
  * to use tools: everything the task needs must be inside the prompt. `files` inlines
@@ -261,11 +259,11 @@ export default function antigravity(pi: ExtensionAPI) {
       "and tells agy not to use tools, so the prompt must carry everything the task needs; pass known paths " +
       "in `files` and their contents are inlined (12 files, 512 KB each, 200 K characters total). Use it " +
       "for a second opinion, a long-context read, research or bulk analysis that should spend the user's " +
-      "Antigravity subscription instead of DeepSeek or GPT quota. It never requests edits; interactive " +
+      "Antigravity subscription instead of GPT quota. It never requests edits; interactive " +
       "`agy` is the user's own tool for agentic work.",
     promptSnippet: "Ask the Antigravity CLI (Gemini) one self-contained question and get its answer",
     promptGuidelines: [
-      "Use antigravity only for self-contained analysis that should spend the user's Antigravity subscription instead of DeepSeek or GPT quota, inline only the workspace files it needs with `files`, and never send secrets, credentials or personal data.",
+      "Use antigravity only for self-contained analysis that should spend the user's Antigravity subscription instead of GPT quota, inline only the workspace files it needs with `files`, and never send secrets, credentials or personal data.",
     ],
     parameters: Type.Object({
       prompt: Type.String({
@@ -334,11 +332,11 @@ export default function antigravity(pi: ExtensionAPI) {
     description: "Run a bounded implementation task with Agy in a verified clean linked Git worktree. " +
       "Agy may edit only that worktree in accept-edits+sandbox mode; main/dev/pi, dirty checkouts, detached " +
       "HEADs, commits, pushes and merges are refused. Returns Agy's report plus the worktree diff/status for " +
-      "DeepSeek to verify and GPT to review.",
+      "the coordinating parent to verify and an independent GPT reviewer to review.",
     promptSnippet: "Delegate an implementation task to Antigravity in an isolated linked worktree",
     promptGuidelines: [
       "Use antigravity_delegate only for a bounded implementation subtask with explicit acceptance and a separate linked worktree; never pass the primary checkout or secrets.",
-      "DeepSeek remains the coordinating implementer; Agy returns a diff, and GPT reviews the delivered diff and tests before integration.",
+      "Agy edits only the eligible isolated worktree; the coordinating parent verifies the diff and tests, and an independent GPT reviewer reviews before integration.",
     ],
     parameters: Type.Object({
       task: Type.String({
@@ -369,7 +367,7 @@ export default function antigravity(pi: ExtensionAPI) {
         "Work only in the current isolated linked worktree. Implement the task below, inspect the real code and run focused tests.",
         "Do not commit, push, merge, change branches, access credentials, or modify anything outside this worktree.",
         "Return a concise report with changed files, tests and results, remaining risks, and any blocker.",
-        "The DeepSeek parent will verify your diff and a GPT reviewer will review it before integration.",
+        "The coordinating parent will verify your diff and an independent GPT reviewer will review it before integration.",
         `\nTask:\n${params.task}`,
       ].join("\n");
       const args = ["-p", prompt, "--mode", "accept-edits", "--sandbox", "--print-timeout", `${timeoutS}s`];

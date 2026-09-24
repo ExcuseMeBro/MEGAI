@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "roles": {
+    "planner": {"provider": "openai-codex", "model": "gpt-6-sol", "thinking": "high"},
+    "scout": {"provider": "openai-codex", "model": "gpt-6-sol", "thinking": "low"},
+    "worker": {"provider": "openai-codex", "model": "gpt-6-sol", "thinking": "high"},
+    "reviewer": {"provider": "openai-codex", "model": "gpt-6-astra", "thinking": "high"}
+  }
+}
