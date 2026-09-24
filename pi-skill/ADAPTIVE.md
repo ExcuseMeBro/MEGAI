@@ -113,27 +113,19 @@ auto-compaction setting or transcript edits; do not claim savings without measur
 
 ## Delegation and cost
 
-Direct parent tools are the default. Create a child only for a concrete isolated
-job, required review or configured economy routing, not speculative standby.
-Load [delegation.md](delegation.md) only before delegation or a model failure.
-Choose one task-appropriate
-engineering skill, not an entire workflow stack. A worker replaces parent writing;
-a reviewer receives a bounded diff and evidence, not the full conversation. A
-healthy DeepSeek parent performs its own routine work directly; it does not launch
-a child just to use the same model. With the explicit `economy` preset and an
-inherited GPT/Paseo parent, route substantial bounded implementation to ONE
-DeepSeek worker instead of duplicating it in GPT; a trivial read-only or single
-edit may remain direct when launching a worker is disproportionate. The parent
-still owns scope, validation, and guarded review or integration.
-
-Respect `megai-roles.json` and native preferences. With the explicit `economy` preset,
-DeepSeek handles planning and implementation; GPT is reserved for guarded independent
-review or a concrete DeepSeek failure requiring escalation. Routine tasks do not spend
-GPT on automatic scouting, planning or review. Explicit user/task model choices
-always override this default; never silently switch the parent's model or lower
-its thinking. Auth/shared quota failures require reconciliation, not model hopping;
-any missing required reviewer is BLOCKED. Never require an agent team or every role
-to launch.
+Direct parent tools are the default for trivial and non-Git local work. Load
+[delegation.md](delegation.md) before delegation or model-error escalation. For
+eligible bounded Git implementation under the Antigravity profile in a clean linked
+task worktree, prefer the existing `antigravity_delegate` tool to a Pi model-backed
+worker. Agy replaces parent writing in that worktree; the GPT parent owns acceptance
+and integration. An explicitly selected `economy` preset retains native role routing.
+Use one writer, verify the returned diff/tests and obtain the required independent
+GPT review. Agy is not a native Pi model or Paseo child; do not send it through
+`megai-roles.json` or invent a provider. The role file lists only Pi-native model
+choices for other explicitly selected native roles. Explicit user/task choices
+supersede routing; never silently change the parent's model/thinking. Auth or
+permission failures and uncertain writes need reconciliation, not model hopping.
+Missing required reviewer remains BLOCKED. No speculative extra team.
 
 Provider stall protection and Headroom remain available without new daemons or hooks.
 These are workflow/cost defaults, not a sandbox or a measured latency/token guarantee.

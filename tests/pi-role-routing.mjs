@@ -119,7 +119,37 @@ try {
   assert.equal(readFileSync(join(economy, 'settings.json'), 'utf8'), settingsBefore,
     'role routing must not mutate native settings');
 
-  // 3. One preset only: `--preset mixed` is rejected before any write. Fallback
+  // 3. Explicit Antigravity preset keeps native Pi roles GPT and disables a
+  // DeepSeek runtime swap; an ordinary policy refresh leaves operator choices alone.
+  const agy = agent('antigravity');
+  mkdirSync(agy, { recursive: true });
+  writeFileSync(join(agy, 'settings.json'), JSON.stringify({
+    theme: 'custom', defaultProvider: 'deepseek', defaultModel: 'deepseek-flash',
+    modelThinkingLevels: { 'deepseek/deepseek-flash': 'high' },
+  }));
+  install(agy, '--preset', 'antigravity');
+  const agySettings = JSON.parse(readFileSync(join(agy, 'settings.json'), 'utf8'));
+  const agyRoles = JSON.parse(readFileSync(join(agy, 'megai-roles.json'), 'utf8'));
+  assert.equal(agySettings.theme, 'custom', 'opt-in must retain unrelated settings');
+  assert.equal(agySettings.defaultProvider, 'openai-codex');
+  assert.equal(agySettings.defaultModel, 'gpt-6-sol');
+  assert.equal(agySettings.modelThinkingLevels['deepseek/deepseek-flash'], 'high',
+    'operator model settings outside startup selection must be retained');
+  assert.equal(agyRoles.preset, undefined, 'Antigravity is not an invented native Pi provider/preset role');
+  assert.equal(agyRoles.roles.worker.provider, 'openai-codex');
+  assert.equal(agyRoles.roles.reviewer.model, 'gpt-6-astra');
+  assert.deepEqual(JSON.parse(readFileSync(join(agy, 'model-fallback.json'), 'utf8')),
+    { fallbacks: {} }, 'Antigravity opt-in must not fall back to DeepSeek');
+  const agyExtensions = await loadExtensions(agy);
+  const agyTurn = await blockedNetwork(() => beginTurn(agyExtensions, BASE));
+  assert.match(agyTurn.prompt, /openai-codex\/gpt-6-sol/);
+  assert.ok(!agyTurn.prompt.includes('deepseek/deepseek-flash'), 'no DeepSeek routing in Agy profile');
+  install(agy);
+  assert.equal(JSON.parse(readFileSync(join(agy, 'settings.json'), 'utf8')).defaultModel, 'gpt-6-sol');
+  assert.deepEqual(JSON.parse(readFileSync(join(agy, 'model-fallback.json'), 'utf8')),
+    { fallbacks: {} }, 'refresh must preserve opt-in fallback config');
+
+  // 4. Only explicit presets: `--preset mixed` is rejected before any write. Fallback
   // guidance follows configured primaries, not a preset name: a custom schema1 file
   // with a GPT planner and DeepSeek scout/worker shows the chain only for the
   // eligible roles; custom schema1+roles without preset stays fully GPT with no chain.

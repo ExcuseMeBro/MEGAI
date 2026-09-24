@@ -98,11 +98,12 @@ def stage_adaptive_policy(plan, root: Path, source: Path) -> None:
 def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
     from slim_wiring import encoded, load_json, read
 
-    if preset not in ("economy",):
+    if preset not in ("economy", "antigravity"):
         raise ValueError(f"unknown Pi preset: {preset}")
     config = load_json(source / f"pi-skill/presets/{preset}.json")
     roles = config.get("roles")
-    if (config.get("schema") != 1 or config.get("preset") != preset
+    expected_marker = preset if preset == "economy" else None
+    if (config.get("schema") != 1 or config.get("preset") != expected_marker
             or not isinstance(roles, dict)
             or set(roles) != {"planner", "scout", "worker", "reviewer"}):
         raise ValueError("invalid role preset")
@@ -124,6 +125,9 @@ def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
         identity = role["provider"] + "/" + role["model"]
         levels.setdefault(identity, role["thinking"])
     plan.asset(root / "megai-roles.json", encoded(config), False)
+    if preset == "antigravity":
+        # Explicit opt-in only; asset() refuses to replace an unowned custom map.
+        plan.asset(root / "model-fallback.json", encoded({"fallbacks": {}}), False)
     path = root / "settings.json"
     before = read(path)
     settings = load_json(path)
@@ -151,7 +155,7 @@ def main() -> None:
                         help="refresh only owned Pi workflow policy, not unrelated legacy resources")
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument("--remove", action="store_true")
-    selection.add_argument("--preset", choices=("economy",),
+    selection.add_argument("--preset", choices=("economy", "antigravity"),
                            help="explicitly apply role and native startup model preferences")
     args = parser.parse_args()
     if args.adaptive and args.remove:

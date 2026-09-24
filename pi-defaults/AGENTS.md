@@ -95,11 +95,13 @@ round trips, not verification. Beats packaged workflow ceremony for routine fixe
 substantial behavior changes still need the applicable design/spec workflow.
 - Clear implementation request → proceed; ask only blocking user-owned decisions. No
   optional brainstorming, separate plan or approval round trip.
-- One scoped DeepSeek writer (or the eligible Spark helper below) does implementation
-  and focused tests; the existing GPT parent reviews diff and test evidence — no
-  separate reviewer on this low-risk path — and verifies acceptance without repeating
-  the writer's investigation or unaffected passing checks. No scouts, planners,
-  separate testers or parallel children without a named independent need. Review/model
+- With the Antigravity profile, one scoped Agy worker in a verified clean linked
+  task worktree does eligible Git implementation and focused tests; for non-Git local
+  settings or ineligible
+  worktrees, the GPT parent works directly. Review the diff and test evidence without
+  repeating unaffected passing checks; keep independent review when required below.
+  No scouts, planners, separate testers or parallel children without a named
+  independent need. Review/model
   rules below apply. Non-Git runtime settings may stay with the parent in an
   explicitly owned local configuration workspace with a private backup.
 - Reuse instructions, CLI syntax, project/task IDs and source already in the session;
@@ -136,48 +138,38 @@ wait is covered. Reserved user decisions (main promotion, destructive or irrever
 actions, spending, publishing, user-owned scope) need explicit approval at any length.
 When a wait did happen, record what it was for and why it was not replaceable.
 
-## User-approved DeepSeek execution / GPT review
+## User-approved Antigravity execution / GPT review
 
-Implementation defaults to one native Paseo Pi agent for DeepSeek coding and focused
-tests; the Spark helper below is the bounded exception. On the low-risk fast path the
-existing GPT parent reviews diff and test evidence instead of a reviewer agent.
-Large/substantial, security/data-integrity or consequential cross-module changes need
-a fresh read-only independent GPT reviewer; security-sensitive work also needs security
-review. Explicit independent-review requests are honored; scope growth past the fast
-path needs independent review before acceptance. Pi owns scoping, coordination and
-acceptance; Paseo owns child execution and visible Agent tabs in the existing task
-workspace. No second runner for the same task; never import an actively owned session.
-Parent provider, model and thinking level stay unchanged.
+With the Antigravity profile, Pi's selected GPT model coordinates and accepts;
+an explicitly selected `economy` preset retains its configured native role routing.
+For a bounded eligible Git implementation under the Antigravity profile, use
+`antigravity_delegate` as the primary worker in an existing verified clean
+Paseo-linked task worktree; it runs `agy --mode accept-edits --sandbox` and returns
+status/diff evidence. It refuses the primary checkout, protected branches, dirty or
+credential-like worktrees, detached HEADs, commits, pushes and merges, and never uses
+`--dangerously-skip-permissions`. Do not weaken these gates to make a task eligible.
+Non-Git local configuration and tasks ineligible for delegation stay with the parent
+under their existing isolation/backup rules; do not silently launch a DeepSeek worker.
+An Agy failure or uncertain write requires inspection and reconciliation, not an
+automatic model change or a second concurrent writer. A dirty worktree cannot be
+re-delegated unchanged; fix accepted findings with one safe writer and fresh checks.
 
-Approved: worker `deepseek/deepseek-flash` at high thinking, trusted fallback
-`openai-codex/gpt-6-luna:high`; reviewer/security `openai-codex/gpt-6-astra`, no
-configured fallback. Parent review replaces a separate reviewer only when the selected
-parent is that approved GPT model; otherwise keep a separate approved GPT reviewer
-without switching the parent. Other historical role settings stay in the private
-removal backup; invent no new mappings.
+The `antigravity` tool is a read-only advisor with explicit file inlining, plan+sandbox
+mode and no tools. Neither Agy tool is a native Pi/Paseo model provider or a visible
+Paseo child tab. Pi/Paseo still owns workspaces, integration and tracking. GPT reviews
+Agy's delivered diff and real test evidence before integration; use a fresh independent
+read-only `openai-codex/gpt-6-astra` reviewer for delegated work, security/data-integrity,
+large/substantial or consequential cross-module changes, plus security review for
+security-sensitive work. Parent self-review replaces a separate reviewer only on the
+routine direct-work fast path when the selected parent is that approved GPT model.
+Explicit independent-review requests are honored. Keep parent provider/model/thinking
+unchanged; no second runner for the same task or silently substituted model.
 
-Antigravity (`agy`) is a third team pool. The `antigravity` tool remains a read-only
-advisor: it runs `--mode plan --sandbox`, inlines only explicitly supplied files and
-returns untrusted prose. The `antigravity_delegate` tool is the bounded implementation
-worker: it accepts edits only in an existing clean linked Git worktree, runs
-`--mode accept-edits --sandbox`, refuses primary/protected branches, and never commits,
-pushes or merges. It refuses credential-like paths and never passes
-`--dangerously-skip-permissions`; interactive `agy` stays the user's own tool.
-
-Team roles are DeepSeek coordinator/implementer, Agy isolated worker or advisor, and
-GPT independent diff/test reviewer. Before delegation, verify the worktree, native
-Paseo model/thinking selection where applicable, acceptance and completion/control
-path. Missing isolation, permission or evidence is a blocker — never change models
-silently or claim a fallback ran on DeepSeek.
-
-Provider timeouts, suspected stalls, the quiescent-replacement sequence and the
-runtime-timeout semantics live in `megai/delegation.md`, loaded on delegation or
-escalation. In short: use the approved Luna/high fallback once, report the model
-that actually ran, never keep two writers, and never keep waiting on a confirmed
-provider timeout. Accepted findings return to the same writer, then rerun affected
-checks and review. Share scoped context, diffs and concise evidence, not full
-transcripts. One writer per checkout; children never mutate Plane or integrate
-branches. Questions and tiny runtime-setting edits may stay in the parent.
+Before delegation verify worktree identity, acceptance, control/completion path and
+permissions. Missing isolation or evidence is a blocker. Load `megai/delegation.md`
+for timeout and quiescent-writer rules. Share scoped context, diff and concise evidence,
+not transcripts; children never mutate Plane or integrate branches. Questions and tiny
+runtime-setting edits may stay with the parent.
 pi-subagents was removed. Do not reinstall it; do not use its commands, tools or
 packaged workflows; translate packaged delegation guidance to native Paseo only
 when equivalent ownership, isolation and verification hold.
@@ -188,8 +180,8 @@ The 2026-09-15 native Pi/Paseo smoke test failed with
 `The 'gpt-5.3-codex-spark' model is not supported when using Codex with a ChatGPT account.`,
 so no Spark dispatch happens until a user-requested access retest succeeds: no
 automatic retry, no authentication change, no silent substitution. Scope, launch
-syntax and the bounded-helper rules are in `megai/delegation.md`. DeepSeek stays the
-primary implementation worker with its Luna fallback; GPT stays the reviewer.
+syntax and the bounded-helper rules are in `megai/delegation.md`. Under the
+Antigravity profile, Agy is the eligible isolated worker and GPT coordinates/reviews.
 
 ## Bounded shell discovery
 
@@ -233,7 +225,10 @@ explicit approval; dev delivery does not grant any of them.
 Reuse the same Paseo project/task identity; explicit workspace titles and branch names.
 Delegate only genuinely independent work, at most two children to start, one writer per
 worktree. Reuse resumable children for refinements; bounded context and concise
-evidence, not full transcripts. Native completion notifications, never routine polling.
+evidence, not full transcripts. For Paseo Pi children set `notifyOnFinish: true` on
+creation and every background dispatch, yield, and resume only on the matching run's
+completion/error/permission event. Never use child-wait deadlines or routine polling.
+Provider timeouts and stall protection remain separate from child-result waiting.
 No schedules/heartbeats, daemon restarts, watchdogs, or model/fallback changes without
 an explicit request.
 
