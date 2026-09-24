@@ -24,7 +24,7 @@ const BLOCKED =
   "not guess role routing or expose raw configuration.\n";
 
 type Role = { provider: string; model: string; thinking: string };
-type Config = { preset?: string; roles: Record<string, Role> };
+type Config = { preset?: string; workerExecutor?: "antigravity_delegate"; roles: Record<string, Role> };
 type Read = { kind: "missing" } | { kind: "invalid" } | { kind: "data"; text: string };
 
 const record = (value: unknown): Record<string, unknown> | undefined =>
@@ -66,6 +66,9 @@ function parseConfig(text: string): Config | undefined {
   const roles = record(config?.roles);
   if (!config || config.schema !== 1 || !roles) return undefined;
   if ("preset" in config && config.preset !== "economy" && config.preset !== "antigravity") return undefined;
+  if (config.preset === "antigravity" && config.workerExecutor !== "antigravity_delegate") return undefined;
+  if (config.workerExecutor !== undefined &&
+      (config.preset !== "antigravity" || config.workerExecutor !== "antigravity_delegate")) return undefined;
   const keys = Object.keys(roles);
   if (keys.length !== ROLE_KEYS.length || !ROLE_KEYS.every((key) => keys.includes(key))) return undefined;
   const parsed: Record<string, Role> = {};
@@ -77,7 +80,11 @@ function parseConfig(text: string): Config | undefined {
     if (typeof thinking !== "string" || !THINKING_LEVELS.has(thinking)) return undefined;
     parsed[key] = { provider, model, thinking };
   }
-  return { preset: typeof config.preset === "string" ? config.preset : undefined, roles: parsed };
+  return {
+    preset: typeof config.preset === "string" ? config.preset : undefined,
+    workerExecutor: config.workerExecutor,
+    roles: parsed,
+  };
 }
 
 function render(config: Config): string {
@@ -102,12 +109,13 @@ function render(config: Config): string {
   }
   if (config.preset === "antigravity") {
     parts.push(
-      "Antigravity execution: for an eligible bounded implementation task, call " +
+      `Antigravity execution: the configured worker executor is ${config.workerExecutor}. ` +
+        "For every eligible bounded Git implementation task, it is mandatory to call " +
         "`antigravity_delegate` as the primary worker in an existing clean linked Git " +
-        "worktree. Inspect its returned diff and focused test evidence before delivery; " +
-        "do not silently replace Agy with parent implementation. Keep trivial or " +
-        "read-only work direct, and if no eligible linked worktree exists, report that " +
-        "blocker rather than claiming Agy was used.");
+        "worktree; the parent must not implement that task directly. Inspect its returned " +
+        "diff and focused test evidence before delivery. Keep trivial or read-only work " +
+        "direct, and if no eligible linked worktree exists, report that blocker rather " +
+        "than silently bypassing the Agy worker.");
   }
   const eligible = ROLE_KEYS.filter((key) => ELIGIBLE.has(key) && identity(config.roles[key]) === DEEPSEEK_FLASH);
   if (eligible.length > 0) {
