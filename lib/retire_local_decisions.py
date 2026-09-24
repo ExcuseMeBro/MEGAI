@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Retire the previously owned local decision runtime and everything it published.
+"""Retire assets from the *previous* local decision runtime without touching the new one.
 
-The runtime, its Pi extensions and its source files are gone from this tree. An
-installation created before that retirement still holds them, so a reinstall retires
-exactly what this project wrote:
+The old runtime and old published copies can survive on installed machines. A new
+operator-approved, pinned local Laya integration now reuses some path names; those
+current source/extension bytes are not legacy and must survive reinstall. Retire
+only previously owned or exact-known old bytes:
 
 * the Pi extension assets and the legacy compatibility asset, through the ownership
   receipts (`Plan.retire`): an unknown or edited file raises instead of disappearing;
@@ -54,11 +55,19 @@ PUBLISHED = {
 
 def stage_pi_assets(plan, root: Path) -> None:
     """Stage retirement of the Pi extension assets and the saved tool state."""
-    from slim_wiring import MEGAI, encoded, read
+    from slim_wiring import MEGAI, SOURCE, encoded, read
 
     for directory, names in EXTENSIONS.items():
         for name in names:
-            plan.retire(root / directory / name)
+            path = root / directory / name
+            new_source = SOURCE / "pi-skill/laya" / name
+            current = read(path)
+            # The new owned version must survive subsequent legacy retirement runs.
+            if (directory == "extensions/megai-laya" and current is not None
+                    and b"megai-laya-current-0.3.20" in current[:300]
+                    and new_source.is_file() and current == new_source.read_bytes()):
+                continue  # identical bytes are adopted by Plan.asset below, not rewritten here
+            plan.retire(path)
 
     path = MEGAI / "state.json"
     before = read(path)
@@ -80,13 +89,18 @@ def stage_pi_assets(plan, root: Path) -> None:
 
 def stage_published(plan, megai: Path) -> None:
     """Stage retirement of published source copies; unknown bytes are preserved."""
-    from slim_wiring import digest, read
+    from slim_wiring import SOURCE, digest, read
 
     for relative, expected in PUBLISHED.items():
         target = megai / relative
         before = read(target)
         if before is None:
             continue
+        new_source = SOURCE / relative
+        if (relative.startswith("pi-skill/laya/")
+                and b"megai-laya-current-0.3.20" in before[:300]
+                and new_source.is_file() and before == new_source.read_bytes()):
+            continue  # identical new source is not a legacy artifact
         if digest(before) != expected and not plan.owned(target, before):
             raise ValueError(f"custom retired source preserved: {target}; reconcile manually")
         plan.stage(target, None, before)

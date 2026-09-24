@@ -39,6 +39,13 @@ class Slim(unittest.TestCase):
         for name in ("tgrep", "codedb", "ruff", "pi", "omp", "claude", "codex", "npm", "npx", "curl", "node"):
             self.stub(name, 'printf "%s\\n" "$0 $*" >>"$HOME/calls"\nexit 0\n')
         (self.megai / "state.json").write_text('{"tools":{},"agents":{},"ports":{"agent-memory":3111},"keep":{"value":42}}\n')
+        # An owned offline Laya runtime fixture avoids a network/model download in installer tests.
+        local = self.megai / "laya-runtime"
+        (local / "bin").mkdir(parents=True)
+        (local / ".megai-owned").write_text("megai-laya\nversion=0.3.20\n")
+        executable = local / "bin/python"
+        executable.write_text("#!/bin/sh\nexit 0\n")
+        executable.chmod(0o700)
         self.project = self.root / "project"
         self.project.mkdir()
         # Shared retired Caveman resources are intentionally absent; ambiguous
@@ -585,7 +592,7 @@ class Slim(unittest.TestCase):
         self.wire()
         self.write(self.megai / "ux-ui-agent-skills/package.json", '{}')
         (self.megai / "mattpocock-skills/skills").mkdir(parents=True)
-        selected = ("headroom", "tgrep", "codedb", "jev_browser", "ruff", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
+        selected = ("headroom", "tgrep", "codedb", "ruff", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
         for path in (self.megai / "lib").glob("install_*.sh"):
             name = path.stem.removeprefix("install_")
             self.write(path, f'#!/bin/sh\necho install:{name} >>"$HOME/install-calls"\n')

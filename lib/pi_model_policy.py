@@ -10,7 +10,11 @@ END = "<!-- megai:subagent-models:end -->"
 
 def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> None:
     from retire_local_decisions import stage_pi_assets
-    from slim_wiring import digest, read
+    from slim_wiring import MEGAI, digest, read
+    from laya_runtime import preflight as laya_preflight
+
+    if not remove:
+        laya_preflight(MEGAI)
 
     policy = (source / "pi-skill/delegation.md").read_bytes()
     path = root / "AGENTS.md"
@@ -59,22 +63,21 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
     # and a compaction companion; its sources and published copies are retired by
     # the same transaction so a reinstall leaves none of it behind.
     stage_pi_assets(plan, root)
-    # TypeSafe Jev is the active hosted decision extension. It remains a Pi
-    # companion to the native chat provider/model, not a replacement provider.
-    plan.asset(root / "extensions/megai-jev/index.ts",
-               (source / "pi-skill/jev/index.ts").read_bytes(), remove)
-    plan.asset(root / "extensions/megai-jev-compaction/index.ts",
-               (source / "pi-skill/jev-compaction/index.ts").read_bytes(), remove)
+    # Retire only receipt-owned hosted decision resources before staging the
+    # locally pinned extension. No TypeSafe endpoint or credential is consulted.
+    plan.retire(root / "extensions/megai-jev/index.ts")
+    plan.retire(root / "extensions/megai-jev-compaction/index.ts")
+    for filename in ("index.ts", "bridge.py", "compaction.ts"):
+        plan.asset(root / "extensions/megai-laya" / filename,
+                   (source / "pi-skill/laya" / filename).read_bytes(), remove)
     plan.asset(root / "extensions/megai-antigravity/index.ts",
                (source / "pi-skill/antigravity/index.ts").read_bytes(), remove)
     delegation = root / "skills/megai/delegation.md"
     installed = read(delegation)
     if installed is None or installed == policy or plan.owned(delegation, installed):
         plan.asset(delegation, policy, remove)
-    # The browser agent is a default profile capability, so it is staged by this
-    # always-on policy path and not only by the adaptive refresh below.
-    plan.asset(root / "skills/jev-browser/SKILL.md",
-               (source / "pi-skill/jev-browser/SKILL.md").read_bytes(), remove)
+    # No browser automation is offered by the Laya profile; unknown edits block.
+    plan.retire(root / "skills/jev-browser/SKILL.md")
     # An unowned, operator-edited policy is preserved instead of claimed.
     if remove:
         # Removing policy does not undo the user's native model preferences.
