@@ -20,6 +20,7 @@ const DENY = /(?:^|\/)(?:\.ssh|\.aws|\.gnupg|\.kube|\.docker|\.netrc|_netrc|\.np
 let worker: ChildProcessWithoutNullStreams | undefined;
 let queue: Promise<unknown> = Promise.resolve();
 let nextId = 0;
+const pipeFailures = new WeakMap<ChildProcessWithoutNullStreams, (error: Error) => void>();
 
 function stop(): void {
   const child = worker;
@@ -39,6 +40,9 @@ function start(): ChildProcessWithoutNullStreams {
   child.stdin.unref();
   child.stdout.unref();
   child.stderr.unref();
+  // A failed write can emit `error` after its callback. Keep one permanent
+  // listener so an early local-worker exit can never crash the Pi host.
+  child.stdin.on("error", (error: Error) => pipeFailures.get(child)?.(error));
   worker = child;
   return child;
 }
@@ -63,7 +67,9 @@ function send(state: string, questions: Record<string, unknown>, signal?: AbortS
       child.stdout.off("data", data);
       child.off("error", crash);
       child.off("exit", exit);
-      child.stdin.off("error", pipeError);
+      setImmediate(() => {
+        if (pipeFailures.get(child) === pipeError) pipeFailures.delete(child);
+      });
       signal?.removeEventListener("abort", abort);
       if (error) { stop(); fail(error); }
       else done(reply);
@@ -89,7 +95,7 @@ function send(state: string, questions: Record<string, unknown>, signal?: AbortS
     child.stdout.on("data", data);
     child.once("error", crash);
     child.once("exit", exit);
-    child.stdin.once("error", pipeError);
+    pipeFailures.set(child, pipeError);
     signal?.addEventListener("abort", abort, { once: true });
     child.stdin.write(request + "\n", (error) => { if (error) finish(new Error("local model pipe failed")); });
   });

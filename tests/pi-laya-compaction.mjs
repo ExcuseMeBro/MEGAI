@@ -60,6 +60,14 @@ try {
     {...result(unique, 'two'), toolName: 'read', isError: true},
   ]));
   assert.equal(sameTextDifferentErrors, undefined, 'same text with different error status is not a safe duplicate');
+  const other = 'Other '.repeat(500);
+  const repeatedA = await handler(event([user, result(unique, 'call-1'), result(other, 'call-2'), result(unique, 'call-3')]));
+  const repeatedB = await handler(event([user, result(unique, 'call-1'), result(other, 'call-2'), result(other, 'call-3')]));
+  assert.ok(repeatedA?.compaction && repeatedB?.compaction);
+  assert.notEqual(repeatedA.compaction.summary, repeatedB.compaction.summary,
+    'duplicate marker must identify the retained result instead of losing call identity');
+  assert.match(repeatedA.compaction.summary, /retained earlier at tool=read call=call-1 error=false/);
+  assert.match(repeatedB.compaction.summary, /retained earlier at tool=read call=call-2 error=false/);
   for (const fn of loaded.extensions.flatMap(e => e.handlers.get('session_shutdown') ?? [])) await fn({}, {});
   process.env.LAYA_PYTHON = '/no/such/local/python';
   assert.equal(await handler(event([user, result(unique, 'one'), result(unique, 'two')])), undefined,

@@ -14,8 +14,8 @@ export function registerCompaction(pi: ExtensionAPI, decide: Decide): void {
       const messages = convertToLlm([
         ...preparation.messagesToSummarize, ...preparation.turnPrefixMessages,
       ]);
-      const lines: Array<{ text: string; duplicate?: boolean; meta?: string }> = [];
-      const seen = new Set<string>();
+      const lines: Array<{ text: string; duplicate?: boolean; meta?: string; duplicateOf?: string }> = [];
+      const seen = new Map<string, string>();
       let originalChars = 0;
       let duplicateCount = 0;
       for (const message of messages) {
@@ -40,10 +40,11 @@ export function registerCompaction(pi: ExtensionAPI, decide: Decide): void {
         const identity = message.role === "toolResult"
           ? JSON.stringify([message.toolName ?? "", Boolean(message.isError), text])
           : "";
-        const duplicate = message.role === "toolResult" && seen.has(identity) && text.length >= 500;
-        if (message.role === "toolResult") seen.add(identity);
+        const retained = message.role === "toolResult" ? seen.get(identity) : undefined;
+        const duplicate = Boolean(retained) && text.length >= 500;
+        if (message.role === "toolResult" && !retained) seen.set(identity, meta);
         if (duplicate) duplicateCount++;
-        lines.push({ text: `[${message.role}${meta}]: ${text}`, duplicate, meta });
+        lines.push({ text: `[${message.role}${meta}]: ${text}`, duplicate, meta, duplicateOf: retained });
       }
       if (!duplicateCount || !originalChars || originalChars > 20_000) return;
       const answers = await decide(
@@ -55,7 +56,7 @@ export function registerCompaction(pi: ExtensionAPI, decide: Decide): void {
       if (typeof safety !== "number" || !Number.isFinite(safety) || safety <= 0.5) return;
       const summary = [preparation.previousSummary || "", "Compacted transcript (only byte-identical repeated tool outputs omitted):",
         ...lines.map(line => line.duplicate
-          ? `[Tool result${line.meta ?? ""}]: repeated exact text retained earlier.`
+          ? `[Tool result${line.meta ?? ""}]: repeated exact text retained earlier at${line.duplicateOf ?? " an unspecified prior result"}.`
           : line.text)]
         .filter(Boolean).join("\n\n");
       if (summary.length > 8_192 || summary.length >= originalChars * 0.85) return;
