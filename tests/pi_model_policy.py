@@ -1,13 +1,78 @@
 #!/usr/bin/env python3
 """Offline model-policy wiring; real HOME and credentials remain untouched."""
 import json
+import hashlib
+import shutil
 import sys
 import unittest
 
+from pi_laya_bridge import BridgeTests
 from slim_distribution import ROOT, Slim
 
 
 class ModelPolicy(Slim):
+    def test_missing_laya_runtime_blocks_profile_install_without_writes(self):
+        shutil.rmtree(self.megai / "laya-runtime")
+        before = self.snapshot()
+        result = self.wire(ok=False)
+        self.assertIn("laya-runtime", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_unowned_laya_runtime_blocks_profile_install_without_writes(self):
+        (self.megai / "laya-runtime/.megai-owned").write_text("operator runtime\n")
+        before = self.snapshot()
+        result = self.wire(ok=False)
+        self.assertIn("unowned laya-runtime", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_installs_laya_without_hosted_jev_or_browser(self):
+        self.wire()
+        agent = self.home / ".pi/agent"
+        for name in ("index.ts", "bridge.py", "compaction.ts"):
+            self.assertEqual((agent / "extensions/megai-laya" / name).read_bytes(),
+                             (ROOT / "pi-skill/laya" / name).read_bytes())
+        for path in ("extensions/megai-jev/index.ts", "extensions/megai-jev-compaction/index.ts",
+                     "skills/jev-browser/SKILL.md"):
+            self.assertFalse((agent / path).exists(), path)
+        self.assertFalse((self.megai / "bin/jev-browser").exists())
+        browser = self.megai / "bin/jev-browser"
+        self.write(browser, "previously owned browser\n")
+        receipt_file = self.megai / "slim-wiring.json"
+        receipt = json.loads(receipt_file.read_text())
+        receipt[str(browser)] = hashlib.sha256(browser.read_bytes()).hexdigest()
+        receipt_file.write_text(json.dumps(receipt))
+        self.wire()
+        self.assertFalse(browser.exists())
+        self.wire("--verify")
+        self.wire("--remove")
+        self.assertFalse((agent / "extensions/megai-laya/index.ts").exists())
+
+    def test_preserves_custom_browser_cli_instead_of_deleting_it(self):
+        self.wire()
+        browser = self.megai / "bin/jev-browser"
+        self.write(browser, "operator browser replacement\n")
+        before = self.snapshot()
+        self.assertIn("custom/legacy browser asset preserved", self.wire(ok=False).stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_retires_only_receipt_owned_jev_assets_and_preserves_conflicts(self):
+        import hashlib
+
+        self.wire()
+        agent = self.home / ".pi/agent"
+        old = agent / "extensions/megai-jev/index.ts"
+        self.write(old, "archived hosted extension\n")
+        receipt_file = self.megai / "slim-wiring.json"
+        receipt = json.loads(receipt_file.read_text())
+        receipt[str(old)] = hashlib.sha256(old.read_bytes()).hexdigest()
+        receipt_file.write_text(json.dumps(receipt))
+        self.wire()
+        self.assertFalse(old.exists())
+        self.write(old, "operator-owned extension\n")
+        before = self.snapshot()
+        self.assertIn("unowned retired asset", self.wire(ok=False).stderr)
+        self.assertEqual(self.snapshot(), before)
+
     def test_model_guard_installed_and_removed(self):
         self.wire()
         agent = self.home / ".pi/agent"
@@ -84,10 +149,16 @@ class ModelPolicy(Slim):
 
         self.wire()
         for path in seeded:
-            self.assertFalse(path.exists())
+            if "extensions/megai-laya/" in str(path):
+                self.assertEqual(path.read_bytes(), (ROOT / "pi-skill/laya" / path.name).read_bytes())
+            else:
+                self.assertFalse(path.exists())
         receipt = json.loads(receipt_path.read_text())
         for path in seeded:
-            self.assertNotIn(str(path), receipt)
+            if "extensions/megai-laya/" in str(path):
+                self.assertIn(str(path), receipt)
+            else:
+                self.assertNotIn(str(path), receipt)
         state = json.loads(state_path.read_text())
         self.assertNotIn(STATE_TOOL, state["tools"])
         self.assertFalse(published.exists())
@@ -202,22 +273,16 @@ class ModelPolicy(Slim):
         self.assertTrue(runtime.is_dir())
         self.assertFalse(list((self.megai / "backups").glob("retired-decision-runtime*")))
 
-    def test_native_compaction_has_no_substitute_tool(self):
-        """Pi compacts natively: no decision extension or companion is installed."""
-        sys.path.insert(0, str(self.megai / "lib"))
-        from retire_local_decisions import EXTENSIONS, TOOL
-
+    def test_local_compaction_only_deduplicates_and_falls_back_to_native(self):
+        """Local decisions do not discard unique history or replace Pi permissions."""
         self.wire()
         agent = self.home / ".pi/agent"
-        for directory, names in EXTENSIONS.items():
-            for name in names:
-                self.assertFalse((agent / directory / name).exists())
-        budget = " ".join((ROOT / "docs/pi-context-budget.md").read_text().split())
-        self.assertIn("With native compaction enabled", budget)
-        self.assertIn("no extension, router or custom compactor", budget)
+        source = (agent / "extensions/megai-laya/compaction.ts").read_text()
+        self.assertIn("duplicate", source)
+        self.assertIn("if (!duplicateCount", source)
         policy = " ".join((agent / "skills/megai/SKILL.md").read_text().split()).lower()
-        self.assertIn("compaction stays Pi's own".lower(), policy)
-        self.assertNotIn(TOOL, policy)
+        self.assertIn("pi's native summarizer", policy)
+        self.assertIn("cannot block tools", policy)
 
     def test_owned_legacy_guard_retired_on_upgrade(self):
         import hashlib
@@ -387,7 +452,8 @@ class ModelPolicy(Slim):
 
 def load_tests(loader, tests, pattern):
     # ModelPolicy inherits the distribution cases; do not run imported Slim twice.
-    return loader.loadTestsFromTestCase(ModelPolicy)
+    return unittest.TestSuite((loader.loadTestsFromTestCase(ModelPolicy),
+                               loader.loadTestsFromTestCase(BridgeTests)))
 
 
 if __name__ == "__main__":
