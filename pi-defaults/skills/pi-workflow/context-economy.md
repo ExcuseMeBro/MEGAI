@@ -6,7 +6,7 @@ not a mandatory extra phase or an automatic dispatcher.
 
 | Stage | Smallest useful input | Completion condition |
 | --- | --- | --- |
-| Locate code | General text/name → Codedb `search`; definition → `find`; API → `outline`; known range → native read. Regex/exact/freshness → `rg`. | Exact current source and relevant callers located; no unexplained search failure. |
+| Locate code | General text/name → Codedb `search`; definition → `find`; API → `outline`; known range → native read. Repeated literal/regex on a stable indexed tree → tgrep; exact/freshness evidence → `rg`. | Exact current source and relevant callers located; no unexplained search failure. |
 | `codebase-design` | Affected interfaces and caller ranges. If 4–12 plausible files would otherwise be read broadly, `sift` once to order them. | Required interfaces/dependencies read; rankings never define the impact boundary. |
 | `diagnosing-bugs` | Exact failure/stack plus affected symbol and focused reproduction. Laya may order competing hypotheses from these facts. | Reproduction and native evidence establish the cause; no score counts as proof. |
 | `tdd` | Relevant test seam and changed source only; reuse diagnosis. | Required red/green assertions and raw command exit/results captured. No Laya pass/fail decision. |
@@ -26,8 +26,8 @@ CODEDB_NO_TELEMETRY=1 megai-codedb outline src/payments.ts
 `find`/`symbol` locate definitions, not a complete call graph. Use scoped native
 `rg -n` to find callers and exact references. `search` is case-insensitive full-text
 discovery and the first choice for ordinary repository text searches, not an exact/regex
-absence check. A ready task-owned tgrep index is a fallback for compatible indexed
-queries; do not repeat successful Codedb discovery through every search tool.
+absence check. Tgrep handles repeated compatible literal/regex discovery when
+its indexing cost is worthwhile; do not repeat successful discovery through every tool.
 `tree` is for an unfamiliar layout;
 avoid printing the whole repository just to find one symbol. `index PATH` runs a
 tree query to warm the native cache, not a guaranteed forced rebuild. Cache location
@@ -36,6 +36,35 @@ a tracked `codedb.snapshot`. If ownership/cache safety is uncertain, use native 
 No startup indexing, daemon or repository upload. For direct CLI calls keep
 `CODEDB_NO_TELEMETRY=1`. After edits or branch changes use native source/`rg` until
 the current tree's index coverage is verified. Reuse successful paths, not stale text.
+
+## Tgrep: repeated queries when indexing pays off
+
+Tgrep is installed separately; it is not a startup service or mandatory extra pass.
+Prefer it for repeated, selective literal/regex queries on a large stable task-owned
+checkout. A ready index is useful only when its coverage/freshness is known. If no
+index exists, build on demand only when several queries are expected and the saved
+query time justifies construction; use native `rg` for small/one-off searches.
+
+```sh
+tgrep status                 # readiness hint, not freshness proof
+tgrep index .                # only in the isolated owned checkout, when justified
+tgrep -n -F "payment_retry_marker" .
+tgrep -n "payment_.*_marker" .
+```
+
+Keep `.tgrep` out of commits; preserve a pre-existing index or tracked cache rather
+than overwriting it. No `serve`, background watcher or shared primary indexing for
+this workflow. After edits, branch/ignore changes or warnings, use native `rg`
+until a completed rebuild covers the current tree; if a server was independently
+started, it also needs a confirmed restart. Status alone does not prove this.
+Unsupported flags/semantics, index errors, failed searches, exhaustive impact and
+absence checks use native `rg` with the intended flags. Never interpret an index
+failure, excluded file or truncated result as no match. Maintain exact exit/stderr.
+
+`python3 -B tests/pi_search_benchmark.py` checks literal/regex/case-insensitive
+results against `rg` on a disposable 400-file tree and records build cost, medians
+and estimated break-even query count. Timings include process startup and vary with
+hardware/cache/query selectivity; do not claim a universal speedup or token saving.
 
 ## Laya: small local decisions, not extra ceremony
 

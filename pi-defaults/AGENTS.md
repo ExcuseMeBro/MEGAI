@@ -33,9 +33,12 @@ Codedb FIRST for general repository text/name discovery and code structure:
 Set `CODEDB_NO_TELEMETRY=1`; use only the task-owned checkout. No startup index,
 server, cross-project scan or tracked-cache overwrite. Reuse query results until
 source changes; `index` warms the cache, not a freshness guarantee.
-Native `rg` handles regex, case-sensitive/exact/exhaustive matches, absence checks,
-failures and post-edit/branch-switch freshness. Ready task-owned tgrep is an optional
-fallback for compatible indexed queries, not an extra search after Codedb succeeds.
+For repeated literal/regex searches on a large unchanged tree, prefer task-owned
+Tgrep when its ready index or measured query volume amortizes an on-demand build.
+Use `tgrep -n -F "text" .` (literal) or `tgrep -n "pattern" .` (regex); no server.
+Native `rg` handles exact/exhaustive evidence, absence, errors, unsupported semantics
+and post-edit/branch-switch freshness. Never repeat a successful discovery through
+all tools. No index build for a tiny one-off search.
 Unavailable/stale discovery falls back to native tools; failure is never “no matches”.
 
 When several plausible files would require broad reads, use one local `sift` batch
