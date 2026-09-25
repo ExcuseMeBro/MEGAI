@@ -46,14 +46,16 @@ index exists, build on demand only when several queries are expected and the sav
 query time justifies construction; use native `rg` for small/one-off searches.
 
 ```sh
-tgrep status                 # readiness hint, not freshness proof
-tgrep index .                # only in the isolated owned checkout, when justified
-tgrep -n -F "payment_retry_marker" .
-tgrep -n "payment_.*_marker" .
+TASK_SEARCH_INDEX="$(mktemp -d "${TMPDIR:-/tmp}/megai-tgrep.XXXXXX")"
+tgrep --index-path "$TASK_SEARCH_INDEX" index .  # owned checkout only, when justified
+tgrep --index-path "$TASK_SEARCH_INDEX" -n -F "payment_retry_marker" .
+tgrep --index-path "$TASK_SEARCH_INDEX" -n "payment_.*_marker" .
 ```
 
-Keep `.tgrep` out of commits; preserve a pre-existing index or tracked cache rather
-than overwriting it. No `serve`, background watcher or shared primary indexing for
+Reuse that one task-private index path; do not create it per query. Keeping the
+index outside the source checkout avoids dirtying it or blocking workspace cleanup.
+Readiness/status is only a hint, never freshness proof. Preserve pre-existing indexes
+and tracked caches rather than overwriting them. No `serve`, background watcher or shared primary indexing for
 this workflow. After edits, branch/ignore changes or warnings, use native `rg`
 until a completed rebuild covers the current tree; if a server was independently
 started, it also needs a confirmed restart. Status alone does not prove this.

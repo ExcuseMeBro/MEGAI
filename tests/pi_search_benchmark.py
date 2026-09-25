@@ -19,7 +19,9 @@ def run(root, argv):
 
 def main():
     with tempfile.TemporaryDirectory(prefix="megai-tgrep-scenario-") as folder:
-        root = Path(folder)
+        root = Path(folder) / "repo"
+        root.mkdir()
+        index = Path(folder) / "private-index"
         run(root, ["git", "init", "-q", "."])
         for number in range(400):
             body = "".join(
@@ -29,8 +31,8 @@ def main():
             if number in (17, 193, 307):
                 body += 'export const payment_retry_marker = "selected";\n'
             (root / f"module_{number:03}.ts").write_text(body)
-        _, build_ms = run(root, ["tgrep", "index", "."])
-        assert (root / ".tgrep").is_dir()
+        _, build_ms = run(root, ["tgrep", "--index-path", str(index), "index", "."])
+        assert index.is_dir() and not (root / ".tgrep").exists()
         cases = [
             ["-F", "payment_retry_marker"],
             ["payment_.*_marker"],
@@ -42,7 +44,8 @@ def main():
             for tool in ("tgrep", "rg"):
                 samples = []
                 for _ in range(5):
-                    result, elapsed = run(root, [tool, "-n", "--color", "never", *arguments, "."])
+                    command = [tool, "--index-path", str(index)] if tool == "tgrep" else [tool]
+                    result, elapsed = run(root, [*command, "-n", "--color", "never", *arguments, "."])
                     matches = sorted(result.stdout.splitlines())
                     assert len(matches) == 3, (tool, arguments, matches)
                     assert {line.split(":", 1)[0] for line in matches} == {
