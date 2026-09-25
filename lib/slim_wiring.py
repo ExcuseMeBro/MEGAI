@@ -130,7 +130,7 @@ class Plan:
             "Guarded risks include security/auth/permissions, sensitive data, payments, destructive operations, "
             "migrations, concurrency/shared state, consequential cross-module or multi-repo changes, "
             "behavior-changing safety/acceptance/installer policy, and explicit formal assurance. "
-            "Do not launch a separate reviewer by default; escalate when the actual effect becomes guarded. "
+            "Do not launch a separate reviewer; escalate when the actual effect becomes guarded. "
             "Missing tools, authorization or evidence are BLOCKED, not PASS. "
             "Security/data-integrity risks require source-current tests and parent self-review. "
             "Hand off at In Review, never Done. Main promotion requires separate explicit approval.\n"

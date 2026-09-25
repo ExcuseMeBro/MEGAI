@@ -68,7 +68,7 @@ screenshots, coverage, exit zero or LLM scores alone do not prove behavior.
 ## 3. Self-review, decide, stop
 
 The parent checks every criterion, regression, runtime provenance and the full diff
-against actual receipts; a separate reviewer is not required. Repeat a passing
+against actual receipts; no separate reviewer step is used. Repeat a passing
 check only for a concrete unresolved risk. Do not add a separate reviewer step.
 Resolve blocking findings and rerun affected diagnostics. Any source/index/commit
 change invalidates the prior snapshot: final capture must match the delivered

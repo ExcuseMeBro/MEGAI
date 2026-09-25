@@ -404,6 +404,8 @@ class Distribution(unittest.TestCase):
             self.assertIn(f"'{name}'", verify)
         self.assertIn('SOURCE / "prompts"', (DEFAULTS / "install.py").read_text())
         self.assertIn("only that invocation", policy)
+        self.assertIn("Do not launch a separate reviewer", policy)
+        self.assertNotIn("Explicit independent-review requests are honored", policy)
         browser = (DEFAULTS / "prompts/rwbrowser.md").read_text()
         self.assertIn("explicitly invoked `/rwbrowser`", browser)
         self.assertIn("bounded browser review only", browser)

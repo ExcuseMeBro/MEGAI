@@ -42,7 +42,7 @@ preserve explicit resource opt-outs.
 
 Routine bounded work uses the smallest focused test or observable check, followed
 by inline parent self-review and delivery. It does not require a contract hash,
-`megai acceptance collect`, or a second reviewer.
+`megai acceptance collect`, or a separate reviewer step.
 
 Guarded Pi work loads `megai-acceptance` before implementation and reuses its
 frozen criteria at handoff. Guarded work includes security/auth/permissions,
