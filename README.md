@@ -37,7 +37,7 @@ Pi startup never updates packages or builds indexes automatically.
 | 🔌 pi-mcp-adapter 2.33.0 | Lazy Plane and zvec MCP |
 | 🌐 pi-web-access 0.29.0 | Exa public search without a separate key, page fetching |
 | ⚡ Local Laya multilingual | On-device typed decisions and file relevance; compaction falls back to Pi when not safely reducible. No browser agent. |
-| 🧑‍🤝‍🧑 Native Paseo agents | Bounded children and required independent review; no Pi package |
+| 🧑‍🤝‍🧑 Native Paseo agents | Bounded children; separate review only on explicit request |
 
 Package versions and integrity hashes are in [package-lock.json](pi-defaults/package-lock.json).
 Superpowers' extra delegation extension is excluded: only its bootstrap is loaded, and

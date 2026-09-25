@@ -26,9 +26,8 @@ Resolve each of these, continue, and report them as steps you completed:
   where it went; never delete it.
 - Missing Plane identity for recorded task work: reuse the branch's existing identity, or
   create it once with `pi-workflow start --title "<task title>"` so the delivery has a home.
-- Missing or stale evidence for the recorded SHA: obtain the focused checks and a fresh
-  independent GPT review of that exact SHA, including any corrections made after an earlier
-  review.
+- Missing or stale evidence for the recorded SHA: obtain focused checks and parent
+  self-review of that exact SHA, including any corrections made after an earlier review.
 - Moved refs or a rejected non-force push: fetch, revalidate the new scoped snapshot and retry,
   at most three revalidation passes; report only if it keeps moving.
 - Merge conflicts: resolve bounded conflicts through the approved worker, preserving both
@@ -51,12 +50,12 @@ force, remote branch deletion, other projects/repos).
    candidate: exact current SHA and existing review evidence, owning task/branch, worktree
    path, clean vs dirty, busy/active/locked state, and any unfinished Git operation. Treat
    `blocked` entries as diagnostics to resolve, never as a reason to stop.
-4. Bind every candidate's readiness, test, and review evidence to its exact recorded SHA and
-   merge diff. Stale/missing evidence is work to complete, not an automatic skip: obtain
-   focused checks and fresh independent GPT review of the current recorded SHA, including
-   corrections made after an earlier review. Never treat the old review as final-SHA approval.
-   Reuse valid evidence; use the approved DeepSeek execution / GPT review routing for needed
-   fixes and checks. Missing runner support is not permission to change execution protocols.
+4. Bind every candidate's readiness, test, and parent self-review evidence to its exact
+   recorded SHA and merge diff. Stale/missing evidence is work to complete, not an
+   automatic skip: obtain focused checks and current self-review, including corrections
+   made after an earlier review. Never treat old review as final-SHA approval.
+   Reuse valid evidence; use the approved implementation routing for needed fixes
+   and checks. Missing runner support is not permission to change execution protocols.
 5. Reconcile ownership against the existing Plane task identity, creating that identity when
    the recorded work has none. Plane access otherwise stays read-only here except the existing
    task's own delivery evidence and its **In Review** transition in step 8: never create a
@@ -104,8 +103,9 @@ the next repository. A failure in one repository must not prevent safe candidate
 repositories from reaching `dev`; report a partial vector instead of claiming all succeeded.
 7d. Recheck candidate refs and remote `dev` before every publication. If a candidate moved or
 non-force push is rejected by remote advancement, fetch and revalidate that row up to three
-times, then record `held: moving-ref` and continue. Run combined acceptance and fresh review
-for each repository's final SHA; unchanged baseline failures are reported separately.
+times, then record `held: moving-ref` and continue. Run combined acceptance and fresh
+parent self-review for each repository's final SHA; unchanged baseline failures are
+reported separately.
 7e. Publish each validated repository result by exact SHA
 (`<validated-sha>:refs/heads/dev`) with an ordinary non-force push. Local `dev` may be
 fast-forwarded with `git merge --no-edit --no-overwrite-ignore <validated-sha>` only in a

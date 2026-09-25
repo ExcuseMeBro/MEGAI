@@ -13,8 +13,8 @@ Complete each of these and continue; report each per repository:
   `gh`, `gitlab.com` -> `glab`) and use the installed authenticated CLI for that host.
 - Several remotes or a fork: prefer `origin`, then the remote the tracked branch pushes to, then
   the project's own configuration. This is resolution work, not a reason to stop.
-- Missing evidence for the captured `dev` SHA: produce it (focused checks plus independent GPT
-  review of that exact SHA) and store it on the existing Plane task identity with
+- Missing evidence for the captured `dev` SHA: produce it (focused checks plus parent
+  self-review of that exact SHA) and store it on the existing Plane task identity with
   `pi-workflow review` before the pull-request write. Absent evidence is work, not a blocker.
 - Moved refs: re-fetch and revalidate, at most three passes, then publish the now-stable SHA.
 - `dev` identical to `main`: report "no pull request needed" as a completed result.
@@ -34,7 +34,7 @@ Never invent success: evidence must cover the exact published SHA.
    remote `main` base SHA for each repository. Preserve any dirty or busy checkout: no
    automatic commit, stash, reset, or rebase. Use another clean checkout of the same SHA when
    the current one is unavailable, instead of stopping.
-4. Require delivery, test, and review evidence that covers that `dev` SHA and the `dev`-versus-
+4. Require delivery, test, and parent self-review evidence that covers that `dev` SHA and the `dev`-versus-
    `main` diff, attached to the existing Plane task identity, captured before any push or PR
    write. Create the identity and that evidence when they are missing; never invent success.
 5. Compare the captured `dev` SHA with that `main` base. No commits in that diff means no PR;

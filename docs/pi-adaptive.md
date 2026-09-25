@@ -11,18 +11,18 @@ Classify actual effects, not filenames or file count. Harmless skill/AGENTS.md p
 and installing already-reviewed policy bytes are not automatically guarded.
 Security/data integrity, payments, migrations, shared-state concurrency,
 consequential cross-module changes, behavior-changing safety/installer/acceptance
-policy and multi-repo delivery retain formal independent acceptance. Instructions
-that alter approval, validation or ownership checks remain guarded. Explicit
-repo/user requirements still win. A failed gate cannot become a routine PASS.
-A guarded reviewer reads current raw evidence instead of repeating passing suites
-by default; only a concrete unresolved risk justifies extra checks. Editorial
-preferences do not create repair loops unless they violate the frozen contract
-or cause a demonstrated safety/correctness failure.
+policy and multi-repo delivery retain formal source-current acceptance without a
+mandatory separate reviewer. Instructions that alter approval, validation or
+ownership checks remain guarded. Explicit repo/user requirements still win. A failed
+gate cannot become a routine PASS. The parent self-reviews current raw evidence
+without repeating passing suites by default; only a concrete unresolved risk
+justifies extra checks. Explicit user-requested independent review remains available.
 
 Plane remains boundary-only tracking. Worktree isolation, private configuration
 backups, cooperative integration reservations and separate main/push approval stay.
-No agents, daemons, indexes or provider requests are added at startup. The acceptance
-CLI itself is unchanged. This reduces required workflow steps for routine work; it
+No agents, daemons, indexes or provider requests are added at startup. New acceptance
+contracts use review-free schema 3; historical contracts retain their original
+validation. This reduces required workflow steps for routine work; it
 is not a measured end-to-end latency, quality or token-saving claim.
 
 ## Explicit native and economy profiles
@@ -37,7 +37,8 @@ python3 -B ~/.megai/lib/pi_model_policy.py --adaptive --preset native
 
 The native profile uses `openai-codex/gpt-6-sol` high for coordination, one
 `deepseek/deepseek-flash` high implementation worker and `openai-codex/gpt-6-astra`
-high reviewer. The separate `economy` preset remains independently available: it
+high reviewer only on explicit request. The separate `economy` preset remains
+independently available: it
 uses DeepSeek Flash high planning, low scout/worker, and GPT Sol high review. Roles are
 parent guidance, not mandatory agent launches or a dispatcher. Explicit user/task
 choices override either profile, and an already-running parent's model/thinking never

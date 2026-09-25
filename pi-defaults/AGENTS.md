@@ -51,11 +51,11 @@ repository formatting; never rewrite unrelated files.
 
 pi-web-access for public research; keep private repository text and credentials out of
 public queries. pi-mcp-adapter supplies lazy Plane tools. Use native Paseo agents
-for bounded independent tasks or required independent review; otherwise work directly.
+for bounded independent tasks or explicitly requested review; otherwise work directly.
 Give children explicit cwd, scope and acceptance. Children are leaves: no Plane
 mutation, no branch integration, one writer per worktree. Completion notifications.
-Security/data-integrity or consequential cross-module changes need a fresh independent
-reviewer. Verify behavior before handoff.
+Use focused checks and parent self-review even for security/data-integrity or
+consequential cross-module changes. Verify behavior before handoff.
 
 ## Context and output budget
 
@@ -89,15 +89,15 @@ both terms:
 
 ## Small-task execution — fast path (default)
 
-minimal fix → focused test → required review → result. Localized fix, known
+minimal fix → focused test → self-review → result. Localized fix, known
 acceptance, no security/data-integrity or consequential cross-module impact: cut model
 round trips, not verification. Beats packaged workflow ceremony for routine fixes;
 substantial behavior changes still need the applicable design/spec workflow.
 - Clear implementation request → proceed; ask only blocking user-owned decisions. No
   optional brainstorming, separate plan or approval round trip.
 - With the explicitly selected native profile, GPT Sol coordinates and validates;
-  substantial bounded implementation may use one native DeepSeek Flash worker, and
-  GPT Astra handles independent guarded review. Routine and read-only work stays direct.
+  substantial bounded implementation may use one native DeepSeek Flash worker;
+  GPT Astra reviews only when explicitly requested. Routine and read-only work stays direct.
   No scouts, planners, separate testers or parallel children without a named
   independent need. Review/model
   rules below apply. Non-Git runtime settings may stay with the parent in an
@@ -119,7 +119,7 @@ substantial behavior changes still need the applicable design/spec workflow.
   expansion, formatting churn or repeated discovery. Report only material blockers;
   finish with result, focused verification and remaining risk. No speed-gain claims
   without timing.
-- Keep required safety checks, independent review and safe task placement. No hard
+- Keep required safety checks, parent self-review and safe task placement. No hard
   tool cap, no skipped evidence, no model/thinking change for speed.
 
 ## Waits and pending decisions
@@ -141,25 +141,24 @@ When a wait did happen, record what it was for and why it was not replaceable.
 
 ## User-approved Pi / Paseo routing
 
-The optional `native` preset selects GPT Sol high coordination, one native DeepSeek
-Flash high implementation worker and GPT Astra high independent review. The separate
+The optional `native` preset selects GPT Sol high coordination and one native DeepSeek
+Flash high implementation worker; GPT Astra high review is opt-in. The separate
 `economy` preset remains independently opt-in. Role files guide parent choices but do
 not dispatch agents or change permissions. Keep the active parent's selected model and
 thinking unchanged. Only a confirmed DeepSeek 402 insufficient-balance error may
 continue once on GPT Luna high; auth/permission failures, shared outages, other errors
 and uncertain writes need reconciliation, not model hopping.
 Use an isolated task worktree for Git implementation, with one writer per worktree.
-Never weaken worktree ownership, permission or review gates.
+Never weaken worktree ownership, permission or focused verification gates.
 Non-Git local configuration stays with the parent under its existing isolation and
 backup rules. Reconcile a writer's actual completion and preserve its diff and evidence
 before transferring work.
 
-Pi/Paseo owns workspaces, integration and tracking. Security/data-integrity,
-large/substantial or consequential cross-module changes require fresh independent
-read-only GPT Astra review, plus security review when security-sensitive. Parent
-self-review replaces a separate reviewer only on the routine direct-work fast path.
-Explicit independent-review requests are honored. Keep the active parent
-provider/model/thinking unchanged; never silently substitute.
+Pi/Paseo owns workspaces, integration and tracking. Parent self-review and
+source-current checks apply even to security/data-integrity, large/substantial
+or consequential cross-module changes. Do not launch a separate reviewer or
+security reviewer automatically. Explicit independent-review requests are honored.
+Keep the active parent provider/model/thinking unchanged; never silently substitute.
 
 Before delegation verify worktree identity, acceptance, control/completion path and
 permissions. Missing isolation or evidence is a blocker. Load `megai/delegation.md`
@@ -210,7 +209,7 @@ block Git writes, not a fallback to the primary checkout. Non-Git runtime settin
 use an explicitly owned local configuration workspace, a private backup and focused
 verification; do not invent a repo.
 
-After source-current acceptance and required review, the parent automatically reserves
+After source-current acceptance and parent self-review, the parent automatically reserves
 the integration target, fast-forwards verified task commits to local dev and verifies
 the exact delivery without asking the user again. Then perform safe task-owned
 workspace/branch cleanup before Plane In Review. Active, dirty, unknown or unmerged

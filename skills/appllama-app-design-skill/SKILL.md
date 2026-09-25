@@ -66,7 +66,7 @@ The boundaries below govern their use, including any conflicting “mandatory”
    cycles; record motion when required. Claim frame rate or performance gains
    only from measurements on the specified build/device, not screenshots.
 5. Report checks actually performed and unresolved criteria. Follow the parent
-   workflow's independent review and handoff gate; missing evidence stays BLOCKED.
+   workflow's self-review and handoff gate; missing evidence stays BLOCKED.
 
 ## Load only the relevant reference
 

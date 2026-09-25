@@ -49,9 +49,9 @@ frozen criteria at handoff. Guarded work includes security/auth/permissions,
 sensitive data, payments, destructive operations, migrations, concurrency/shared
 state, consequential cross-module or multi-repo changes, behavior-changing
 safety/acceptance/installer policy, or explicitly requested formal assurance. It
-requires real test/runtime receipts, one fresh independent Pi review and a
-source-current `megai acceptance check` PASS. Missing prerequisites, observations
-or review are BLOCKED, not PASS; live targets need explicit approval.
+requires real test/runtime receipts, parent self-review and a source-current
+`megai acceptance check` PASS. Missing prerequisites or observations are
+BLOCKED, not PASS; live targets need explicit approval.
 
 Classify the actual effect, not the filename. If a routine task grows into a
 guarded risk, escalate once on that evidence; do not run the formal gate by default.
