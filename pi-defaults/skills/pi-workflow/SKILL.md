@@ -5,6 +5,9 @@ description: Start and deliver tracked project changes with Plane, dev/main bran
 
 # Project work
 
+For broad code discovery, Matt skill stages or context pressure, read
+[context-economy.md](context-economy.md) once. Known small edits go directly to source.
+
 1. Run `pi-workflow context` in the current folder. Read the reported rule files.
    `.pi/project.json` is local configuration: `layout` is `mono` or `multi`,
    `planeProject` is an existing Plane project name, `repositories` lists relative

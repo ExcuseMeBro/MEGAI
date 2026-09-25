@@ -14,7 +14,8 @@
   "packages": [
     {
       "source": "npm:pi-mcp-adapter@2.33.0"
-    }
+    },
+    "npm:pi-web-access@0.29.0"
   ],
   "skills": [
     "!${HOME}/.agents/skills/**"

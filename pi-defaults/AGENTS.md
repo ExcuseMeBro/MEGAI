@@ -25,31 +25,30 @@ only, except browser evidence already required by acceptance. Preserve the activ
 <!-- megai:engineering:end -->
 
 
-## Code discovery — codedb default
+## Code discovery and local screening
 
-codedb FIRST in every Pi session, children included: find code, inspect file APIs, and
-trace callers through the local `megai-codedb` wrapper (or the `codedb` CLI directly).
-codedb is the Pi discovery default; it indexes on demand and stays local. Discover its
-commands once via `megai-codedb help` and prefer small scopes. Root is the session cwd;
-no server, no MCP registration, no cross-project scan. Index only the safely owned task
-checkout, never a busy/shared checkout, a non-repository parent or an unrelated project.
-Rebuild with `megai-codedb index <path>` only when the current tree has changed
-materially. Keep `.codedb` local and out of commits; never overwrite tracked cache files.
-No startup hooks, no automatic re-indexing, no remote source or model/API-key
-configuration without explicit approval; telemetry stays off.
+Known path/symbol → read its relevant range directly. Unknown code structure → one
+scoped `megai-codedb find NAME` or `outline FILE`, then read the returned source.
+Set `CODEDB_NO_TELEMETRY=1`. Use only the task-owned checkout; no startup index, server, cross-project scan or
+tracked-cache overwrite. `index` warms the CLI cache, not a freshness guarantee.
+Use ready task-owned tgrep for literal discovery; native `rg` for exact/exhaustive
+matches, absence, failures and after edits/branch switches. Failed/stale discovery
+means native fallback, never “no matches”. Reuse paths until their source changes.
 
-Known path and source → native read/edit, no rediscovery. Unknown code → one scoped
-codedb query, reuse its paths/ranges. tgrep for literal/regex discovery when a task-owned
-index is ready; native rg with the intended flags for exact/exhaustive matching,
-freshness, absence claims, after edits, branch switches and watcher warnings. A failed
-search is diagnostic, not zero matches; preserve its exit code and stderr. Native read
-remains the source-of-truth for verification. Batch independent lookups/reads and reuse
-readiness/discovery evidence per cwd, refreshing only on a relevant change or error.
-Never substitute discovery summaries for source verification or test evidence. Index on
-task demand only; never at startup.
+When several plausible files would require broad reads, use one local `sift` batch
+of 4–12 candidate paths to order reading; skip it for known files or small snippets.
+A low score never excludes a required dependency, test, changed file or error case.
+Errors/oversized/unreadable files remain unresolved: inspect relevant ranges natively.
+`laya` batches advisory typed decisions on already-known compact facts only when they
+avoid larger reads or repeated reasoning. Skip obvious choices. Neither tool authorizes
+writes, chooses permissions, proves correctness or replaces independent review.
 
-Headroom compresses eligible successful discovery output; source reads, edits, full
-diffs, tests and failures stay raw. Never infer test success from compressed output.
+Headroom compresses eligible successful discovery with exact retrieval. Source reads,
+full diffs, tests and failures stay authoritative. Keep raw diagnostics and exit codes;
+retrieve exact output whenever a summary is insufficient. For broad discovery, Matt
+skill stages or context pressure, read `skills/pi-workflow/context-economy.md` relative
+to this profile once; do not load it for a tiny known edit.
+
 Ruff on changed Python by default:
 `ruff check --no-fix --no-fix-only --force-exclude --no-cache -- FILES`. Follow
 repository formatting; never rewrite unrelated files.
@@ -64,33 +63,19 @@ consequential cross-module changes. Verify behavior before handoff.
 
 ## Context and output budget
 
-Prompt size multiplied by turn count is the dominant cost of a session, and a
-retained tool result is re-sent in every later request of that session. Bound
-both terms:
-
-- Put independent tool calls in the **same** assistant turn (parallel tool block)
-  so one round trip covers them. Keep dependent calls ordered, and never chain
-  unrelated diagnostics into one shell command that shares a single timeout.
-- Redirect output that can be large into a file and search the file, instead of
-  printing it into the conversation:
-  `CMD > /tmp/step.log 2>&1; rg -n "pattern" /tmp/step.log | head -40`.
-- Read the range under investigation (`read` with offset/limit, `rg -n`, `sed -n`)
-  rather than printing a whole large file, and re-read only after a change.
-- Choose which files, logs or evidence artifacts to read by path and scoped `rg`, then
-  read only the relevant range. Unread and truncated files are not evidence of irrelevance.
-- Prefer one bounded call over many small ones; each small result stays in the
-  context for the rest of the session.
-- Reuse what the user already inspected instead of buying the same output twice:
-  their `!!command` output is deliberately outside the model context, so ask for the
-  relevant lines rather than re-running the command to reproduce them.
-- Split a long task at phase boundaries: `/compact` keeps recent work and summarizes
-  the rest, and a new task belongs in a new session. Compaction is itself a
-  summarization request that can omit detail, so use it at boundaries, not per
-  message, and never re-read logs a phase has already discarded.
-- Measure instead of guessing: `megai report --text` reports turns, prompt tokens
-  per turn, reported cost per model, the single-tool-call ratio and estimated
-  tool-output replay. Reported cost is not billed cost, and the replay figure is
-  an estimate. Do not claim a saving without a comparable before/after measurement.
+- Batch independent scoped lookups/reads; keep dependent edits and checks ordered.
+- Ask tools for paths, symbols or bounded ranges before full content. Large logs go to
+  a private artifact: retain command, exit code and exact failure ranges, not a full
+  dump in each turn. Omitted output is not evidence of irrelevance or success.
+- Reuse known source, CLI syntax, task IDs and current receipts; refresh after relevant
+  drift. A handoff carries task/commit, needed paths, constraints and evidence paths,
+  not the conversation transcript. Review still covers every changed file.
+- Compact at a phase boundary only when context pressure warrants it. Laya's existing
+  duplicate-only shortcut preserves unique results; otherwise Pi summarizes natively.
+  No manual pruning of source, failures or acceptance evidence to save tokens.
+- `megai report --text` measures session tokens/turns and estimated replay. Compare the
+  same task/model/acceptance before claiming savings; local ranking has latency too.
+  Character counts are a context-size proxy, not measured tokens or billed cost.
 
 ## Small-task execution — fast path (default)
 
