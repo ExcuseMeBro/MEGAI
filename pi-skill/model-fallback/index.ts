@@ -40,10 +40,11 @@ const CONTINUE =
   "from the existing context, diff and evidence, and verify what actually completed instead of " +
   "repeating commands that already ran.";
 
-type Failure = { from: string; reason: string };
+type Failure = { from: string; reason: string; fallbackEligible: boolean };
 
 let pending: Failure | undefined;
 const failed = new Set<string>();
+let fallbackAttempted = false;
 
 /** Bounded read of the optional user override; anything unusable keeps the defaults. */
 function readFallbacks(): Record<string, string> {
@@ -72,18 +73,26 @@ function summarize(message: string): string {
   return message.replace(/\s+/g, " ").trim().slice(0, 200) || "provider error";
 }
 
+function canUseFallback(from: string, rawError: string): boolean {
+  return from === DEEPSEEK_FLASH && !NOT_PROVIDER.test(rawError) &&
+    INSUFFICIENT_BALANCE.test(rawError);
+}
+
 export default function modelFallback(pi: ExtensionAPI) {
   pi.on("session_start", () => {
     pending = undefined;
     failed.clear();
+    fallbackAttempted = false;
   });
 
   // Only this event carries the authoritative error text; the run may still retry.
   pi.on("message_end", (event) => {
     if (event.message.role !== "assistant") return;
     const message = event.message;
+    const from = `${message.provider}/${message.model}`;
+    const rawError = message.errorMessage ?? "";
     pending = message.stopReason === "error"
-      ? { from: `${message.provider}/${message.model}`, reason: summarize(message.errorMessage ?? "") }
+      ? { from, reason: summarize(rawError), fallbackEligible: canUseFallback(from, rawError) }
       : undefined;
   });
 
@@ -94,13 +103,14 @@ export default function modelFallback(pi: ExtensionAPI) {
     pending = undefined;
     if (!failure) return;
     failed.add(failure.from);
-    if (failure.from !== DEEPSEEK_FLASH || NOT_PROVIDER.test(failure.reason) ||
-        !INSUFFICIENT_BALANCE.test(failure.reason)) return;
+    if (!failure.fallbackEligible) return;
     const partner = readFallbacks()[failure.from];
     if (partner !== GPT_LUNA || failed.has(partner)) return;
     const slash = partner.indexOf("/");
     const target = ctx.modelRegistry.find(partner.slice(0, slash), partner.slice(slash + 1));
-    if (!target || !(await pi.setModel(target))) return;
+    if (!target || fallbackAttempted) return;
+    fallbackAttempted = true;
+    if (!(await pi.setModel(target))) return;
     if (partner === GPT_LUNA) pi.setThinkingLevel("high");
     pi.appendEntry("megai-model-fallback", { from: failure.from, to: partner, reason: failure.reason });
     if (ctx.hasUI) {
