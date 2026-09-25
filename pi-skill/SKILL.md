@@ -42,16 +42,16 @@ preserve explicit resource opt-outs.
 
 Routine bounded work uses the smallest focused test or observable check, followed
 by inline parent self-review and delivery. It does not require a contract hash,
-`megai acceptance collect`, or a second reviewer.
+`megai acceptance collect`, or a separate reviewer step.
 
 Guarded Pi work loads `megai-acceptance` before implementation and reuses its
 frozen criteria at handoff. Guarded work includes security/auth/permissions,
 sensitive data, payments, destructive operations, migrations, concurrency/shared
 state, consequential cross-module or multi-repo changes, behavior-changing
 safety/acceptance/installer policy, or explicitly requested formal assurance. It
-requires real test/runtime receipts, one fresh independent Pi review and a
-source-current `megai acceptance check` PASS. Missing prerequisites, observations
-or review are BLOCKED, not PASS; live targets need explicit approval.
+requires real test/runtime receipts, parent self-review and a source-current
+`megai acceptance check` PASS. Missing prerequisites or observations are
+BLOCKED, not PASS; live targets need explicit approval.
 
 Classify the actual effect, not the filename. If a routine task grows into a
 guarded risk, escalate once on that evidence; do not run the formal gate by default.

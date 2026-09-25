@@ -117,7 +117,7 @@ export default function laya(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "laya",
     label: "Laya (local)",
-    description: "On-device typed choice, score or noul decisions; advisory only. No hosted Jev fallback.",
+    description: "Local advisory choice/score/noul on compact known facts; batch questions when this saves broader reads. Skip obvious decisions; not approval or correctness evidence.",
     parameters: Type.Object({ state: Type.String(), questions: Type.Record(Type.String(), Type.Any()) }),
     async execute(_id, params, signal) {
       try {
@@ -132,7 +132,7 @@ export default function laya(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "sift",
     label: "Local file relevance",
-    description: "Screen up to 12 readable local files against a query. Unreadable, sensitive and too-long files are not scored.",
+    description: "Rank 4–12 candidate files before broad reads (API accepts 1–12). Return scores, not source; read required paths regardless of rank. Errors and too-long files are unresolved, not irrelevant.",
     parameters: Type.Object({ query: Type.String(), paths: Type.Array(Type.String()) }),
     async execute(_id, params, signal, _onUpdate, ctx) {
       if (!params.query.trim() || !params.paths.length || params.paths.length > MAX_PATHS)

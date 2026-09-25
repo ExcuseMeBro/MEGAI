@@ -13,7 +13,7 @@ State the observable outcome and smallest useful check, then classify:
 | Mode | Trigger | Work and proof |
 | --- | --- | --- |
 | Routine | Clear, reversible, bounded change without guarded risks: copy/style fix, isolated bug, tests/docs, small feature with a known seam, safe scoped configuration | Parent implements directly, checks the smallest observable outcome, self-reviews the diff inline, reports the result. No mandatory subagent beyond configured economy routing, written plan, contract hash or acceptance CLI. Subject to economy routing below. |
-| Guarded | Security/auth/permissions, sensitive data, payments, destructive operations, migrations, concurrency/shared state, consequential cross-module/API changes, behavior-changing safety/acceptance/installer policy, multi-repo delivery, or explicitly requested formal assurance | Load `megai-acceptance` before implementation; freeze criteria, capture real evidence, obtain one independent Pi review and source-current PASS. |
+| Guarded | Security/auth/permissions, sensitive data, payments, destructive operations, migrations, concurrency/shared state, consequential cross-module/API changes, behavior-changing safety/acceptance/installer policy, multi-repo delivery, or explicitly requested formal assurance | Load `megai-acceptance` before implementation; freeze criteria, capture real evidence, self-review the diff and obtain source-current PASS. |
 
 Before deciding to work directly, use the injected role context or `megai-roles.json`
 (`PI_CODING_AGENT_DIR`, otherwise `~/.pi/agent`) to discover the configured roles:
@@ -47,8 +47,14 @@ chat model and thinking level remain unchanged. No hosted decision fallback.
 
 ## Three-step default
 
-1. **Locate and edit.** Use scoped `rg -n` or `rg -l` to locate symbols/files,
-   then `read` with offset/limit for relevant ranges and their dependencies. Widen
+1. **Locate and edit.** Prefer task-owned `megai-codedb search "text"` for general
+   repository text discovery, `find NAME` for definitions and `outline FILE` for APIs;
+   set `CODEDB_NO_TELEMETRY=1`. Known ranges go directly to `read`. Use native `rg`
+   for exact/exhaustive checks, absence, failures and post-edit freshness. Repeated
+   literal/regex queries on a large stable tree may use task-owned tgrep when a ready
+   index or measured query volume justifies a bounded on-demand build; no startup
+   index/server or mandatory duplicate search.
+   Then `read` relevant ranges and their dependencies. Widen
    for a named unresolved question; complete mandatory document reads still apply.
    Batch independent lookups into ONE assistant turn; keep dependent operations
    ordered. Keep full logs on disk and inspect relevant ranges, not repeated
@@ -77,12 +83,12 @@ chat model and thinking level remain unchanged. No hosted decision fallback.
    and release-note requirements. No extra review/report stage for routine work,
    optional polish or queue draining after acceptance.
 
-Guarded work adds one independent reviewer, not an automatic writer/scout team.
-Commit before final evidence capture when Git delivery is agreed. The reviewer
-consumes the existing raw evidence rather than rerunning a passing suite by default;
-additional checks need a concrete unresolved risk. Block on demonstrated safety or
-acceptance failures, not editorial preferences. Fix real findings and obtain fresh
-source-current evidence as required; never turn a failed gate into a routine PASS.
+Guarded work requires source-current checks and parent self-review, not a separate
+reviewer step. Commit before final evidence capture when Git delivery is
+agreed. Reuse raw evidence rather than rerunning a passing suite; additional
+checks need a concrete unresolved risk. Block on demonstrated safety or
+acceptance failures, not editorial preferences. Fix real findings and obtain
+fresh source-current evidence as required; never turn a failed gate into a routine PASS.
 
 Missing optional tools never block native discovery. Reuse ready indexes only when
 useful; index on demand, never at startup. Save memory only when explicitly requested.
@@ -115,11 +121,11 @@ auto-compaction setting or transcript edits; do not claim savings without measur
 Direct parent tools are the default for trivial and non-Git local work. Load
 [delegation.md](delegation.md) before native delegation or model-error escalation.
 The optional `native` profile guides GPT Sol coordination, a DeepSeek Flash high
-implementation worker and GPT Astra review; `economy` remains a separate opt-in.
+implementation worker without a separate reviewer step; `economy` remains a separate opt-in.
 Use one writer and verify its diff/tests. Explicit user/task choices override the
 profile, and the active parent's model/thinking never change silently. Auth/permission
 failures, shared outages and uncertain writes need reconciliation, not model hopping.
-Missing required reviewer remains BLOCKED. No speculative extra team.
+Do not create a separate reviewer. No speculative extra team.
 
 Provider stall protection and Headroom remain available without new daemons or hooks.
 These are workflow/cost defaults, not a sandbox or a measured latency/token guarantee.

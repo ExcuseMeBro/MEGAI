@@ -66,7 +66,7 @@ Prefer these over hand-editing — they move the line atomically and refresh `mo
 
 **Choose the path first.**
 
-- **Default fast path:** for every task, run one bounded inspect → implement → code self-review → focused-test sequence. Do not add separate planner, reviewer, UI/design, browser, final-gate, or full-suite agents unless the user explicitly asks or the focused test fails. UI checks are code-only by default: structure, states, accessibility semantics, token/style usage, diagnostics, and component tests; the user owns visual/manual review.
+- **Default fast path:** for every task, run one bounded inspect → implement → code self-review → focused-test sequence. Do not add a separate reviewer step. Do not add planner, UI/design, browser, final-gate, or full-suite agents unless the user explicitly asks or the focused test fails. UI checks are code-only by default: structure, states, accessibility semantics, token/style usage, diagnostics, and component tests; the user owns visual/manual review.
 - **Tracked/high-risk path:** multi-module or public-contract work, auth/security, schema/data/dependency migrations, production/CI/deployment or infrastructure configuration, permissions/retention/destructive behavior, explicitly tracked tasks, or explicit ship/PR requests. Order is analyze → satisfy the required external start boundary → write the local task → act.
 
 **MEGAI Plane boundary:** when `megai-task-flow` is installed, Plane is the coordination authority and `.todos` is its local mirror. Consume every project and project-work-item page before counting candidates; exactly one is usable, zero requires user direction, and multiple matches block. Keep the original `<!-- asana:GID -->` marker until the confirmed `(project UUID, work item UUID)` is recorded. Agents hand off at Plane `In Review` with the item incomplete; only the user moves it to `Done`. Do not use `/td` as a substitute for that user-only transition.
@@ -95,7 +95,7 @@ ADLC labels are bookkeeping, not separate model/tool passes. The execution contr
 | 5 | **review** | Self-review the focused diff for correctness, quality, and unnecessary complexity. |
 | 6 | **ship** | Commit/PR/worktree lifecycle only when explicitly requested or required by the tracked delivery. |
 
-Depth follows the user's task. Independent review, full TDD, full suites, security/design audits, visual QA, and final-gate agents run only when explicitly requested or when a focused failure requires escalation.
+Depth follows the user's task. Full TDD, full suites, security/design audits, visual QA, and final-gate agents run only when explicitly requested or when a focused failure requires escalation; parent self-review handles code review.
 
 ## Priority Markers
 

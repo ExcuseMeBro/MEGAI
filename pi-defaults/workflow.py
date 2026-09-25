@@ -4,14 +4,17 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import os
 from pathlib import Path
 import re
 import ssl
+import stat
 import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.request
 
@@ -207,6 +210,72 @@ def states(project):
             raise ValueError(f"Wrong Plane state group for {name}")
         result[name] = value["id"]
     return result
+
+
+def factory_plan(cwd, selection, expected_project=None):
+    """Read a complete project queue; explicit selectors never broaden its scope."""
+    project = unique(pages("project"), context(cwd)["planeProject"])
+    project_id = project["id"]
+    if expected_project is not None and expected_project != project_id:
+        raise ValueError("Factory project changed; reconcile before continuing")
+    selection = selection.strip()
+    if not selection:
+        raise ValueError("Use /factory all or /factory 12,34,56")
+    workflow = states(project_id)
+    rows = pages("workitem", project_id=project_id)
+    ids = set()
+    for row in rows:
+        if (not isinstance(row, dict) or not isinstance(row.get("id"), str)
+                or not row["id"] or row["id"] in ids
+                or row.get("project", project_id) != project_id
+                or not isinstance(row.get("name"), str)
+                or not isinstance(row.get("state"), str) or not row["state"]
+                or (row.get("sequence_id") is not None and
+                    (type(row["sequence_id"]) is not int or row["sequence_id"] < 1))):
+            raise ValueError("Invalid or duplicate Plane work item")
+        ids.add(row["id"])
+    mode = "all" if selection.casefold() == "all" else "ids"
+    if mode == "ids":
+        tokens = [value.strip() for value in selection.split(",")]
+        prefixes = {str(project.get("identifier", "")).casefold(), project["name"].casefold()}
+        selected, seen = [], set()
+        for token in tokens:
+            number = None
+            if re.fullmatch(r"[1-9][0-9]*", token):
+                number = int(token)
+            elif match := re.fullmatch(r"(.+)-([1-9][0-9]*)", token):
+                if match[1].casefold() in prefixes:
+                    number = int(match[2])
+            is_uuid = bool(re.fullmatch(
+                r"[a-fA-F0-9]{8}(?:-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}", token
+            ))
+            if number is None and not is_uuid:
+                raise ValueError("Use all alone or comma-separated task IDs from this project")
+            matches = [row for row in rows if (
+                row["id"].casefold() == token.casefold() if is_uuid
+                else row.get("sequence_id") == number
+            )]
+            if len(matches) != 1:
+                raise ValueError(f"Task ID {token!r} is missing or ambiguous in this project")
+            if matches[0]["id"] not in seen:
+                selected.append(matches[0])
+                seen.add(matches[0]["id"])
+        rows = selected
+    pending_states = {workflow["Todo"], workflow["In Progress"]}
+    tasks, skipped = [], []
+    for row in rows:
+        item = {key: row.get(key) for key in ("id", "sequence_id", "name", "state", "updated_at")}
+        item["state_name"] = next((name for name, value in workflow.items() if value == row["state"]), "Other")
+        if row["state"] in pending_states:
+            tasks.append(item)
+        elif mode == "ids":
+            skipped.append(item)
+    if mode == "all":
+        tasks.sort(key=lambda item: (item["state"] != workflow["In Progress"],
+                                    item.get("sequence_id") or 0, item["id"]))
+    return {"project_id": project_id, "project_name": project["name"], "mode": mode,
+            "selection": selection, "tasks": tasks, "skipped": skipped,
+            "remaining": len(tasks), "queue_empty": not tasks}
 
 
 def receipt_repositories(receipt):
@@ -630,7 +699,7 @@ def status(cwd, workspace_id=None):
         {"workspaceId": str, "project": str, "name": str, "isolation": str, "cwd": str},
     )
     agents = _rows(
-        _paseo_json("agent", "ls", "--all"),
+        _paseo_json("agent", "ls", "--all", "--global"),
         {"id": str, "shortId": str, "name": str, "provider": str, "thinking": str,
          "status": str, "cwd": str, "created": str},
     )
@@ -745,6 +814,255 @@ def status(cwd, workspace_id=None):
     }
 
 
+def _preserve_generated_ignored(path, repo, workspace_id, ignored):
+    """Atomically move only known bytecode to private storage, never unknown data."""
+    if not ignored:
+        return None
+    root = Path(os.environ.get("MEGAI_CLEANUP_BACKUPS",
+                               Path.home() / ".megai/backups/task-workspaces")).expanduser()
+    if not root.is_absolute() or root.is_symlink() or root.resolve().is_relative_to(path) or root.resolve().is_relative_to(repo):
+        raise ValueError("Cleanup backup must be a private directory outside the repository")
+    root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if root.is_symlink() or not root.is_dir() or root.stat().st_uid != os.getuid() or stat.S_IMODE(root.stat().st_mode) != 0o700:
+        raise ValueError("Cleanup backup directory must be owned and mode 0700")
+    limit = 64 * 1024 * 1024
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    root_fd = os.open(path, directory_flags)
+
+    def parent_fd(relative):
+        fd = os.dup(root_fd)
+        try:
+            for component in relative.parts[:-1]:
+                next_fd = os.open(component, directory_flags, dir_fd=fd)
+                os.close(fd)
+                fd = next_fd
+            return fd
+        except BaseException:
+            os.close(fd)
+            raise
+
+    def inspect(fd, name, budget):
+        metadata = os.stat(name, dir_fd=fd, follow_symlinks=False)
+        if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
+                or metadata.st_size > budget):
+            raise ValueError(f"Generated data is unsafe or exceeds private backup limit: {name}")
+        source_fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=fd)
+        try:
+            before = os.fstat(source_fd)
+            if (before.st_dev, before.st_ino, before.st_size) != (
+                    metadata.st_dev, metadata.st_ino, metadata.st_size):
+                raise ValueError(f"Generated file changed before read: {name}")
+            digest = hashlib.sha256()
+            size = 0
+            while block := os.read(source_fd, min(65536, budget - size + 1)):
+                size += len(block)
+                if size > budget:
+                    raise ValueError(f"Generated data grew beyond private backup limit: {name}")
+                digest.update(block)
+            after = os.fstat(source_fd)
+            if (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, size) != (
+                    before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_size):
+                raise ValueError(f"Generated file changed during read: {name}")
+            return (after.st_dev, after.st_ino, size, after.st_mtime_ns), digest.hexdigest()
+        finally:
+            os.close(source_fd)
+
+    try:
+        files = []
+        total = 0
+        for name in ignored:
+            relative = Path(name)
+            if (relative.is_absolute() or ".." in relative.parts or len(relative.parts) < 2
+                    or relative.parts[-2] != "__pycache__" or relative.suffix != ".pyc"):
+                raise ValueError(f"Unknown ignored data retained: {name}")
+            if len(files) >= 10000:
+                raise ValueError("Too many generated files for private backup")
+            fd = parent_fd(relative)
+            try:
+                identity, digest = inspect(fd, relative.name, limit - total)
+            finally:
+                os.close(fd)
+            total += identity[2]
+            files.append((relative, identity, digest))
+        target = Path(tempfile.mkdtemp(prefix=f"{workspace_id}-", dir=root))
+        print(f"Cleanup private backup: {target}", file=sys.stderr, flush=True)
+        records = []
+        for relative, identity, digest in files:
+            fd = parent_fd(relative)
+            try:
+                if inspect(fd, relative.name, identity[2]) != (identity, digest):
+                    raise ValueError(f"Generated file changed before backup: {relative}; preserve {target}")
+                destination = target / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                target_fd = os.open(destination.parent, directory_flags)
+                try:
+                    current = os.stat(relative.name, dir_fd=fd, follow_symlinks=False)
+                    if (current.st_dev, current.st_ino, current.st_size, current.st_mtime_ns) != identity:
+                        raise ValueError(f"Generated file moved before backup: {relative}; preserve {target}")
+                    os.rename(relative.name, relative.name, src_dir_fd=fd, dst_dir_fd=target_fd)
+                    if inspect(target_fd, relative.name, identity[2]) != (identity, digest):
+                        raise ValueError(f"Generated backup verification failed: {destination}")
+                finally:
+                    os.close(target_fd)
+            finally:
+                os.close(fd)
+            records.append({"path": str(relative), "sha256": digest})
+        fd = os.open(target / "manifest.json", os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        with os.fdopen(fd, "w") as manifest:
+            json.dump({"workspaceId": workspace_id, "files": records}, manifest)
+            manifest.write("\n")
+        return str(target)
+    finally:
+        os.close(root_fd)
+
+
+def cleanup(cwd, workspace_id, branch, tip, target_branch="dev"):
+    """Retire one explicitly pinned task worktree after verified target delivery.
+
+    Run from a retained checkout; any uncertain state is a refusal, never a
+    reason to force-remove a worktree or branch.
+    """
+    if target_branch not in {"dev", "pi"}:
+        raise ValueError("Cleanup target must be dev or explicitly approved pi")
+    policy = context(cwd)
+    repo = Path(primary(cwd))
+    if str(repo) not in policy["repositories"]:
+        raise ValueError("Repository is outside the resolved project")
+    if not re.fullmatch(r"task/[A-Za-z0-9][A-Za-z0-9._/-]*", branch) or branch.endswith(("/", ".lock")):
+        raise ValueError("Only an explicit task branch can be retired")
+    if branch in {"dev", "main", "master", *(_preserve_for(repo, Path(policy["root"]), policy))}:
+        raise ValueError("Protected branch cannot be retired")
+    if not re.fullmatch(r"wks_[A-Za-z0-9_-]+", workspace_id):
+        raise ValueError("Expected exact Paseo workspace ID")
+    if not re.fullmatch(r"[0-9a-f]{40,64}", tip):
+        raise ValueError("Expected full task commit SHA")
+    def check_owners(*, allow_releasable=False):
+        project_rows = _rows(_paseo_json("project", "ls"),
+                             {"projectId": str, "name": str, "kind": str, "path": str})
+        owned = [p for p in project_rows if _expand(p["path"]) == _expand(policy["root"])]
+        if len(owned) != 1 or sum(p["name"] == owned[0]["name"] for p in project_rows) != 1:
+            raise ValueError("Paseo project identity is missing or ambiguous")
+        workspaces = _rows(_paseo_json("workspace", "ls"),
+                           {"workspaceId": str, "project": str, "name": str,
+                            "isolation": str, "cwd": str})
+        matched = [w for w in workspaces if w["workspaceId"] == workspace_id]
+        if len(matched) != 1:
+            raise ValueError("Task workspace missing or ambiguous; reconcile archival before retry")
+        workspace = matched[0]
+        if workspace["project"] != owned[0]["name"] or workspace["isolation"] != "worktree":
+            raise ValueError("Workspace ownership or isolation mismatch")
+        path = _expand(workspace["cwd"])
+        if (path == str(repo) or Path(_expand(cwd)).is_relative_to(path)
+                or _primary_or_none(path) != str(repo)):
+            raise ValueError("Refusing to archive primary, current or foreign workspace")
+        if os.environ.get("PASEO_AGENT_ID") is None:
+            raise ValueError("Invoking agent identity is required")
+        agents = _rows(_paseo_json("agent", "ls", "--all", "--global"),
+                       {"id": str, "shortId": str, "name": str, "provider": str,
+                        "thinking": str, "status": str, "cwd": str, "created": str})
+        released = []
+        releasable = []
+        for agent in agents:
+            if not Path(_expand(agent["cwd"])).is_relative_to(path):
+                continue
+            if agent["id"] == os.environ["PASEO_AGENT_ID"]:
+                raise ValueError("Invoking agent still owns the task workspace")
+            detail = _paseo_json("agent", "inspect", agent["id"])
+            if (_inspect_problem(detail) or detail["Id"] != agent["id"]
+                    or _expand(detail["Cwd"]) != _expand(agent["cwd"])
+                    or agent["status"] != detail["Status"]
+                    or detail["Status"] not in ({"idle", "closed"} if detail["Archived"] else {"idle"})
+                    or detail.get("PendingPermissions") != []):
+                raise ValueError(f"Agent {agent['id']} is not safely released")
+            if detail["Archived"]:
+                released.append(agent["id"])
+            elif allow_releasable and detail.get("ParentAgentId") == os.environ["PASEO_AGENT_ID"]:
+                releasable.append(agent["id"])
+            else:
+                raise ValueError(f"Agent {agent['id']} is not safely released")
+        if not released and not releasable:
+            raise ValueError("No archived agent release evidence for task workspace")
+        terminals = _rows(_paseo_json("terminal", "ls", "--workspace", workspace_id), {})
+        if terminals:
+            raise ValueError("Task workspace still owns terminals")
+        return (owned[0]["projectId"], path, tuple(sorted(released)),
+                tuple(sorted(releasable)))
+
+    owners = check_owners(allow_releasable=True)
+    path = owners[1]
+
+    def check_git(*, allow_generated=False):
+        registered, error = _git_worktrees(repo)
+        if error:
+            raise ValueError(error)
+        target_entries = [e for e in registered if e["branch"] == target_branch]
+        if (len(target_entries) > 1 or any(e["locked"] for e in target_entries)
+                or (target_branch == "dev" and len(target_entries) != 1)):
+            raise ValueError(f"A retained {target_branch} checkout is required before workspace archival")
+        entries = [e for e in registered if _expand(e["path"]) == path]
+        ref, ref_error = _local_ref(repo, branch)
+        target, target_error = _local_ref(repo, target_branch)
+        dirty, _, status_error = _git_status(path)
+        ignored, ignored_error = _git_ignored(path)
+        operation, operation_errors = _git_operation(path)
+        if (len(entries) != 1 or entries[0]["locked"] or entries[0]["branch"] != branch
+                or entries[0]["head"] != tip or ref != tip or not target
+                or any(e["head"] != target for e in target_entries)
+                or ref_error or target_error or status_error or ignored_error
+                or operation_errors or dirty or (ignored and not allow_generated) or operation
+                or _primary_or_none(path) != str(repo)):
+            raise ValueError("Task workspace/ref changed, contains data, or has an unfinished operation")
+        ancestor, ancestor_error = _ancestor(repo, tip, target)
+        if ancestor_error or not ancestor:
+            raise ValueError(f"Task tip is not included in local {target_branch}")
+        return target, target_entries[0]["path"] if target_entries else str(repo)
+
+    target, target_path = check_git(allow_generated=True)
+    ignored, error = _git_ignored(path)
+    if error:
+        raise ValueError(error)
+    if check_git(allow_generated=True) != (target, target_path) or check_owners(allow_releasable=True) != owners:
+        raise ValueError("Task workspace, ownership or target moved before agent release")
+    if _git_ignored(path) != (ignored, None):
+        raise ValueError("Ignored data moved before preservation")
+    backup = _preserve_generated_ignored(path, repo, workspace_id, ignored)
+    if check_git() != (target, target_path) or check_owners(allow_releasable=True) != owners:
+        raise ValueError(f"Task workspace changed after backup; preserved: {backup}")
+    for index, child_id in enumerate(owners[3]):
+        _paseo_json("agent", "archive", child_id)  # No --force; retain on uncertainty.
+        expected = (owners[0], owners[1],
+                    tuple(sorted((*owners[2], *owners[3][:index + 1]))), owners[3][index + 1:])
+        if check_owners(allow_releasable=True) != expected:
+            raise ValueError("Child archive unconfirmed; workspace and branch retained")
+    # Recheck Git and all Paseo owners immediately before retiring the worktree.
+    if check_git() != (target, target_path) or check_owners() != (
+            owners[0], owners[1], tuple(sorted((*owners[2], *owners[3]))), ()):
+        raise ValueError("Task workspace, ownership or target moved during cleanup")
+    _paseo_json("workspace", "archive", workspace_id)
+    remaining, worktree_error = _git_worktrees(repo)
+    if (worktree_error or any(w["workspaceId"] == workspace_id for w in _rows(
+            _paseo_json("workspace", "ls"), {"workspaceId": str, "project": str,
+                                            "name": str, "isolation": str, "cwd": str}))
+            or os.path.lexists(path)
+            or any(_expand(e["path"]) == path for e in remaining)):
+        raise ValueError("Workspace archive unconfirmed; branch retained for reconciliation")
+    ref, error = _local_ref(repo, branch)
+    current_target, target_error = _local_ref(repo, target_branch)
+    if error or target_error or ref != tip or current_target != target:
+        raise ValueError("Refs moved after archive; branch retained")
+    # A per-command local upstream makes branch -d check the verified target
+    # without switching the retained checkout or changing branch configuration.
+    git(target_path, "-c", f"branch.{branch}.remote=.",
+        "-c", f"branch.{branch}.merge=refs/heads/{target_branch}",
+        "branch", "-d", "--", branch)
+    remaining_ref, read_error = _local_ref(repo, branch)
+    if read_error or remaining_ref is not None:
+        raise ValueError("Branch deletion unconfirmed")
+    return {"workspaceId": workspace_id, "branch": branch, "tip": tip,
+            "targetBranch": target_branch, "target": target,
+            **({"dev": target} if target_branch == "dev" else {}), "archived": True, "branchDeleted": True, "backup": backup}
+
+
 def _inspect_problem(inspect):
     """Blocker reason when the documented inspect fields are missing or mistyped."""
     if not isinstance(inspect, dict):
@@ -807,7 +1125,7 @@ def _workspace_row(
         archived = inspect["Archived"]
         permissions = inspect.get("PendingPermissions")
         identity_ok = inspect["Id"] == item["id"] and _expand(inspect["Cwd"]) == cwd_value
-        if item["status"] != "idle":
+        if item["status"] not in ({"idle", "closed"} if archived else {"idle"}):
             blocked.append(f"agent-list-not-idle:{item['status']}")
             busy = True
             bad = True
@@ -831,7 +1149,7 @@ def _workspace_row(
             blocked.append("inspect-identity-mismatch")
             busy = True
             bad = True
-        if archived and inspect["Status"] != "idle":
+        if archived and inspect["Status"] not in {"idle", "closed"}:
             blocked.append("incomplete-terminal-evidence")
             bad = True
     released = bool(matched) and not bad and not busy and not protected
@@ -1002,6 +1320,12 @@ def main():
     sub = parser.add_subparsers(dest="command", required=True)
     cmd = sub.add_parser("context")
     cmd.add_argument("--cwd", default=os.getcwd())
+    cmd = sub.add_parser("cleanup")
+    cmd.add_argument("--target-branch", choices=("dev", "pi"), default="dev")
+    cmd.add_argument("--cwd", default=".")
+    cmd.add_argument("--workspace", required=True)
+    cmd.add_argument("--branch", required=True)
+    cmd.add_argument("--tip", required=True)
     cmd = sub.add_parser("status")
     cmd.add_argument("--cwd", default=os.getcwd())
     cmd.add_argument("--workspace")
@@ -1013,6 +1337,10 @@ def main():
     cmd.add_argument("--task-id", required=True)
     cmd.add_argument("--title", required=True)
     cmd.add_argument("--cwd", default=os.getcwd())
+    cmd = sub.add_parser("factory-plan")
+    cmd.add_argument("--selection", required=True)
+    cmd.add_argument("--project-id")
+    cmd.add_argument("--cwd", default=os.getcwd())
     for name in ("review", "done"):
         cmd = sub.add_parser(name)
         cmd.add_argument("--project-id", required=True)
@@ -1023,31 +1351,28 @@ def main():
     cmd = sub.add_parser("verify-main")
     cmd.add_argument("receipt")
     args = parser.parse_args()
+    if args.command == "cleanup":
+        return cleanup(args.cwd, args.workspace, args.branch, args.tip, args.target_branch)
     if args.command == "context":
         return context(args.cwd)
     if args.command == "status":
         return status(args.cwd, args.workspace)
     if args.command == "verify-main":
         return verify_main(json.loads(Path(args.receipt).read_text()))
+    if args.command == "factory-plan":
+        return factory_plan(args.cwd, args.selection, args.project_id)
     if args.command == "factory-start":
         project = unique(pages("project"), context(args.cwd)["planeProject"])["id"]
         if project != args.project_id:
             raise ValueError("Selected task belongs to another Plane project")
         workflow = states(project)
-        labels = [row for row in pages("label", project_id=project)
-                  if row["name"].strip().casefold() == "factory-ready"]
-        if len(labels) != 1:
-            raise ValueError("Factory requires one existing factory-ready label")
-
         def selected():
             item = call("workitem", {"action": "retrieve", "project_id": project,
                                      "workitem_id": args.task_id})
             if (not isinstance(item, dict) or item.get("id") != args.task_id
                     or item.get("project", project) != project
                     or item.get("name") != args.title
-                    or item.get("state") != workflow["Todo"]
-                    or not isinstance(item.get("labels"), list)
-                    or labels[0]["id"] not in item["labels"]
+                    or item.get("state") not in (workflow["Todo"], workflow["In Progress"])
                     or not (item.get("description_stripped") or "").strip()):
                 raise ValueError("Selected factory item is missing or no longer eligible")
             return item
@@ -1056,8 +1381,10 @@ def main():
         latest = selected()
         if any(first.get(key) != latest.get(key) for key in
                ("id", "name", "state", "labels", "description_stripped",
-                "description_html", "updated_at")):
+                "description_html", "assignees", "parent", "updated_at")):
             raise ValueError("Selected factory item changed before start")
+        if latest["state"] == workflow["In Progress"]:
+            return {"project_id": project, "task_id": args.task_id, "state": "In Progress"}
         # Plane has no conditional update; only the selected UUID is ever mutated.
         result = call("workitem", {"action": "update", "project_id": project,
                                    "workitem_id": args.task_id,

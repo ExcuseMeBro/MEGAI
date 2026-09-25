@@ -16,7 +16,7 @@ staging or commits in the dev/main checkout are forbidden.
 ## Pi verification mode
 
 For Pi, `megai` selects routine or guarded verification before edits. Below,
-independent review and formal acceptance apply to guarded work or stricter project
+formal acceptance and parent self-review apply to guarded work or stricter project
 rules; routine work uses actual focused tests and parent self-review. Multi-repo
 delivery and concurrency/shared-state changes are guarded. Workspace isolation,
 backups, target reservations and approval boundaries apply in both modes. Load this
@@ -96,10 +96,10 @@ Production deployment, secrets and destructive migrations retain separate approv
 
 ## All-repo readiness and dev delivery
 
-1. Preserve mode-appropriate review and actual acceptance for **all affected repos and
+1. Preserve parent self-review and mode-appropriate acceptance for **all affected repos and
    configuration scopes before the first dev mutation**: routine Pi uses focused tests
    and parent self-review; guarded Pi (including multi-repo delivery) requires the
-   independent formal gate. Other harnesses retain their required independent review.
+   formal gate and parent self-review. Other harnesses retain their own review rules.
    Commit only owned changes in task worktrees, then capture source-current evidence
    per worktree. Once ready, proceed to local dev delivery without an extra user
    confirmation; a task request already authorizes this step, not push or main.
@@ -143,7 +143,7 @@ Production deployment, secrets and destructive migrations retain separate approv
    remaining repositories may proceed. Never replay already-delivered repositories.
    Only `finish --outcome completed` after
    actual delivery checks the candidate vector; it never substitutes for mode-appropriate
-   current acceptance (independent formal evidence for guarded Pi; focused tests and
+   current acceptance (formal check evidence for guarded Pi; focused tests and
    self-review for routine Pi). Queue release/recovery follows its contract.
 5. Verify the delivered dev vector and task-wide behavior, then automatically run
    **Post-merge cleanup** below without another user prompt, before handoff In Review,
@@ -259,7 +259,11 @@ approval. It is agent workflow, not a Git hook or background cleanup service.
    logs, session/evidence bytes and recovery refs in verified private backups
    outside retiring paths. A clean `git status` alone does not cover ignored data.
 2. **Release owners.** Finish mode-appropriate verification before retirement;
-   release task writers, reviewers, owned terminals and workspace services. Check
+   task writers/reviewers must finish with saved final results and no follow-up work.
+   From a retained parent checkout, pinned cleanup archives only that parent's idle
+   direct children after checking their parent ID, cwd and pending permissions;
+   never archive the invoking parent, another parent's child or an active agent.
+   Release owned terminals and workspace services. Check
    current Paseo agents/terminals and Git worktree ownership. An idle agent is not
    proof of release; active, unknown or another task's owners require retention.
    Never archive the current parent workspace from inside its own retiring cwd:
@@ -275,7 +279,29 @@ approval. It is agent workflow, not a Git hook or background cleanup service.
    without ancestry proof is retained for explicit reconciliation, not force
    deletion. Keep the applicable integration reservation through retirement;
    if already released, reacquire it and revalidate before deleting refs.
-4. **Archive, then delete.** Use supported Paseo `archive_workspace` only for the
+4. **Archive, then delete.** From a retained checkout, after all task owners
+   are released and the reservation is held, run
+   `pi-workflow cleanup --cwd PRIMARY --workspace EXACT_ID --branch task/SLUG --tip FULL_TASK_SHA`
+   for each delivered task worktree. For explicitly approved `pi` delivery append
+   `--target-branch pi`: it proves ancestry against local `pi`, without switching
+   the retained checkout or changing persistent branch refs. Other targets retain
+   the separately approved lifecycle procedure. It automatically archives only verified idle
+   direct children of the invoking parent, then rereads owner and terminal state.
+   Discovery includes global archived agents. Archived `closed` or `idle` owners
+   require matching inspect identity/status and no pending permissions.
+   Unarchived foreign/unknown children and missing release evidence still block.
+   Its local-`dev` ancestry check is sufficient
+   for local dev-only delivery; remote `dev` is not a prerequisite unless the
+   task separately approved a push. The command refuses busy agents, terminals,
+   untracked source, other ignored data, moved refs and uncertain ownership. Known
+   generated `__pycache__/*.pyc` is preserved in a private verified backup before
+   archiving the exact
+   Paseo workspace, reads back its absence, then deletes only the proven merged
+   local branch. Record its JSON result or exact refusal. If workspace archival
+   succeeded but branch deletion failed, keep the branch for read-only
+   reconciliation; never invent a missing workspace to retry cleanup. An
+   explicitly approved main promotion additionally requires main ancestry proof
+   before retirement. Use supported Paseo `archive_workspace` only for the
    released, clean, safely delivered task workspace. Describe its current schema
    first; preserve required session/evidence bytes before archival. Verify it is
    inactive and its managed worktree is absent from both Git and the filesystem

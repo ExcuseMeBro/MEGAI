@@ -356,12 +356,12 @@ def _contract(value: object) -> dict[str, object]:
     if not isinstance(value, dict) or not _is_int(value.get("schema")):
         raise GateError("Unsupported contract schema")
     version = value["schema"]
-    if version == 2:
+    if version in {2, 3}:
         keys.add("task_type")
     allowed = keys | ({"reviewer"} if version == 2 else set())
-    if version not in {1, 2} or not keys <= set(value) or set(value) - allowed:
+    if version not in {1, 2, 3} or not keys <= set(value) or set(value) - allowed:
         raise GateError("Unsupported contract schema")
-    if version == 2 and value["task_type"] not in ("bugfix", "change", "docs"):
+    if version in {2, 3} and value["task_type"] not in ("bugfix", "change", "docs"):
         raise GateError("Invalid task type")
     if "reviewer" in value:
         reviewer = value["reviewer"]
@@ -417,7 +417,7 @@ def _contract(value: object) -> dict[str, object]:
     regression_count = 0
     for criterion in criteria:
         allowed = {"id", "kind", "expected", "command", "target"}
-        if version == 2:
+        if version in {2, 3}:
             allowed.add("regression")
         required = {"id", "kind", "expected", "command"}
         if (
@@ -462,7 +462,7 @@ def _contract(value: object) -> dict[str, object]:
             raise GateError("Test criterion target forbidden")
     if bool(runtime_count) != runtime["required"]:
         raise GateError("Runtime criteria mismatch")
-    if version == 2 and value["task_type"] == "bugfix" and not regression_count:
+    if version in {2, 3} and value["task_type"] == "bugfix" and not regression_count:
         raise GateError("Bugfix requires a regression criterion")
     return value
 
@@ -548,7 +548,9 @@ def check(
             raise GateError("Contract hash mismatch")
         contract = _contract(_json_file(contract_path))
         evidence = _json_file(evidence_path)
-        evidence_keys = {"schema", "contract_sha256", "snapshot", "checks", "review"}
+        evidence_keys = {"schema", "contract_sha256", "snapshot", "checks"}
+        if contract["schema"] != 3:
+            evidence_keys.add("review")
         if (
             not isinstance(evidence, dict)
             or set(evidence) != evidence_keys
@@ -604,6 +606,8 @@ def check(
                 result = "FAIL"
         if seen != set(criteria):
             raise GateError("Missing criterion evidence")
+        if contract["schema"] == 3:
+            return result, []
         review = evidence["review"]
         review_keys = {
             "session_id",
@@ -769,7 +773,7 @@ def run(
 
 
 def collect(root_arg: Path, contract_file: Path, approved: str, output: Path) -> int:
-    """Capture frozen commands once; leave observations/review explicitly incomplete."""
+    """Capture frozen commands once; leave observations explicitly incomplete."""
     root = _repo_root(root_arg)
     contract_path = _external_regular(contract_file, root)
     if not _is_hash(approved) or _file_sha256(contract_path)[0] != approved:
@@ -786,23 +790,27 @@ def collect(root_arg: Path, contract_file: Path, approved: str, output: Path) ->
          "receipt": f"{index:03d}/receipt.json", "artifacts": []}
         for index, criterion in enumerate(contract["criteria"])
     ]
-    reviewer = contract.get("reviewer")
-    review = (
-        {"harness": "pi", "model": "", "thinking": "high"}
-        if reviewer is None
-        else {"harness": reviewer["harness"], "model": reviewer["model"],
-              "thinking": reviewer["thinking"]}
-    )
     draft = {
         "schema": 1, "contract_sha256": approved, "snapshot": candidate,
         "checks": checks,
-        "review": {**review, "session_id": "",
-                   "verdict": "BLOCKED", "snapshot": candidate, "contract_sha256": approved,
-                   "criteria": [item["id"] for item in checks],
-                   "artifact": {"path": "", "sha256": ""}},
     }
+    if contract["schema"] != 3:
+        reviewer = contract.get("reviewer")
+        review = (
+            {"harness": "pi", "model": "", "thinking": "high"}
+            if reviewer is None
+            else {"harness": reviewer["harness"], "model": reviewer["model"],
+                  "thinking": reviewer["thinking"]}
+        )
+        draft["review"] = {**review, "session_id": "",
+                           "verdict": "BLOCKED", "snapshot": candidate,
+                           "contract_sha256": approved,
+                           "criteria": [item["id"] for item in checks],
+                           "artifact": {"path": "", "sha256": ""}}
     result = "BLOCKED"
-    reasons = ["Draft only: actual observations and independent review are required"]
+    reasons = ["Draft only: actual observations are required"]
+    if contract["schema"] != 3:
+        reasons[0] = "Draft only: actual observations and independent review are required"
     try:
         for index, criterion in enumerate(contract["criteria"]):
             if snapshot(root) != candidate or _file_sha256(contract_path)[0] != approved:

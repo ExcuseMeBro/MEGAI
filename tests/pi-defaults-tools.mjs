@@ -27,7 +27,7 @@ try {
   assert.deepEqual(loaded.errors, [], 'Pi extensions must load without errors');
   const tools = loaded.extensions.flatMap(extension => [...extension.tools.keys()]);
   const required = readFileSync(resolve('pi-defaults/verify.mjs'), 'utf8')
-    .match(/const requiredTools = \[(.*?)\]/s)[1].match(/'[^']+'/g).map(name => name.slice(1, -1));
+    .match(/const requiredTools = (?:engineeringOnly \? \[\] : )?\[(.*?)\]/s)[1].match(/'[^']+'/g).map(name => name.slice(1, -1));
   assert.deepEqual(required.filter(name => !tools.includes(name)), [], 'No required Pi tools missing');
   assert.ok(!tools.includes('sift'), 'Core dependency-only loader does not install optional local Laya');
 

@@ -114,7 +114,9 @@ def migrate_known_agy_policy(plan, root: Path, source: Path) -> None:
     injected = helpers["INJECTED_BLOCK"]
     base = injected.sub(b"", current).strip()
     native = (source / "pi-defaults/AGENTS.md").read_bytes()
-    if base == native.strip():
+    # Both files may contain managed engineering/runtime blocks. Compare their
+    # base policy consistently; the block owners preserve and update those bytes.
+    if base == injected.sub(b"", native).strip():
         return
     if hashlib.sha256(base).hexdigest() != KNOWN_AGY_POLICY_SHA256:
         raise ValueError(f"unrecognized/custom Pi AGENTS base preserved: {path}; reconcile manually")

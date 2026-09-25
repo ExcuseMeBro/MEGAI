@@ -146,7 +146,7 @@ class Slim(unittest.TestCase):
         for clause in ("## Non-Git local work", '`isolation: "local"`',
                        '`labels: {"megai.access": "read-only"}`', "not a filesystem sandbox",
                        "Git source isolation", "same task name", "ADAM full",
-                       "Preserve mode-appropriate", "Multiple workspaces are normal",
+                       "mode-appropriate acceptance", "Multiple workspaces are normal",
                        "not permission to delete", "no new infra repo"):
             self.assertIn(clause.lower(), lifecycle.lower())
         self.assertEqual(lifecycle, (ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text())
@@ -873,7 +873,7 @@ assert first.read_bytes()==b'concurrent after publish'
 
     def test_policy_guards_and_public_branch(self):
         policy = (ROOT / "task-flow/skills/megai-task-flow/SKILL.md").read_text()
-        for required in ("every Plane project page", "every workflow-state page", "group=started", "automatically create exactly one item without asking for approval", "In Progress", "In Review", "Only the user", "independent review", "same task branch/slug", "unavailable", "before retrying"):
+        for required in ("every Plane project page", "every workflow-state page", "group=started", "automatically create exactly one item without asking for approval", "In Progress", "In Review", "Only the user", "parent self-review", "same task branch/slug", "unavailable", "before retrying"):
             self.assertIn(required.lower(), policy.lower())
         for active in (ROOT / "pi-skill/SKILL.md", ROOT / "skills/agent-worktree-lifecycle/SKILL.md", ROOT / "task-flow/skills/megai-task-flow/SKILL.md"):
             self.assertNotIn(".todos", active.read_text())

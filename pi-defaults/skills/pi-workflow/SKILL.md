@@ -5,6 +5,9 @@ description: Start and deliver tracked project changes with Plane, dev/main bran
 
 # Project work
 
+For broad code discovery, Matt skill stages or context pressure, read
+[context-economy.md](context-economy.md) once. Known small edits go directly to source.
+
 1. Run `pi-workflow context` in the current folder. Read the reported rule files.
    `.pi/project.json` is local configuration: `layout` is `mono` or `multi`,
    `planeProject` is an existing Plane project name, `repositories` lists relative
@@ -14,9 +17,12 @@ description: Start and deliver tracked project changes with Plane, dev/main bran
    pages, reuses an exact match or creates Todo, then moves it to In Progress.
    Keep its project/task UUID pair throughout refinements. Missing or ambiguous
    identity or workflow states block edits. Children inherit this pair read-only.
-   For `/factory` only, use `pi-workflow factory-start --project-id UUID --task-id UUID
-   --title "EXACT TASK TITLE"` instead of `start`: it validates the selected existing
-   factory-ready Todo item and never creates a replacement. Do not invoke both.
+   For `/factory all` or `/factory 12,34,56`, use `factory-plan` to resolve the
+   current-project selection, then `pi-workflow factory-start --project-id UUID
+   --task-id UUID --title "EXACT TASK TITLE"` instead of `start` for each task.
+   It starts an existing Todo item or resumes In Progress and never creates a
+   replacement. Follow the factory prompt's refresh/completion loop; each task
+   keeps its own identity. Do not invoke both start commands.
 3. Define task acceptance in the same Plane item. Use a managed Paseo worktree
    from dev per task. For a monorepo, one worktree contains all packages. For a
    grouped project, create one worktree per affected Git repo under the same
@@ -31,7 +37,7 @@ description: Start and deliver tracked project changes with Plane, dev/main bran
    branch overrides dev delivery: work on/push that branch only and retain it.
    Preserve dev, main, every locally configured extra branch, and unmerged work.
 5. Run task acceptance checks, inspect the full diff, and fix review findings.
-   After acceptance and required review, reserve all integration targets using
+   After acceptance and parent self-review, reserve all integration targets using
    `megai queue`, then automatically deliver verified task commits to local dev
    without waiting for another user confirmation. Ordinary single-task delivery may use
    `git merge --ff-only --no-overwrite-ignore`; `/mdev` all-candidates delivery instead
@@ -40,10 +46,24 @@ description: Start and deliver tracked project changes with Plane, dev/main bran
    are merged rather than stalled. Preserve a colliding ignored file outside the checkout
    before a bounded retry; never overwrite or delete it.
    Verify exact delivered commits and
-   complete the reservation; on a moved/dirty target, stale evidence or uncertain
+   keep the reservation through cleanup; on a moved/dirty target, stale evidence or uncertain
    result, retain task resources and reconcile instead of forcing or assuming success.
    Push only with separate explicit approval. Perform safe task-owned post-merge
-   workspace/branch cleanup before handing off In Review. Keep a receipt JSON:
+   workspace/branch cleanup before handing off In Review. From a retained checkout,
+   after task agents have finished and terminals are released, run `pi-workflow cleanup --cwd
+   PRIMARY --workspace EXACT_ID --branch task/SLUG --tip FULL_TASK_SHA` for each
+   delivered worktree. For explicitly approved `pi` delivery, append
+   `--target-branch pi`; the primary checkout stays on its existing branch.
+   The command archives verified idle direct children of the
+   invoking parent before their workspace, rereads the released owner state and
+   never archives the parent or a foreign agent. Local dev-only delivery does not
+   require remote dev to move; it checks the selected local target ancestry and privately preserves
+   bounded generated `__pycache__/*.pyc` with verified hashes. It refuses other dirty,
+   ignored, active, unknown, unmerged and moved resources. It archives through Paseo before deleting the
+   local task branch. Agent discovery is global; archived `closed` and archived
+   `idle` owners are released only with matching inspect identity and no pending
+   permissions. Complete the reservation after cleanup. A refusal retains remaining resources for reconciliation;
+   never force-delete or archive the invoking workspace. Keep a receipt JSON:
    `{"repositories":[{"path":"/absolute/primary/repo","commit":"FULL_SHA","remote":"origin"}]}`.
    List every affected repository and its delivered commit. Runtime-only changes
    without a Git delivery remain In Review until a user-owned completion decision.

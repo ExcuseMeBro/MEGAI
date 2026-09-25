@@ -31,16 +31,12 @@ Pi startup never updates packages or builds indexes automatically.
 | 🐍 Ruff | Check changed Python without automatic fixes |
 | 🧠 Headroom 0.37.0 | Local discovery compression; raw source/tests/failures |
 | 🔎 codedb / tgrep 1.0.4 / zvec-grep 0.2.1 | Structure, ranked text, local intent search |
-| 🦸 Superpowers 5.1.0 | Automatic bootstrap and matching engineering skills |
-| 🐴 Ponytail 4.9.0 | Default full mode; smallest complete implementation |
-| 📐 OpenSpec 1.13.0 | Global core skills and `/opsx-*` commands, telemetry disabled |
 | 🔌 pi-mcp-adapter 2.33.0 | Lazy Plane and zvec MCP |
 | 🌐 pi-web-access 0.29.0 | Exa public search without a separate key, page fetching |
 | ⚡ Local Laya multilingual | On-device typed decisions and file relevance; compaction falls back to Pi when not safely reducible. No browser agent. |
-| 🧑‍🤝‍🧑 Native Paseo agents | Bounded children and required independent review; no Pi package |
+| 🧑‍🤝‍🧑 Native Paseo agents | Bounded implementation children; parent self-reviews |
 
 Package versions and integrity hashes are in [package-lock.json](pi-defaults/package-lock.json).
-Superpowers' extra delegation extension is excluded: only its bootstrap is loaded, and
 native Paseo agents own delegation, one writer per worktree. Shared legacy skill discovery
 is excluded from this Pi profile to avoid contradictory defaults. Other agents retain
 their own configuration.
@@ -114,7 +110,7 @@ agent repeats after another agent already read it — use
 ## 🗂️ Plane and branches
 
 Workspace `brodev`: **Todo → In Progress → In Review → Done**. Plane is the only
-execution tracker. OpenSpec specifications and verification receipts are artifacts,
+execution tracker. Technical designs and verification receipts are artifacts,
 not a second board. The existing private Plane token stays outside Pi and Git at
 `~/.config/megai/credentials/plane-api-token` (mode 600).
 
@@ -135,28 +131,40 @@ A missing merge or changed item leaves the task In Review. Plane lacks condition
 updates: serialize task boundary edits; the command checks for concurrent changes
 immediately before its final write. There is no unattended watcher or automatic merge.
 
-The `/factory` prompt template is installed globally: `/factory` runs one existing
-`factory-ready`-labelled Todo item from the current Plane project when it has actionable
-acceptance and is the only eligible item. Use `/factory "exact ticket title"` to select
-one explicitly. Ambiguous or incomplete lookups stop; the UUID-bound
-`pi-workflow factory-start` never creates a ticket or starts a daemon, and the
-prompt never pushes, promotes main or marks Done. It follows the normal worktree,
-verification, local dev delivery and In Review rules. Run `/reload` in an existing Pi
-session after installation. This is an agent prompt, not an enforcement boundary.
+The global `/factory all` prompt implements the current Plane project's Todo and
+In Progress tasks sequentially, refreshing after each verified In Review handoff
+until a complete lookup finds neither state remaining. `/factory 12,34,56` limits
+the run to those task numbers; qualified project IDs and UUIDs are also accepted.
+No `factory-ready` label is needed. Bare `/factory` shows usage without starting work.
+`pi-workflow factory-plan --selection all` performs read-only queue discovery;
+`factory-start` starts/resumes only the selected existing UUID. Independent tasks
+continue past task-local blockers; a queue with only blockers stops honestly with
+remaining IDs, without pretending it is empty. Existing worktree, tests/review,
+local dev delivery and approval rules apply; no push, main promotion or Done.
+Run `/reload` in an existing Pi session after installation. This is an agent prompt,
+not an unattended daemon, distributed lock or enforcement boundary.
 
 The `/mdev` and `/prdev` prompt templates are installed globally: `/mdev` is explicit
 authorization to reconcile, review, merge and push task work into `dev` (no repeated approval)
-and to clean safe local task workspaces, and `/prdev` opens the `dev` → `main` pull request
-without merging. Neither promotes `main`, and both keep delivery evidence bound to the exact
-recorded SHAs.
+and to clean safe local task workspaces. `/prdev` authorizes a necessary verified non-force
+dev push and opens or reuses the `dev` → `main` pull request without merging. Neither promotes
+`main`; both bind evidence to exact SHAs and reserve shared publication targets through
+`megai queue`. Existing PRs are revalidated by repository and branch identity, not duplicated
+when their heads move. An already-integrated dev head is a completed no-op.
 
 Both complete recoverable prerequisites instead of stopping: a local `dev` ahead of its remote,
 ignored or ignored-untracked files, a missing Plane identity, missing or stale evidence, a moved
-ref and an ordinary `dev`-vs-`main` difference are work to finish, not blockers. They stop only
-for a write into another owner's work, an ambiguous product decision, or an action outside their
-authorization (main promotion, force, remote branch deletion, another project). Ignored files
+ref and an ordinary `dev`-vs-`main` difference are work to finish. Failed verification,
+unavailable evidence/authentication, ambiguous ownership/destinations, exhausted bounded recovery
+or actions outside authorization hold the affected row; independent rows still proceed.
+Uncommitted task work remains explicitly unfinished even if its pinned commits were delivered.
+Ignored files
 never block that decision, but the `dev` fast-forward uses `--no-overwrite-ignore` so a
 colliding ignored file is preserved and reported instead of silently overwritten.
+
+The credentials-free [saved local Pi profile](pi-defaults/local-profile/README.md) records
+the current model, thinking, timeout, fallback and MCP preferences. It is an explicit
+restoration reference; installing MEGAI does not silently replace preferences with it.
 
 The persistent branches are `dev` and `main`. Normal task branches start from dev
 in managed Paseo worktrees and deliver to dev after tests/review. Main promotion
@@ -210,8 +218,21 @@ must not contain private repository content or credentials.
 ## 📚 Upstream references
 
 [Pi packages](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/packages.md),
-[Superpowers](https://github.com/weiping/pi-superpowers),
-[Ponytail](https://github.com/DietrichGebert/ponytail),
-[OpenSpec](https://github.com/Fission-AI/OpenSpec),
 [web access](https://github.com/nicobailon/pi-web-access),
 [MCP adapter](https://github.com/nicobailon/pi-mcp-adapter).
+
+### Focused engineering workflow
+
+Pi ships four adapted Matt Pocock skills: `codebase-design` for interfaces,
+`diagnosing-bugs` for reproductions, `tdd` for behavior changes, and `code-review`
+for Standards and Spec checks. They load on demand; Plane and Pi workflow retain
+tracking and delivery. Docs and small config changes use focused validation.
+Ponytail, OpenSpec and the automatic Superpowers bootstrap are retired. Existing installations
+can run `MEGAI_SOURCE=/path/to/MEGAI python3 /path/to/MEGAI/lib/pi_engineering.py --apply`
+to migrate only engineering settings with private backups; custom skill collisions
+stop before writes. Use `--verify` for installed-byte checks and native Pi loading
+for activation (`node pi-defaults/verify.mjs --engineering-only` checks this scoped
+workflow without requiring optional web tools). Restart Pi sessions after updating.
+
+Historical specifications are preserved under `docs/history/specifications/`;
+they are records, not an active OpenSpec workspace or execution tracker.

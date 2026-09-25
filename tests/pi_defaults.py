@@ -294,17 +294,18 @@ class Distribution(unittest.TestCase):
         self.assertNotIn("subagents", settings)
         sources = [entry["source"] for entry in settings["packages"]]
         self.assertEqual([s for s in sources if "subagent" in s], [])
-        superpowers = next(
-            e for e in settings["packages"] if "pi-superpowers" in e["source"]
-        )
-        self.assertEqual(superpowers["extensions"], ["extensions/bootstrap.ts"])
+        self.assertFalse(any("pi-superpowers" in s or "ponytail" in s or "openspec" in s for s in sources))
         verify = (DEFAULTS / "verify.mjs").read_text()
-        required = re.search(r"const requiredTools = \[(.*?)\]", verify, re.S).group(1)
+        required = re.search(r"const requiredTools = .*?\[(.*?)\];", verify, re.S).group(1)
         self.assertNotIn("subagent", required)
         removed = re.search(r"const removedTools = \[(.*?)\]", verify, re.S).group(1)
         self.assertIn("subagent", removed)
         self.assertNotIn("sift", required)
-        self.assertNotIn("`sift`", (DEFAULTS / "AGENTS.md").read_text())
+        profile = (DEFAULTS / "AGENTS.md").read_text()
+        # Optional local screening is supported; it must not exclude required evidence.
+        self.assertIn("local `sift` batch", profile)
+        self.assertIn("A low score never excludes a required dependency, test, changed file or error case.", profile)
+        self.assertIn("proves correctness or replaces independent review", profile)
         self.assertNotIn(retired.TOOL, required)
 
     def test_settings_and_mcp_merge_never_drop_operator_keys(self):
@@ -319,6 +320,8 @@ class Distribution(unittest.TestCase):
             "defaultModel": "deepseek-flash",
             "modelThinkingLevels": {"deepseek/deepseek-flash": "high"},
             "skills": ["!~/mine/**"],
+            "packages": ["npm:custom-package", {"source": "npm:pi-mcp-adapter@old", "extensions": ["custom-filter"]},
+                         "npm:@fission-ai/openspec@1.13.0"],
         }
         settings = install.profile_settings(
             self.package["dependencies"], Path("/Users/example"), current
@@ -328,10 +331,14 @@ class Distribution(unittest.TestCase):
         self.assertEqual(settings["modelThinkingLevels"], {"deepseek/deepseek-flash": "high"})
         self.assertEqual(settings["theme"], "light")
         self.assertIn("!~/mine/**", settings["skills"])
+        self.assertIn("npm:custom-package", settings["packages"])
+        adapter = next(p for p in settings["packages"] if isinstance(p, dict) and "pi-mcp-adapter" in p["source"])
+        self.assertEqual(adapter["extensions"], ["custom-filter"])
+        self.assertFalse(any("openspec" in str(p) for p in settings["packages"]))
         self.assertIn("!/Users/example/.agents/skills/**", settings["skills"])
         self.assertEqual(
-            [e["source"] for e in settings["packages"] if "pi-superpowers" in e["source"]],
-            ["npm:@weiping/pi-superpowers@5.1.0"],
+            [e["source"] for e in settings["packages"] if isinstance(e, dict) and "pi-superpowers" in e["source"]],
+            [],
         )
         mcp = install.profile_mcp(
             Path("/tmp/defaults"),
@@ -396,20 +403,29 @@ class Distribution(unittest.TestCase):
         self.assertNotIn("Use pi-subagents", policy)
         self.assertIn("Do not reinstall it", policy)
         names = sorted(p.stem for p in (DEFAULTS / "prompts").glob("*.md"))
-        self.assertEqual(names, ["factory", "mdev", "prdev"])
+        self.assertEqual(names, ["factory", "mdev", "prdev", "rwbrowser"])
         verify = (DEFAULTS / "verify.mjs").read_text()
         for name in names:
             front = (DEFAULTS / f"prompts/{name}.md").read_text().split("---")[1]
             self.assertIn("description:", front)
             self.assertIn(f"'{name}'", verify)
         self.assertIn('SOURCE / "prompts"', (DEFAULTS / "install.py").read_text())
+        self.assertIn("only that invocation", policy)
+        self.assertIn("Do not launch a separate reviewer", policy)
+        self.assertNotIn("Explicit independent-review requests are honored", policy)
+        browser = (DEFAULTS / "prompts/rwbrowser.md").read_text()
+        self.assertIn("explicitly invoked `/rwbrowser`", browser)
+        self.assertIn("bounded browser review only", browser)
+        self.assertEqual(browser, (ROOT / ".pi/prompts/rwbrowser.md").read_text())
+        self.assertIn("Do not start a browser", (ROOT / "AGENTS.md").read_text())
 
-    def test_factory_prompt_is_one_shot_and_fail_closed(self):
+    def test_factory_prompt_drains_explicit_scope_and_fails_closed(self):
         prompt = (DEFAULTS / "prompts/factory.md").read_text()
         for clause in (
-            "${@:-}", "factory-ready", "Todo", "exactly one", "current project",
+            "${@:-}", "Todo", "In Progress", "comma-separated", "project identity",
             "all pages", "pi-workflow factory-start", "Paseo", "In Review", "--no-overwrite-ignore",
-            "not a daemon", "no push", "no main", "no Done",
+            "not a daemon", "no push", "no main", "no Done", "factory-plan",
+            "frozen selected UUIDs", "zero Todo", "only blocked/externally owned",
         ):
             with self.subTest(clause=clause):
                 self.assertIn(clause, prompt)

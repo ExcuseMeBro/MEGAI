@@ -9,10 +9,9 @@ verification does not call this CLI or claim its PASS; the CLI semantics are unc
 `megai acceptance` uses Python's standard library and Git discovery; it supports
 Git roots and bounded non-Git configuration directories. It does not launch an
 agent, install a browser, call Plane, start a server, or grant new permissions.
-Pi's installed workflow selects existing project commands and coordinates the
-independent verifier. Only a trusted parent or CI job should assemble final
-contracts/evidence. Model metadata and observations are attestations: the checker
-validates consistency, not the authenticity of an external Paseo response.
+Pi's installed workflow selects existing project commands. Only a trusted parent
+or CI job should assemble final contracts/evidence. Observations are attestations:
+the checker validates consistency, not the authenticity of external outcomes.
 
 The checker is not an adversarial security boundary. Anyone able to replace the
 runner, approved CLI hash or all local evidence can forge a local PASS. Protect
@@ -24,7 +23,7 @@ intercept arbitrary Git pushes. Do not equate a prompt with enforced merge polic
 Source fingerprints cover Git HEAD, index blob IDs/modes and tracked/nonignored
 untracked content, including deletions/modes. Ignored build outputs, dependencies, databases and
 external services are not proven by a source hash. Record their versions and
-runtime provenance in observations/review. Unsupported source states must be
+runtime provenance in observations. Unsupported source states must be
 resolved rather than silently excluded. Commit before final capture if committing
 would otherwise invalidate the snapshot. Keep artifacts outside the source tree.
 
@@ -47,9 +46,9 @@ for changes during capture. This is consistency checking, not an adversarial san
 
 Keep contracts, receipts, logs, backups and generated outputs outside that source
 root. No `git init`, staging, commit or push is required for non-Git delivery.
-Schema-2 regression test capture, independent Pi review and all evidence/authorization
-checks remain unchanged. Receipts still bind their exact cwd; they cannot be rewritten
-to relocate evidence. Git and directory snapshots cannot be interchanged.
+Schema-3 regression capture and all evidence/authorization checks remain required;
+legacy schema-1/2 review validation remains unchanged. Receipts still bind their
+exact cwd; they cannot be rewritten to relocate evidence. Git and directory snapshots cannot be interchanged.
 
 ## Commands
 
@@ -81,13 +80,12 @@ a summary is not a replacement for the original output.
 anything. It runs the frozen argv lists once in criterion order, using numbered
 subdirectories (criterion IDs never become filesystem paths). It stops at the
 first failure, missing executable or source change; remaining criteria stay BLOCKED.
-The new private `evidence.json` already contains receipt paths, candidate/hash and
-an empty review template. Fill observations only after inspecting raw results, and
-fill review metadata/artifact only from a verified independent Pi session. Keep
-review artifacts inside the collection directory and hash their actual bytes.
-No contract is auto-approved, no failed command is auto-retried, and no observation
-or reviewer identity is invented. A completed collection returns **BLOCKED/2** until
-those human/agent attestations exist; an executed command failure returns **FAIL/1**.
+The new private `evidence.json` contains receipt paths and the candidate/hash.
+Schema-1/2 drafts retain their legacy review template; schema-3 drafts have no
+review field. Fill observations only after inspecting raw results. No contract is
+auto-approved, no failed command is auto-retried, and no observation is invented.
+A completed collection returns **BLOCKED/2** until observations (and legacy review,
+if applicable) exist; an executed command failure returns **FAIL/1**.
 Always use `check` for the final verdict. `collect` never returns acceptance PASS.
 A new collection uses a new directory; retain old failures rather than overwrite.
 
@@ -101,28 +99,28 @@ BLOCKED; reconcile their outcome before retrying.
 
 | Status | Exit | Meaning |
 | --- | --- | --- |
-| PASS | 0 | Every declared criterion and review has complete current evidence |
-| FAIL | 1 | A required executed check or reviewer reported failure |
+| PASS | 0 | Every declared criterion has complete current evidence (and legacy review when required) |
+| FAIL | 1 | A required check or legacy reviewer reported failure |
 | BLOCKED | 2 | Missing, malformed, stale, unauthorized or inconsistent evidence |
 
 `run` uses the same status mapping but retains the child's original exit code in
 its receipt. A runner PASS proves command completion/source stability, not full
-task acceptance: always perform final `check` with the independent review.
+task acceptance: always perform final `check` with source-current evidence.
 
-## Contract (schema 2; schema 1 remains readable)
+## Contract (schema 3 for new tasks; schemas 1/2 remain readable)
 
 Start from [contract.example.json](contract.example.json); it is only an example,
-not a pre-approved task or live-testing authorization. New tasks use schema 2.
-Schema 1 remains supported for existing frozen contracts; it cannot represent a
+not a pre-approved task or live-testing authorization. New tasks use schema 3.
+Schemas 1/2 remain supported for frozen contracts; schema 1 cannot represent a
 mandatory bugfix regression. Never downgrade a bugfix to bypass the new gate.
 Required fields:
 
-- `schema`: `2`; `task_type`: `bugfix`, `change` or `docs`. A `bugfix` requires at
-  least one criterion with `regression`. The parent/reviewer validates classification;
-  the CLI cannot infer whether a diff actually fixes a bug. All types retain an
-  independent review; scope its work instead of silently weakening the gate.
+- `schema`: `3`; `task_type`: `bugfix`, `change` or `docs`. A `bugfix` requires at
+  least one criterion with `regression`. The parent validates classification;
+  the CLI cannot infer whether a diff actually fixes a bug. Schema 3 forbids
+  `reviewer` in the contract and `review` in evidence.
 
-- `reviewer` (optional, schema 2): freezes the exact independent reviewer policy as
+- `reviewer` (legacy schema 2 only): freezes the exact independent reviewer policy as
   `harness`, `model` (`provider/model`) and `thinking` (`low`, `medium` or `high`).
   `collect` copies it into the review template and `check` requires those exact values;
   `medium` or `low` review evidence is accepted only when the contract freezes that
@@ -173,13 +171,13 @@ captured test hashes together. Expected exit must be 1–125, with a nonblank,
 assertion-specific failure signature. The checker requires a distinct stable
 baseline snapshot, matching command/cwd, exact exit/signature, intact raw log and
 unchanged captured test files in the current candidate. Current green evidence
-must still pass its command, observations and independent review. The command may
-be a test or an authorized runtime criterion. Keep baseline and candidate runs in
+must still pass its command and observations (plus review for legacy contracts).
+The command may be a test or an authorized runtime criterion. Keep baseline and candidate runs in
 the same receipt-bound checkout; moving it invalidates cwd evidence.
 
 The checker cannot infer which files contain the real assertions, whether the
 failure is causally correct or whether an external service matches its observation.
-The independent reviewer must verify those facts. Do not list a dummy unchanged
+The parent must verify those facts. Do not list a dummy unchanged
 file while weakening a different assertion helper. If the test itself must change,
 reproduce the new test on the unfixed behavior in isolation and have the parent
 reconcile the new contract/baseline before continuing; never weaken a frozen test
@@ -198,7 +196,7 @@ Top-level fields:
 - `contract_sha256`: externally approved hash.
 - `snapshot`: current candidate source fingerprint.
 - `checks`: exactly one entry per criterion, no extras or duplicates.
-- `review`: source-current independent Pi review.
+- `review`: required only for frozen schema-1/2 contracts; forbidden for schema 3.
 
 Each check contains `id`, `status` (`PASS`, `FAIL`, `BLOCKED`), a nonempty
 `observation`, `receipt` (path to the actual runner receipt), and `artifacts`
@@ -212,7 +210,7 @@ baseline requires a nonempty list, whereas existing receipts remain compatible.
 The checker compares argv with the frozen criterion and verifies raw log bytes.
 Missing commands and source changes cannot masquerade as successful execution.
 
-The review contains:
+For legacy schema-1/2 contracts only, the review contains:
 
 - `session_id`: distinct from `implementer_session_id`.
 - `harness`: `pi` (or the exact frozen harness); `model`: the exact configured
