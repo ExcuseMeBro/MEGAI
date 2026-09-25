@@ -135,14 +135,18 @@ A missing merge or changed item leaves the task In Review. Plane lacks condition
 updates: serialize task boundary edits; the command checks for concurrent changes
 immediately before its final write. There is no unattended watcher or automatic merge.
 
-The `/factory` prompt template is installed globally: `/factory` runs one existing
-`factory-ready`-labelled Todo item from the current Plane project when it has actionable
-acceptance and is the only eligible item. Use `/factory "exact ticket title"` to select
-one explicitly. Ambiguous or incomplete lookups stop; the UUID-bound
-`pi-workflow factory-start` never creates a ticket or starts a daemon, and the
-prompt never pushes, promotes main or marks Done. It follows the normal worktree,
-verification, local dev delivery and In Review rules. Run `/reload` in an existing Pi
-session after installation. This is an agent prompt, not an enforcement boundary.
+The global `/factory all` prompt implements the current Plane project's Todo and
+In Progress tasks sequentially, refreshing after each verified In Review handoff
+until a complete lookup finds neither state remaining. `/factory 12,34,56` limits
+the run to those task numbers; qualified project IDs and UUIDs are also accepted.
+No `factory-ready` label is needed. Bare `/factory` shows usage without starting work.
+`pi-workflow factory-plan --selection all` performs read-only queue discovery;
+`factory-start` starts/resumes only the selected existing UUID. Independent tasks
+continue past task-local blockers; a queue with only blockers stops honestly with
+remaining IDs, without pretending it is empty. Existing worktree, tests/review,
+local dev delivery and approval rules apply; no push, main promotion or Done.
+Run `/reload` in an existing Pi session after installation. This is an agent prompt,
+not an unattended daemon, distributed lock or enforcement boundary.
 
 The `/mdev` and `/prdev` prompt templates are installed globally: `/mdev` is explicit
 authorization to reconcile, review, merge and push task work into `dev` (no repeated approval)

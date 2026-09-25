@@ -412,12 +412,13 @@ class Distribution(unittest.TestCase):
         self.assertEqual(browser, (ROOT / ".pi/prompts/rwbrowser.md").read_text())
         self.assertIn("Do not start a browser", (ROOT / "AGENTS.md").read_text())
 
-    def test_factory_prompt_is_one_shot_and_fail_closed(self):
+    def test_factory_prompt_drains_explicit_scope_and_fails_closed(self):
         prompt = (DEFAULTS / "prompts/factory.md").read_text()
         for clause in (
-            "${@:-}", "factory-ready", "Todo", "exactly one", "current project",
+            "${@:-}", "Todo", "In Progress", "comma-separated", "project identity",
             "all pages", "pi-workflow factory-start", "Paseo", "In Review", "--no-overwrite-ignore",
-            "not a daemon", "no push", "no main", "no Done",
+            "not a daemon", "no push", "no main", "no Done", "factory-plan",
+            "frozen selected UUIDs", "zero Todo", "only blocked/externally owned",
         ):
             with self.subTest(clause=clause):
                 self.assertIn(clause, prompt)
