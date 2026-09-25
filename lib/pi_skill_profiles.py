@@ -41,7 +41,7 @@ OPTIONAL_MOBILE = frozenset({"appllama-app-design-skill"})
 PROTECTED = frozenset({
     "a11y-audit", "agent-worktree-lifecycle", "caveman", "code-review",
     "codebase-design", "diagnosing-bugs", "domain-modeling", "git-guardrails-claude-code",
-    "grilling", "megai", "megai-acceptance", "megai-task-flow", "ponytail", "prototype",
+    "grilling", "megai", "megai-acceptance", "megai-task-flow", "prototype",
     "research", "resolving-merge-conflicts", "tdd", "verify-and-stop",
     "writing-for-agents",
 })

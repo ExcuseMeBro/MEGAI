@@ -294,12 +294,9 @@ class Distribution(unittest.TestCase):
         self.assertNotIn("subagents", settings)
         sources = [entry["source"] for entry in settings["packages"]]
         self.assertEqual([s for s in sources if "subagent" in s], [])
-        superpowers = next(
-            e for e in settings["packages"] if "pi-superpowers" in e["source"]
-        )
-        self.assertEqual(superpowers["extensions"], ["extensions/bootstrap.ts"])
+        self.assertFalse(any("pi-superpowers" in s or "ponytail" in s or "openspec" in s for s in sources))
         verify = (DEFAULTS / "verify.mjs").read_text()
-        required = re.search(r"const requiredTools = \[(.*?)\]", verify, re.S).group(1)
+        required = re.search(r"const requiredTools = .*?\[(.*?)\];", verify, re.S).group(1)
         self.assertNotIn("subagent", required)
         removed = re.search(r"const removedTools = \[(.*?)\]", verify, re.S).group(1)
         self.assertIn("subagent", removed)
@@ -319,6 +316,8 @@ class Distribution(unittest.TestCase):
             "defaultModel": "deepseek-flash",
             "modelThinkingLevels": {"deepseek/deepseek-flash": "high"},
             "skills": ["!~/mine/**"],
+            "packages": ["npm:custom-package", {"source": "npm:pi-mcp-adapter@old", "extensions": ["custom-filter"]},
+                         "npm:@fission-ai/openspec@1.13.0"],
         }
         settings = install.profile_settings(
             self.package["dependencies"], Path("/Users/example"), current
@@ -328,10 +327,14 @@ class Distribution(unittest.TestCase):
         self.assertEqual(settings["modelThinkingLevels"], {"deepseek/deepseek-flash": "high"})
         self.assertEqual(settings["theme"], "light")
         self.assertIn("!~/mine/**", settings["skills"])
+        self.assertIn("npm:custom-package", settings["packages"])
+        adapter = next(p for p in settings["packages"] if isinstance(p, dict) and "pi-mcp-adapter" in p["source"])
+        self.assertEqual(adapter["extensions"], ["custom-filter"])
+        self.assertFalse(any("openspec" in str(p) for p in settings["packages"]))
         self.assertIn("!/Users/example/.agents/skills/**", settings["skills"])
         self.assertEqual(
-            [e["source"] for e in settings["packages"] if "pi-superpowers" in e["source"]],
-            ["npm:@weiping/pi-superpowers@5.1.0"],
+            [e["source"] for e in settings["packages"] if isinstance(e, dict) and "pi-superpowers" in e["source"]],
+            [],
         )
         mcp = install.profile_mcp(
             Path("/tmp/defaults"),

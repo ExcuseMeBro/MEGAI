@@ -1,7 +1,7 @@
 # Token profile provenance
 
-Explicit, opt-in profile. This directory ships **compact rewritten adapters** of two
-upstream skill texts plus their licenses — not the upstream installers. No upstream
+Explicit, opt-in profile. This directory ships **compact rewritten adapter** of the Caveman
+upstream skill text plus its license — not the upstream installers. No upstream
 companion skills, hooks, subagents, engines, telemetry or savings claims are included
 or executed.
 
@@ -26,20 +26,13 @@ Reviewed upstream cores and licenses are archived read-only at
   (full text preserved, including its MIT scope note)
 - Installed as `skills/caveman/SKILL.md` + `LICENSE.md`.
 
-## ponytail
+## Retired core
 
-- Source: <https://github.com/DietrichGebert/ponytail>
-- Pin: commit `356918eba965ee1eac64bd3a7f0dd02108350de5`
-- License: MIT
-- Reviewed core `ponytail-core.md` sha256:
-  `1316a2f3f95741d2300b116fe0c2d81ce4a9568656ed0a62643f54aaf09957f2`
-- Reviewed `ponytail-LICENSE` sha256:
-  `fb1bc6909ac3ef82d5c22106e32ef682b0cff66788fa915fb9b53b15c9d2f3ab`
-- Installed as `skills/ponytail/SKILL.md` + `LICENSE.md`.
+Ponytail was removed in MEGAI-166. Profile migration retires only receipt-owned copies.
 
 ## Adaptations (accuracy and safety over literal wording)
 
-Both cores were rewritten, not copied, to stay short and to override upstream rules
+The core was rewritten, not copied, to stay short and to override upstream rules
 that trade correctness for terseness:
 
 - Removed the upstream "cuts output tokens 65% (measured)" claim. No universal
@@ -49,19 +42,13 @@ that trade correctness for terseness:
   no information; a guess stays a guess and an unverified claim is not stated as fact.
 - Kept negations, numbers and units, exact code, commands, error strings and the
   user's language verbatim.
-- Ponytail's "code first, at most three lines" output rule is replaced by a
-  requested-detail rule: requested reports and explanations arrive complete, and only
-  *unrequested* prose is cut.
-- Ponytail's reading and test guidance is kept explicit: the ladder shortens the
-  solution, never the reading, validation, security, accessibility, requested
-  functionality or required checks.
 - Persisted artifacts (code, comments, commits, docs, tickets, memory) stay normal
   prose; this profile governs chat style only.
 - The MEGAI three-step flow and all approval/acceptance gates are unchanged.
 
 ## License filename
 
-Both licenses install as `LICENSE.md`, matching the local caveman filename convention
+The license installs as `LICENSE.md`, matching the local caveman filename convention
 already tolerated by `lib/slim_wiring.py` (which accepts only `SKILL.md`/`LICENSE.md`
 in a local caveman skill). A bare `LICENSE` would make that compatibility check fail
 closed. `LICENSE.md` is not discovered as a skill: skill discovery only reads

@@ -34,14 +34,21 @@ const commands = loaded.extensions.flatMap(e => [...e.commands.keys()]);
 const skills = loader.getSkills();
 const prompts = loader.getPrompts();
 const promptNames = prompts.prompts.map(p => p.name);
-const requiredTools = ['mcp', 'web_search', 'fetch_content', 'headroom_retrieve', 'headroom_memory'];
+const engineeringOnly = process.argv.includes('--engineering-only');
+const requiredTools = engineeringOnly ? [] : ['mcp', 'web_search', 'fetch_content', 'headroom_retrieve', 'headroom_memory'];
 const removedTools = ['subagent'];
-const requiredSkills = ['pi-workflow', 'using-superpowers', 'test-driven-development', 'ponytail', 'openspec-propose', 'openspec-apply-change'];
-const requiredPrompts = ['factory', 'mdev', 'prdev'];
+const requiredSkills = ['pi-workflow', 'codebase-design', 'diagnosing-bugs', 'tdd', 'code-review'];
+const requiredPrompts = engineeringOnly ? [] : ['factory', 'mdev', 'prdev'];
 const policy = existsSync(join(agentDir, 'AGENTS.md')) ? readFileSync(join(agentDir, 'AGENTS.md'), 'utf8') : '';
 const missing = [...requiredTools.filter(t => !tools.includes(t)), ...requiredSkills.filter(s => !skills.skills.some(v => v.name === s))];
 for (const name of requiredPrompts) if (!promptNames.includes(name)) missing.push(`/${name}`);
-if (!commands.includes('ponytail')) missing.push('/ponytail');
+for (const name of ['ponytail', 'using-superpowers']) {
+  if (skills.skills.some(s => s.name === name) || commands.includes(name)) missing.push(`retired resource: ${name}`);
+}
+for (const name of requiredSkills) {
+  if (skills.skills.filter(s => s.name === name).length > 1) missing.push(`duplicate skill: ${name}`);
+}
+if (skills.skills.some(s => s.name.startsWith('openspec-')) || promptNames.some(n => n.startsWith('opsx-'))) missing.push('retired OpenSpec resources');
 for (const name of removedTools) if (tools.includes(name)) missing.push(`removed tool: ${name}`);
 if (!policy.includes('native Paseo agents')) missing.push('AGENTS.md: native Paseo policy');
 if (policy.includes('Use pi-subagents')) missing.push('AGENTS.md: removed delegation policy');
