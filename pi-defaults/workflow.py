@@ -745,6 +745,108 @@ def status(cwd, workspace_id=None):
     }
 
 
+def cleanup(cwd, workspace_id, branch, tip):
+    """Retire one explicitly pinned task worktree after verified local dev delivery.
+
+    Run from a retained checkout; any uncertain state is a refusal, never a
+    reason to force-remove a worktree or branch.
+    """
+    policy = context(cwd)
+    repo = Path(primary(cwd))
+    if str(repo) not in policy["repositories"]:
+        raise ValueError("Repository is outside the resolved project")
+    if not re.fullmatch(r"task/[A-Za-z0-9][A-Za-z0-9._/-]*", branch) or branch.endswith(("/", ".lock")):
+        raise ValueError("Only an explicit task branch can be retired")
+    if branch in {"dev", "main", "master", *(_preserve_for(repo, Path(policy["root"]), policy))}:
+        raise ValueError("Protected branch cannot be retired")
+    if not re.fullmatch(r"[0-9a-f]{40,64}", tip):
+        raise ValueError("Expected full task commit SHA")
+    project_rows = _rows(_paseo_json("project", "ls"),
+                         {"projectId": str, "name": str, "kind": str, "path": str})
+    owned = [p for p in project_rows if _expand(p["path"]) == _expand(policy["root"])]
+    if len(owned) != 1 or sum(p["name"] == owned[0]["name"] for p in project_rows) != 1:
+        raise ValueError("Paseo project identity is missing or ambiguous")
+    workspaces = _rows(_paseo_json("workspace", "ls"),
+                       {"workspaceId": str, "project": str, "name": str,
+                        "isolation": str, "cwd": str})
+    matched = [w for w in workspaces if w["workspaceId"] == workspace_id]
+    if len(matched) != 1:
+        raise ValueError("Task workspace missing or ambiguous; reconcile archival before retry")
+    workspace = matched[0]
+    if workspace["project"] != owned[0]["name"] or workspace["isolation"] != "worktree":
+        raise ValueError("Workspace ownership or isolation mismatch")
+    path = _expand(workspace["cwd"])
+    if path == str(repo) or path == _expand(cwd) or _primary_or_none(path) != str(repo):
+        raise ValueError("Refusing to archive primary, current or foreign workspace")
+    if os.environ.get("PASEO_AGENT_ID") is None:
+        raise ValueError("Invoking agent identity is required")
+    agents = _rows(_paseo_json("agent", "ls", "--all"),
+                   {"id": str, "shortId": str, "name": str, "provider": str,
+                    "thinking": str, "status": str, "cwd": str, "created": str})
+    for agent in agents:
+        if _expand(agent["cwd"]) != path:
+            continue
+        if agent["id"] == os.environ["PASEO_AGENT_ID"]:
+            raise ValueError("Invoking agent still owns the task workspace")
+        detail = _paseo_json("agent", "inspect", agent["id"])
+        if (_inspect_problem(detail) or detail["Id"] != agent["id"]
+                or _expand(detail["Cwd"]) != path or agent["status"] != "idle"
+                or detail["Status"] != "idle" or not detail["Archived"]
+                or detail.get("PendingPermissions") != []):
+            raise ValueError(f"Agent {agent['id']} is not safely released")
+    terminals = _rows(_paseo_json("terminal", "ls", "--workspace", workspace_id), {})
+    if terminals:
+        raise ValueError("Task workspace still owns terminals")
+
+    def check_git():
+        registered, error = _git_worktrees(repo)
+        if error:
+            raise ValueError(error)
+        dev_entries = [e for e in registered if e["branch"] == "dev"]
+        if len(dev_entries) != 1 or dev_entries[0]["locked"]:
+            raise ValueError("A retained dev checkout is required before workspace archival")
+        entries = [e for e in registered if _expand(e["path"]) == path]
+        ref, ref_error = _local_ref(repo, branch)
+        dev, dev_error = _local_ref(repo, "dev")
+        dirty, _, status_error = _git_status(path)
+        ignored, ignored_error = _git_ignored(path)
+        operation, operation_errors = _git_operation(path)
+        if (len(entries) != 1 or entries[0]["locked"] or entries[0]["branch"] != branch
+                or entries[0]["head"] != tip or ref != tip or not dev
+                or dev_entries[0]["head"] != dev
+                or ref_error or dev_error or status_error or ignored_error
+                or operation_errors or dirty or ignored or operation
+                or _primary_or_none(path) != str(repo)):
+            raise ValueError("Task workspace/ref changed, contains data, or has an unfinished operation")
+        ancestor, ancestor_error = _ancestor(repo, tip, dev)
+        if ancestor_error or not ancestor:
+            raise ValueError("Task tip is not included in local dev")
+        return dev, dev_entries[0]["path"]
+
+    dev, dev_path = check_git()
+    # Archive is an irreversible mutation. Recheck the exact snapshot directly
+    # beforehand, then verify both registry and filesystem before deleting a ref.
+    if check_git() != (dev, dev_path):
+        raise ValueError("Local dev moved during cleanup")
+    _paseo_json("workspace", "archive", workspace_id)
+    remaining, worktree_error = _git_worktrees(repo)
+    if (worktree_error or any(w["workspaceId"] == workspace_id for w in _rows(
+            _paseo_json("workspace", "ls"), {"workspaceId": str, "project": str,
+                                            "name": str, "isolation": str, "cwd": str}))
+            or Path(path).exists()
+            or any(_expand(e["path"]) == path for e in remaining)):
+        raise ValueError("Workspace archive unconfirmed; branch retained for reconciliation")
+    ref, error = _local_ref(repo, branch)
+    current_dev, dev_error = _local_ref(repo, "dev")
+    if error or dev_error or ref != tip or current_dev != dev:
+        raise ValueError("Refs moved after archive; branch retained")
+    git(dev_path, "branch", "-d", "--", branch)
+    if _local_ref(repo, branch)[0] is not None:
+        raise ValueError("Branch deletion unconfirmed")
+    return {"workspaceId": workspace_id, "branch": branch, "tip": tip,
+            "dev": dev, "archived": True, "branchDeleted": True}
+
+
 def _inspect_problem(inspect):
     """Blocker reason when the documented inspect fields are missing or mistyped."""
     if not isinstance(inspect, dict):
@@ -1002,6 +1104,11 @@ def main():
     sub = parser.add_subparsers(dest="command", required=True)
     cmd = sub.add_parser("context")
     cmd.add_argument("--cwd", default=os.getcwd())
+    cmd = sub.add_parser("cleanup")
+    cmd.add_argument("--cwd", default=".")
+    cmd.add_argument("--workspace", required=True)
+    cmd.add_argument("--branch", required=True)
+    cmd.add_argument("--tip", required=True)
     cmd = sub.add_parser("status")
     cmd.add_argument("--cwd", default=os.getcwd())
     cmd.add_argument("--workspace")
@@ -1023,6 +1130,8 @@ def main():
     cmd = sub.add_parser("verify-main")
     cmd.add_argument("receipt")
     args = parser.parse_args()
+    if args.command == "cleanup":
+        return cleanup(args.cwd, args.workspace, args.branch, args.tip)
     if args.command == "context":
         return context(args.cwd)
     if args.command == "status":

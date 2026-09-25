@@ -43,7 +43,14 @@ description: Start and deliver tracked project changes with Plane, dev/main bran
    complete the reservation; on a moved/dirty target, stale evidence or uncertain
    result, retain task resources and reconcile instead of forcing or assuming success.
    Push only with separate explicit approval. Perform safe task-owned post-merge
-   workspace/branch cleanup before handing off In Review. Keep a receipt JSON:
+   workspace/branch cleanup before handing off In Review. From a retained checkout,
+   after releasing the task's agents and terminals, run `pi-workflow cleanup --cwd
+   PRIMARY --workspace EXACT_ID --branch task/SLUG --tip FULL_TASK_SHA` for each
+   delivered worktree. Local dev-only delivery does not require remote dev to move;
+   the command checks local dev ancestry and refuses dirty, ignored, active, unknown,
+   unmerged and moved resources. It archives through Paseo before deleting the
+   local task branch. A refusal retains remaining resources for reconciliation;
+   never force-delete or archive the invoking workspace. Keep a receipt JSON:
    `{"repositories":[{"path":"/absolute/primary/repo","commit":"FULL_SHA","remote":"origin"}]}`.
    List every affected repository and its delivered commit. Runtime-only changes
    without a Git delivery remain In Review until a user-owned completion decision.

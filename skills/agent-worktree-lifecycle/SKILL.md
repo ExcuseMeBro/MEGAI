@@ -275,7 +275,19 @@ approval. It is agent workflow, not a Git hook or background cleanup service.
    without ancestry proof is retained for explicit reconciliation, not force
    deletion. Keep the applicable integration reservation through retirement;
    if already released, reacquire it and revalidate before deleting refs.
-4. **Archive, then delete.** Use supported Paseo `archive_workspace` only for the
+4. **Archive, then delete.** From a retained checkout, after all task owners
+   are released and the reservation is held, run
+   `pi-workflow cleanup --cwd PRIMARY --workspace EXACT_ID --branch task/SLUG --tip FULL_TASK_SHA`
+   for each delivered task worktree. Its local-`dev` ancestry check is sufficient
+   for local dev-only delivery; remote `dev` is not a prerequisite unless the
+   task separately approved a push. The command refuses busy agents, terminals,
+   ignored/untracked data, moved refs and uncertain ownership, archives the exact
+   Paseo workspace, reads back its absence, then deletes only the proven merged
+   local branch. Record its JSON result or exact refusal. If workspace archival
+   succeeded but branch deletion failed, keep the branch for read-only
+   reconciliation; never invent a missing workspace to retry cleanup. An
+   explicitly approved main promotion additionally requires main ancestry proof
+   before retirement. Use supported Paseo `archive_workspace` only for the
    released, clean, safely delivered task workspace. Describe its current schema
    first; preserve required session/evidence bytes before archival. Verify it is
    inactive and its managed worktree is absent from both Git and the filesystem
