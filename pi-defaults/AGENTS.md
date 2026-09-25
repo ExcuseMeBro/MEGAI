@@ -27,13 +27,16 @@ only, except browser evidence already required by acceptance. Preserve the activ
 
 ## Code discovery and local screening
 
-Known path/symbol → read its relevant range directly. Unknown code structure → one
-scoped `megai-codedb find NAME` or `outline FILE`, then read the returned source.
-Set `CODEDB_NO_TELEMETRY=1`. Use only the task-owned checkout; no startup index, server, cross-project scan or
-tracked-cache overwrite. `index` warms the CLI cache, not a freshness guarantee.
-Use ready task-owned tgrep for literal discovery; native `rg` for exact/exhaustive
-matches, absence, failures and after edits/branch switches. Failed/stale discovery
-means native fallback, never “no matches”. Reuse paths until their source changes.
+Codedb FIRST for general repository text/name discovery and code structure:
+`megai-codedb search "text"` for case-insensitive text, `find NAME` for definitions,
+`outline FILE` for APIs. Known path/range → native read, no repeated discovery.
+Set `CODEDB_NO_TELEMETRY=1`; use only the task-owned checkout. No startup index,
+server, cross-project scan or tracked-cache overwrite. Reuse query results until
+source changes; `index` warms the cache, not a freshness guarantee.
+Native `rg` handles regex, case-sensitive/exact/exhaustive matches, absence checks,
+failures and post-edit/branch-switch freshness. Ready task-owned tgrep is an optional
+fallback for compatible indexed queries, not an extra search after Codedb succeeds.
+Unavailable/stale discovery falls back to native tools; failure is never “no matches”.
 
 When several plausible files would require broad reads, use one local `sift` batch
 of 4–12 candidate paths to order reading; skip it for known files or small snippets.

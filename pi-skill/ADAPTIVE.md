@@ -47,8 +47,12 @@ chat model and thinking level remain unchanged. No hosted decision fallback.
 
 ## Three-step default
 
-1. **Locate and edit.** Use scoped `rg -n` or `rg -l` to locate symbols/files,
-   then `read` with offset/limit for relevant ranges and their dependencies. Widen
+1. **Locate and edit.** Prefer task-owned `megai-codedb search "text"` for general
+   repository text discovery, `find NAME` for definitions and `outline FILE` for APIs;
+   set `CODEDB_NO_TELEMETRY=1`. Known ranges go directly to `read`. Use native `rg`
+   for regex, exact/exhaustive checks, failures and post-edit freshness; a ready
+   task-owned tgrep index is an optional fallback, not a second mandatory search.
+   Then `read` relevant ranges and their dependencies. Widen
    for a named unresolved question; complete mandatory document reads still apply.
    Batch independent lookups into ONE assistant turn; keep dependent operations
    ordered. Keep full logs on disk and inspect relevant ranges, not repeated

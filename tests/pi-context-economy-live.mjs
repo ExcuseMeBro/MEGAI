@@ -27,6 +27,17 @@ let loaded;
 try {
   const codedbEnv = { ...process.env, CODEDB_NO_TELEMETRY: '1' };
   const wrapper = resolve('pi-skill/extensions/codedb.sh');
+  function timedSearch(command, args) {
+    const start = performance.now();
+    const text = execFileSync(command, args,
+      { cwd: project, env: codedbEnv, encoding: 'utf8', timeout: 30_000 });
+    assert.match(text, /payments\.ts/);
+    return { elapsedMs: Number((performance.now() - start).toFixed(2)), resultChars: text.length };
+  }
+  const query = 'PAYMENTS IMPLEMENTATION FIXTURE';
+  const cold = timedSearch('bash', [wrapper, 'search', query]);
+  const warm = Array.from({ length: 5 }, () => timedSearch('bash', [wrapper, 'search', query]));
+  const native = Array.from({ length: 5 }, () => timedSearch('rg', ['-n', '-i', '-F', query, '.']));
   const before = performance.now();
   const find = execFileSync('bash', [wrapper, 'find', 'processPayment'],
     { cwd: project, env: codedbEnv, encoding: 'utf8', timeout: 30_000 });
@@ -64,6 +75,8 @@ try {
   // Ranking is advisory. No threshold is used to delete candidates or claim coverage.
   console.log(JSON.stringify({ fixture: 'synthetic six-module project',
     codedb: { allFilesChars: allChars, selectedContextChars: selectedChars, elapsedMs: Math.round(discoveryMs) },
+    generalSearch: { query, cold, warm, native,
+      note: 'Same query/fixture; end-to-end process timings including wrapper, no speedup assertion.' },
     sift: { candidateChars: allChars, resultChars: raw.content[0].text.length,
       elapsedMs: Math.round(rankingMs), files: result.files },
     units: 'characters and elapsed milliseconds; not measured tokens or cost',
