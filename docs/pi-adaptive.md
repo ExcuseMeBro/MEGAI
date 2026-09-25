@@ -16,7 +16,7 @@ mandatory separate reviewer. Instructions that alter approval, validation or
 ownership checks remain guarded. Explicit repo/user requirements still win. A failed
 gate cannot become a routine PASS. The parent self-reviews current raw evidence
 without repeating passing suites by default; only a concrete unresolved risk
-justifies extra checks. Explicit user-requested independent review remains available.
+justifies extra checks. No separate-review step is scheduled.
 
 Plane remains boundary-only tracking. Worktree isolation, private configuration
 backups, cooperative integration reservations and separate main/push approval stay.
@@ -37,7 +37,8 @@ python3 -B ~/.megai/lib/pi_model_policy.py --adaptive --preset native
 
 The native profile uses `openai-codex/gpt-6-sol` high for coordination, one
 `deepseek/deepseek-flash` high implementation worker and `openai-codex/gpt-6-astra`
-high reviewer only on explicit request. The separate `economy` preset remains
+high reviewer role remains configured but is not dispatched by this workflow.
+The separate `economy` preset remains
 independently available: it
 uses DeepSeek Flash high planning, low scout/worker, and GPT Sol high review. Roles are
 parent guidance, not mandatory agent launches or a dispatcher. Explicit user/task

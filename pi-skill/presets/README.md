@@ -1,7 +1,7 @@
 # Optional Pi presets
 
 The `native` preset selects GPT Sol high for coordination, DeepSeek Flash high for
-implementation, and GPT Astra high for explicitly requested review. It installs the single
+implementation; the configured GPT Astra reviewer role is not dispatched. It installs the single
 fallback edge from `deepseek/deepseek-flash` to `openai-codex/gpt-6-luna`:
 only a confirmed DeepSeek 402 insufficient-balance error continues once on Luna at
 high thinking. Auth/permission errors, shared outages, other failures and uncertain

@@ -69,8 +69,7 @@ screenshots, coverage, exit zero or LLM scores alone do not prove behavior.
 
 The parent checks every criterion, regression, runtime provenance and the full diff
 against actual receipts; a separate reviewer is not required. Repeat a passing
-check only for a concrete unresolved risk. Explicit user-requested independent
-review may use a read-only agent, but is not an automatic gate for other tasks.
+check only for a concrete unresolved risk. Do not add a separate reviewer step.
 Resolve blocking findings and rerun affected diagnostics. Any source/index/commit
 change invalidates the prior snapshot: final capture must match the delivered
 candidate. Historical frozen schema-1/2 contracts keep their original review

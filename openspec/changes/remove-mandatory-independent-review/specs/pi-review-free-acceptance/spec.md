@@ -1,19 +1,15 @@
 ## Purpose
 
-Define Pi task verification and acceptance without an automatic independent-review requirement while keeping source-current evidence and historical acceptance receipts intact.
+Define Pi task verification and acceptance without a separate independent-review step while keeping source-current evidence and historical acceptance receipts intact.
 
 ## ADDED Requirements
 
-### Requirement: No mandatory separate reviewer for new Pi tasks
-Pi workflows SHALL use actual focused checks and parent self-review, including guarded, delegated and security-sensitive tasks, without requiring a separate reviewer agent. Explicitly requested independent review MAY be performed but SHALL NOT be an implicit prerequisite.
+### Requirement: No separate-review step for new Pi tasks
+Pi workflows SHALL use actual focused checks and parent self-review, including guarded, delegated and security-sensitive tasks, without scheduling, requiring or recommending a separate reviewer agent.
 
 #### Scenario: Guarded task without a reviewer
 - **WHEN** a guarded task has source-current checks and parent self-review but no reviewer agent
 - **THEN** it may proceed through the acceptance and delivery boundaries without a missing-review blocker
-
-#### Scenario: User asks for an independent review
-- **WHEN** the user explicitly requests an independent review
-- **THEN** the workflow may run one without making it a default requirement for other tasks
 
 ### Requirement: Review-free new acceptance evidence
 New acceptance contracts SHALL be able to pass from frozen criteria, source-current command receipts and actual observations without a review object or reviewer identity. A missing, failing or stale required check SHALL still fail or block acceptance. Extra unsupported evidence fields SHALL be blocked instead of silently ignored.

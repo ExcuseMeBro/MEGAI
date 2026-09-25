@@ -3,7 +3,7 @@
 Load only for actual delegation or model-error escalation. Routine Pi work follows
 `megai` with one parent and self-review; delegation is not a required stage.
 The optional `native` profile uses GPT Sol for coordination, DeepSeek Flash high for
-implementation and GPT Astra high for explicitly requested review. The separate `economy`
+implementation without a separate reviewer step. The separate `economy`
 preset retains its own DeepSeek role mix. `megai-roles.json` is parent-consumed
 routing guidance, not automatic dispatch or an allowlist.
 
@@ -23,8 +23,8 @@ $111 -> ~$18. Treat those as that system's numbers, not a prediction here.
 - A delegated writer gets goal, acceptance, paths and authority, then gathers its
   own evidence in its own trace. Never a parent-written plan or summary as its
   primary context, and never a re-read of what the parent already read.
-- If the user requests separate review, it verifies the delivered artifact (diff
-  plus tests on that diff), not a second investigation stage.
+- Parent self-review verifies the delivered artifact (diff plus tests on that diff),
+  not a second investigation stage.
 - Judge the run end to end: per-stage green checks pass while the handoff fails.
 - Cost is per delivered change, not per agent token; cutting writer tokens by adding
   a handoff is a loss until measured.

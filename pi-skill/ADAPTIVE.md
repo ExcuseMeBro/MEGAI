@@ -78,7 +78,7 @@ chat model and thinking level remain unchanged. No hosted decision fallback.
    optional polish or queue draining after acceptance.
 
 Guarded work requires source-current checks and parent self-review, not a separate
-reviewer by default. Commit before final evidence capture when Git delivery is
+reviewer step. Commit before final evidence capture when Git delivery is
 agreed. Reuse raw evidence rather than rerunning a passing suite; additional
 checks need a concrete unresolved risk. Block on demonstrated safety or
 acceptance failures, not editorial preferences. Fix real findings and obtain
@@ -115,11 +115,11 @@ auto-compaction setting or transcript edits; do not claim savings without measur
 Direct parent tools are the default for trivial and non-Git local work. Load
 [delegation.md](delegation.md) before native delegation or model-error escalation.
 The optional `native` profile guides GPT Sol coordination, a DeepSeek Flash high
-implementation worker and optional, explicitly requested GPT Astra review; `economy` remains a separate opt-in.
+implementation worker without a separate reviewer step; `economy` remains a separate opt-in.
 Use one writer and verify its diff/tests. Explicit user/task choices override the
 profile, and the active parent's model/thinking never change silently. Auth/permission
 failures, shared outages and uncertain writes need reconciliation, not model hopping.
-Do not create a separate reviewer by default. No speculative extra team.
+Do not create a separate reviewer. No speculative extra team.
 
 Provider stall protection and Headroom remain available without new daemons or hooks.
 These are workflow/cost defaults, not a sandbox or a measured latency/token guarantee.

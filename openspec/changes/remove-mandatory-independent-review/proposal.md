@@ -7,14 +7,14 @@ Plane: project `59005e36-ecd4-46ed-bb42-f779858b20ce`, work item `2ec19057-8497-
 ## What Changes
 
 - **BREAKING for new acceptance contracts:** create a review-free contract schema with source-current checks and parent self-review; preserve historical schema-1/2 verification unchanged.
-- Remove mandatory independent reviewer instructions from the Pi default and installed-skill source, including guarded, delegated and security-sensitive flows. Keep explicit user-requested review available but optional.
+- Remove the separate independent-review step from Pi workflow instructions in every risk category, including guarded, delegated and security-sensitive flows; do not suggest an opt-in reviewer stage.
 - Preserve focused tests, regression/runtime evidence, safety boundaries, approval requirements and Plane handoff.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `pi-review-free-acceptance`: New-task acceptance without a required separate reviewer, with backwards compatibility for frozen historical contracts.
+- `pi-review-free-acceptance`: New-task acceptance without any separate-review stage, with backwards compatibility for frozen historical contracts.
 
 ### Modified Capabilities
 

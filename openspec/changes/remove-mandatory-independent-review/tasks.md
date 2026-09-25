@@ -4,7 +4,7 @@
 
 ## 2. Pi policy and distribution
 
-- [x] 2.1 Remove mandatory separate-review instructions from Pi defaults, guarded acceptance, delegation and task-flow sources while preserving optional explicit review and focused checks; verify scoped policy search and installer tests.
+- [x] 2.1 Remove separate-review steps and opt-in suggestions from Pi defaults, guarded acceptance, delegation and task-flow sources while preserving focused checks; verify scoped policy search and installer tests.
 - [x] 2.2 Update the contract example/reference and adaptive docs to schema 3 and verify OpenSpec validation plus docs diff.
 
 ## 3. Source-current check

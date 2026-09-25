@@ -51,7 +51,7 @@ repository formatting; never rewrite unrelated files.
 
 pi-web-access for public research; keep private repository text and credentials out of
 public queries. pi-mcp-adapter supplies lazy Plane tools. Use native Paseo agents
-for bounded independent tasks or explicitly requested review; otherwise work directly.
+for bounded independent implementation tasks; otherwise work directly.
 Give children explicit cwd, scope and acceptance. Children are leaves: no Plane
 mutation, no branch integration, one writer per worktree. Completion notifications.
 Use focused checks and parent self-review even for security/data-integrity or
@@ -97,7 +97,7 @@ substantial behavior changes still need the applicable design/spec workflow.
   optional brainstorming, separate plan or approval round trip.
 - With the explicitly selected native profile, GPT Sol coordinates and validates;
   substantial bounded implementation may use one native DeepSeek Flash worker;
-  GPT Astra reviews only when explicitly requested. Routine and read-only work stays direct.
+  no separate reviewer step is used. Routine and read-only work stays direct.
   No scouts, planners, separate testers or parallel children without a named
   independent need. Review/model
   rules below apply. Non-Git runtime settings may stay with the parent in an
@@ -146,7 +146,7 @@ When a wait did happen, record what it was for and why it was not replaceable.
 ## User-approved Pi / Paseo routing
 
 The optional `native` preset selects GPT Sol high coordination and one native DeepSeek
-Flash high implementation worker; GPT Astra high review is opt-in. The separate
+Flash high implementation worker; no separate reviewer step is used. The separate
 `economy` preset remains independently opt-in. Role files guide parent choices but do
 not dispatch agents or change permissions. Keep the active parent's selected model and
 thinking unchanged. Only a confirmed DeepSeek 402 insufficient-balance error may
@@ -161,8 +161,8 @@ before transferring work.
 Pi/Paseo owns workspaces, integration and tracking. Parent self-review and
 source-current checks apply even to security/data-integrity, large/substantial
 or consequential cross-module changes. Do not launch a separate reviewer or
-security reviewer automatically. Explicit independent-review requests are honored.
-Keep the active parent provider/model/thinking unchanged; never silently substitute.
+security reviewer as a task step. Keep the active parent provider/model/thinking
+unchanged; never silently substitute.
 
 Before delegation verify worktree identity, acceptance, control/completion path and
 permissions. Missing isolation or evidence is a blocker. Load `megai/delegation.md`
