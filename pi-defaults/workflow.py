@@ -759,40 +759,95 @@ def _preserve_generated_ignored(path, repo, workspace_id, ignored):
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
     if root.is_symlink() or not root.is_dir() or root.stat().st_uid != os.getuid() or stat.S_IMODE(root.stat().st_mode) != 0o700:
         raise ValueError("Cleanup backup directory must be owned and mode 0700")
-    files = []
-    total = 0
-    for name in ignored:
-        relative = Path(name)
-        source = Path(path) / relative
-        if (relative.is_absolute() or ".." in relative.parts or len(relative.parts) < 2
-                or relative.parts[-2] != "__pycache__"
-                or source.suffix != ".pyc" or not source.resolve().is_relative_to(path)
-                or any(p.is_symlink() for p in (source, *source.parents) if p.is_relative_to(path))):
-            raise ValueError(f"Unknown ignored data retained: {name}")
-        metadata = source.lstat()
-        if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
-            raise ValueError(f"Unsupported generated file retained: {name}")
-        total += metadata.st_size
-        if len(files) >= 10000 or total > 64 * 1024 * 1024:
-            raise ValueError("Generated data exceeds private backup limit")
-        files.append((name, source, hashlib.sha256(source.read_bytes()).hexdigest()))
-    target = Path(tempfile.mkdtemp(prefix=f"{workspace_id}-", dir=root))
-    print(f"Cleanup private backup: {target}", file=sys.stderr, flush=True)
-    records = []
-    for name, source, digest in files:
-        if hashlib.sha256(source.read_bytes()).hexdigest() != digest:
-            raise ValueError(f"Generated file moved during backup: {name}; preserve {target}")
-        destination = target / name
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        os.rename(source, destination)  # Same-filesystem atomic move; no copy/delete fallback.
-        if hashlib.sha256(destination.read_bytes()).hexdigest() != digest:
-            raise ValueError(f"Generated backup verification failed: {destination}")
-        records.append({"path": name, "sha256": digest})
-    fd = os.open(target / "manifest.json", os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-    with os.fdopen(fd, "w") as manifest:
-        json.dump({"workspaceId": workspace_id, "files": records}, manifest)
-        manifest.write("\n")
-    return str(target)
+    limit = 64 * 1024 * 1024
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    root_fd = os.open(path, directory_flags)
+
+    def parent_fd(relative):
+        fd = os.dup(root_fd)
+        try:
+            for component in relative.parts[:-1]:
+                next_fd = os.open(component, directory_flags, dir_fd=fd)
+                os.close(fd)
+                fd = next_fd
+            return fd
+        except BaseException:
+            os.close(fd)
+            raise
+
+    def inspect(fd, name, budget):
+        metadata = os.stat(name, dir_fd=fd, follow_symlinks=False)
+        if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
+                or metadata.st_size > budget):
+            raise ValueError(f"Generated data is unsafe or exceeds private backup limit: {name}")
+        source_fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=fd)
+        try:
+            before = os.fstat(source_fd)
+            if (before.st_dev, before.st_ino, before.st_size) != (
+                    metadata.st_dev, metadata.st_ino, metadata.st_size):
+                raise ValueError(f"Generated file changed before read: {name}")
+            digest = hashlib.sha256()
+            size = 0
+            while block := os.read(source_fd, min(65536, budget - size + 1)):
+                size += len(block)
+                if size > budget:
+                    raise ValueError(f"Generated data grew beyond private backup limit: {name}")
+                digest.update(block)
+            after = os.fstat(source_fd)
+            if (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, size) != (
+                    before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_size):
+                raise ValueError(f"Generated file changed during read: {name}")
+            return (after.st_dev, after.st_ino, size, after.st_mtime_ns), digest.hexdigest()
+        finally:
+            os.close(source_fd)
+
+    try:
+        files = []
+        total = 0
+        for name in ignored:
+            relative = Path(name)
+            if (relative.is_absolute() or ".." in relative.parts or len(relative.parts) < 2
+                    or relative.parts[-2] != "__pycache__" or relative.suffix != ".pyc"):
+                raise ValueError(f"Unknown ignored data retained: {name}")
+            if len(files) >= 10000:
+                raise ValueError("Too many generated files for private backup")
+            fd = parent_fd(relative)
+            try:
+                identity, digest = inspect(fd, relative.name, limit - total)
+            finally:
+                os.close(fd)
+            total += identity[2]
+            files.append((relative, identity, digest))
+        target = Path(tempfile.mkdtemp(prefix=f"{workspace_id}-", dir=root))
+        print(f"Cleanup private backup: {target}", file=sys.stderr, flush=True)
+        records = []
+        for relative, identity, digest in files:
+            fd = parent_fd(relative)
+            try:
+                if inspect(fd, relative.name, identity[2]) != (identity, digest):
+                    raise ValueError(f"Generated file changed before backup: {relative}; preserve {target}")
+                destination = target / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                target_fd = os.open(destination.parent, directory_flags)
+                try:
+                    current = os.stat(relative.name, dir_fd=fd, follow_symlinks=False)
+                    if (current.st_dev, current.st_ino, current.st_size, current.st_mtime_ns) != identity:
+                        raise ValueError(f"Generated file moved before backup: {relative}; preserve {target}")
+                    os.rename(relative.name, relative.name, src_dir_fd=fd, dst_dir_fd=target_fd)
+                    if inspect(target_fd, relative.name, identity[2]) != (identity, digest):
+                        raise ValueError(f"Generated backup verification failed: {destination}")
+                finally:
+                    os.close(target_fd)
+            finally:
+                os.close(fd)
+            records.append({"path": str(relative), "sha256": digest})
+        fd = os.open(target / "manifest.json", os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        with os.fdopen(fd, "w") as manifest:
+            json.dump({"workspaceId": workspace_id, "files": records}, manifest)
+            manifest.write("\n")
+        return str(target)
+    finally:
+        os.close(root_fd)
 
 
 def cleanup(cwd, workspace_id, branch, tip):

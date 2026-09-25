@@ -314,6 +314,58 @@ class CleanupContract(unittest.TestCase):
         self.assertEqual(generated.read_bytes(), b"keep")
         self.assertTrue(self.wt.exists())
 
+    def test_generated_parent_symlink_swap_never_moves_foreign_data(self):
+        spec = importlib.util.spec_from_file_location("cleanup_workflow", WORKFLOW)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        owned = self.wt / "pkg/__pycache__"
+        owned.mkdir(parents=True)
+        (owned / "example.pyc").write_bytes(b"same bytes")
+        foreign = self.fx.tmp / "foreign"
+        (foreign / "__pycache__").mkdir(parents=True)
+        foreign_file = foreign / "__pycache__/example.pyc"
+        foreign_file.write_bytes(b"same bytes")
+        backups = self.fx.tmp / "safe-backups"
+        backups.mkdir(mode=0o700)
+        real_rename = os.rename
+        triggered = False
+        def swap_parent(src, dst, **kwargs):
+            nonlocal triggered
+            if not triggered:
+                triggered = True
+                real_rename(self.wt / "pkg", self.wt / "pkg-old")
+                (self.wt / "pkg").symlink_to(foreign, target_is_directory=True)
+            return real_rename(src, dst, **kwargs)
+        with mock.patch.dict(os.environ, {"MEGAI_CLEANUP_BACKUPS": str(backups)}), \
+             mock.patch.object(module.os, "rename", side_effect=swap_parent):
+            saved = module._preserve_generated_ignored(str(self.wt), self.fx.primary,
+                                                       "wks_own", ["pkg/__pycache__/example.pyc"])
+        self.assertEqual(foreign_file.read_bytes(), b"same bytes")
+        self.assertEqual((Path(saved) / "pkg/__pycache__/example.pyc").read_bytes(), b"same bytes")
+
+    def test_generated_growth_beyond_limit_is_refused(self):
+        spec = importlib.util.spec_from_file_location("cleanup_workflow", WORKFLOW)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        generated = self.wt / "__pycache__/example.pyc"
+        generated.parent.mkdir()
+        generated.write_bytes(b"small")
+        backups = self.fx.tmp / "safe-backups"
+        backups.mkdir(mode=0o700)
+        real_open = os.open
+        def grow_after_open(file, flags, *args, **kwargs):
+            fd = real_open(file, flags, *args, **kwargs)
+            if str(file) == "example.pyc":
+                with generated.open("r+b") as stream:
+                    stream.truncate(64 * 1024 * 1024 + 1)
+            return fd
+        with mock.patch.dict(os.environ, {"MEGAI_CLEANUP_BACKUPS": str(backups)}), \
+             mock.patch.object(module.os, "open", side_effect=grow_after_open):
+            with self.assertRaises(ValueError):
+                module._preserve_generated_ignored(str(self.wt), self.fx.primary,
+                                                   "wks_own", ["__pycache__/example.pyc"])
+        self.assertTrue(generated.exists())
+
     def test_stale_tip_or_ignored_data_keeps_both_resources(self):
         stale = self.run_cleanup(tip=self.fx.dev)
         self.assertNotEqual(stale.returncode, 0)
