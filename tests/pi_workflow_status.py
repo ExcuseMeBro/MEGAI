@@ -13,6 +13,7 @@ single ``context`` baseline test passes and guards the existing commands.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import shutil
@@ -21,6 +22,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / "pi-defaults/workflow.py"
@@ -66,7 +68,14 @@ elif argv[:2] == ["workspace", "archive"] and state:
         json.dump(state, f)
     out = {"workspaceId": key}
 elif argv[:2] == ["terminal", "ls"]:
-    out = json.loads(os.environ.get("FAKE_TERMINALS", "[]"))
+    counter = os.environ.get("FAKE_TERMINAL_COUNTER")
+    if counter:
+        n = int(open(counter).read()) + 1
+        with open(counter, "w") as f:
+            f.write(str(n))
+        out = [{"id": "new-terminal"}] if n >= 2 else []
+    else:
+        out = json.loads(os.environ.get("FAKE_TERMINALS", "[]"))
 elif argv[:2] == ["agent", "ls"]:
     out = json.loads(os.environ.get("FAKE_AGENTS", "[]"))
 elif argv[:2] == ["agent", "inspect"]:
@@ -294,6 +303,53 @@ class CleanupContract(unittest.TestCase):
                            "--branch", "task/megai-162", "--tip", self.tip], env=default)
         self.assertNotEqual(current.returncode, 0)
         self.assertTrue(self.wt.exists())
+
+    def test_descendant_agent_or_caller_keeps_workspace(self):
+        nested = self.wt / "nested"
+        nested.mkdir()
+        agents = [agent("child", self.wt), agent("other", nested, "running")]
+        inspects = inspect("child", self.wt, archived=True)
+        inspects.update(inspect("other", nested, archived=False, status="running"))
+        result = self.run_cleanup(env={"FAKE_AGENTS": json.dumps(agents),
+                                       "FAKE_INSPECTS": json.dumps(inspects)})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+        caller = self.fx.env(agents=[agent("caller", nested)],
+                             inspects=inspect("caller", nested, archived=False), runner="caller")
+        caller["FAKE_PASEO_STATE"] = str(self.state)
+        result = run_cli(["cleanup", "--cwd", str(nested), "--workspace", "wks_own",
+                          "--branch", "task/megai-162", "--tip", self.tip], env=caller)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+
+    def test_missing_agent_release_evidence_keeps_workspace(self):
+        result = self.run_cleanup(env={"FAKE_AGENTS": "[]"})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+
+    def test_terminal_appearing_during_preflight_keeps_workspace(self):
+        counter = self.fx.tmp / "terminal-reads"
+        counter.write_text("0")
+        result = self.run_cleanup(env={"FAKE_TERMINAL_COUNTER": str(counter)})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+
+    def test_failed_branch_readback_never_reports_deletion(self):
+        spec = importlib.util.spec_from_file_location("cleanup_workflow", WORKFLOW)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        real = module._local_ref
+        def fail_after_deletion(path, name):
+            result = real(path, name)
+            if name == "task/megai-162" and result == (None, None):
+                return None, "simulated read failure"
+            return result
+        env = self.fx.env(agents=[agent("child", self.wt)],
+                          inspects=inspect("child", self.wt, archived=True))
+        env["FAKE_PASEO_STATE"] = str(self.state)
+        with mock.patch.dict(os.environ, env), mock.patch.object(module, "_local_ref", side_effect=fail_after_deletion):
+            with self.assertRaises(ValueError):
+                module.cleanup(str(self.fx.primary), "wks_own", "task/megai-162", self.tip)
 
     def test_no_dev_checkout_keeps_workspace_before_archival(self):
         _git(self.fx.primary, "switch", "main")

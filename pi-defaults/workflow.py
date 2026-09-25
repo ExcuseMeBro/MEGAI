@@ -761,42 +761,52 @@ def cleanup(cwd, workspace_id, branch, tip):
         raise ValueError("Protected branch cannot be retired")
     if not re.fullmatch(r"[0-9a-f]{40,64}", tip):
         raise ValueError("Expected full task commit SHA")
-    project_rows = _rows(_paseo_json("project", "ls"),
-                         {"projectId": str, "name": str, "kind": str, "path": str})
-    owned = [p for p in project_rows if _expand(p["path"]) == _expand(policy["root"])]
-    if len(owned) != 1 or sum(p["name"] == owned[0]["name"] for p in project_rows) != 1:
-        raise ValueError("Paseo project identity is missing or ambiguous")
-    workspaces = _rows(_paseo_json("workspace", "ls"),
-                       {"workspaceId": str, "project": str, "name": str,
-                        "isolation": str, "cwd": str})
-    matched = [w for w in workspaces if w["workspaceId"] == workspace_id]
-    if len(matched) != 1:
-        raise ValueError("Task workspace missing or ambiguous; reconcile archival before retry")
-    workspace = matched[0]
-    if workspace["project"] != owned[0]["name"] or workspace["isolation"] != "worktree":
-        raise ValueError("Workspace ownership or isolation mismatch")
-    path = _expand(workspace["cwd"])
-    if path == str(repo) or path == _expand(cwd) or _primary_or_none(path) != str(repo):
-        raise ValueError("Refusing to archive primary, current or foreign workspace")
-    if os.environ.get("PASEO_AGENT_ID") is None:
-        raise ValueError("Invoking agent identity is required")
-    agents = _rows(_paseo_json("agent", "ls", "--all"),
-                   {"id": str, "shortId": str, "name": str, "provider": str,
-                    "thinking": str, "status": str, "cwd": str, "created": str})
-    for agent in agents:
-        if _expand(agent["cwd"]) != path:
-            continue
-        if agent["id"] == os.environ["PASEO_AGENT_ID"]:
-            raise ValueError("Invoking agent still owns the task workspace")
-        detail = _paseo_json("agent", "inspect", agent["id"])
-        if (_inspect_problem(detail) or detail["Id"] != agent["id"]
-                or _expand(detail["Cwd"]) != path or agent["status"] != "idle"
-                or detail["Status"] != "idle" or not detail["Archived"]
-                or detail.get("PendingPermissions") != []):
-            raise ValueError(f"Agent {agent['id']} is not safely released")
-    terminals = _rows(_paseo_json("terminal", "ls", "--workspace", workspace_id), {})
-    if terminals:
-        raise ValueError("Task workspace still owns terminals")
+    def check_owners():
+        project_rows = _rows(_paseo_json("project", "ls"),
+                             {"projectId": str, "name": str, "kind": str, "path": str})
+        owned = [p for p in project_rows if _expand(p["path"]) == _expand(policy["root"])]
+        if len(owned) != 1 or sum(p["name"] == owned[0]["name"] for p in project_rows) != 1:
+            raise ValueError("Paseo project identity is missing or ambiguous")
+        workspaces = _rows(_paseo_json("workspace", "ls"),
+                           {"workspaceId": str, "project": str, "name": str,
+                            "isolation": str, "cwd": str})
+        matched = [w for w in workspaces if w["workspaceId"] == workspace_id]
+        if len(matched) != 1:
+            raise ValueError("Task workspace missing or ambiguous; reconcile archival before retry")
+        workspace = matched[0]
+        if workspace["project"] != owned[0]["name"] or workspace["isolation"] != "worktree":
+            raise ValueError("Workspace ownership or isolation mismatch")
+        path = _expand(workspace["cwd"])
+        if (path == str(repo) or Path(_expand(cwd)).is_relative_to(path)
+                or _primary_or_none(path) != str(repo)):
+            raise ValueError("Refusing to archive primary, current or foreign workspace")
+        if os.environ.get("PASEO_AGENT_ID") is None:
+            raise ValueError("Invoking agent identity is required")
+        agents = _rows(_paseo_json("agent", "ls", "--all"),
+                       {"id": str, "shortId": str, "name": str, "provider": str,
+                        "thinking": str, "status": str, "cwd": str, "created": str})
+        released = []
+        for agent in agents:
+            if not Path(_expand(agent["cwd"])).is_relative_to(path):
+                continue
+            if agent["id"] == os.environ["PASEO_AGENT_ID"]:
+                raise ValueError("Invoking agent still owns the task workspace")
+            detail = _paseo_json("agent", "inspect", agent["id"])
+            if (_inspect_problem(detail) or detail["Id"] != agent["id"]
+                    or _expand(detail["Cwd"]) != _expand(agent["cwd"])
+                    or agent["status"] != "idle" or detail["Status"] != "idle"
+                    or not detail["Archived"] or detail.get("PendingPermissions") != []):
+                raise ValueError(f"Agent {agent['id']} is not safely released")
+            released.append(agent["id"])
+        if not released:
+            raise ValueError("No archived agent release evidence for task workspace")
+        terminals = _rows(_paseo_json("terminal", "ls", "--workspace", workspace_id), {})
+        if terminals:
+            raise ValueError("Task workspace still owns terminals")
+        return owned[0]["projectId"], path, tuple(sorted(released))
+
+    owners = check_owners()
+    path = owners[1]
 
     def check_git():
         registered, error = _git_worktrees(repo)
@@ -826,14 +836,14 @@ def cleanup(cwd, workspace_id, branch, tip):
     dev, dev_path = check_git()
     # Archive is an irreversible mutation. Recheck the exact snapshot directly
     # beforehand, then verify both registry and filesystem before deleting a ref.
-    if check_git() != (dev, dev_path):
-        raise ValueError("Local dev moved during cleanup")
+    if check_git() != (dev, dev_path) or check_owners() != owners:
+        raise ValueError("Task workspace, ownership or dev moved during cleanup")
     _paseo_json("workspace", "archive", workspace_id)
     remaining, worktree_error = _git_worktrees(repo)
     if (worktree_error or any(w["workspaceId"] == workspace_id for w in _rows(
             _paseo_json("workspace", "ls"), {"workspaceId": str, "project": str,
                                             "name": str, "isolation": str, "cwd": str}))
-            or Path(path).exists()
+            or os.path.lexists(path)
             or any(_expand(e["path"]) == path for e in remaining)):
         raise ValueError("Workspace archive unconfirmed; branch retained for reconciliation")
     ref, error = _local_ref(repo, branch)
@@ -841,7 +851,8 @@ def cleanup(cwd, workspace_id, branch, tip):
     if error or dev_error or ref != tip or current_dev != dev:
         raise ValueError("Refs moved after archive; branch retained")
     git(dev_path, "branch", "-d", "--", branch)
-    if _local_ref(repo, branch)[0] is not None:
+    remaining_ref, read_error = _local_ref(repo, branch)
+    if read_error or remaining_ref is not None:
         raise ValueError("Branch deletion unconfirmed")
     return {"workspaceId": workspace_id, "branch": branch, "tip": tip,
             "dev": dev, "archived": True, "branchDeleted": True}
