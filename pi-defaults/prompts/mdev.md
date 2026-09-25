@@ -28,7 +28,9 @@ Resolve each of these, continue, and report them as steps you completed:
   create it once with `pi-workflow start --title "<task title>"` so the delivery has a home.
 - Missing or stale evidence for the recorded SHA: obtain the focused checks and a fresh
   independent GPT review of that exact SHA, including any corrections made after an earlier
-  review.
+  review. Treat verified task-owned tracked/untracked edits as unfinished task work: finish
+  and commit only those changes in the owned worktree, then refresh acceptance on the new SHA.
+  Never discard or silently omit them from a completion claim.
 - Moved refs or a rejected non-force push: fetch, revalidate the new scoped snapshot and retry,
   at most three revalidation passes; report only if it keeps moving.
 - Merge conflicts: resolve bounded conflicts through the approved worker, preserving both
@@ -113,19 +115,30 @@ clean, exclusively owned checkout at the recorded head; otherwise leave the prim
 and report the isolated remote delivery. Never rewrite a target or switch another owner's branch.
 
 **Cleanup only after proof**
-8. Fetch and prove each exact validated commit is reachable from the remote `dev` first. Then
-   store the per-task multi-repository delivery receipt/evidence under the existing Plane
-   identity (`pi-workflow review`) and move only that task to **In Review**; never Done here -
-   Done requires verified `main` via `pi-workflow done`.
-9. Clean each delivered repository independently after its exact validated SHA is reachable
-   from remote `dev`. Archive released, clean, task-owned Paseo workspaces with the documented
-   manager (`paseo workspace archive`), never `rm -rf`; then use ordinary non-force
-   `git worktree remove` / `git branch -d` only for the unchanged local task branch proven
-   merged into remote `dev`. Cleanup failure for one row must not stall cleanup of other rows;
-   cleanup each delivered repository independently.
-   Keep the current workspace, foreign/unknown/busy/dirty work, protected branches and all
-   remote task branches. A workspace retained because it holds ignored or unreleased data is
-   reported as retained, not as a reason to stop delivery.
+8. Fetch and prove each exact validated commit is reachable from the remote `dev` first.
+   Preserve the existing task's delivery receipt and evidence privately for cleanup and later
+   Plane handoff. Do not set In Review until the task's cleanup attempts are accounted for.
+9. Clean each delivered repository independently while its queue reservation is held.
+   From a retained primary checkout invoke `pi-workflow cleanup --cwd PRIMARY --workspace
+   EXACT_ID --branch task/SLUG --tip FULL_TASK_SHA`; its verified idle direct children are
+   archived before the workspace and branch. For `/mdev` remote-dev delivery with a dirty
+   primary, do not mutate that primary checkout to make this local-dev-only command pass:
+   retain the row until local dev can be safely reconciled. A status `cleanupEligible: false`
+   due only to remote-dev/local-dev disagreement is advisory, not a reason to skip a pinned
+   cleanup after verified local delivery.
+   Preserve task-owned ignored/generated data in a private 0700 backup outside the checkout
+   with path, mode, content-hash inventory and read-back before moving it; never erase or
+   relocate unverified, foreign or ambiguous content. Rerun the pinned cleanup after a safe
+   backup. For dirty tracked/untracked task source, finish it as task work with new acceptance
+   before delivery; a non-task or uncertain change is retained. A missing archived workspace
+   with a leftover branch is reconciled only against the existing recorded workspace/archive
+   receipt, exact SHA and current dev ancestry under reservation; otherwise retain it, never
+   invent provenance. No force removal, reset, stash or global merged-branch sweep.
+   Cleanup failure for one row must not stall independent rows; cleanup each delivered repository independently.
+   Record its exact reason and continue. Keep the invoking parent workspace, foreign/unknown/busy/dirty work, protected
+   branches and all remote task branches. Finally store each task's complete delivery and
+   cleanup result in Plane (`pi-workflow review`) and move only that task to **In Review**;
+   never Done here — Done requires verified `main` via `pi-workflow done`.
 10. Report a complete per-repository ledger: merged, held, skipped, cleaned and retained rows;
     exact validated commits; workspace/branch resources removed; and every reason. Do not
     re-review unchanged evidence, and do not call the run complete while any eligible row is

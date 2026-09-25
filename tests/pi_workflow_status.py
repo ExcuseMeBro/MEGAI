@@ -57,6 +57,9 @@ if argv[:2] == ["project", "ls"]:
 elif argv[:2] == ["workspace", "ls"]:
     out = state["workspaces"] if state else json.loads(os.environ.get("FAKE_WORKSPACES", "[]"))
 elif argv[:2] == ["workspace", "archive"] and state:
+    if os.environ.get("FAKE_ARCHIVE_LOG"):
+        with open(os.environ["FAKE_ARCHIVE_LOG"], "a") as f:
+            f.write("workspace\n")
     positional = [a for a in argv[2:] if not a.startswith("-")]
     key = positional[0] if positional else ""
     matches = [w for w in state["workspaces"] if w["workspaceId"] == key]
@@ -77,9 +80,27 @@ elif argv[:2] == ["terminal", "ls"]:
     else:
         out = json.loads(os.environ.get("FAKE_TERMINALS", "[]"))
 elif argv[:2] == ["agent", "ls"]:
-    out = json.loads(os.environ.get("FAKE_AGENTS", "[]"))
+    out = state.get("agents", []) if state and "agents" in state else json.loads(os.environ.get("FAKE_AGENTS", "[]"))
+elif argv[:2] == ["agent", "archive"] and state:
+    if os.environ.get("FAKE_AGENT_ARCHIVE_FAIL"):
+        sys.exit(4)
+    positional = [a for a in argv[2:] if not a.startswith("-")]
+    key = positional[0] if positional else ""
+    if key not in state.get("inspects", {}):
+        sys.exit(4)
+    if os.environ.get("FAKE_ARCHIVE_LOG"):
+        with open(os.environ["FAKE_ARCHIVE_LOG"], "a") as f:
+            f.write("agent\n")
+    state["inspects"][key]["Archived"] = True
+    if os.environ.get("FAKE_NEW_OWNER_AFTER_ARCHIVE"):
+        state["agents"].append({"id": "foreign", "shortId": "foreign", "name": "foreign",
+                                "provider": "pi", "thinking": "high", "status": "running",
+                                "cwd": state["agents"][0]["cwd"], "created": "now"})
+    with open(state_path, "w") as f:
+        json.dump(state, f)
+    out = {"Id": key, "Archived": True}
 elif argv[:2] == ["agent", "inspect"]:
-    inspects = json.loads(os.environ.get("FAKE_INSPECTS", "{}"))
+    inspects = state.get("inspects", {}) if state and "inspects" in state else json.loads(os.environ.get("FAKE_INSPECTS", "{}"))
     positional = [a for a in argv[2:] if not a.startswith("-")]
     key = positional[0] if positional else ""
     if key not in inspects:
@@ -272,6 +293,41 @@ class CleanupContract(unittest.TestCase):
         self.assertNotEqual(ignored.returncode, 0)
         self.assertTrue((self.wt / "build" / "keep.txt").exists())
         self.assertEqual(len(json.loads(self.state.read_text())["workspaces"]), 1)
+
+    def test_idle_direct_child_archives_before_workspace_and_branch(self):
+        child = inspect("child", self.wt, archived=False)["child"]
+        child["ParentAgentId"] = RUNNER
+        self.state.write_text(json.dumps({"workspaces": [workspace("wks_own", self.wt)],
+                                          "agents": [agent("child", self.wt)],
+                                          "inspects": {"child": child}}))
+        order = self.fx.tmp / "archive-order"
+        result = self.run_cleanup(env={"FAKE_ARCHIVE_LOG": str(order)})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(order.read_text().splitlines(), ["agent", "workspace"])
+        self.assertFalse(self.wt.exists())
+        self.assertEqual(_git(self.fx.primary, "branch", "--list", "task/megai-162"), "")
+
+    def test_child_archive_failure_preserves_workspace_and_ref(self):
+        child = inspect("child", self.wt, archived=False)["child"]
+        child["ParentAgentId"] = RUNNER
+        self.state.write_text(json.dumps({"workspaces": [workspace("wks_own", self.wt)],
+                                          "agents": [agent("child", self.wt)],
+                                          "inspects": {"child": child}}))
+        result = self.run_cleanup(env={"FAKE_AGENT_ARCHIVE_FAIL": "1"})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+        self.assertNotEqual(_git(self.fx.primary, "branch", "--list", "task/megai-162"), "")
+
+    def test_new_owner_after_child_archive_keeps_workspace(self):
+        child = inspect("child", self.wt, archived=False)["child"]
+        child["ParentAgentId"] = RUNNER
+        self.state.write_text(json.dumps({"workspaces": [workspace("wks_own", self.wt)],
+                                          "agents": [agent("child", self.wt)],
+                                          "inspects": {"child": child}}))
+        result = self.run_cleanup(env={"FAKE_NEW_OWNER_AFTER_ARCHIVE": "1"})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+        self.assertNotEqual(_git(self.fx.primary, "branch", "--list", "task/megai-162"), "")
 
     def test_unreleased_agent_keeps_workspace(self):
         result = self.run_cleanup(env={"FAKE_INSPECTS": json.dumps(inspect("child", self.wt, archived=False))})

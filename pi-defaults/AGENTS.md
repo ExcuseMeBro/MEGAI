@@ -220,8 +220,13 @@ verification; do not invent a repo.
 After source-current acceptance and required review, the parent automatically reserves
 the integration target, fast-forwards verified task commits to local dev and verifies
 the exact delivery without asking the user again. Then perform safe task-owned
-workspace/branch cleanup before Plane In Review. Active, dirty, unknown or unmerged
-resources stay intact with a reported blocker. Never force cleanup or treat a queue
+workspace/branch cleanup before Plane In Review. The retained parent first resolves
+its task-owned tracked/untracked edits as part of acceptance, preserves required
+ignored data in a verified private backup, and invokes pinned `pi-workflow cleanup`
+for each delivered workspace; the command releases its finished, idle direct children
+before archiving the workspace and merged local task branch. Active, dirty, unknown or
+unmerged resources stay intact with a reported blocker; reconcile known task work,
+not another owner's data. Never force cleanup or treat a queue
 grant as approval. Main promotion, push and publishing still require separate
 explicit approval; dev delivery does not grant any of them.
 
@@ -252,6 +257,9 @@ not a technical tool-authorization gate.
 
 ## End-of-task Agent tab cleanup
 
+Task-owned direct children already archived by verified post-delivery workspace
+cleanup need no second archival. Keep the main parent in a retained primary workspace;
+never attempt self-archival or retire the checkout hosting the invoking agent.
 The parent records the invoking `PASEO_AGENT_ID` and each exact child ID with its task
 workspace/cwd. After acceptance/review and the required delivery and tracker evidence
 are saved, but before the final reply, it archives only recorded task-owned direct

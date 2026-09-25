@@ -761,7 +761,7 @@ def cleanup(cwd, workspace_id, branch, tip):
         raise ValueError("Protected branch cannot be retired")
     if not re.fullmatch(r"[0-9a-f]{40,64}", tip):
         raise ValueError("Expected full task commit SHA")
-    def check_owners():
+    def check_owners(*, allow_releasable=False):
         project_rows = _rows(_paseo_json("project", "ls"),
                              {"projectId": str, "name": str, "kind": str, "path": str})
         owned = [p for p in project_rows if _expand(p["path"]) == _expand(policy["root"])]
@@ -786,6 +786,7 @@ def cleanup(cwd, workspace_id, branch, tip):
                        {"id": str, "shortId": str, "name": str, "provider": str,
                         "thinking": str, "status": str, "cwd": str, "created": str})
         released = []
+        releasable = []
         for agent in agents:
             if not Path(_expand(agent["cwd"])).is_relative_to(path):
                 continue
@@ -795,17 +796,23 @@ def cleanup(cwd, workspace_id, branch, tip):
             if (_inspect_problem(detail) or detail["Id"] != agent["id"]
                     or _expand(detail["Cwd"]) != _expand(agent["cwd"])
                     or agent["status"] != "idle" or detail["Status"] != "idle"
-                    or not detail["Archived"] or detail.get("PendingPermissions") != []):
+                    or detail.get("PendingPermissions") != []):
                 raise ValueError(f"Agent {agent['id']} is not safely released")
-            released.append(agent["id"])
-        if not released:
+            if detail["Archived"]:
+                released.append(agent["id"])
+            elif allow_releasable and detail.get("ParentAgentId") == os.environ["PASEO_AGENT_ID"]:
+                releasable.append(agent["id"])
+            else:
+                raise ValueError(f"Agent {agent['id']} is not safely released")
+        if not released and not releasable:
             raise ValueError("No archived agent release evidence for task workspace")
         terminals = _rows(_paseo_json("terminal", "ls", "--workspace", workspace_id), {})
         if terminals:
             raise ValueError("Task workspace still owns terminals")
-        return owned[0]["projectId"], path, tuple(sorted(released))
+        return (owned[0]["projectId"], path, tuple(sorted(released)),
+                tuple(sorted(releasable)))
 
-    owners = check_owners()
+    owners = check_owners(allow_releasable=True)
     path = owners[1]
 
     def check_git():
@@ -834,9 +841,17 @@ def cleanup(cwd, workspace_id, branch, tip):
         return dev, dev_entries[0]["path"]
 
     dev, dev_path = check_git()
-    # Archive is an irreversible mutation. Recheck the exact snapshot directly
-    # beforehand, then verify both registry and filesystem before deleting a ref.
-    if check_git() != (dev, dev_path) or check_owners() != owners:
+    if check_git() != (dev, dev_path) or check_owners(allow_releasable=True) != owners:
+        raise ValueError("Task workspace, ownership or dev moved before agent release")
+    for index, child_id in enumerate(owners[3]):
+        _paseo_json("agent", "archive", child_id)  # No --force; retain on uncertainty.
+        expected = (owners[0], owners[1],
+                    tuple(sorted((*owners[2], *owners[3][:index + 1]))), owners[3][index + 1:])
+        if check_owners(allow_releasable=True) != expected:
+            raise ValueError("Child archive unconfirmed; workspace and branch retained")
+    # Recheck Git and all Paseo owners immediately before retiring the worktree.
+    if check_git() != (dev, dev_path) or check_owners() != (
+            owners[0], owners[1], tuple(sorted((*owners[2], *owners[3]))), ()):
         raise ValueError("Task workspace, ownership or dev moved during cleanup")
     _paseo_json("workspace", "archive", workspace_id)
     remaining, worktree_error = _git_worktrees(repo)

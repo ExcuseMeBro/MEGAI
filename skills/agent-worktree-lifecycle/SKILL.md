@@ -259,7 +259,11 @@ approval. It is agent workflow, not a Git hook or background cleanup service.
    logs, session/evidence bytes and recovery refs in verified private backups
    outside retiring paths. A clean `git status` alone does not cover ignored data.
 2. **Release owners.** Finish mode-appropriate verification before retirement;
-   release task writers, reviewers, owned terminals and workspace services. Check
+   task writers/reviewers must finish with saved final results and no follow-up work.
+   From a retained parent checkout, pinned cleanup archives only that parent's idle
+   direct children after checking their parent ID, cwd and pending permissions;
+   never archive the invoking parent, another parent's child or an active agent.
+   Release owned terminals and workspace services. Check
    current Paseo agents/terminals and Git worktree ownership. An idle agent is not
    proof of release; active, unknown or another task's owners require retention.
    Never archive the current parent workspace from inside its own retiring cwd:
@@ -278,7 +282,10 @@ approval. It is agent workflow, not a Git hook or background cleanup service.
 4. **Archive, then delete.** From a retained checkout, after all task owners
    are released and the reservation is held, run
    `pi-workflow cleanup --cwd PRIMARY --workspace EXACT_ID --branch task/SLUG --tip FULL_TASK_SHA`
-   for each delivered task worktree. Its local-`dev` ancestry check is sufficient
+   for each delivered task worktree. It automatically archives only verified idle
+   direct children of the invoking parent, then rereads owner and terminal state.
+   Unarchived foreign/unknown children and missing release evidence still block.
+   Its local-`dev` ancestry check is sufficient
    for local dev-only delivery; remote `dev` is not a prerequisite unless the
    task separately approved a push. The command refuses busy agents, terminals,
    ignored/untracked data, moved refs and uncertain ownership, archives the exact

@@ -19,7 +19,7 @@ for text, requirements in (
                'wait no more than one\nminute',
                'Main promotion, push and publishing still require separate\nexplicit approval')),
     (workflow, ('This\n   applies even to tiny edits',
-                'automatically fast-forward verified task commits to local dev',
+                'automatically deliver verified task commits to local dev',
                 'without waiting for another user confirmation',
                 'Push only with separate explicit approval',
                 'Automatically archive only released, clean, task-owned temporary workspaces',
