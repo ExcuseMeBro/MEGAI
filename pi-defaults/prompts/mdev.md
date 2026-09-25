@@ -8,6 +8,12 @@ Do not ask again for dev merge/push approval. Complete recoverable prerequisites
 than merely reporting "blocked; preserved unchanged". This does **not** authorize main
 promotion, force-push, remote task-branch deletion, extra Plane changes, or other projects/repos.
 
+"All branches" means every eligible local `task/*` branch and registered task worktree
+inside every repository in the resolved project. It does not include `main`, `dev`, a
+configured preserve branch, a foreign/unknown repository, or a remote task ref (remote
+task-ref deletion still needs separate approval). A monorepo has one repository ledger;
+a multi-repo project has one independent ledger per configured repository.
+
 **Never stop for a recoverable prerequisite**
 Resolve each of these, continue, and report them as steps you completed:
 - Local `dev` ahead of the remote, or anything listed in `pendingDelivery`: that is the work
@@ -64,41 +70,63 @@ force, remote branch deletion, other projects/repos).
    Unconfirmed workspace release blocks cleanup only, not delivery of an otherwise safe
    reviewed commit.
 
-**Integrate serially**
-7. Work in a safe, exclusively owned checkout; isolate integration if a checkout is shared.
-   Refresh only approved remotes. Compare local and remote `dev`; local ahead is not a blocker.
-   Account for every unpublished commit, reuse its existing Plane identity and verify/review
-   it before publication. If histories diverged, reconcile known scoped work without rewriting
-   history; stop only for unknown ownership or out-of-scope changes needing an owner decision.
-   Recheck candidate refs, then merge recorded reviewed SHAs one at a time, never live branch
-   names. Skip a commit already reachable from the fetched remote `dev`; no duplicate merge.
-   Resolve bounded integration conflicts through the approved worker, preserving both tasks'
-   behavior; ask only for ambiguous product/ownership decisions, not ordinary merge permission.
-   Run acceptance checks on the combined result and obtain independent GPT review of its exact
-   final SHA. Fix introduced regressions and rerun affected checks/review. Demonstrably unchanged
-   baseline failures must be reported separately, never described as a green full suite.
-   Recheck refs before publication. If a candidate moved or a non-force push is rejected due to
-   remote advancement, fetch and revalidate the new scoped snapshot and retry, at most three
-   passes; report only if refs keep moving or safe reconciliation needs owner input, preserving
-   the integration.
-   Fast-forward local `dev` with `git merge --ff-only --no-overwrite-ignore` only if its
-   checkout is clean, exclusively owned and still at the recorded head; never rewrite it or
-   switch someone else's branch. Publish the exact validated
-   commit by SHA (`<validated-sha>:refs/heads/dev`) with an ordinary non-force push. If local `dev`
-   cannot safely be updated, retain the isolated integration and report that separately from
-   verified remote delivery. Genuine unresolved regressions, unsafe state or infrastructure
-   failures stop only the affected repository; preserve work and report the concrete blocker.
+**Candidate ledger (before merge)**
+6a. Build one candidate ledger for every configured repository before the first merge. Enumerate
+every eligible task branch: all local `task/*` refs and all registered task worktrees, including candidates absent from
+`pendingDelivery`; deduplicate the same repository/branch/HEAD, but never silently drop a
+candidate because its workspace is dirty, busy, missing, or has no Plane receipt. Each row
+must contain repository path, branch, exact HEAD, worktree/workspace path and id, ownership,
+dirty/operation state, review/evidence state, remote-`dev` ancestry, merge result and cleanup
+result. Sort rows deterministically by repository path, branch, then HEAD.
+6b. Treat the ledger as a queue, not a single all-or-nothing gate. A moved ref, missing
+workspace, stale receipt, conflict, test failure, or cleanup failure is recorded against that
+row and the run continues with the next candidate. The run must continue with the next repository even when
+one repository has a held row. Only foreign ownership,
+ambiguous scope, or a protected ref stops the affected write; never wait indefinitely for an
+agent, workspace, lock, conflict resolver, or remote ref.
+
+**Integrate serially without stalling**
+7. Work in a safe, exclusively owned integration checkout for each repository; if the primary
+`dev` checkout is dirty, busy, or shared, use a clean managed integration worktree and do not
+switch or reset the primary. Refresh only approved remotes. For each ledger row, re-read the
+exact HEAD and merge that SHA, never a moving branch name. Skip a SHA already reachable from
+the current fetched remote `dev`.
+7a. Merge with `git merge --no-edit --no-overwrite-ignore <candidate-sha>`: fast-forward when
+possible, and create a normal merge commit when the task branch diverged. Never use `--ff-only`
+for this all-candidates delivery loop; it is the reason independent task branches stall.
+7b. On a conflict, run one bounded approved resolver attempt in the isolated integration
+checkout. If it resolves, run focused acceptance and continue. If it cannot resolve, abort only
+that candidate's merge, record `held: conflict` with the paths/reason, and immediately continue
+with the next ledger row; do not sleep, poll, or wait for an unbounded child.
+7c. If focused checks fail after a candidate, preserve the candidate worktree/branch, discard
+only the isolated candidate integration state, record `held: verification`, and continue with
+the next repository. A failure in one repository must not prevent safe candidates in other
+repositories from reaching `dev`; report a partial vector instead of claiming all succeeded.
+7d. Recheck candidate refs and remote `dev` before every publication. If a candidate moved or
+non-force push is rejected by remote advancement, fetch and revalidate that row up to three
+times, then record `held: moving-ref` and continue. Run combined acceptance and fresh review
+for each repository's final SHA; unchanged baseline failures are reported separately.
+7e. Publish each validated repository result by exact SHA
+(`<validated-sha>:refs/heads/dev`) with an ordinary non-force push. Local `dev` may be
+fast-forwarded with `git merge --no-edit --no-overwrite-ignore <validated-sha>` only in a
+clean, exclusively owned checkout at the recorded head; otherwise leave the primary untouched
+and report the isolated remote delivery. Never rewrite a target or switch another owner's branch.
 
 **Cleanup only after proof**
 8. Fetch and prove each exact validated commit is reachable from the remote `dev` first. Then
    store the per-task multi-repository delivery receipt/evidence under the existing Plane
    identity (`pi-workflow review`) and move only that task to **In Review**; never Done here -
    Done requires verified `main` via `pi-workflow done`.
-9. Clean only workspaces that are released, clean, task-owned, at a fresh unchanged head with
-   recorded ownership, and whose reviewed SHAs are all on pushed `dev`. Use the documented
-   Paseo manager for Paseo workspaces (`paseo workspace archive`), never `rm -rf`. Use ordinary
-   non-force `git worktree remove` / `git branch -d` only when appropriate. Keep the current
-   workspace, foreign/unknown work, and all remote branches. A workspace retained because it
-   holds ignored or unreleased data is reported as retained, not as a blocked run.
-10. Report per repository: merged / skipped / retained, the exact validated commits, and why.
-    Do not re-review unchanged evidence.
+9. Clean each delivered repository independently after its exact validated SHA is reachable
+   from remote `dev`. Archive released, clean, task-owned Paseo workspaces with the documented
+   manager (`paseo workspace archive`), never `rm -rf`; then use ordinary non-force
+   `git worktree remove` / `git branch -d` only for the unchanged local task branch proven
+   merged into remote `dev`. Cleanup failure for one row must not stall cleanup of other rows;
+   cleanup each delivered repository independently.
+   Keep the current workspace, foreign/unknown/busy/dirty work, protected branches and all
+   remote task branches. A workspace retained because it holds ignored or unreleased data is
+   reported as retained, not as a reason to stop delivery.
+10. Report a complete per-repository ledger: merged, held, skipped, cleaned and retained rows;
+    exact validated commits; workspace/branch resources removed; and every reason. Do not
+    re-review unchanged evidence, and do not call the run complete while any eligible row is
+    unaccounted for.

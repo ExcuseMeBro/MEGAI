@@ -2,11 +2,13 @@
 """Install Pi policy; change native model defaults only with an explicit --preset."""
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 BEGIN = "<!-- megai:subagent-models:begin -->"
 END = "<!-- megai:subagent-models:end -->"
 KNOWN_JEV_BROWSER_SHA256 = "d7f4e46265e2dfafd9866f78ffb75b6106e4b3352af62dbb2d72e16b0c5fd28e"
+KNOWN_AGY_POLICY_SHA256 = "7bcfa8663cb1c682511ca010f14fb9de90565cd58ce803d5bfc9f09c2d8b6883"
 
 
 def retire_jev_browser(plan, path: Path) -> None:
@@ -85,8 +87,7 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
     for filename in ("index.ts", "bridge.py", "compaction.ts"):
         plan.asset(root / "extensions/megai-laya" / filename,
                    (source / "pi-skill/laya" / filename).read_bytes(), remove)
-    plan.asset(root / "extensions/megai-antigravity/index.ts",
-               (source / "pi-skill/antigravity/index.ts").read_bytes(), remove)
+    plan.retire(root / "extensions/megai-antigravity/index.ts")
     delegation = root / "skills/megai/delegation.md"
     installed = read(delegation)
     if installed is None or installed == policy or plan.owned(delegation, installed):
@@ -98,6 +99,41 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
     if remove:
         # Removing policy does not undo the user's native model preferences.
         plan.retire(root / "megai-roles.json")
+
+
+def migrate_known_agy_policy(plan, root: Path, source: Path) -> None:
+    """Replace only the exact former managed base, preserving injected policy blocks."""
+    import runpy
+    from slim_wiring import read
+
+    path = root / "AGENTS.md"
+    before = read(path)
+    current = plan.changes.get(path, before) or b""
+    installer = source / "pi-defaults/install.py"
+    helpers = runpy.run_path(str(installer))
+    injected = helpers["INJECTED_BLOCK"]
+    base = injected.sub(b"", current).strip()
+    native = (source / "pi-defaults/AGENTS.md").read_bytes()
+    if base == native.strip():
+        return
+    if hashlib.sha256(base).hexdigest() != KNOWN_AGY_POLICY_SHA256:
+        raise ValueError(f"unrecognized/custom Pi AGENTS base preserved: {path}; reconcile manually")
+    migrated = helpers["profile_agents_md"](current, native)
+    plan.stage(path, migrated, before)
+    if str(path) in plan.receipt:
+        plan.receipt[str(path)] = hashlib.sha256(migrated).hexdigest()
+
+
+def require_native_policy_parity(plan, root: Path, source: Path) -> None:
+    from slim_wiring import read
+
+    for relative, target in (("pi-skill/ADAPTIVE.md", "skills/megai/SKILL.md"),
+                             ("pi-skill/delegation.md", "skills/megai/delegation.md")):
+        path = root / target
+        current = plan.changes.get(path, read(path))
+        if current != (source / relative).read_bytes():
+            raise ValueError(f"native preset requires current owned {target}; "
+                             "refresh with --adaptive or reconcile the unowned file")
 
 
 def stage_adaptive_policy(plan, root: Path, source: Path) -> None:
@@ -115,10 +151,9 @@ def stage_adaptive_policy(plan, root: Path, source: Path) -> None:
 
 
 def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
-    import re
     from slim_wiring import encoded, load_json, read
 
-    if preset not in ("economy", "antigravity"):
+    if preset not in ("economy", "native"):
         raise ValueError(f"unknown Pi preset: {preset}")
     config = load_json(source / f"pi-skill/presets/{preset}.json")
     roles = config.get("roles")
@@ -144,27 +179,12 @@ def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
             raise ValueError("invalid preset role identity/thinking")
         identity = role["provider"] + "/" + role["model"]
         levels.setdefault(identity, role["thinking"])
-    if preset == "antigravity":
-        # Fail closed if an old/custom execution policy would outlive the new roles.
-        agents = root / "AGENTS.md"
-        current = plan.changes.get(agents, read(agents)) or b""
-        base = re.sub(
-            rb"\s*<!-- megai:(slim|subagent-models):begin -->.*?<!-- megai:\1:end -->",
-            b"", current, flags=re.S,
-        ).strip()
-        if base != (source / "pi-defaults/AGENTS.md").read_bytes().strip():
-            raise ValueError("Antigravity preset requires the current Pi AGENTS base policy; "
-                             "back up and reconcile it before retrying")
-        for relative, target in (("pi-skill/ADAPTIVE.md", "skills/megai/SKILL.md"),
-                                 ("pi-skill/delegation.md", "skills/megai/delegation.md")):
-            path = root / target
-            if plan.changes.get(path, read(path)) != (source / relative).read_bytes():
-                raise ValueError(f"Antigravity preset requires current {target}; "
-                                 "refresh owned policy with --adaptive or reconcile a custom file")
     plan.asset(root / "megai-roles.json", encoded(config), False)
-    if preset == "antigravity":
+    if preset == "native":
         # Explicit opt-in only; asset() refuses to replace an unowned custom map.
-        plan.asset(root / "model-fallback.json", encoded({"fallbacks": {}}), False)
+        plan.asset(root / "model-fallback.json", encoded({"fallbacks": {
+            "deepseek/deepseek-flash": "openai-codex/gpt-6-luna",
+        }}), False)
     path = root / "settings.json"
     before = read(path)
     settings = load_json(path)
@@ -192,18 +212,21 @@ def main() -> None:
                         help="refresh only owned Pi workflow policy, not unrelated legacy resources")
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument("--remove", action="store_true")
-    selection.add_argument("--preset", choices=("economy", "antigravity"),
+    selection.add_argument("--preset", choices=("economy", "native"),
                            help="explicitly apply role and native startup model preferences")
     args = parser.parse_args()
     if args.adaptive and args.remove:
         parser.error("--adaptive cannot be combined with --remove")
-    if args.preset == "antigravity" and not args.adaptive:
-        parser.error("--preset antigravity requires --adaptive for complete Pi policy refresh")
+    if args.preset == "native" and not args.adaptive:
+        parser.error("--preset native requires --adaptive for current Pi policy refresh")
     plan = Plan()
     root = Path(os.environ.get("PI_CODING_AGENT_DIR", Path.home() / ".pi/agent"))
     if args.adaptive:
         stage_adaptive_policy(plan, root, SOURCE)
     stage_model_policy(plan, root, SOURCE, args.remove)
+    if args.preset == "native":
+        migrate_known_agy_policy(plan, root, SOURCE)
+        require_native_policy_parity(plan, root, SOURCE)
     stage_published(plan, MEGAI)
     if args.preset:
         stage_preset(plan, root, SOURCE, args.preset)
