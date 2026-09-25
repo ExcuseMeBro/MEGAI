@@ -9,6 +9,7 @@ does not apply this directory automatically.
 - `megai-roles.json` and `model-fallback.json`: current role identities and fallback.
 - `models.json`: local provider definition and DeepSeek context overrides.
 - `mcp.json`: lazy MCP configuration and the existing external credential helper.
+- `web-search.json`: public research without browser cookies or automatic browser opening.
 
 For restoration, compare with the destination first and merge only intended fields.
 Expand `${HOME}` to the destination home; it is a documentation placeholder, not

@@ -140,8 +140,10 @@ class ModelPolicy(Slim):
         current = agents.read_bytes()
         new_base = (ROOT / "pi-defaults/AGENTS.md").read_bytes().strip()
         import re
-        self.assertEqual(re.sub(rb"<!-- megai:[a-z-]+:begin -->.*?<!-- megai:[a-z-]+:end -->", b"", current, flags=re.S).strip(),
-                         new_base)
+        blocks = re.compile(rb"<!-- megai:[a-z-]+:begin -->.*?<!-- megai:[a-z-]+:end -->", re.S)
+        self.assertEqual(blocks.sub(b"", current).strip(), blocks.sub(b"", new_base).strip())
+        for block in blocks.findall(new_base):
+            self.assertIn(block, current)
         self.assertIn(b"<!-- megai:slim:begin -->", current)
         self.assertIn(b"<!-- megai:subagent-models:begin -->", current)
         self.assertNotIn(b"antigravity", current.lower())

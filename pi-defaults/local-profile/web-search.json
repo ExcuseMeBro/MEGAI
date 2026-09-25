@@ -1,0 +1,6 @@
+{
+  "provider": "exa",
+  "workflow": "none",
+  "allowBrowserCookies": false,
+  "autoOpenBrowser": false
+}
