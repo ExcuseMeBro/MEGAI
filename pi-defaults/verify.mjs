@@ -38,7 +38,7 @@ const engineeringOnly = process.argv.includes('--engineering-only');
 const requiredTools = engineeringOnly ? [] : ['mcp', 'web_search', 'fetch_content', 'headroom_retrieve', 'headroom_memory'];
 const removedTools = ['subagent'];
 const requiredSkills = ['pi-workflow', 'codebase-design', 'diagnosing-bugs', 'tdd', 'code-review'];
-const requiredPrompts = engineeringOnly ? [] : ['factory', 'mdev', 'prdev'];
+const requiredPrompts = engineeringOnly ? [] : ['factory', 'mdev', 'prdev', 'rwbrowser'];
 const policy = existsSync(join(agentDir, 'AGENTS.md')) ? readFileSync(join(agentDir, 'AGENTS.md'), 'utf8') : '';
 const missing = [...requiredTools.filter(t => !tools.includes(t)), ...requiredSkills.filter(s => !skills.skills.some(v => v.name === s))];
 for (const name of requiredPrompts) if (!promptNames.includes(name)) missing.push(`/${name}`);

@@ -13,7 +13,7 @@ State the observable outcome and smallest useful check, then classify:
 | Mode | Trigger | Work and proof |
 | --- | --- | --- |
 | Routine | Clear, reversible, bounded change without guarded risks: copy/style fix, isolated bug, tests/docs, small feature with a known seam, safe scoped configuration | Parent implements directly, checks the smallest observable outcome, self-reviews the diff inline, reports the result. No mandatory subagent beyond configured economy routing, written plan, contract hash or acceptance CLI. Subject to economy routing below. |
-| Guarded | Security/auth/permissions, sensitive data, payments, destructive operations, migrations, concurrency/shared state, consequential cross-module/API changes, behavior-changing safety/acceptance/installer policy, multi-repo delivery, or explicitly requested formal assurance | Load `megai-acceptance` before implementation; freeze criteria, capture real evidence, obtain one independent Pi review and source-current PASS. |
+| Guarded | Security/auth/permissions, sensitive data, payments, destructive operations, migrations, concurrency/shared state, consequential cross-module/API changes, behavior-changing safety/acceptance/installer policy, multi-repo delivery, or explicitly requested formal assurance | Load `megai-acceptance` before implementation; freeze criteria, capture real evidence, self-review the diff and obtain source-current PASS. |
 
 Before deciding to work directly, use the injected role context or `megai-roles.json`
 (`PI_CODING_AGENT_DIR`, otherwise `~/.pi/agent`) to discover the configured roles:
@@ -77,12 +77,12 @@ chat model and thinking level remain unchanged. No hosted decision fallback.
    and release-note requirements. No extra review/report stage for routine work,
    optional polish or queue draining after acceptance.
 
-Guarded work adds one independent reviewer, not an automatic writer/scout team.
-Commit before final evidence capture when Git delivery is agreed. The reviewer
-consumes the existing raw evidence rather than rerunning a passing suite by default;
-additional checks need a concrete unresolved risk. Block on demonstrated safety or
-acceptance failures, not editorial preferences. Fix real findings and obtain fresh
-source-current evidence as required; never turn a failed gate into a routine PASS.
+Guarded work requires source-current checks and parent self-review, not a separate
+reviewer step. Commit before final evidence capture when Git delivery is
+agreed. Reuse raw evidence rather than rerunning a passing suite; additional
+checks need a concrete unresolved risk. Block on demonstrated safety or
+acceptance failures, not editorial preferences. Fix real findings and obtain
+fresh source-current evidence as required; never turn a failed gate into a routine PASS.
 
 Missing optional tools never block native discovery. Reuse ready indexes only when
 useful; index on demand, never at startup. Save memory only when explicitly requested.
@@ -113,18 +113,13 @@ auto-compaction setting or transcript edits; do not claim savings without measur
 ## Delegation and cost
 
 Direct parent tools are the default for trivial and non-Git local work. Load
-[delegation.md](delegation.md) before delegation or model-error escalation. For
-eligible bounded Git implementation under the Antigravity profile in a clean linked
-task worktree, prefer the existing `antigravity_delegate` tool to a Pi model-backed
-worker. Agy replaces parent writing in that worktree; the GPT parent owns acceptance
-and integration. An explicitly selected `economy` preset retains native role routing.
-Use one writer, verify the returned diff/tests and obtain the required independent
-GPT review. Agy is not a native Pi model or Paseo child; do not send it through
-`megai-roles.json` or invent a provider. The role file lists only Pi-native model
-choices for other explicitly selected native roles. Explicit user/task choices
-supersede routing; never silently change the parent's model/thinking. Auth or
-permission failures and uncertain writes need reconciliation, not model hopping.
-Missing required reviewer remains BLOCKED. No speculative extra team.
+[delegation.md](delegation.md) before native delegation or model-error escalation.
+The optional `native` profile guides GPT Sol coordination, a DeepSeek Flash high
+implementation worker without a separate reviewer step; `economy` remains a separate opt-in.
+Use one writer and verify its diff/tests. Explicit user/task choices override the
+profile, and the active parent's model/thinking never change silently. Auth/permission
+failures, shared outages and uncertain writes need reconciliation, not model hopping.
+Do not create a separate reviewer. No speculative extra team.
 
 Provider stall protection and Headroom remain available without new daemons or hooks.
 These are workflow/cost defaults, not a sandbox or a measured latency/token guarantee.

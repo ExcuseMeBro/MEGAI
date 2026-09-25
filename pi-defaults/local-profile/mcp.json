@@ -1,0 +1,36 @@
+{
+  "settings": {
+    "autoAuth": false,
+    "directTools": false,
+    "mcpFooterStatus": "compact"
+  },
+  "mcpServers": {
+    "pencil": {
+      "lifecycle": "lazy"
+    },
+    "plane": {
+      "url": "https://mcp.plane.so/http/api-key/mcp",
+      "auth": false,
+      "lifecycle": "lazy",
+      "includeTools": [
+        "workitem*",
+        "project",
+        "state",
+        "label",
+        "member",
+        "workspace",
+        "get_pql_reference"
+      ],
+      "requestHeadersCommand": {
+        "command": "python3",
+        "args": [
+          "${HOME}/.pi/agent/defaults/plane_mcp_headers.py",
+          "--token-file",
+          "${HOME}/.config/megai/credentials/plane-api-token",
+          "--workspace",
+          "brodev"
+        ]
+      }
+    }
+  }
+}

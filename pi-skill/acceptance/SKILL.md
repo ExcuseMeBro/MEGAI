@@ -1,6 +1,6 @@
 ---
 name: megai-acceptance
-description: Formal Pi acceptance for guarded risks or explicitly requested assurance; freeze criteria, collect evidence and obtain independent review.
+description: Formal Pi acceptance for guarded risks or explicitly requested assurance; freeze criteria and collect source-current evidence.
 managed-by: megai
 ---
 
@@ -18,7 +18,7 @@ risk with `megai`.
 Parent owns the contract and Plane identity; leaves inherit both, never delegate,
 mutate Plane or integrate. Load this workflow once per task; reuse it at handoff.
 Read [reference.md](reference.md) when preparing contracts, recording a regression,
-collecting evidence or assembling review. This gate is not a sandbox or tracker.
+collecting evidence or checking acceptance. This gate is not a sandbox or tracker.
 
 ## 1. Freeze the task
 
@@ -26,11 +26,11 @@ For non-Git configuration work, use the complete owned configuration directory a
 `--root`; the CLI fingerprints all entries without Git or ignore rules. Follow the
 scoped local-workspace/backup/one-writer procedure in `agent-worktree-lifecycle`.
 Contracts, evidence and backups stay outside that source root. Git absence alone
-is not BLOCKED; unreadable/unsupported source, missing tests or review still are.
+is not BLOCKED; unreadable/unsupported source or missing tests still are.
 
 Start/reuse the linked Plane item. Name observable outcomes, error cases and
 regression boundaries; bind each to a bounded command that asserts the outcome.
-Use schema 2: classify `bugfix`, `change` or `docs`. Product behavior requires a
+Use schema 3 for new tasks: classify `bugfix`, `change` or `docs`. Product behavior requires a
 real CLI/API/browser check; static-only work needs an explicit runtime rationale.
 Live tests require user-approved local/staging targets and isolated identities.
 Missing prerequisites mean BLOCKED; production mutations, real payments/messages
@@ -65,25 +65,15 @@ the result (e.g. save then reload), including required error/permission/a11y cas
 Existing E2E commands and authorized browser observations may supply evidence;
 screenshots, coverage, exit zero or LLM scores alone do not prove behavior.
 
-## 3. Review, decide, stop
+## 3. Self-review, decide, stop
 
-Use one fresh independent Pi verifier, not an automatic scout/writer/reviewer team.
-Give it the existing raw receipts; repeat a passing check only for a concrete
-unresolved risk. Editorial preferences are nonblocking unless they violate the
-frozen contract or create a demonstrated safety/correctness failure.
-Launch through the approved route: neutral READY,
-verify Pi/exact model/effective high thinking, then send the frozen contract/hash,
-candidate diff/snapshot and raw evidence, not the implementer's reasoning transcript.
-Use a configured model suitable for independent review. Give read-only authority
-and a bounded deadline. Reviewer checks
-every criterion, root cause, red/green validity, regressions and runtime provenance;
-reports severity, `path:line`, impact and reproduction for actionable findings.
-Hash the actual review/status artifact. Unavailable verifier means BLOCKED.
-
-Resolve blocking findings; rerun affected diagnostics and obtain source-current
-review. Any source/index/commit change invalidates the entire prior snapshot: final
-capture and review must match the delivered candidate. Reuse the healthy reviewer
-for bounded corrections, with no unbounded repair loop or repeated discovery.
+The parent checks every criterion, regression, runtime provenance and the full diff
+against actual receipts; no separate reviewer step is used. Repeat a passing
+check only for a concrete unresolved risk. Do not add a separate reviewer step.
+Resolve blocking findings and rerun affected diagnostics. Any source/index/commit
+change invalidates the prior snapshot: final capture must match the delivered
+candidate. Historical frozen schema-1/2 contracts keep their original review
+requirement; never rewrite approved bytes to evade it.
 
 Run `megai acceptance check` with the Plane-approved hash. Only a source-current PASS
 permits agreed delivery (Git branch or non-Git configuration files) and Plane

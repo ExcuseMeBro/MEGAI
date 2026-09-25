@@ -1,11 +1,6 @@
 {
-  "schema": 2,
+  "schema": 3,
   "task_type": "change",
-  "reviewer": {
-    "harness": "pi",
-    "model": "openai-codex/gpt-6-luna",
-    "thinking": "medium"
-  },
   "plane": {
     "project_id": "00000000-0000-4000-8000-000000000001",
     "work_item_id": "00000000-0000-4000-8000-000000000002"

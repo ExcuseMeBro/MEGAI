@@ -34,17 +34,17 @@ Pi startup never updates packages or builds indexes automatically.
 | 🔌 pi-mcp-adapter 2.33.0 | Lazy Plane and zvec MCP |
 | 🌐 pi-web-access 0.29.0 | Exa public search without a separate key, page fetching |
 | ⚡ Local Laya multilingual | On-device typed decisions and file relevance; compaction falls back to Pi when not safely reducible. No browser agent. |
-| 🧑‍🤝‍🧑 Native Paseo agents | Bounded children and required independent review; no Pi package |
+| 🧑‍🤝‍🧑 Native Paseo agents | Bounded implementation children; parent self-reviews |
 
 Package versions and integrity hashes are in [package-lock.json](pi-defaults/package-lock.json).
 native Paseo agents own delegation, one writer per worktree. Shared legacy skill discovery
 is excluded from this Pi profile to avoid contradictory defaults. Other agents retain
 their own configuration.
 
-Model routing stays user-selected: the repo ships one explicit opt-in `economy`
-preset that routes DeepSeek Flash planning and implementation while
-keeping GPT for guarded review. Nothing is applied until you run the preset
-command yourself. Measure a change instead of assuming it: `megai report --text`
+Model routing stays user-selected: the repo ships separate explicit opt-in `native`
+and `economy` presets. `native` uses GPT Sol coordination, a DeepSeek Flash high
+worker and GPT Astra review; `economy` keeps its distinct DeepSeek role mix. Nothing
+is applied until you run a preset command yourself. Measure a change instead of assuming it: `megai report --text`
 reports turns, prompt tokens per turn, reported cost per model and estimated
 tool-output replay from local sessions, and `megai budget --check` previews the
 optional native context budget without writing.
@@ -142,17 +142,25 @@ session after installation. This is an agent prompt, not an enforcement boundary
 
 The `/mdev` and `/prdev` prompt templates are installed globally: `/mdev` is explicit
 authorization to reconcile, review, merge and push task work into `dev` (no repeated approval)
-and to clean safe local task workspaces, and `/prdev` opens the `dev` → `main` pull request
-without merging. Neither promotes `main`, and both keep delivery evidence bound to the exact
-recorded SHAs.
+and to clean safe local task workspaces. `/prdev` authorizes a necessary verified non-force
+dev push and opens or reuses the `dev` → `main` pull request without merging. Neither promotes
+`main`; both bind evidence to exact SHAs and reserve shared publication targets through
+`megai queue`. Existing PRs are revalidated by repository and branch identity, not duplicated
+when their heads move. An already-integrated dev head is a completed no-op.
 
 Both complete recoverable prerequisites instead of stopping: a local `dev` ahead of its remote,
 ignored or ignored-untracked files, a missing Plane identity, missing or stale evidence, a moved
-ref and an ordinary `dev`-vs-`main` difference are work to finish, not blockers. They stop only
-for a write into another owner's work, an ambiguous product decision, or an action outside their
-authorization (main promotion, force, remote branch deletion, another project). Ignored files
+ref and an ordinary `dev`-vs-`main` difference are work to finish. Failed verification,
+unavailable evidence/authentication, ambiguous ownership/destinations, exhausted bounded recovery
+or actions outside authorization hold the affected row; independent rows still proceed.
+Uncommitted task work remains explicitly unfinished even if its pinned commits were delivered.
+Ignored files
 never block that decision, but the `dev` fast-forward uses `--no-overwrite-ignore` so a
 colliding ignored file is preserved and reported instead of silently overwritten.
+
+The credentials-free [saved local Pi profile](pi-defaults/local-profile/README.md) records
+the current model, thinking, timeout, fallback and MCP preferences. It is an explicit
+restoration reference; installing MEGAI does not silently replace preferences with it.
 
 The persistent branches are `dev` and `main`. Normal task branches start from dev
 in managed Paseo worktrees and deliver to dev after tests/review. Main promotion

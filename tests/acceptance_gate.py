@@ -161,6 +161,60 @@ class AcceptanceGateTest(unittest.TestCase):
             self.assertEqual((output / name).stat().st_mode & 0o777, 0o600)
         self.assertEqual((output / "output.txt").read_text(), "observed output\n")
 
+    def test_review_free_schema_three_passes_and_blocks_invalid_evidence(self):
+        directory, contract, evidence = self.fixture()
+        contract.update(schema=3, task_type="change")
+        evidence.pop("review")
+        save(directory / "contract.json", contract)
+        evidence["contract_sha256"] = sha256(directory / "contract.json")
+        save(directory / "evidence.json", evidence)
+        self.check(directory)
+
+        evidence["checks"][0]["status"] = "FAIL"
+        save(directory / "evidence.json", evidence)
+        self.check(directory, 1)
+        evidence["checks"][0]["status"] = "PASS"
+        evidence["review"] = {"verdict": "PASS"}
+        save(directory / "evidence.json", evidence)
+        self.check(directory, 2, "Malformed evidence")
+
+        evidence.pop("review")
+        evidence["checks"] = []
+        save(directory / "evidence.json", evidence)
+        self.check(directory, 2, "Missing criterion")
+        evidence["checks"] = [{"id": "local", "status": "PASS",
+                               "observation": "observed output appeared",
+                               "receipt": "output/receipt.json", "artifacts": []}]
+        save(directory / "evidence.json", evidence)
+        (self.root / "source.txt").write_text("stale source")
+        self.check(directory, 2, "snapshot")
+        (self.root / "source.txt").write_text("source")
+        contract["reviewer"] = {"harness": "pi", "model": "local/reviewer", "thinking": "high"}
+        save(directory / "contract.json", contract)
+        self.check(directory, 2, "Unsupported contract schema")
+
+    def test_review_free_collect_emits_no_review_and_blocks_incomplete_observation(self):
+        directory, contract, _ = self.fixture()
+        contract.update(schema=3, task_type="change")
+        save(directory / "contract.json", contract)
+        digest = sha256(directory / "contract.json")
+        result = self.invoke("collect", "--root", self.root, "--contract",
+                             directory / "contract.json", "--contract-sha256",
+                             digest, "--out", directory / "collection")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        draft = json.loads((directory / "collection/evidence.json").read_text())
+        self.assertNotIn("review", draft)
+        result = self.invoke("check", "--root", self.root, "--contract",
+                             directory / "contract.json", "--contract-sha256",
+                             digest, "--evidence", directory / "collection/evidence.json")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        draft["checks"][0].update(status="PASS", observation="observed output appeared")
+        save(directory / "collection/evidence.json", draft)
+        result = self.invoke("check", "--root", self.root, "--contract",
+                             directory / "contract.json", "--contract-sha256",
+                             digest, "--evidence", directory / "collection/evidence.json")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_nonzero_child_cannot_claim_pass(self):
         directory, _, _ = self.fixture(child_exit=4)
         self.check(directory, 1)
