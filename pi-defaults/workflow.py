@@ -4,14 +4,17 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import os
 from pathlib import Path
 import re
 import ssl
+import stat
 import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.request
 
@@ -745,6 +748,53 @@ def status(cwd, workspace_id=None):
     }
 
 
+def _preserve_generated_ignored(path, repo, workspace_id, ignored):
+    """Atomically move only known bytecode to private storage, never unknown data."""
+    if not ignored:
+        return None
+    root = Path(os.environ.get("MEGAI_CLEANUP_BACKUPS",
+                               Path.home() / ".megai/backups/task-workspaces")).expanduser()
+    if not root.is_absolute() or root.is_symlink() or root.resolve().is_relative_to(path) or root.resolve().is_relative_to(repo):
+        raise ValueError("Cleanup backup must be a private directory outside the repository")
+    root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if root.is_symlink() or not root.is_dir() or root.stat().st_uid != os.getuid() or stat.S_IMODE(root.stat().st_mode) != 0o700:
+        raise ValueError("Cleanup backup directory must be owned and mode 0700")
+    files = []
+    total = 0
+    for name in ignored:
+        relative = Path(name)
+        source = Path(path) / relative
+        if (relative.is_absolute() or ".." in relative.parts or len(relative.parts) < 2
+                or relative.parts[-2] != "__pycache__"
+                or source.suffix != ".pyc" or not source.resolve().is_relative_to(path)
+                or any(p.is_symlink() for p in (source, *source.parents) if p.is_relative_to(path))):
+            raise ValueError(f"Unknown ignored data retained: {name}")
+        metadata = source.lstat()
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+            raise ValueError(f"Unsupported generated file retained: {name}")
+        total += metadata.st_size
+        if len(files) >= 10000 or total > 64 * 1024 * 1024:
+            raise ValueError("Generated data exceeds private backup limit")
+        files.append((name, source, hashlib.sha256(source.read_bytes()).hexdigest()))
+    target = Path(tempfile.mkdtemp(prefix=f"{workspace_id}-", dir=root))
+    print(f"Cleanup private backup: {target}", file=sys.stderr, flush=True)
+    records = []
+    for name, source, digest in files:
+        if hashlib.sha256(source.read_bytes()).hexdigest() != digest:
+            raise ValueError(f"Generated file moved during backup: {name}; preserve {target}")
+        destination = target / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        os.rename(source, destination)  # Same-filesystem atomic move; no copy/delete fallback.
+        if hashlib.sha256(destination.read_bytes()).hexdigest() != digest:
+            raise ValueError(f"Generated backup verification failed: {destination}")
+        records.append({"path": name, "sha256": digest})
+    fd = os.open(target / "manifest.json", os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    with os.fdopen(fd, "w") as manifest:
+        json.dump({"workspaceId": workspace_id, "files": records}, manifest)
+        manifest.write("\n")
+    return str(target)
+
+
 def cleanup(cwd, workspace_id, branch, tip):
     """Retire one explicitly pinned task worktree after verified local dev delivery.
 
@@ -759,6 +809,8 @@ def cleanup(cwd, workspace_id, branch, tip):
         raise ValueError("Only an explicit task branch can be retired")
     if branch in {"dev", "main", "master", *(_preserve_for(repo, Path(policy["root"]), policy))}:
         raise ValueError("Protected branch cannot be retired")
+    if not re.fullmatch(r"wks_[A-Za-z0-9_-]+", workspace_id):
+        raise ValueError("Expected exact Paseo workspace ID")
     if not re.fullmatch(r"[0-9a-f]{40,64}", tip):
         raise ValueError("Expected full task commit SHA")
     def check_owners(*, allow_releasable=False):
@@ -815,7 +867,7 @@ def cleanup(cwd, workspace_id, branch, tip):
     owners = check_owners(allow_releasable=True)
     path = owners[1]
 
-    def check_git():
+    def check_git(*, allow_generated=False):
         registered, error = _git_worktrees(repo)
         if error:
             raise ValueError(error)
@@ -832,7 +884,7 @@ def cleanup(cwd, workspace_id, branch, tip):
                 or entries[0]["head"] != tip or ref != tip or not dev
                 or dev_entries[0]["head"] != dev
                 or ref_error or dev_error or status_error or ignored_error
-                or operation_errors or dirty or ignored or operation
+                or operation_errors or dirty or (ignored and not allow_generated) or operation
                 or _primary_or_none(path) != str(repo)):
             raise ValueError("Task workspace/ref changed, contains data, or has an unfinished operation")
         ancestor, ancestor_error = _ancestor(repo, tip, dev)
@@ -840,9 +892,17 @@ def cleanup(cwd, workspace_id, branch, tip):
             raise ValueError("Task tip is not included in local dev")
         return dev, dev_entries[0]["path"]
 
-    dev, dev_path = check_git()
-    if check_git() != (dev, dev_path) or check_owners(allow_releasable=True) != owners:
+    dev, dev_path = check_git(allow_generated=True)
+    ignored, error = _git_ignored(path)
+    if error:
+        raise ValueError(error)
+    if check_git(allow_generated=True) != (dev, dev_path) or check_owners(allow_releasable=True) != owners:
         raise ValueError("Task workspace, ownership or dev moved before agent release")
+    if _git_ignored(path) != (ignored, None):
+        raise ValueError("Ignored data moved before preservation")
+    backup = _preserve_generated_ignored(path, repo, workspace_id, ignored)
+    if check_git() != (dev, dev_path) or check_owners(allow_releasable=True) != owners:
+        raise ValueError(f"Task workspace changed after backup; preserved: {backup}")
     for index, child_id in enumerate(owners[3]):
         _paseo_json("agent", "archive", child_id)  # No --force; retain on uncertainty.
         expected = (owners[0], owners[1],
@@ -870,7 +930,7 @@ def cleanup(cwd, workspace_id, branch, tip):
     if read_error or remaining_ref is not None:
         raise ValueError("Branch deletion unconfirmed")
     return {"workspaceId": workspace_id, "branch": branch, "tip": tip,
-            "dev": dev, "archived": True, "branchDeleted": True}
+            "dev": dev, "archived": True, "branchDeleted": True, "backup": backup}
 
 
 def _inspect_problem(inspect):

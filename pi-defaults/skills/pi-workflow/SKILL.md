@@ -49,8 +49,9 @@ description: Start and deliver tracked project changes with Plane, dev/main bran
    delivered worktree. The command archives verified idle direct children of the
    invoking parent before their workspace, rereads the released owner state and
    never archives the parent or a foreign agent. Local dev-only delivery does not
-   require remote dev to move; it checks local dev ancestry and refuses dirty, ignored, active, unknown,
-   unmerged and moved resources. It archives through Paseo before deleting the
+   require remote dev to move; it checks local dev ancestry and privately preserves
+   bounded generated `__pycache__/*.pyc` with verified hashes. It refuses other dirty,
+   ignored, active, unknown, unmerged and moved resources. It archives through Paseo before deleting the
    local task branch. A refusal retains remaining resources for reconciliation;
    never force-delete or archive the invoking workspace. Keep a receipt JSON:
    `{"repositories":[{"path":"/absolute/primary/repo","commit":"FULL_SHA","remote":"origin"}]}`.

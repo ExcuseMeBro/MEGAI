@@ -288,7 +288,9 @@ approval. It is agent workflow, not a Git hook or background cleanup service.
    Its local-`dev` ancestry check is sufficient
    for local dev-only delivery; remote `dev` is not a prerequisite unless the
    task separately approved a push. The command refuses busy agents, terminals,
-   ignored/untracked data, moved refs and uncertain ownership, archives the exact
+   untracked source, other ignored data, moved refs and uncertain ownership. Known
+   generated `__pycache__/*.pyc` is preserved in a private verified backup before
+   archiving the exact
    Paseo workspace, reads back its absence, then deletes only the proven merged
    local branch. Record its JSON result or exact refusal. If workspace archival
    succeeded but branch deletion failed, keep the branch for read-only
