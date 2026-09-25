@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Exercise the single optional economy preset in disposable homes, no providers.
+"""Exercise the optional economy preset in disposable homes, no providers.
 
-The two role presets were merged: `mixed` differed from `economy` only in the
-planner (a GPT planner). One preset ships now, so `mixed` must be refused and its
-file must stay retired.
+The native profile is separately tested by Pi role-routing regressions; economy
+remains an independent explicit profile and `mixed` remains retired.
 """
 import hashlib
 import json
@@ -32,7 +31,12 @@ class Preset(unittest.TestCase):
         self.home = Path(tmp.name).resolve()
         self.agent = self.home / ".pi/agent"
         self.agent.mkdir(parents=True)
-        self.env = dict(os.environ, HOME=str(self.home), MEGAI_HOME=str(self.home / ".megai"),
+        megai = self.home / ".megai"
+        runtime = megai / "laya-runtime"
+        (runtime / "bin").mkdir(parents=True)
+        (runtime / ".megai-owned").write_text("megai-laya\nversion=0.3.20\n")
+        (runtime / "bin/python").write_text("test fixture\n")
+        self.env = dict(os.environ, HOME=str(self.home), MEGAI_HOME=str(megai),
                         MEGAI_SOURCE=str(ROOT), PI_CODING_AGENT_DIR=str(self.agent),
                         PYTHONDONTWRITEBYTECODE="1")
         self.env.pop("MEGAI_TRANSACTION_LOG", None)
@@ -54,7 +58,8 @@ class Preset(unittest.TestCase):
         legacy = self.home / "legacy-source"
         for relative in ("pi-skill/delegation.md", "pi-skill/provider-guard/index.ts",
                          "pi-skill/role-routing/index.ts", "pi-skill/model-fallback/index.ts",
-                         "pi-skill/antigravity/index.ts"):
+                         "pi-skill/laya/index.ts", "pi-skill/laya/bridge.py",
+                         "pi-skill/laya/compaction.ts"):
             path = legacy / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes((ROOT / relative).read_bytes())
