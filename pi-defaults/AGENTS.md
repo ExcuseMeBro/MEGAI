@@ -117,9 +117,13 @@ substantial behavior changes still need the applicable design/spec workflow.
   are resolved and unchanged.
 - Known edits per file in one edit call; focused tests and relevant diagnostics after
   the patch; rerun only checks affected by later edits.
-- Acceptance and diff review pass → delivery/tracking → stop. No optional test
-  expansion, formatting churn or repeated discovery. Report only material blockers;
-  finish with result, focused verification and remaining risk. No speed-gain claims
+- Acceptance and diff review pass → delivery/tracking → stop. Do not open a browser
+  or run browser-based visual checks during review by default. Offer `/rwbrowser` for
+  the user to invoke explicitly; only that invocation authorizes an optional,
+  bounded browser review. This does not waive focused tests or browser evidence
+  required by an existing acceptance criterion. No optional test expansion,
+  formatting churn or repeated discovery. Report only material blockers; finish
+  with result, focused verification and remaining risk. No speed-gain claims
   without timing.
 - Keep required safety checks, independent review and safe task placement. No hard
   tool cap, no skipped evidence, no model/thinking change for speed.
