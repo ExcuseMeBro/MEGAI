@@ -2,10 +2,10 @@
 
 Load only for actual delegation or model-error escalation. Routine Pi work follows
 `megai` with one parent and self-review; delegation is not a required stage.
-Under the Antigravity profile use the existing sandboxed Agy tools for eligible
-work instead of DeepSeek; an explicitly selected economy preset retains its native
-role routing. GPT coordinates and reviews Agy work; `megai-roles.json` describes
-native Pi roles only, not the Antigravity CLI. Keep review bounded to diff, criteria and test evidence.
+The optional `native` profile uses GPT Sol for coordination, DeepSeek Flash high for
+implementation and GPT Astra high for independent review. The separate `economy`
+preset retains its own DeepSeek role mix. `megai-roles.json` is parent-consumed
+routing guidance, not automatic dispatch or an allowlist.
 
 ## Handoffs — fewer agents, not cheaper agents
 
@@ -80,8 +80,8 @@ timeouts and queue leases remain separate from task decomposition.
    reconcile that same child before reuse.
 
 These rules cover child-result waiting, not test timing, provider request timeout
-and inactivity protection, bounded Antigravity CLI calls, or integration-queue
-lease/claim semantics; those contracts stay intact.
+and inactivity protection or integration-queue lease/claim semantics; those contracts
+stay intact.
 MEGAI supplies instructions here, not a runtime sleep interceptor or notification
 transport. Standalone Pi needs its connected adapter to deliver completion events.
 
@@ -102,47 +102,14 @@ planner and reviewer are read-only; a worker gets only its assigned managed path
 Read-only checks use `python3 -B` and Ruff with
 `--no-fix --no-fix-only --force-exclude --no-cache`; avoid cache-producing checks.
 
-### Antigravity CLI team pool (`agy`)
+## Native provider fallback
 
-Under the Antigravity profile Agy is the primary eligible Git worker and can spend
-the user's Antigravity subscription instead of GPT quota. Use `antigravity` for
-read-only second opinions, long-context reads, research or bulk analysis; it runs
-`agy --mode plan --sandbox`, inlines only explicitly supplied files and returns
-untrusted prose.
-
-Use `antigravity_delegate` only for a bounded implementation subtask with explicit
-acceptance and an existing clean linked Git worktree. It runs `agy` with
-`--mode accept-edits --sandbox` in that worktree, refuses the primary checkout,
-protected branches, dirty worktrees and detached HEADs, and must not commit, push or
-merge. The tool returns Agy's report plus status/diff evidence for the GPT parent
-and independent reviewer. It never passes `--dangerously-skip-permissions` and
-never sends secrets or personal data.
-
-Team ownership stays explicit: GPT coordinates and accepts, Agy edits only its
-eligible isolated worktree or advises, and an independent GPT reviewer checks the
-delivered diff and tests. For non-Git local configuration the parent works directly
-with a private backup. Paseo remains the native control path for provider-backed
-children; Agy is invoked through these bounded Pi tools, not as a Paseo provider.
-
-The safe flow is: create or reuse the verified Paseo-linked worktree, dispatch one
-bounded task to `antigravity_delegate`, inspect its returned status/diff and focused
-test evidence, then send that artifact to the configured GPT reviewer before the
-parent integrates it. Never delegate two writers to the same worktree and never let
-Agy choose the integration target.
-
-## Antigravity failure and Pi provider fallback
-
-The opt-in Antigravity preset installs `model-fallback.json` with
-`{"fallbacks": {}}`, disabling that local Pi runtime provider swap. Refreshing
-policy without the preset preserves the operator's existing fallback configuration.
-This is not an Antigravity provider registration. On Agy refusal,
-timeout, permission failure or uncertain write, inspect the isolated worktree and
-reconcile before assigning another writer. Do not bypass the clean-worktree or
-credential gates, retry a possibly mutating request blindly, or switch this Agy
-profile to DeepSeek. If an explicitly chosen native Pi role fails, verify the old
-agent has stopped, carry its diff/evidence and ask for a new model decision rather
-than using a stale
-DeepSeek fallback chain. Keep the parent model and thinking unchanged.
+Only a confirmed DeepSeek 402 insufficient-balance error permits one Pi continuation
+on GPT Luna high. Authorization/permission failures, shared outages, other errors and
+uncertain writes require reconciliation; never retry a possibly mutating request or
+start a replacement writer before the original is quiescent. Preserve its diff and
+evidence. A failed Luna continuation does not cycle back to DeepSeek. Keep the active
+parent's own model and thinking unchanged.
 
 ## Immediate escalation — model failure or stalled progress
 
@@ -206,8 +173,8 @@ For a suspected stall, do one bounded native wait of at most 180 seconds and ins
 progress/errors once — never repeated 600-second waits and never routine polling. If
 no model or tool progress is observable in that interval while only a provider
 response is pending, the owning parent may abort that request and reconcile before
-assigning a different writer. Agy CLI timeouts return to Pi with a worktree audit;
-inspect it instead of assuming no writes occurred.
+assigning a different writer. Provider failures return to the owning Pi session with a worktree audit; inspect it
+instead of assuming no writes occurred.
 Never interrupt a progressing stream, an active tool or test, or a pending permission.
 
 Before replacement: the original writer is idle, with no queued work and no pending
@@ -239,9 +206,9 @@ unless already verified in this session. Spark is text-only: no images.
 Give only necessary paths/excerpts, one goal, explicit read-only or scoped write
 authority and observable acceptance. Reading and log tasks stay read-only; fixes need a
 safe checkout, one writer, focused tests and the same GPT review. Not for architecture,
-security/data-integrity, consequential cross-module work or final approval. Antigravity
-is the primary eligible isolated implementation worker; GPT remains the
-coordinator and reviewer. A Spark failure or outgrown scope returns to the parent
+security/data-integrity, consequential cross-module work or final approval. The native
+preset keeps Pi/Paseo in control; GPT coordinates and reviews while DeepSeek is an
+optional implementation worker. A Spark failure or outgrown scope returns to the parent
 with no silent substitution — quiesce any writer first. No scout when direct tools suffice, no
 splitting one fix across extra agents and no launches to consume quota. The existing
 workspace, background launch, Plane tracking, leaf-agent and task-end archive rules

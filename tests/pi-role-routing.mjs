@@ -109,13 +109,13 @@ try {
   assert.ok(turn.prompt !== BASE && turn.prompt.includes('deepseek/deepseek-flash'),
     'Configured economy role context missing before agent start');
   const prompt = turn.prompt;
-  for (const fact of ['openai-codex/gpt-6-sol', 'minimax/MiniMax-M3', 'openai-codex/gpt-6-luna']) {
+  for (const fact of ['openai-codex/gpt-6-sol', 'openai-codex/gpt-6-luna']) {
     assert.ok(prompt.includes(fact), `economy role context missing ${fact}`);
   }
-  assert.ok(prompt.indexOf('deepseek/deepseek-flash') < prompt.indexOf('minimax/MiniMax-M3'),
-    'economy fallback order must place MiniMax M3 after DeepSeek');
-  assert.ok(prompt.indexOf('minimax/MiniMax-M3') < prompt.indexOf('openai-codex/gpt-6-luna'),
-    'economy fallback order must place luna escalation last');
+  assert.match(prompt, /confirmed DeepSeek 402 insufficient-balance error/,
+    'role guidance must limit recovery to the confirmed DeepSeek balance error');
+  assert.match(prompt, /openai-codex\/gpt-6-luna \(high\)/,
+    'role guidance must use the one high-thinking Luna fallback');
   assert.match(prompt, /override/i, 'economy role context must honour explicit model overrides');
   assert.match(prompt, /(stopped|diff|verif|preserv)/i, 'economy fallback must preserve stopped-writer/diff/verification');
   assert.match(prompt, /(leaf|never delegate|does not delegate|no delegation)/i, 'leaf roles must not delegate');
@@ -123,66 +123,50 @@ try {
   assert.equal(readFileSync(join(economy, 'settings.json'), 'utf8'), settingsBefore,
     'role routing must not mutate native settings');
 
-  // 3. Explicit Antigravity preset keeps native Pi roles GPT and disables a
-  // DeepSeek runtime swap; an ordinary policy refresh leaves operator choices alone.
-  const agy = agent('antigravity');
-  const currentPolicy = readFileSync(join(ROOT, 'pi-defaults/AGENTS.md'), 'utf8');
-  mkdirSync(agy, { recursive: true });
-  writeFileSync(join(agy, 'AGENTS.md'), currentPolicy);
-  writeFileSync(join(agy, 'settings.json'), JSON.stringify({
-    theme: 'custom', defaultProvider: 'deepseek', defaultModel: 'deepseek-flash',
-    modelThinkingLevels: { 'deepseek/deepseek-flash': 'high' },
-  }));
-  assert.throws(() => install(agy, '--preset', 'antigravity'),
-    (error) => String(error.stderr).includes('--preset antigravity requires --adaptive'),
-    'Antigravity opt-in must require the adaptive policy refresh');
-  assert.ok(!existsSync(join(agy, 'megai-roles.json')));
-  install(agy, '--adaptive', '--preset', 'antigravity');
-  const agySettings = JSON.parse(readFileSync(join(agy, 'settings.json'), 'utf8'));
-  const agyRoles = JSON.parse(readFileSync(join(agy, 'megai-roles.json'), 'utf8'));
-  assert.equal(agySettings.theme, 'custom', 'opt-in must retain unrelated settings');
-  assert.equal(agySettings.defaultProvider, 'openai-codex');
-  assert.equal(agySettings.defaultModel, 'gpt-6-sol');
-  assert.equal(agySettings.modelThinkingLevels['deepseek/deepseek-flash'], 'high',
-    'operator model settings outside startup selection must be retained');
-  assert.equal(agyRoles.preset, 'antigravity', 'Antigravity routing must be marked for runtime guidance');
-  assert.equal(agyRoles.workerExecutor, 'antigravity_delegate',
-    'Antigravity preset must bind the worker role to the real delegated executor');
-  assert.equal(agyRoles.roles.worker.provider, 'openai-codex');
-  assert.equal(agyRoles.roles.reviewer.model, 'gpt-6-astra');
-  assert.deepEqual(JSON.parse(readFileSync(join(agy, 'model-fallback.json'), 'utf8')),
-    { fallbacks: {} }, 'Antigravity opt-in must not fall back to DeepSeek');
-  const agyExtensions = await loadExtensions(agy);
-  const agyTurn = await blockedNetwork(() => beginTurn(agyExtensions, BASE));
-  assert.match(agyTurn.prompt, /openai-codex\/gpt-6-sol/);
-  assert.ok(!agyTurn.prompt.includes('deepseek/deepseek-flash'), 'no DeepSeek routing in Agy profile');
-  assert.match(agyTurn.prompt, /antigravity_delegate/,
-    'Antigravity profile must route eligible implementation work through the real Agy worker tool');
-  assert.match(agyTurn.prompt, /mandatory|must not implement.*parent/i,
-    'Antigravity profile must make Agy the mandatory primary worker for eligible implementation');
-  install(agy);
-  assert.equal(JSON.parse(readFileSync(join(agy, 'settings.json'), 'utf8')).defaultModel, 'gpt-6-sol');
-  assert.deepEqual(JSON.parse(readFileSync(join(agy, 'model-fallback.json'), 'utf8')),
-    { fallbacks: {} }, 'refresh must preserve opt-in fallback config');
-
-  // A pre-Agy dev profile must not retain DeepSeek execution with the GPT/Agy preset.
-  const upgrade = agent('antigravity-upgrade');
-  const previousPolicy = readFileSync(join(ROOT, 'tests/fixtures/pi-agents-pre-antigravity.md'), 'utf8');
-  assert.match(previousPolicy, /Implementation defaults to one native Paseo Pi agent for DeepSeek/);
-  mkdirSync(upgrade, { recursive: true });
-  writeFileSync(join(upgrade, 'AGENTS.md'), previousPolicy);
-  assert.throws(() => install(upgrade, '--adaptive', '--preset', 'antigravity'),
-    (error) => String(error.stderr).includes('Antigravity preset requires the current Pi AGENTS base policy'),
-    'stale execution policy must block the combined preset');
-  assert.equal(readFileSync(join(upgrade, 'AGENTS.md'), 'utf8'), previousPolicy);
-  assert.ok(!existsSync(join(upgrade, 'megai-roles.json')) && !existsSync(join(upgrade, 'model-fallback.json')),
-    'failed upgrade must leave roles and fallback untouched');
-  writeFileSync(join(upgrade, 'AGENTS.md'), currentPolicy);
-  install(upgrade, '--adaptive', '--preset', 'antigravity');
-  assert.equal(readFileSync(join(upgrade, 'skills/megai/SKILL.md'), 'utf8'),
-    readFileSync(join(ROOT, 'pi-skill/ADAPTIVE.md'), 'utf8'));
-  assert.match(readFileSync(join(upgrade, 'AGENTS.md'), 'utf8'), /Antigravity profile/);
-  assert.ok(!readFileSync(join(upgrade, 'AGENTS.md'), 'utf8').includes('Implementation defaults to one native Paseo Pi agent for DeepSeek'));
+  // 3. The explicit native profile selects GPT coordination, a high-thinking
+  // DeepSeek implementation worker and the separate GPT Astra reviewer.
+  const native = agent('native');
+  mkdirSync(native, { recursive: true });
+  writeFileSync(join(native, 'AGENTS.md'), readFileSync(join(ROOT, 'pi-defaults/AGENTS.md')));
+  writeFileSync(join(native, 'settings.json'), JSON.stringify({ theme: 'custom' }));
+  const nativeSettingsBefore = readFileSync(join(native, 'settings.json'), 'utf8');
+  assert.throws(() => install(native, '--preset', 'native'),
+    (error) => String(error.stderr).includes('--preset native requires --adaptive'),
+    'the native preset must refuse to run without refreshing current Pi policy');
+  assert.equal(readFileSync(join(native, 'settings.json'), 'utf8'), nativeSettingsBefore);
+  assert.ok(!existsSync(join(native, 'megai-roles.json')) && !existsSync(join(native, 'model-fallback.json')),
+    'bare native preset refusal must happen before changing role or fallback files');
+  assert.doesNotThrow(() => install(native, '--adaptive', '--preset', 'native'),
+    'the installer must accept and apply the native Pi profile with current adaptive policy');
+  const nativeSettings = JSON.parse(readFileSync(join(native, 'settings.json'), 'utf8'));
+  const nativeRoles = JSON.parse(readFileSync(join(native, 'megai-roles.json'), 'utf8'));
+  assert.equal(nativeSettings.theme, 'custom', 'preset must preserve unrelated settings');
+  assert.equal(nativeSettings.defaultProvider, 'openai-codex');
+  assert.equal(nativeSettings.defaultModel, 'gpt-6-sol');
+  assert.equal(nativeSettings.defaultThinkingLevel, 'high');
+  assert.equal(nativeSettings.modelThinkingLevels['deepseek/deepseek-flash'], 'high');
+  assert.equal(nativeSettings.modelThinkingLevels['openai-codex/gpt-6-astra'], 'high');
+  assert.deepEqual(nativeRoles, {
+    schema: 1, preset: 'native', roles: {
+      planner: gpt('gpt-6-sol'), scout: gpt('gpt-6-sol'),
+      worker: { provider: 'deepseek', model: 'deepseek-flash', thinking: 'high' },
+      reviewer: gpt('gpt-6-astra'),
+    },
+  });
+  assert.deepEqual(JSON.parse(readFileSync(join(native, 'model-fallback.json'), 'utf8')),
+    { fallbacks: { 'deepseek/deepseek-flash': 'openai-codex/gpt-6-luna' } });
+  const nativeExtensions = await loadExtensions(native);
+  assert.ok(!nativeExtensions.some((extension) => /antigravity/i.test(extension.resolvedPath)),
+    'managed Pi extensions must not load the Agy integration');
+  const nativeTurn = await blockedNetwork(() => beginTurn(nativeExtensions, BASE));
+  assert.match(nativeTurn.prompt, /openai-codex\/gpt-6-sol/);
+  assert.match(nativeTurn.prompt, /deepseek\/deepseek-flash/);
+  assert.match(nativeTurn.prompt, /openai-codex\/gpt-6-astra/);
+  assert.ok(!nativeTurn.prompt.includes('antigravity_delegate'), 'native profile must not require Agy');
+  assert.ok(!existsSync(join(ROOT, 'pi-skill/presets/antigravity.json')),
+    'Agy-only preset source must be retired');
+  assert.ok(!existsSync(join(ROOT, 'pi-skill/antigravity/index.ts')),
+    'Agy Pi extension source must be retired');
 
   // 4. Only explicit presets: `--preset mixed` is rejected before any write. Fallback
   // guidance follows configured primaries, not a preset name: a custom schema1 file
@@ -210,8 +194,8 @@ try {
   assert.ok(splitTurn.prompt.includes('deepseek/deepseek-flash'),
     'the DeepSeek scout/worker primaries must come from megai-roles.json');
   assert.ok(splitTurn.prompt.includes('openai-codex/gpt-6-sol'), 'reviewer Sol must be preserved');
-  assert.ok(splitTurn.prompt.includes('minimax/MiniMax-M3'),
-    'the configured DeepSeek scout/worker must carry the ordered fallback chain');
+  assert.match(splitTurn.prompt, /openai-codex\/gpt-6-luna \(high\)/,
+    'configured DeepSeek roles must carry only the high-thinking Luna balance fallback');
   assert.ok(splitTurn.prompt.length > BASE.length && !splitTurn.prompt.includes('Parent-only economy routing'),
     'routing beyond the fallback chain must not depend on a preset name');
   const custom = agent('custom');
@@ -220,7 +204,7 @@ try {
   const customExtensions = await loadExtensions(custom);
   const customTurn = await blockedNetwork(() => beginTurn(customExtensions, BASE));
   assert.ok(customTurn.prompt.includes('openai-codex/gpt-6-astra') && !customTurn.prompt.includes('deepseek')
-    && !customTurn.prompt.includes('minimax/MiniMax-M3') && !customTurn.prompt.includes('openai-codex/gpt-6-luna'),
+    && !customTurn.prompt.includes('openai-codex/gpt-6-luna'),
     'custom schema1+roles without preset must keep GPT roles and inject no DeepSeek fallback chain');
 
   // 4. Each new prompt rereads the current config without a reload.
@@ -255,10 +239,8 @@ try {
     ['malformed', `{"schema":1,"secret":"${secret}","roles":{`],
     ['oversized', `{"schema":1,"secret":"${secret}","pad":"${'x'.repeat(1 << 20)}"}`],
     ['unreadable', null],
-    ['missing-worker-executor', roleConfig(deepseekRoles, { preset: 'antigravity' })],
-    ['null-worker-executor', roleConfig(deepseekRoles, { preset: 'antigravity', workerExecutor: null })],
-    ['unsupported-worker-executor', roleConfig(deepseekRoles, { preset: 'antigravity', workerExecutor: 'worker' })],
-    ['wrong-preset-worker-executor', roleConfig(deepseekRoles, { preset: 'economy', workerExecutor: 'antigravity_delegate' })],
+    ['unknown-preset', roleConfig(deepseekRoles, { preset: 'retired' })],
+    ['unexpected-worker-executor', roleConfig(deepseekRoles, { preset: 'economy', workerExecutor: 'worker' })],
     ['missing-worker', roleConfig({ planner: deepseekRoles.planner, scout: deepseekRoles.scout, reviewer: deepseekRoles.reviewer })],
     ['instruction-provider', roleConfig({ ...deepseekRoles, planner: role(`deepseek\n${injection}`, 'deepseek-flash', 'high') })],
     ['instruction-model', roleConfig({ ...deepseekRoles, worker: role('deepseek', `deepseek-flash\n${injection}`, 'high') })],

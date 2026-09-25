@@ -1,20 +1,14 @@
 /**
  * MEGAI provider fallback.
  *
- * A settled run that ended on a provider-level failure continues in the same
- * session on the configured partner model, so one provider's outage or exhausted
- * balance stops the task instead of the session. The failed model is remembered
- * for the session: a partner that also fails is never swapped back to the first,
- * so failures cannot ping-pong between providers.
+ * A confirmed DeepSeek 402 insufficient-balance failure can continue once in the
+ * same session on GPT Luna. The failed model is remembered for the session, so a
+ * failed continuation never swaps back and failures cannot ping-pong.
  *
- * Authorization/permission and context-overflow errors never trigger a swap: those
- * need reconciliation or compaction, not a different provider. Provider-specific
- * exhaustion is deliberately *not* on that list — an exhausted balance or plan limit
- * is exactly what the partner provider is for. The pair comes
- * from `model-fallback.json` in the Pi agent directory when that file is readable
- * and valid, otherwise from `DEFAULT_FALLBACKS`; an empty `fallbacks` object
- * disables the swap. Nothing else changes: no role, credential, tool or
- * thinking-level edit, and the user always sees a notification and a session entry.
+ * Auth/permission, shared quota, other errors and context overflow never trigger a
+ * swap. The configured DeepSeek-to-Luna pair comes from `model-fallback.json` when
+ * readable and valid, otherwise from `DEFAULT_FALLBACKS`; an empty map disables it.
+ * Luna explicitly uses high thinking, and the user sees a notification and session entry.
  *
  * The continuation is queued as a follow-up while the run is still alive, because a
  * prompt sent after the run settles is dropped in headless (`--print`) sessions.
@@ -24,10 +18,9 @@ import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const DEFAULT_FALLBACKS: Record<string, string> = {
-  "deepseek/deepseek-flash": "openai-codex/gpt-6-sol",
-  "openai-codex/gpt-6-sol": "deepseek/deepseek-flash",
-};
+const DEEPSEEK_FLASH = "deepseek/deepseek-flash";
+const GPT_LUNA = "openai-codex/gpt-6-luna";
+const DEFAULT_FALLBACKS: Record<string, string> = { [DEEPSEEK_FLASH]: GPT_LUNA };
 const MAX_CONFIG_BYTES = 32 * 1024;
 const MAX_PAIRS = 16;
 const IDENTITY = /^[A-Za-z0-9._:-]{1,64}\/[A-Za-z0-9._:\/-]{1,96}$/;
@@ -41,6 +34,7 @@ const IDENTITY = /^[A-Za-z0-9._:-]{1,64}\/[A-Za-z0-9._:\/-]{1,96}$/;
  */
 const NOT_PROVIDER =
   /\b(401|403)\b|unauthorized|forbidden|permission denied|api[- ]?key|authentication|shared.{0,16}(quota|outage|limit)|context[_ ]|\bcontext\b.{0,32}(length|window|overflow|size|limit)|prompt (?:is )?too long|too long for requested model|request_too_large|maximum prompt length|reduce the length of the messages|exceeds (?:the )?(?:maximum|limit)|too large for model|too many tokens|token limit|range of input length/i;
+const INSUFFICIENT_BALANCE = /(?:\b402\b[\s\S]*insufficient.{0,16}balance|insufficient.{0,16}balance[\s\S]*\b402\b)/i;
 const CONTINUE =
   "The previous provider request failed before this task finished. Continue the unfinished work " +
   "from the existing context, diff and evidence, and verify what actually completed instead of " +
@@ -100,12 +94,14 @@ export default function modelFallback(pi: ExtensionAPI) {
     pending = undefined;
     if (!failure) return;
     failed.add(failure.from);
-    if (NOT_PROVIDER.test(failure.reason)) return;
+    if (failure.from !== DEEPSEEK_FLASH || NOT_PROVIDER.test(failure.reason) ||
+        !INSUFFICIENT_BALANCE.test(failure.reason)) return;
     const partner = readFallbacks()[failure.from];
-    if (!partner || failed.has(partner)) return;
+    if (partner !== GPT_LUNA || failed.has(partner)) return;
     const slash = partner.indexOf("/");
     const target = ctx.modelRegistry.find(partner.slice(0, slash), partner.slice(slash + 1));
     if (!target || !(await pi.setModel(target))) return;
+    if (partner === GPT_LUNA) pi.setThinkingLevel("high");
     pi.appendEntry("megai-model-fallback", { from: failure.from, to: partner, reason: failure.reason });
     if (ctx.hasUI) {
       ctx.ui.notify(`MEGAI: ${failure.from} failed (${failure.reason}); continuing on ${partner}.`, "warning");

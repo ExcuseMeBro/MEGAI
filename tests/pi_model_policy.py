@@ -73,6 +73,91 @@ class ModelPolicy(Slim):
         self.assertIn("unowned retired asset", self.wire(ok=False).stderr)
         self.assertEqual(self.snapshot(), before)
 
+    def seed_old_agy_agents(self, *, custom=False):
+        agent = self.home / ".pi/agent"
+        path = agent / "AGENTS.md"
+        base = (ROOT / "tests/fixtures/pi-agents-antigravity.md").read_bytes()
+        if custom:
+            base += b"\n# Operator-specific addition.\n"
+        slim = (b"<!-- megai:slim:begin -->\nold injected bootstrap\n"
+                b"<!-- megai:slim:end -->\n")
+        models = (b"<!-- megai:subagent-models:begin -->\nold injected role policy\n"
+                  b"<!-- megai:subagent-models:end -->\n")
+        original = base + b"\n" + slim + b"\n" + models
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(original)
+        receipt_path = self.megai / "slim-wiring.json"
+        receipt = {
+            str(path): hashlib.sha256(original).hexdigest(),
+            str(path) + "#subagent-models": hashlib.sha256(models).hexdigest(),
+        }
+        receipt_path.write_text(json.dumps(receipt))
+        return path, original
+
+    def run_native_policy(self, *args, ok=True):
+        return self.run_cmd(
+            sys.executable, "-B", str(ROOT / "lib/pi_model_policy.py"), *args,
+            ok=ok, env={**self.env, "MEGAI_SOURCE": str(ROOT)},
+        )
+
+    def run_native_adaptive(self, *, ok=True):
+        return self.run_native_policy("--adaptive", "--preset", "native", ok=ok)
+
+    def test_native_preset_requires_adaptive_before_any_writes(self):
+        agent = self.home / ".pi/agent"
+        settings = self.write(agent / "settings.json", '{"theme":"custom","defaultModel":"keep"}\n')
+        before = self.snapshot()
+        result = self.run_native_policy("--preset", "native", ok=False)
+        self.assertIn("--preset native requires --adaptive", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(settings.read_text(), '{"theme":"custom","defaultModel":"keep"}\n')
+
+    def test_native_adaptive_refuses_unowned_stale_delegation_before_settings(self):
+        agent = self.home / ".pi/agent"
+        self.write(agent / "AGENTS.md", (ROOT / "pi-defaults/AGENTS.md").read_text())
+        settings = self.write(agent / "settings.json", '{"theme":"custom","defaultModel":"keep"}\n')
+        delegation = self.write(agent / "skills/megai/delegation.md", "Old mandatory Agy routing.\n")
+        original = delegation.read_bytes()
+        before = self.snapshot()
+        result = self.run_native_adaptive(ok=False)
+        self.assertIn("native preset requires current owned skills/megai/delegation.md", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(settings.read_text(), '{"theme":"custom","defaultModel":"keep"}\n')
+        self.assertEqual(delegation.read_bytes(), original)
+
+    def test_native_adaptive_refuses_missing_base_before_roles(self):
+        agent = self.home / ".pi/agent"
+        settings = self.write(agent / "settings.json", '{"theme":"custom","defaultModel":"keep"}\n')
+        before = self.snapshot()
+        result = self.run_native_adaptive(ok=False)
+        self.assertIn("unrecognized/custom Pi AGENTS base preserved", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(settings.read_text(), '{"theme":"custom","defaultModel":"keep"}\n')
+
+    def test_native_adaptive_migrates_exact_old_agy_base_and_backs_it_up(self):
+        agents, original = self.seed_old_agy_agents()
+        self.run_native_adaptive()
+        current = agents.read_bytes()
+        new_base = (ROOT / "pi-defaults/AGENTS.md").read_bytes().strip()
+        import re
+        self.assertEqual(re.sub(rb"<!-- megai:[a-z-]+:begin -->.*?<!-- megai:[a-z-]+:end -->", b"", current, flags=re.S).strip(),
+                         new_base)
+        self.assertIn(b"<!-- megai:slim:begin -->", current)
+        self.assertIn(b"<!-- megai:subagent-models:begin -->", current)
+        self.assertNotIn(b"antigravity", current.lower())
+        self.assertFalse((self.home / ".pi/agent/extensions/megai-antigravity/index.ts").exists())
+        backups = self.megai / "backups"
+        self.assertTrue(any(path.is_file() and path.read_bytes() == original
+                            for path in backups.rglob("*")))
+
+    def test_native_adaptive_refuses_custom_agy_base_without_writes(self):
+        agents, original = self.seed_old_agy_agents(custom=True)
+        before = self.snapshot()
+        result = self.run_native_adaptive(ok=False)
+        self.assertIn("unrecognized/custom Pi AGENTS base preserved", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(agents.read_bytes(), original)
+
     def test_model_guard_installed_and_removed(self):
         self.wire()
         agent = self.home / ".pi/agent"
@@ -82,7 +167,7 @@ class ModelPolicy(Slim):
         self.assertTrue((agent / "extensions/megai-provider-guard/index.ts").is_file())
         self.assertTrue((agent / "extensions/megai-role-routing/index.ts").is_file())
         self.assertTrue((agent / "extensions/megai-model-fallback/index.ts").is_file())
-        self.assertTrue((agent / "extensions/megai-antigravity/index.ts").is_file())
+        self.assertFalse((agent / "extensions/megai-antigravity/index.ts").exists())
         before = self.snapshot()
         self.wire()
         self.assertEqual(self.snapshot(), before)
@@ -94,6 +179,27 @@ class ModelPolicy(Slim):
         self.assertFalse((agent / "extensions/megai-model-fallback/index.ts").exists())
         self.assertFalse((agent / "extensions/megai-antigravity/index.ts").exists())
 
+    def test_retired_agy_extension_is_removed_only_when_receipt_owned(self):
+        import hashlib
+
+        self.wire()
+        agent = self.home / ".pi/agent"
+        retired = agent / "extensions/megai-antigravity/index.ts"
+        self.write(retired, "previously managed Agy integration\n")
+        receipt_path = self.megai / "slim-wiring.json"
+        receipt = json.loads(receipt_path.read_text())
+        receipt[str(retired)] = hashlib.sha256(retired.read_bytes()).hexdigest()
+        receipt_path.write_text(json.dumps(receipt))
+        self.wire()
+        self.assertFalse(retired.exists())
+        self.assertNotIn(str(retired), json.loads(receipt_path.read_text()))
+
+        self.write(retired, "operator-owned extension\n")
+        before = self.snapshot()
+        self.assertIn("unowned retired asset preserved", self.wire(ok=False).stderr)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(retired.read_text(), "operator-owned extension\n")
+
     def test_role_routing_asset_installs_idempotently_and_preserves_collision(self):
         self.wire()
         agent = self.home / ".pi/agent"
@@ -102,7 +208,7 @@ class ModelPolicy(Slim):
         fallback = agent / "extensions/megai-model-fallback/index.ts"
         self.assertEqual(fallback.read_bytes(), (self.megai / "pi-skill/model-fallback/index.ts").read_bytes())
         pool = agent / "extensions/megai-antigravity/index.ts"
-        self.assertEqual(pool.read_bytes(), (self.megai / "pi-skill/antigravity/index.ts").read_bytes())
+        self.assertFalse(pool.exists(), "the managed Agy Pi extension must not be installed")
         before = self.snapshot()
         self.wire()
         self.assertEqual(self.snapshot(), before)
@@ -165,9 +271,9 @@ class ModelPolicy(Slim):
         self.assertFalse(runtime.exists())
         self.assertEqual(len(list((self.megai / "backups").glob("retired-decision-runtime*"))), 1)
         self.assertEqual(state["keep"], {"value": 42})
-        for name in ("megai-provider-guard", "megai-role-routing", "megai-model-fallback",
-                     "megai-antigravity"):
+        for name in ("megai-provider-guard", "megai-role-routing", "megai-model-fallback"):
             self.assertTrue((agent / "extensions" / name / "index.ts").is_file(), name)
+        self.assertFalse((agent / "extensions/megai-antigravity/index.ts").exists())
         self.assertNotIn(TOOL, (agent / "AGENTS.md").read_text().lower())
 
     def test_reinstall_preserves_an_unowned_decision_asset(self):
