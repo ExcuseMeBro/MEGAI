@@ -12,7 +12,6 @@ import shutil
 import shlex
 import subprocess
 import sys
-import tempfile
 
 # The clean profile always installs the newest Pi; the resolved version is recorded
 # in the defaults manifest instead of being pinned here.
@@ -42,15 +41,29 @@ def remove(path):
 
 def profile_settings(versions, home, current=None):
     packages = []
-    for name, version in versions.items():
-        if name == "@fission-ai/openspec":
+    retired = ("@fission-ai/openspec", "@dietrichgebert/ponytail", "@weiping/pi-superpowers")
+    configured = (current or {}).get("packages", [])
+    if not isinstance(configured, list):
+        raise ValueError("Pi packages must be a list")
+    selected = set()
+    for entry in configured:
+        source = entry.get("source") if isinstance(entry, dict) else entry
+        def matches(name):
+            return isinstance(source, str) and (source == f"npm:{name}" or source.startswith(f"npm:{name}@"))
+        if any(matches(name) for name in retired):
             continue
-        entry = {"source": f"npm:{name}@{version}"}
-        if name == "@weiping/pi-superpowers":
-            # Bootstrap only: the bundled delegation extension stays excluded.
-            entry["extensions"] = ["extensions/bootstrap.ts"]
-        packages.append(entry)
-    # The profile owns its package list and its skill narrowing; the provider, model,
+        managed = next((name for name in versions if matches(name)), None)
+        if managed:
+            updated = dict(entry) if isinstance(entry, dict) else {}
+            updated["source"] = f"npm:{managed}@{versions[managed]}"
+            packages.append(updated)
+            selected.add(managed)
+        else:
+            packages.append(entry)
+    packages.extend({"source": f"npm:{name}@{version}"}
+                    for name, version in versions.items() if name not in selected)
+    # Update managed packages while retaining unrelated packages and resource filters.
+    # The provider, model,
     # thinking, timeout and retry choices are the operator's and survive an update.
     settings = dict(current or {})
     settings["packages"] = packages
@@ -244,6 +257,10 @@ def install(reset=False, remove_omp=False):
     for relative in ("package.json", "package-lock.json", "workflow.py", "verify.mjs"):
         if not (SOURCE / relative).is_file():
             raise SystemExit(f"Incomplete profile source: {relative}")
+    if not reset:
+        run(sys.executable, REPO / "lib/pi_engineering.py", env={
+            **os.environ, "MEGAI_HOME": str(shared), "MEGAI_SOURCE": str(REPO),
+        })
     if reset:
         remove(home / ".pi")
     if remove_omp:
@@ -310,6 +327,10 @@ def install(reset=False, remove_omp=False):
         "--no-audit",
         "--no-fund",
     )
+    # npm ci removes the retired package; remove only this profile's exact old link.
+    retired_cli = local_bin / "openspec"
+    if retired_cli.is_symlink() and os.readlink(retired_cli) == str(npm_root / "node_modules/.bin/openspec"):
+        retired_cli.unlink()
     # Existing shared search/Headroom installations are independent of Pi state.
     # Reuse their verified installers, with no legacy harness wiring or backups.
     if not (shared / "lib/ui.sh").exists():
@@ -335,13 +356,16 @@ def install(reset=False, remove_omp=False):
     headroom.mkdir(parents=True, exist_ok=True)
     shutil.copy2(REPO / "pi-skill/headroom/index.ts", headroom / "index.ts")
     retire_duplicate_headroom(agent, home)
-    shutil.copytree(SOURCE / "skills", agent / "skills", dirs_exist_ok=True)
+    # The engineering migration owns these files and checks collisions before writes.
+    shutil.copytree(SOURCE / "skills", agent / "skills", dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns("codebase-design", "diagnosing-bugs", "tdd", "code-review"))
     shutil.copytree(SOURCE / "prompts", agent / "prompts", dirs_exist_ok=True)
     source_md = SOURCE / "AGENTS.md"
     agents_md = agent / "AGENTS.md"
     before_md = agents_md.read_bytes() if agents_md.exists() else None
-    agents_md.write_bytes(profile_agents_md(before_md, source_md.read_bytes()))
-    agents_md.chmod(source_md.stat().st_mode & 0o777)
+    if before_md is None:
+        agents_md.write_bytes(source_md.read_bytes())
+        agents_md.chmod(source_md.stat().st_mode & 0o777)
     # The policy transaction runs after profile-owned skills and AGENTS.md are refreshed,
     # so their exact source bytes cannot be mistaken for unowned legacy conflicts.
     apply_pi_policy(REPO, env)
@@ -350,6 +374,7 @@ def install(reset=False, remove_omp=False):
         agent / "settings.json",
         profile_settings(versions, home, read_object(agent / "settings.json")),
     )
+    run(sys.executable, REPO / "lib/pi_engineering.py", "--apply", env=env)
     write_json(
         agent / "mcp.json",
         profile_mcp(defaults, home, read_object(agent / "mcp.json")),
@@ -373,17 +398,6 @@ def install(reset=False, remove_omp=False):
     # file that differs from its own asset, so the two installers must agree.
     bridge.write_bytes(HEADROOM_BRIDGE)
     bridge.chmod(0o755)
-    for name, target in {
-        "openspec": npm_root / "node_modules/.bin/openspec",
-    }.items():
-        link = local_bin / name
-        if link.exists() or link.is_symlink():
-            if link.is_symlink() and link.resolve() == target.resolve():
-                continue
-            raise SystemExit(
-                f"Existing command requires explicit reconciliation: {link}"
-            )
-        link.symlink_to(target)
     launcher = local_bin / "pi-workflow"
     launcher.write_text(
         '#!/bin/sh\nexec python3 "$HOME/.pi/agent/defaults/workflow.py" "$@"\n'
@@ -403,30 +417,6 @@ def install(reset=False, remove_omp=False):
         defaults / "manifest.json",
         {"schema": 1, "profile": "clean", "pi": installed, "packages": versions},
     )
-    run(
-        str(local_bin / "openspec"),
-        "config",
-        "set",
-        "telemetry.enabled",
-        "false",
-        env={**os.environ, "OPENSPEC_TELEMETRY": "0"},
-    )
-    with tempfile.TemporaryDirectory(prefix="pi-openspec-") as staging:
-        run(
-            str(local_bin / "openspec"),
-            "init",
-            staging,
-            "--tools",
-            "pi",
-            "--profile",
-            "core",
-            "--no-animation",
-            env={**os.environ, "OPENSPEC_TELEMETRY": "0"},
-        )
-        for resource in ("skills", "prompts"):
-            shutil.copytree(
-                Path(staging) / ".pi" / resource, agent / resource, dirs_exist_ok=True
-            )
     print(
         "Installed. Pi authentication was reset when --reset was used: open pi and /login. No backups created."
     )

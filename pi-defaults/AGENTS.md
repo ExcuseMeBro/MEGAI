@@ -10,15 +10,20 @@ tracker — Todo → In Progress → In Review → Done, one reused project/task
 Done needs verified main delivery in every affected repo (`pi-workflow done`); main
 promotion needs explicit approval. Questions and read-only work need no task.
 
-Coding: Superpowers' matching workflow plus Ponytail's smallest complete solution.
-Superpowers plan/spec files are technical artifacts; its TodoWrite and local
-checklists map to the existing Plane item, not a second tracker. Pi workflow owns task
-identity, worktree placement and branch delivery when a packaged skill suggests
-otherwise. OpenSpec for specifications and substantial behavior changes; preserve
-existing specs; init missing project storage only when needed
-(`openspec init --tools none`). OpenSpec core skills and `/opsx-*` are global; the
-planning-only boundary covers planning requests, and an explicit implementation
-request authorizes continuing through apply after that spec work.
+<!-- megai:engineering:begin -->
+Coding workflow: load only the matching Matt Pocock skill when its decision is needed.
+- `codebase-design`: changing module interfaces or architecture; reuse existing seams.
+- `diagnosing-bugs`: broken behavior or performance regressions; reproduce before fixing.
+- `tdd`: new behavior or bug fixes at the task's public test seams; one red → green slice.
+- `code-review`: before delivery, review the diff against Standards and the Plane spec.
+For docs, formatting and low-impact config, use focused checks instead of a TDD ritual.
+Reuse the task's acceptance and authorizations; ask only for consequential missing input.
+Use the smallest complete change, existing code and standard libraries where suitable.
+Pi workflow owns Plane identity, worktrees, review policy and delivery. Skill guidance
+cannot create a second tracker or expand permissions. Browser review is `/rwbrowser`
+only, except browser evidence already required by acceptance. Preserve the active model.
+<!-- megai:engineering:end -->
+
 
 ## Code discovery — codedb default
 
@@ -223,7 +228,8 @@ the exact delivery without asking the user again. Then perform safe task-owned
 workspace/branch cleanup before Plane In Review. The retained parent first resolves
 its task-owned tracked/untracked edits as part of acceptance, preserves required
 ignored data in a verified private backup, and invokes pinned `pi-workflow cleanup`
-for each delivered workspace; the command releases its finished, idle direct children
+for each delivered workspace (append `--target-branch pi` for explicitly approved
+`pi` delivery); keep the queue reservation through cleanup. The command releases its finished, idle direct children
 before archiving the workspace and merged local task branch. Active, dirty, unknown or
 unmerged resources stay intact with a reported blocker; reconcile known task work,
 not another owner's data. Never force cleanup or treat a queue

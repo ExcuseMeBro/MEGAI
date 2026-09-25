@@ -47,7 +47,7 @@ process.stdin.on('end', ()=> {
 `, { mode: 0o700 });
 
 try {
-  for (const skill of ['caveman', 'ponytail']) {
+  for (const skill of ['caveman']) {
     mkdirSync(join(agentDir, 'skills', skill), { recursive: true });
     for (const name of ['SKILL.md', 'LICENSE.md']) {
       writeFileSync(join(agentDir, 'skills', skill, name),
@@ -60,13 +60,13 @@ try {
   await discovery.reload();
   const skills = discovery.getSkills();
   assert.deepEqual(skills.diagnostics, []);
-  assert.deepEqual(skills.skills.map(s => s.name).sort(), ['caveman', 'ponytail'], 'each core exactly once');
+  assert.deepEqual(skills.skills.map(s => s.name).sort(), ['caveman'], 'each core exactly once');
   assert.equal(skills.skills.filter(s => s.filePath.endsWith('LICENSE.md')).length, 0, 'license is not a skill');
   for (const skill of skills.skills) assert.ok(skill.filePath.startsWith(agentDir), skill.filePath);
   // Existing user exclusions must win; the installer reports gaps instead of clobbering them.
   const filtered = skillLoader({ skills: ['!' + join(agentDir, 'skills/caveman') + '/**'] });
   await filtered.reload();
-  assert.deepEqual(filtered.getSkills().skills.map(s => s.name), ['ponytail']);
+  assert.deepEqual(filtered.getSkills().skills.map(s => s.name), []);
 
   const loader = new DefaultResourceLoader({ cwd: temporary, agentDir,
     settingsManager: SettingsManager.inMemory({ packages: [] }),
@@ -158,7 +158,7 @@ try {
   mkdirSync(join(activationAgent, 'extensions/megai-headroom'), { recursive: true });
   writeFileSync(join(activationAgent, 'extensions/megai-headroom/index.ts'),
     readFileSync(resolve('pi-skill/headroom/index.ts')));
-  for (const skill of ['caveman', 'ponytail']) {
+  for (const skill of ['caveman']) {
     mkdirSync(join(activationAgent, 'skills', skill), { recursive: true });
     writeFileSync(join(activationAgent, 'skills', skill, 'SKILL.md'),
       readFileSync(resolve('pi-skill/token-profile', skill, 'SKILL.md')));
@@ -167,7 +167,7 @@ try {
   const sidecar = join(activationAgent, 'megai-token-profile.json');
   const receiptPath = join(temporary, 'slim-wiring.json');
   const ownedReceipt = {};
-  for (const skill of ['caveman', 'ponytail']) {
+  for (const skill of ['caveman']) {
     const file = join(activationAgent, 'skills', skill, 'SKILL.md');
     ownedReceipt[file] = createHash('sha256').update(readFileSync(file)).digest('hex');
   }
@@ -182,7 +182,6 @@ try {
   // Native override semantics: `!name` matches the parent skill name, plain paths are
   // additive, and `-name` is exact-path-only so it does not disable a core.
   await assert.rejects(settingsActivation({ skills: ['!caveman'] }), /Token profile core not active/);
-  await assert.rejects(settingsActivation({ skills: ['!ponytail'] }), /Token profile core not active/);
   await assert.rejects(settingsActivation({ skills: ['!' + join(activationAgent, 'skills/caveman') + '/**'] }), /Token profile core not active/);
   assert.equal(await settingsActivation({ skills: ['-caveman'] }), true, '-caveman is exact-path-only in native Pi');
   assert.equal(await settingsActivation({ skills: ['/opt/shared/skills/caveman/SKILL.md'] }), true, 'positive skill paths are additive');

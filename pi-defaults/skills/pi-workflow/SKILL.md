@@ -40,19 +40,23 @@ description: Start and deliver tracked project changes with Plane, dev/main bran
    are merged rather than stalled. Preserve a colliding ignored file outside the checkout
    before a bounded retry; never overwrite or delete it.
    Verify exact delivered commits and
-   complete the reservation; on a moved/dirty target, stale evidence or uncertain
+   keep the reservation through cleanup; on a moved/dirty target, stale evidence or uncertain
    result, retain task resources and reconcile instead of forcing or assuming success.
    Push only with separate explicit approval. Perform safe task-owned post-merge
    workspace/branch cleanup before handing off In Review. From a retained checkout,
    after task agents have finished and terminals are released, run `pi-workflow cleanup --cwd
    PRIMARY --workspace EXACT_ID --branch task/SLUG --tip FULL_TASK_SHA` for each
-   delivered worktree. The command archives verified idle direct children of the
+   delivered worktree. For explicitly approved `pi` delivery, append
+   `--target-branch pi`; the primary checkout stays on its existing branch.
+   The command archives verified idle direct children of the
    invoking parent before their workspace, rereads the released owner state and
    never archives the parent or a foreign agent. Local dev-only delivery does not
-   require remote dev to move; it checks local dev ancestry and privately preserves
+   require remote dev to move; it checks the selected local target ancestry and privately preserves
    bounded generated `__pycache__/*.pyc` with verified hashes. It refuses other dirty,
    ignored, active, unknown, unmerged and moved resources. It archives through Paseo before deleting the
-   local task branch. A refusal retains remaining resources for reconciliation;
+   local task branch. Agent discovery is global; archived `closed` and archived
+   `idle` owners are released only with matching inspect identity and no pending
+   permissions. Complete the reservation after cleanup. A refusal retains remaining resources for reconciliation;
    never force-delete or archive the invoking workspace. Keep a receipt JSON:
    `{"repositories":[{"path":"/absolute/primary/repo","commit":"FULL_SHA","remote":"origin"}]}`.
    List every affected repository and its delivered commit. Runtime-only changes

@@ -282,8 +282,13 @@ approval. It is agent workflow, not a Git hook or background cleanup service.
 4. **Archive, then delete.** From a retained checkout, after all task owners
    are released and the reservation is held, run
    `pi-workflow cleanup --cwd PRIMARY --workspace EXACT_ID --branch task/SLUG --tip FULL_TASK_SHA`
-   for each delivered task worktree. It automatically archives only verified idle
+   for each delivered task worktree. For explicitly approved `pi` delivery append
+   `--target-branch pi`: it proves ancestry against local `pi`, without switching
+   the retained checkout or changing persistent branch refs. Other targets retain
+   the separately approved lifecycle procedure. It automatically archives only verified idle
    direct children of the invoking parent, then rereads owner and terminal state.
+   Discovery includes global archived agents. Archived `closed` or `idle` owners
+   require matching inspect identity/status and no pending permissions.
    Unarchived foreign/unknown children and missing release evidence still block.
    Its local-`dev` ancestry check is sufficient
    for local dev-only delivery; remote `dev` is not a prerequisite unless the

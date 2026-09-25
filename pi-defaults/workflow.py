@@ -633,7 +633,7 @@ def status(cwd, workspace_id=None):
         {"workspaceId": str, "project": str, "name": str, "isolation": str, "cwd": str},
     )
     agents = _rows(
-        _paseo_json("agent", "ls", "--all"),
+        _paseo_json("agent", "ls", "--all", "--global"),
         {"id": str, "shortId": str, "name": str, "provider": str, "thinking": str,
          "status": str, "cwd": str, "created": str},
     )
@@ -850,12 +850,14 @@ def _preserve_generated_ignored(path, repo, workspace_id, ignored):
         os.close(root_fd)
 
 
-def cleanup(cwd, workspace_id, branch, tip):
-    """Retire one explicitly pinned task worktree after verified local dev delivery.
+def cleanup(cwd, workspace_id, branch, tip, target_branch="dev"):
+    """Retire one explicitly pinned task worktree after verified target delivery.
 
     Run from a retained checkout; any uncertain state is a refusal, never a
     reason to force-remove a worktree or branch.
     """
+    if target_branch not in {"dev", "pi"}:
+        raise ValueError("Cleanup target must be dev or explicitly approved pi")
     policy = context(cwd)
     repo = Path(primary(cwd))
     if str(repo) not in policy["repositories"]:
@@ -889,7 +891,7 @@ def cleanup(cwd, workspace_id, branch, tip):
             raise ValueError("Refusing to archive primary, current or foreign workspace")
         if os.environ.get("PASEO_AGENT_ID") is None:
             raise ValueError("Invoking agent identity is required")
-        agents = _rows(_paseo_json("agent", "ls", "--all"),
+        agents = _rows(_paseo_json("agent", "ls", "--all", "--global"),
                        {"id": str, "shortId": str, "name": str, "provider": str,
                         "thinking": str, "status": str, "cwd": str, "created": str})
         released = []
@@ -902,7 +904,8 @@ def cleanup(cwd, workspace_id, branch, tip):
             detail = _paseo_json("agent", "inspect", agent["id"])
             if (_inspect_problem(detail) or detail["Id"] != agent["id"]
                     or _expand(detail["Cwd"]) != _expand(agent["cwd"])
-                    or agent["status"] != "idle" or detail["Status"] != "idle"
+                    or agent["status"] != detail["Status"]
+                    or detail["Status"] not in ({"idle", "closed"} if detail["Archived"] else {"idle"})
                     or detail.get("PendingPermissions") != []):
                 raise ValueError(f"Agent {agent['id']} is not safely released")
             if detail["Archived"]:
@@ -926,37 +929,38 @@ def cleanup(cwd, workspace_id, branch, tip):
         registered, error = _git_worktrees(repo)
         if error:
             raise ValueError(error)
-        dev_entries = [e for e in registered if e["branch"] == "dev"]
-        if len(dev_entries) != 1 or dev_entries[0]["locked"]:
-            raise ValueError("A retained dev checkout is required before workspace archival")
+        target_entries = [e for e in registered if e["branch"] == target_branch]
+        if (len(target_entries) > 1 or any(e["locked"] for e in target_entries)
+                or (target_branch == "dev" and len(target_entries) != 1)):
+            raise ValueError(f"A retained {target_branch} checkout is required before workspace archival")
         entries = [e for e in registered if _expand(e["path"]) == path]
         ref, ref_error = _local_ref(repo, branch)
-        dev, dev_error = _local_ref(repo, "dev")
+        target, target_error = _local_ref(repo, target_branch)
         dirty, _, status_error = _git_status(path)
         ignored, ignored_error = _git_ignored(path)
         operation, operation_errors = _git_operation(path)
         if (len(entries) != 1 or entries[0]["locked"] or entries[0]["branch"] != branch
-                or entries[0]["head"] != tip or ref != tip or not dev
-                or dev_entries[0]["head"] != dev
-                or ref_error or dev_error or status_error or ignored_error
+                or entries[0]["head"] != tip or ref != tip or not target
+                or any(e["head"] != target for e in target_entries)
+                or ref_error or target_error or status_error or ignored_error
                 or operation_errors or dirty or (ignored and not allow_generated) or operation
                 or _primary_or_none(path) != str(repo)):
             raise ValueError("Task workspace/ref changed, contains data, or has an unfinished operation")
-        ancestor, ancestor_error = _ancestor(repo, tip, dev)
+        ancestor, ancestor_error = _ancestor(repo, tip, target)
         if ancestor_error or not ancestor:
-            raise ValueError("Task tip is not included in local dev")
-        return dev, dev_entries[0]["path"]
+            raise ValueError(f"Task tip is not included in local {target_branch}")
+        return target, target_entries[0]["path"] if target_entries else str(repo)
 
-    dev, dev_path = check_git(allow_generated=True)
+    target, target_path = check_git(allow_generated=True)
     ignored, error = _git_ignored(path)
     if error:
         raise ValueError(error)
-    if check_git(allow_generated=True) != (dev, dev_path) or check_owners(allow_releasable=True) != owners:
-        raise ValueError("Task workspace, ownership or dev moved before agent release")
+    if check_git(allow_generated=True) != (target, target_path) or check_owners(allow_releasable=True) != owners:
+        raise ValueError("Task workspace, ownership or target moved before agent release")
     if _git_ignored(path) != (ignored, None):
         raise ValueError("Ignored data moved before preservation")
     backup = _preserve_generated_ignored(path, repo, workspace_id, ignored)
-    if check_git() != (dev, dev_path) or check_owners(allow_releasable=True) != owners:
+    if check_git() != (target, target_path) or check_owners(allow_releasable=True) != owners:
         raise ValueError(f"Task workspace changed after backup; preserved: {backup}")
     for index, child_id in enumerate(owners[3]):
         _paseo_json("agent", "archive", child_id)  # No --force; retain on uncertainty.
@@ -965,9 +969,9 @@ def cleanup(cwd, workspace_id, branch, tip):
         if check_owners(allow_releasable=True) != expected:
             raise ValueError("Child archive unconfirmed; workspace and branch retained")
     # Recheck Git and all Paseo owners immediately before retiring the worktree.
-    if check_git() != (dev, dev_path) or check_owners() != (
+    if check_git() != (target, target_path) or check_owners() != (
             owners[0], owners[1], tuple(sorted((*owners[2], *owners[3]))), ()):
-        raise ValueError("Task workspace, ownership or dev moved during cleanup")
+        raise ValueError("Task workspace, ownership or target moved during cleanup")
     _paseo_json("workspace", "archive", workspace_id)
     remaining, worktree_error = _git_worktrees(repo)
     if (worktree_error or any(w["workspaceId"] == workspace_id for w in _rows(
@@ -977,15 +981,20 @@ def cleanup(cwd, workspace_id, branch, tip):
             or any(_expand(e["path"]) == path for e in remaining)):
         raise ValueError("Workspace archive unconfirmed; branch retained for reconciliation")
     ref, error = _local_ref(repo, branch)
-    current_dev, dev_error = _local_ref(repo, "dev")
-    if error or dev_error or ref != tip or current_dev != dev:
+    current_target, target_error = _local_ref(repo, target_branch)
+    if error or target_error or ref != tip or current_target != target:
         raise ValueError("Refs moved after archive; branch retained")
-    git(dev_path, "branch", "-d", "--", branch)
+    # A per-command local upstream makes branch -d check the verified target
+    # without switching the retained checkout or changing branch configuration.
+    git(target_path, "-c", f"branch.{branch}.remote=.",
+        "-c", f"branch.{branch}.merge=refs/heads/{target_branch}",
+        "branch", "-d", "--", branch)
     remaining_ref, read_error = _local_ref(repo, branch)
     if read_error or remaining_ref is not None:
         raise ValueError("Branch deletion unconfirmed")
     return {"workspaceId": workspace_id, "branch": branch, "tip": tip,
-            "dev": dev, "archived": True, "branchDeleted": True, "backup": backup}
+            "targetBranch": target_branch, "target": target,
+            **({"dev": target} if target_branch == "dev" else {}), "archived": True, "branchDeleted": True, "backup": backup}
 
 
 def _inspect_problem(inspect):
@@ -1050,7 +1059,7 @@ def _workspace_row(
         archived = inspect["Archived"]
         permissions = inspect.get("PendingPermissions")
         identity_ok = inspect["Id"] == item["id"] and _expand(inspect["Cwd"]) == cwd_value
-        if item["status"] != "idle":
+        if item["status"] not in ({"idle", "closed"} if archived else {"idle"}):
             blocked.append(f"agent-list-not-idle:{item['status']}")
             busy = True
             bad = True
@@ -1074,7 +1083,7 @@ def _workspace_row(
             blocked.append("inspect-identity-mismatch")
             busy = True
             bad = True
-        if archived and inspect["Status"] != "idle":
+        if archived and inspect["Status"] not in {"idle", "closed"}:
             blocked.append("incomplete-terminal-evidence")
             bad = True
     released = bool(matched) and not bad and not busy and not protected
@@ -1246,6 +1255,7 @@ def main():
     cmd = sub.add_parser("context")
     cmd.add_argument("--cwd", default=os.getcwd())
     cmd = sub.add_parser("cleanup")
+    cmd.add_argument("--target-branch", choices=("dev", "pi"), default="dev")
     cmd.add_argument("--cwd", default=".")
     cmd.add_argument("--workspace", required=True)
     cmd.add_argument("--branch", required=True)
@@ -1272,7 +1282,7 @@ def main():
     cmd.add_argument("receipt")
     args = parser.parse_args()
     if args.command == "cleanup":
-        return cleanup(args.cwd, args.workspace, args.branch, args.tip)
+        return cleanup(args.cwd, args.workspace, args.branch, args.tip, args.target_branch)
     if args.command == "context":
         return context(args.cwd)
     if args.command == "status":

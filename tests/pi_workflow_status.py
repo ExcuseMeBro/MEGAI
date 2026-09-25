@@ -81,6 +81,8 @@ elif argv[:2] == ["terminal", "ls"]:
         out = json.loads(os.environ.get("FAKE_TERMINALS", "[]"))
 elif argv[:2] == ["agent", "ls"]:
     out = state.get("agents", []) if state and "agents" in state else json.loads(os.environ.get("FAKE_AGENTS", "[]"))
+    if os.environ.get("FAKE_NATIVE_ARCHIVAL") and "--global" not in argv:
+        out = [a for a in out if a["status"] != "closed"]
 elif argv[:2] == ["agent", "archive"] and state:
     if os.environ.get("FAKE_AGENT_ARCHIVE_FAIL"):
         sys.exit(4)
@@ -92,6 +94,11 @@ elif argv[:2] == ["agent", "archive"] and state:
         with open(os.environ["FAKE_ARCHIVE_LOG"], "a") as f:
             f.write("agent\n")
     state["inspects"][key]["Archived"] = True
+    if os.environ.get("FAKE_NATIVE_ARCHIVAL"):
+        state["inspects"][key]["Status"] = "closed"
+        for row in state["agents"]:
+            if row["id"] == key:
+                row["status"] = "closed"
     if os.environ.get("FAKE_NEW_OWNER_AFTER_ARCHIVE"):
         state["agents"].append({"id": "foreign", "shortId": "foreign", "name": "foreign",
                                 "provider": "pi", "thinking": "high", "status": "running",
@@ -267,14 +274,60 @@ class CleanupContract(unittest.TestCase):
         self.state = self.fx.tmp / "paseo-state.json"
         self.state.write_text(json.dumps({"workspaces": [workspace("wks_own", self.wt)]}))
 
-    def run_cleanup(self, *, tip=None, env=None):
+    def run_cleanup(self, *, tip=None, env=None, target=None):
         default = self.fx.env(agents=[agent("child", self.wt)],
                               inspects=inspect("child", self.wt, archived=True))
         default["FAKE_PASEO_STATE"] = str(self.state)
         if env:
             default.update(env)
         return run_cli(["cleanup", "--cwd", str(self.fx.primary), "--workspace", "wks_own",
-                        "--branch", "task/megai-162", "--tip", tip or self.tip], env=default)
+                        "--branch", "task/megai-162", "--tip", tip or self.tip,
+                        *(["--target-branch", target] if target else [])], env=default)
+
+    def test_native_closed_archived_owner_is_discovered_globally(self):
+        result = self.run_cleanup(env={
+            "FAKE_NATIVE_ARCHIVAL": "1",
+            "FAKE_AGENTS": json.dumps([agent("child", self.wt, "closed")]),
+            "FAKE_INSPECTS": json.dumps(inspect("child", self.wt, archived=True, status="closed")),
+        })
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.wt.exists())
+
+    def test_native_direct_child_closes_before_workspace_archival(self):
+        child = inspect("child", self.wt)["child"]
+        child["ParentAgentId"] = RUNNER
+        state = json.loads(self.state.read_text())
+        state.update(agents=[agent("child", self.wt)], inspects={"child": child})
+        self.state.write_text(json.dumps(state))
+        result = self.run_cleanup(env={"FAKE_NATIVE_ARCHIVAL": "1"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.wt.exists())
+
+    def test_closed_without_archival_is_not_release(self):
+        result = self.run_cleanup(env={
+            "FAKE_AGENTS": json.dumps([agent("child", self.wt, "closed")]),
+            "FAKE_INSPECTS": json.dumps(inspect("child", self.wt, status="closed")),
+        })
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+
+    def test_pi_delivery_without_pi_checkout_preserves_primary_and_targets(self):
+        _git(self.fx.primary, "branch", "pi", self.tip)
+        _git(self.fx.primary, "reset", "--hard", self.fx.dev)
+        before = _git(self.fx.primary, "rev-parse", "HEAD", "dev", "main", "pi")
+        result = self.run_cleanup(target="pi")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(_git(self.fx.primary, "rev-parse", "HEAD", "dev", "main", "pi"), before)
+        self.assertFalse(self.wt.exists())
+        self.assertEqual(_git(self.fx.primary, "branch", "--list", "task/megai-162"), "")
+        self.assertEqual(json.loads(result.stdout)["targetBranch"], "pi")
+
+    def test_pi_cleanup_rejects_tip_delivered_only_to_dev(self):
+        _git(self.fx.primary, "branch", "pi", self.fx.dev)
+        result = self.run_cleanup(target="pi")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("not included", result.stderr)
+        self.assertTrue(self.wt.exists())
 
     def test_local_dev_delivery_archives_only_owned_workspace_then_branch(self):
         result = self.run_cleanup()

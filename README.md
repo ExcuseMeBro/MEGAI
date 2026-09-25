@@ -31,16 +31,12 @@ Pi startup never updates packages or builds indexes automatically.
 | 🐍 Ruff | Check changed Python without automatic fixes |
 | 🧠 Headroom 0.37.0 | Local discovery compression; raw source/tests/failures |
 | 🔎 codedb / tgrep 1.0.4 / zvec-grep 0.2.1 | Structure, ranked text, local intent search |
-| 🦸 Superpowers 5.1.0 | Automatic bootstrap and matching engineering skills |
-| 🐴 Ponytail 4.9.0 | Default full mode; smallest complete implementation |
-| 📐 OpenSpec 1.13.0 | Global core skills and `/opsx-*` commands, telemetry disabled |
 | 🔌 pi-mcp-adapter 2.33.0 | Lazy Plane and zvec MCP |
 | 🌐 pi-web-access 0.29.0 | Exa public search without a separate key, page fetching |
 | ⚡ Local Laya multilingual | On-device typed decisions and file relevance; compaction falls back to Pi when not safely reducible. No browser agent. |
 | 🧑‍🤝‍🧑 Native Paseo agents | Bounded children and required independent review; no Pi package |
 
 Package versions and integrity hashes are in [package-lock.json](pi-defaults/package-lock.json).
-Superpowers' extra delegation extension is excluded: only its bootstrap is loaded, and
 native Paseo agents own delegation, one writer per worktree. Shared legacy skill discovery
 is excluded from this Pi profile to avoid contradictory defaults. Other agents retain
 their own configuration.
@@ -114,7 +110,7 @@ agent repeats after another agent already read it — use
 ## 🗂️ Plane and branches
 
 Workspace `brodev`: **Todo → In Progress → In Review → Done**. Plane is the only
-execution tracker. OpenSpec specifications and verification receipts are artifacts,
+execution tracker. Technical designs and verification receipts are artifacts,
 not a second board. The existing private Plane token stays outside Pi and Git at
 `~/.config/megai/credentials/plane-api-token` (mode 600).
 
@@ -210,8 +206,21 @@ must not contain private repository content or credentials.
 ## 📚 Upstream references
 
 [Pi packages](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/packages.md),
-[Superpowers](https://github.com/weiping/pi-superpowers),
-[Ponytail](https://github.com/DietrichGebert/ponytail),
-[OpenSpec](https://github.com/Fission-AI/OpenSpec),
 [web access](https://github.com/nicobailon/pi-web-access),
 [MCP adapter](https://github.com/nicobailon/pi-mcp-adapter).
+
+### Focused engineering workflow
+
+Pi ships four adapted Matt Pocock skills: `codebase-design` for interfaces,
+`diagnosing-bugs` for reproductions, `tdd` for behavior changes, and `code-review`
+for Standards and Spec checks. They load on demand; Plane and Pi workflow retain
+tracking and delivery. Docs and small config changes use focused validation.
+Ponytail, OpenSpec and the automatic Superpowers bootstrap are retired. Existing installations
+can run `MEGAI_SOURCE=/path/to/MEGAI python3 /path/to/MEGAI/lib/pi_engineering.py --apply`
+to migrate only engineering settings with private backups; custom skill collisions
+stop before writes. Use `--verify` for installed-byte checks and native Pi loading
+for activation (`node pi-defaults/verify.mjs --engineering-only` checks this scoped
+workflow without requiring optional web tools). Restart Pi sessions after updating.
+
+Historical specifications are preserved under `docs/history/specifications/`;
+they are records, not an active OpenSpec workspace or execution tracker.
