@@ -19,6 +19,10 @@ class EventHandoff(unittest.TestCase):
         self.assertTrue("--timeout" not in section and "bounded wait" not in section,
                         "child-completion waiting must not impose a deadline")
 
+    def test_native_worker_reports_exact_verification(self):
+        guide = (ROOT / "pi-skill/delegation.md").read_text()
+        self.assertIn("exact test command and exit status", guide)
+
     def test_provider_stall_protection_is_not_child_wait_deadline(self):
         guide = (ROOT / "pi-skill/delegation.md").read_text()
         self.assertIn("## Parent-side provider timeout, stall and replacement", guide)
@@ -27,9 +31,9 @@ class EventHandoff(unittest.TestCase):
         policy = (ROOT / "pi-defaults/AGENTS.md").read_text()
         self.assertIn("notifyOnFinish: true", policy)
         self.assertIn("Provider timeouts", policy)
-        self.assertIn("Do not weaken these gates", policy)
+        self.assertIn("Never weaken worktree ownership, permission or review gates.", policy)
         wait_policy = policy.split("## Waits and pending decisions", 1)[1].split(
-            "## User-approved Antigravity execution", 1
+            "## User-approved Pi / Paseo routing", 1
         )[0]
         self.assertIn("Paseo Pi child handoffs", wait_policy)
         self.assertIn("not subject to the five-minute limit", wait_policy)

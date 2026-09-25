@@ -36,7 +36,8 @@ class QueueCLI(unittest.TestCase):
             self.git(path, "config", "user.email", "fixture@example.invalid")
             self.git(path, "config", "user.name", "Queue fixture")
             (path / "file").write_text("base\n")
-            self.git(path, "add", "file")
+            (path / "codedb.snapshot").write_text("tracked foreign baseline\n")
+            self.git(path, "add", "file", "codedb.snapshot")
             self.git(path, "commit", "-m", "base")
             self.git(path, "checkout", "-b", "task/change")
             (path / "file").write_text("candidate\n")
@@ -64,7 +65,7 @@ class QueueCLI(unittest.TestCase):
         self.assertEqual(result.returncode, code, result.stdout + result.stderr)
         return json.loads(result.stdout)
 
-    def request(self, key, *repos, after=(), target=None):
+    def request(self, key, *repos, after=(), target=None, remote_dev=False):
         args = ["plan", "--root", str(self.project), "--id", key,
                 "--plane-project", "00000000-0000-4000-8000-000000000001",
                 "--plane-item", str(uuid.uuid5(uuid.NAMESPACE_URL, key))]
@@ -74,6 +75,8 @@ class QueueCLI(unittest.TestCase):
             args += ["--after", dependency]
         if target:
             args += ["--target-branch", target]
+        if remote_dev:
+            args += ["--remote-dev"]
         value = self.call(*args)
         file = self.base / (key + ".json")
         file.write_text(json.dumps(value))
@@ -82,6 +85,16 @@ class QueueCLI(unittest.TestCase):
     def enqueue(self, key, *repos, after=()):
         file = self.request(key, *repos, after=after)
         return self.call("enqueue", "--request", file)
+
+    def add_origin(self, name):
+        path = self.repos[name]
+        remote = self.base / f"{name}.git"
+        remote.mkdir()
+        self.git(remote, "init", "--bare")
+        self.git(path, "remote", "add", "origin", str(remote))
+        self.git(path, "push", "origin", "dev")
+        self.git(path, "fetch", "origin", "dev")
+        return remote
 
     def claim(self, key, owner="parent", code=0, lease=120):
         return self.call("claim", "--id", key, "--owner", owner,
@@ -328,6 +341,112 @@ class QueueCLI(unittest.TestCase):
         self.assertIn("Unresolved Git", self.claim("operation", code=2)["reason"])
         self.git(path, "merge", "--abort")
         self.assertEqual(self.claim("operation")["state"], "active")
+
+    def test_remote_dev_ignores_dirty_primary_and_requires_fetched_delivery(self):
+        path = self.repos["backend"]
+        self.add_origin("backend")
+        foreign = path / "codedb.snapshot"
+        foreign.write_bytes(b"unrelated foreign tracked modification\n")
+        original_bytes = foreign.read_bytes()
+        original_head = self.git(path, "rev-parse", "HEAD")
+        original_branch = self.git(path, "symbolic-ref", "--quiet", "HEAD")
+        merge_head = path / ".git/MERGE_HEAD"
+        merge_head.write_text(original_head + "\n")
+        remote_head = self.git(path, "rev-parse", "refs/remotes/origin/dev")
+        index = (path / ".git/index").read_bytes()
+        file = self.request("remote-dev", "backend", remote_dev=True)
+        request = json.loads(file.read_text())
+        vector = request["repositories"][0]
+        self.assertEqual(vector["branch"], "refs/remotes/origin/dev")
+        self.assertEqual(vector["expected_head"], remote_head)
+        self.assertEqual(vector["candidate_head"], self.git(path, "rev-parse", "task/change"))
+        self.call("enqueue", "--request", file)
+        grant = self.claim("remote-dev")
+        waiter = self.request("remote-waiter", "backend", remote_dev=True)
+        self.call("enqueue", "--request", waiter)
+        self.assertEqual(self.claim("remote-waiter", code=2)["wait_reason"], "resource:remote-dev")
+        self.assertEqual(self.git(path, "rev-parse", "HEAD"), original_head)
+        self.assertEqual(self.git(path, "symbolic-ref", "--quiet", "HEAD"), original_branch)
+        self.assertEqual(foreign.read_bytes(), original_bytes)
+        self.assertEqual((path / ".git/index").read_bytes(), index)
+        self.assertEqual(merge_head.read_text(), original_head + "\n")
+        self.assertEqual(self.git(path, "rev-parse", "refs/remotes/origin/dev"), remote_head)
+
+        remote = self.base / "backend.git"
+        self.git(remote, "fetch", str(path), "task/change")
+        candidate = vector["candidate_head"]
+        self.git(remote, "update-ref", "refs/heads/dev", candidate, remote_head)
+        self.assertIn("not delivered", self.finish(grant, "completed", code=2)["reason"])
+        self.assertEqual(self.git(path, "rev-parse", "refs/remotes/origin/dev"), remote_head,
+                         "Queue must observe fetched tracking state, never fetch itself")
+        self.assertEqual(merge_head.read_text(), original_head + "\n")
+        merge_head.unlink()
+        self.git(path, "fetch", "origin", "dev")
+        self.assertEqual(self.finish(grant, "completed")["state"], "completed")
+        self.assertEqual(self.git(path, "rev-parse", "HEAD"), original_head)
+        self.assertEqual(self.git(path, "symbolic-ref", "--quiet", "HEAD"), original_branch)
+        self.assertEqual(foreign.read_bytes(), original_bytes)
+        self.assertEqual((path / ".git/index").read_bytes(), index)
+
+    def test_remote_dev_stale_vectors_require_enqueue_and_claim_refresh(self):
+        path = self.repos["backend"]
+        self.add_origin("backend")
+        stale = self.request("remote-stale", "backend", remote_dev=True)
+        candidate = self.git(path, "rev-parse", "task/change")
+        self.git(path, "push", "origin", "task/change:dev")
+        self.git(path, "fetch", "origin", "dev")
+        self.assertIn("Commit vector", self.call("enqueue", "--request", stale, code=2)["reason"])
+
+        fresh = self.request("remote-stale", "backend", remote_dev=True)
+        self.call("enqueue", "--request", fresh)
+        tree = self.git(path, "rev-parse", f"{candidate}^{{tree}}")
+        later = self.git(path, "-c", "user.email=fixture@example.invalid", "-c",
+                         "user.name=Queue fixture", "commit-tree", tree, "-p", candidate,
+                         "-m", "remote dev advances")
+        self.git(path, "push", "origin", f"{later}:refs/heads/dev")
+        self.git(path, "fetch", "origin", "dev")
+        self.assertIn("Commit vector", self.call("enqueue", "--request", fresh, code=2)["reason"])
+        self.assertIn("Commit vector", self.claim("remote-stale", code=2)["reason"])
+
+        refreshed = self.request("remote-stale", "backend", remote_dev=True)
+        self.call("refresh", "--request", refreshed, "--evidence", self.proof)
+        grant = self.claim("remote-stale")
+        newer = self.git(path, "-c", "user.email=fixture@example.invalid", "-c",
+                         "user.name=Queue fixture", "commit-tree", tree, "-p", later,
+                         "-m", "remote dev advances again")
+        self.git(path, "update-ref", "refs/heads/remote-later", newer)
+        remote = self.base / "backend.git"
+        self.git(remote, "fetch", str(path), "refs/heads/remote-later")
+        self.git(remote, "update-ref", "refs/heads/dev", newer, later)
+        self.git(path, "fetch", "origin", "dev")
+        self.assertIn("Commit vector", self.claim("remote-stale", owner=grant["owner"], code=2)["reason"])
+        self.assertEqual(self.finish(grant, "completed")["state"], "completed")
+
+    def test_remote_dev_rejects_forged_refs_and_target_branch(self):
+        path = self.repos["backend"]
+        self.add_origin("backend")
+        file = self.request("remote-forged", "backend", remote_dev=True)
+        request = json.loads(file.read_text())
+        request["repositories"][0]["branch"] = "refs/remotes/origin/feature"
+        file.write_text(json.dumps(request))
+        self.assertIn("branch", self.call("enqueue", "--request", file, code=2)["reason"])
+
+        conflict = ["plan", "--root", str(self.project), "--id", "remote-conflict",
+                    "--plane-project", "00000000-0000-4000-8000-000000000001",
+                    "--plane-item", str(uuid.uuid5(uuid.NAMESPACE_URL, "remote-conflict")),
+                    "--repo", str(path), "task/change", "--remote-dev", "--target-branch", "dev"]
+        self.assertIn("cannot be combined", self.call(*conflict, code=2)["reason"])
+
+    def test_local_dev_still_refuses_dirty_primary(self):
+        path = self.repos["backend"]
+        foreign = path / "codedb.snapshot"
+        foreign.write_bytes(b"unrelated foreign tracked modification\n")
+        original_bytes = foreign.read_bytes()
+        original_head = self.git(path, "rev-parse", "HEAD")
+        file = self.request("local-dirty", "backend")
+        self.assertIn("dirty", self.call("enqueue", "--request", file, code=2)["reason"])
+        self.assertEqual(foreign.read_bytes(), original_bytes)
+        self.assertEqual(self.git(path, "rev-parse", "HEAD"), original_head)
 
     def test_explicit_unchecked_target_ref_preserves_primary_checkout(self):
         path = self.repos["backend"]

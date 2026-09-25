@@ -19,6 +19,9 @@ import time
 import uuid
 
 
+REMOTE_DEV_REF = "refs/remotes/origin/dev"
+
+
 class Blocked(Exception):
     pass
 
@@ -99,13 +102,20 @@ def plan(args):
         primary, common = repo_identity(path)
         require(identity(primary)["projectId"] == project["projectId"],
                 "Repository must belong to the same existing Paseo project")
-        checkout_branch = git(primary, "symbolic-ref", "--quiet", "HEAD")
-        branch = checkout_branch
-        if args.target_branch:
-            git(primary, "check-ref-format", "--branch", args.target_branch)
-            branch = "refs/heads/" + args.target_branch
+        if args.remote_dev:
+            require(args.target_branch is None,
+                    "--remote-dev cannot be combined with --target-branch")
+            branch = REMOTE_DEV_REF
+            checkout_branch = checkout_head = None
+        else:
+            checkout_branch = git(primary, "symbolic-ref", "--quiet", "HEAD")
+            branch = checkout_branch
+            if args.target_branch:
+                git(primary, "check-ref-format", "--branch", args.target_branch)
+                branch = "refs/heads/" + args.target_branch
+            checkout_head = commit(primary, "HEAD")
         repos.append({"path": primary, "common_dir": common, "branch": branch,
-                      "checkout_branch": checkout_branch, "checkout_head": commit(primary, "HEAD"),
+                      "checkout_branch": checkout_branch, "checkout_head": checkout_head,
                       "expected_head": commit(primary, branch),
                       "candidate_head": commit(primary, revision)})
     request = {"schema": 1, "id": args.id, "project_id": project["projectId"],
@@ -145,17 +155,31 @@ def validate_request(request):
             "path", "common_dir", "branch", "checkout_branch", "checkout_head",
             "expected_head", "candidate_head"
         }, "Invalid repository vector")
-        for value in repo.values():
-            text(value, "repository field")
+        for key in ("path", "common_dir", "branch", "expected_head", "candidate_head"):
+            text(repo[key], "repository field")
+        remote_dev = repo["branch"] == REMOTE_DEV_REF
+        require(repo["branch"].startswith("refs/heads/") or remote_dev,
+                "Target must be a local branch or exactly refs/remotes/origin/dev")
+        if remote_dev:
+            require(repo["checkout_branch"] is None and repo["checkout_head"] is None,
+                    "Remote-dev requests cannot pin primary checkout state")
+        else:
+            text(repo["checkout_branch"], "checkout branch")
+            text(repo["checkout_head"], "checkout commit")
+            require(repo["checkout_branch"].startswith("refs/heads/"),
+                    "Checkout must be a local branch")
+            require(len(repo["checkout_head"]) in (40, 64)
+                    and all(c in "0123456789abcdef" for c in repo["checkout_head"]),
+                    "Commit vector must contain full pinned hashes")
+        for key in ("expected_head", "candidate_head"):
+            require(len(repo[key]) in (40, 64) and all(c in "0123456789abcdef" for c in repo[key]),
+                    "Commit vector must contain full pinned hashes")
         require(Path(repo["path"]).is_absolute() and Path(repo["common_dir"]).is_absolute(),
                 "Repository paths must be canonical absolute paths")
         require(repo["common_dir"] not in seen, "Duplicate repository/common directory")
         seen.add(repo["common_dir"])
-        require(all(repo[key].startswith("refs/heads/") for key in ("branch", "checkout_branch")),
-                "Target and checkout must be branches")
-        for key in ("expected_head", "candidate_head", "checkout_head"):
-            require(len(repo[key]) in (40, 64) and all(c in "0123456789abcdef" for c in repo[key]),
-                    "Commit vector must contain full pinned hashes")
+    require(len({repo["branch"] == REMOTE_DEV_REF for repo in request["repositories"]}) == 1,
+            "Cannot mix remote-dev and local branch targets")
     request = json.loads(encoded(request))
     request["repositories"].sort(key=lambda repo: repo["common_dir"])
     request["resources"] = sorted(set(request["resources"]))
@@ -165,6 +189,10 @@ def validate_request(request):
 
 def resources(request):
     return set(request["resources"]) | {"repo:" + r["common_dir"] for r in request["repositories"]}
+
+
+def remote_dev_request(request):
+    return request["repositories"][0]["branch"] == REMOTE_DEV_REF
 
 
 def observe(request):
@@ -177,27 +205,29 @@ def observe(request):
         primary, common = repo_identity(path)
         require((primary, common) == (path, repo["common_dir"]), "Repository identity changed")
         require(identity(path)["projectId"] == request["project_id"], "Repository project changed")
-        require(git(path, "symbolic-ref", "--quiet", "HEAD") == repo["checkout_branch"],
-                "Target checkout branch changed")
-        # Ref-only integration must never change a branch checked out elsewhere.
-        fields = git(path, "worktree", "list", "--porcelain", "-z").split("\0")
-        location = None
-        for field in fields:
-            if field.startswith("worktree "):
-                location = str(Path(field[9:]).resolve())
-            elif field == "branch " + repo["branch"]:
-                require(location == path and repo["branch"] == repo["checkout_branch"],
-                        "Target branch is checked out in another worktree")
-        if repo["branch"] != repo["checkout_branch"]:
-            require(commit(path, "HEAD") == repo["checkout_head"],
-                    "Unrelated primary checkout HEAD changed; preserve and reconcile")
-        git_dir = Path(git(path, "rev-parse", "--absolute-git-dir"))
-        require(not any((git_dir / marker).exists() for marker in (
-            "MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-merge", "rebase-apply",
-            "sequencer", "index.lock"
-        )), "Unresolved Git operation; preserve and reconcile")
-        require(not git(path, "status", "--porcelain=v1", "--untracked-files=all"),
-                "Target checkout is dirty; preserve and reconcile")
+        remote_dev = repo["branch"] == REMOTE_DEV_REF
+        if not remote_dev:
+            require(git(path, "symbolic-ref", "--quiet", "HEAD") == repo["checkout_branch"],
+                    "Target checkout branch changed")
+            # Ref-only integration must never change a branch checked out elsewhere.
+            fields = git(path, "worktree", "list", "--porcelain", "-z").split("\0")
+            location = None
+            for field in fields:
+                if field.startswith("worktree "):
+                    location = str(Path(field[9:]).resolve())
+                elif field == "branch " + repo["branch"]:
+                    require(location == path and repo["branch"] == repo["checkout_branch"],
+                            "Target branch is checked out in another worktree")
+            if repo["branch"] != repo["checkout_branch"]:
+                require(commit(path, "HEAD") == repo["checkout_head"],
+                        "Unrelated primary checkout HEAD changed; preserve and reconcile")
+            git_dir = Path(git(path, "rev-parse", "--absolute-git-dir"))
+            require(not any((git_dir / marker).exists() for marker in (
+                "MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-merge", "rebase-apply",
+                "sequencer", "index.lock"
+            )), "Unresolved Git operation; preserve and reconcile")
+            require(not git(path, "status", "--porcelain=v1", "--untracked-files=all"),
+                    "Target checkout is dirty; preserve and reconcile")
         # Resolve both objects again; pruned/replaced objects must never be silently accepted.
         require(commit(path, repo["expected_head"]) == repo["expected_head"]
                 and commit(path, repo["candidate_head"]) == repo["candidate_head"],
@@ -332,6 +362,8 @@ class Queue:
             existing = [r for r in self.rows() if r["id"] == request["id"]]
             if action == "enqueue" and existing:
                 require(existing[0]["request"] == request, "Idempotency key reused with different request")
+                if request["repositories"] and remote_dev_request(request):
+                    vector_matches(request, "expected_head")
                 return self.public(existing[0])
             vector_matches(request, "expected_head")
             rows = self.rows()
@@ -366,6 +398,8 @@ class Queue:
         elif action == "claim":
             text(args.owner, "owner")
             if row["state"] == "active" and row["owner"] == args.owner and row["expires"] > now:
+                if remote_dev_request(row["request"]):
+                    vector_matches(row["request"], "expected_head")
                 return self.public(row) | {"token": row["token"]}
             reason = self.wait_reason(row, self.rows())
             if reason:
@@ -444,7 +478,9 @@ def parser():
     for name in ("root", "id", "plane-project", "plane-item"):
         p.add_argument("--" + name, required=True)
     p.add_argument("--repo", nargs=2, action="append", required=True, metavar=("PATH", "CANDIDATE"))
-    p.add_argument("--target-branch", help="Explicit target ref in every repo; default is each primary's current branch")
+    p.add_argument("--target-branch", help="Explicit local target branch; incompatible with --remote-dev")
+    p.add_argument("--remote-dev", action="store_true",
+                   help=f"Pin fetched {REMOTE_DEV_REF} without inspecting or changing primary checkout state")
     p.add_argument("--resource", action="append", default=[])
     p.add_argument("--after", action="append", default=[])
     for name in ("enqueue", "refresh"):

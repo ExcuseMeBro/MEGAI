@@ -17,14 +17,13 @@ const PROVIDER = /^[A-Za-z0-9._:-]{1,64}$/;
 const MODEL = /^[A-Za-z0-9._:/-]{1,96}$/;
 const DEEPSEEK_FLASH = "deepseek/deepseek-flash";
 const ELIGIBLE = new Set(["planner", "scout", "worker"]);
-const FALLBACK = `${DEEPSEEK_FLASH} -> minimax/MiniMax-M3 -> openai-codex/gpt-6-luna`;
 const BLOCKED =
   "\n\nMEGAI role context BLOCKED: the global megai-roles.json is unreadable or " +
   "invalid. Continue only with explicit user model choices and current evidence; do " +
   "not guess role routing or expose raw configuration.\n";
 
 type Role = { provider: string; model: string; thinking: string };
-type Config = { preset?: string; workerExecutor?: "antigravity_delegate"; roles: Record<string, Role> };
+type Config = { preset?: string; roles: Record<string, Role> };
 type Read = { kind: "missing" } | { kind: "invalid" } | { kind: "data"; text: string };
 
 const record = (value: unknown): Record<string, unknown> | undefined =>
@@ -65,10 +64,8 @@ function parseConfig(text: string): Config | undefined {
   const config = record(value);
   const roles = record(config?.roles);
   if (!config || config.schema !== 1 || !roles) return undefined;
-  if ("preset" in config && config.preset !== "economy" && config.preset !== "antigravity") return undefined;
-  if (config.preset === "antigravity" && config.workerExecutor !== "antigravity_delegate") return undefined;
-  if (config.workerExecutor !== undefined &&
-      (config.preset !== "antigravity" || config.workerExecutor !== "antigravity_delegate")) return undefined;
+  if ("preset" in config && config.preset !== "economy" && config.preset !== "native") return undefined;
+  if ("workerExecutor" in config) return undefined;
   const keys = Object.keys(roles);
   if (keys.length !== ROLE_KEYS.length || !ROLE_KEYS.every((key) => keys.includes(key))) return undefined;
   const parsed: Record<string, Role> = {};
@@ -82,7 +79,6 @@ function parseConfig(text: string): Config | undefined {
   }
   return {
     preset: typeof config.preset === "string" ? config.preset : undefined,
-    workerExecutor: config.workerExecutor,
     roles: parsed,
   };
 }
@@ -107,29 +103,15 @@ function render(config: Config): string {
         "work direct, and a healthy configured worker parent still does its own routine " +
         "work. This routing belongs to the parent; delegated workers never re-delegate.");
   }
-  if (config.preset === "antigravity") {
-    parts.push(
-      `Antigravity execution: the configured worker executor is ${config.workerExecutor}. ` +
-        "For every eligible bounded Git implementation task, it is mandatory to call " +
-        "`antigravity_delegate` as the primary worker in an existing clean linked Git " +
-        "worktree; the parent must not implement that task directly. Inspect its returned " +
-        "diff and focused test evidence before delivery. Keep trivial or read-only work " +
-        "direct, and if no eligible linked worktree exists, report that blocker rather " +
-        "than silently bypassing the Agy worker.");
-  }
   const eligible = ROLE_KEYS.filter((key) => ELIGIBLE.has(key) && identity(config.roles[key]) === DEEPSEEK_FLASH);
   if (eligible.length > 0) {
-    const perRole = eligible.map((key) => `${key} ${config.roles[key].thinking}`).join(", ");
     parts.push(
-      `Fallback for ${eligible.join("/")} whose configured primary is ${DEEPSEEK_FLASH}, ` +
-        `only after an actual provider or model-specific failure: keep the role's configured ` +
-        `thinking level (${perRole}), then ${FALLBACK}, at most ` +
-        "two transitions. Confirm the old writer has stopped before replacing it; " +
-        "carry the existing diff, evidence and verification; no speculative standby " +
-        "agents and no retry loop. Auth/permission failures, shared outages and " +
-        "uncertain writes need reconciliation, not model hopping; never buy credits. A " +
-        "confirmed provider-specific insufficient balance or unavailability permits " +
-        "the next user-approved provider.");
+      `Fallback for ${eligible.join("/")} whose configured primary is ${DEEPSEEK_FLASH}: ` +
+        `only a confirmed DeepSeek 402 insufficient-balance error permits one transition ` +
+        `to openai-codex/gpt-6-luna (high). Preserve the stopped writer's diff, evidence ` +
+        `and verification; do not retry or cycle providers. Auth/permission failures, ` +
+        `shared outages, other errors and uncertain writes need reconciliation, not model ` +
+        `hopping; never buy credits. The parent keeps its own selected model and thinking.`);
   }
   return `\n\n${parts.join("\n\n")}\n`;
 }
