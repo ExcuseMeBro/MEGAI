@@ -1,0 +1,29 @@
+{
+  "theme": "dark",
+  "defaultThinkingLevel": "high",
+  "httpIdleTimeoutMs": 120000,
+  "retry": {
+    "enabled": false,
+    "maxRetries": 0,
+    "provider": {
+      "timeoutMs": 120000,
+      "maxRetries": 0,
+      "maxRetryDelayMs": 10000
+    }
+  },
+  "packages": [
+    {
+      "source": "npm:pi-mcp-adapter@2.33.0"
+    }
+  ],
+  "skills": [
+    "!${HOME}/.agents/skills/**"
+  ],
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-6-sol",
+  "modelThinkingLevels": {
+    "openai-codex/gpt-6-sol": "high",
+    "openai-codex/gpt-6-astra": "high",
+    "deepseek/deepseek-flash": "high"
+  }
+}

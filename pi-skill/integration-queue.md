@@ -16,8 +16,8 @@ share an explicitly named runtime resource. Installed copy:
   daemon, installs hooks, calls Plane, or approves deployment. A grant does not
   prove acceptance or authorize main promotion. Complete the mode-appropriate
   verification selected by `megai` before the separately agreed integration:
-  independent source-current formal acceptance for guarded tasks, actual focused
-  tests and self-review for routine tasks. Reservations are required in both modes.
+  source-current formal acceptance and parent self-review for guarded tasks, actual
+  focused tests and self-review for routine tasks. Reservations are required in both modes.
 - Reservations are cooperative, not a filesystem sandbox. All integrating parents
   on this machine must use the same queue and respect ownership. Unmanaged Git
   commands, other machines, running apps and ignored build outputs are not fenced
@@ -50,6 +50,13 @@ primary checkout branch/head and Git common-directory identity. Ref-only deliver
 checks the target ref while requiring the unrelated primary checkout to remain
 unchanged. It never switches branches or performs the ref update/push itself;
 those remain explicit parent-owned CAS/delivery operations with remote verification.
+For `/mdev` or `/prdev` publication to origin's dev branch from an isolated checkout,
+use `--remote-dev` instead of `--target-branch`: it pins freshly fetched
+`refs/remotes/origin/dev`, leaves a dirty/busy primary untouched, and reserves the same
+repository resource as local integration. Fetch before planning and after the
+non-force push so `finish` verifies the delivered remote vector. This mode supports
+origin/dev only; it does not authorize another remote or ref. Keep cleanup that requires
+local dev reconciliation separate from successful remote delivery.
 Planning is read-only and needs a unique existing Paseo project; umbrella folders
 need no Git. Use separate operations if repos require different target branch names.
 

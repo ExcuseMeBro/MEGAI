@@ -37,8 +37,9 @@ const models = new Map([
   ['openai-codex/gpt-5.5', { id: 'gpt-5.5', provider: 'openai-codex' }],
 ]);
 
-const switched = [], sent = [], entries = [], notices = [];
+const switched = [], thinking = [], sent = [], entries = [], notices = [];
 loaded.runtime.setModel = async (model) => { switched.push(`${model.provider}/${model.id}`); return true; };
+loaded.runtime.setThinkingLevel = (level) => { thinking.push(level); };
 loaded.runtime.sendUserMessage = (text, options) => { sent.push({ text, options }); };
 loaded.runtime.appendEntry = (type, data) => { entries.push({ type, data }); };
 
@@ -53,7 +54,7 @@ const emit = async (name, event = {}) => {
 };
 const assistant = (provider, model, stopReason, errorMessage) =>
   ({ message: { role: 'assistant', provider, model, stopReason, errorMessage } });
-const reset = () => { for (const list of [switched, sent, entries, notices]) list.length = 0; };
+const reset = () => { for (const list of [switched, thinking, sent, entries, notices]) list.length = 0; };
 const fail = async (provider, model, errorMessage) => {
   await emit('message_end', assistant(provider, model, 'error', errorMessage));
   await emit('agent_end');
@@ -64,22 +65,32 @@ reset();
 
 // A provider failure on the configured primary continues on the partner, visibly.
 await fail('deepseek', 'deepseek-flash', '402 {"error":{"message":"Insufficient Balance","code":"invalid_request_error"}}');
-assert.deepEqual(switched, ['openai-codex/gpt-6-sol'], 'Continue on the configured partner');
+assert.deepEqual(switched, ['openai-codex/gpt-6-luna'], 'A 402 balance failure continues on GPT Luna');
+assert.deepEqual(thinking, ['high'], 'The GPT Luna continuation must explicitly use high thinking');
 assert.equal(sent.length, 1, 'Continue the unfinished task once');
 assert.match(sent[0].text, /Insufficient Balance/);
 assert.equal(sent[0].options?.deliverAs, 'followUp', 'Queue the continuation into the live run');
 assert.equal(entries.length, 1);
 assert.equal(entries[0].type, 'megai-model-fallback');
 assert.deepEqual(entries[0].data, {
-  from: 'deepseek/deepseek-flash', to: 'openai-codex/gpt-6-sol',
+  from: 'deepseek/deepseek-flash', to: 'openai-codex/gpt-6-luna',
   reason: '402 {"error":{"message":"Insufficient Balance","code":"invalid_request_error"}}',
 });
 assert.equal(notices.length, 1, 'The switch must be visible');
 assert.equal(notices[0].level, 'warning');
 
+// Consume the one session fallback attempt even after a successful first switch.
+await fail('deepseek', 'deepseek-flash', 'Insufficient Balance: HTTP 402');
+assert.deepEqual(switched, ['openai-codex/gpt-6-luna'], 'A second DeepSeek balance error must not switch again');
+assert.deepEqual(thinking, ['high']);
+assert.equal(sent.length, 1, 'Do not enqueue a second continuation in the same session');
+assert.equal(entries.length, 1);
+assert.equal(notices.length, 1);
+
 // The partner failing too must not ping-pong back to the already failed primary.
 await fail('openai-codex', 'gpt-6-sol', '503 Service Unavailable');
-assert.deepEqual(switched, ['openai-codex/gpt-6-sol'], 'Never cycle back to a failed model');
+assert.deepEqual(switched, ['openai-codex/gpt-6-luna'], 'Never cycle back to a failed model');
+assert.deepEqual(thinking, ['high'], 'A failed Luna continuation must not trigger another thinking/model change');
 assert.equal(sent.length, 1);
 
 // A completed run stays where it is.
@@ -87,6 +98,26 @@ reset();
 await emit('message_end', assistant('deepseek', 'deepseek-flash', 'stop'));
 await emit('agent_end');
 assert.equal(switched.length + sent.length + entries.length + notices.length, 0);
+
+// Reserve the session attempt before awaiting setModel, so overlapping run-end
+// failures cannot both queue a Luna continuation.
+const immediateSetModel = loaded.runtime.setModel;
+const switchResolvers = [];
+loaded.runtime.setModel = (model) => {
+  switched.push(`${model.provider}/${model.id}`);
+  return new Promise(resolve => switchResolvers.push(resolve));
+};
+await emit('session_start');
+reset();
+await emit('message_end', assistant('deepseek', 'deepseek-flash', 'error', '402 Insufficient Balance'));
+const firstAttempt = emit('agent_end');
+await emit('message_end', assistant('deepseek', 'deepseek-flash', 'error', '402 Insufficient Balance'));
+const overlappingAttempt = emit('agent_end');
+switchResolvers.forEach(resolve => resolve(true));
+await Promise.all([firstAttempt, overlappingAttempt]);
+assert.deepEqual(switched, ['openai-codex/gpt-6-luna'], 'Overlapping failures must start only one model switch');
+assert.equal(sent.length, 1, 'Overlapping failures must queue only one continuation');
+loaded.runtime.setModel = immediateSetModel;
 
 // Authorization, permission and a shared quota need reconciliation, not a swap; so
 // does every context overflow — a different provider does not shrink the prompt.
@@ -118,26 +149,53 @@ const overflow = [
   'too many tokens',
   'token limit exceeded',
 ];
-for (const message of ['401 Unauthorized: invalid api key', '403 Forbidden: permission denied', 'shared quota exhausted for this workspace', ...overflow]) {
+for (const message of ['401 Unauthorized: invalid api key', '403 Forbidden: permission denied',
+  'shared quota exhausted for this workspace', 'shared outage for this workspace', ...overflow]) {
   reset();
   await fail('deepseek', 'deepseek-flash', message);
   assert.deepEqual(switched, [], `Reconcile instead of switching for: ${message}`);
   assert.equal(sent.length, 0);
 }
 
-// Provider-specific exhaustion is what the partner provider exists for.
+// Classification uses the full provider error, not the bounded UI summary. A
+// permission denial after the display cutoff must still block the fallback.
 await emit('session_start');
 reset();
+const permissionAfterDisplayLimit = '402 Insufficient Balance ' + 'x'.repeat(210) + ' 403 Forbidden: permission denied';
+await fail('deepseek', 'deepseek-flash', permissionAfterDisplayLimit);
+assert.deepEqual(switched, [], 'A trailing permission denial beyond the summary limit must block fallback');
+assert.equal(sent.length + entries.length + notices.length, 0,
+  'Do not continue or expose a fallback notice after a full-message permission denial');
+
+// The summary shown to the user remains bounded even when the full raw error is long.
+await emit('session_start');
+reset();
+await fail('deepseek', 'deepseek-flash', '402 Insufficient Balance ' + 'x'.repeat(300));
+assert.deepEqual(switched, ['openai-codex/gpt-6-luna']);
+assert.equal(entries[0].data.reason.length, 200, 'Store only the bounded display reason');
+assert.ok(notices[0].message.length < 300, 'Keep the user-facing notification bounded');
+
+// Only a confirmed DeepSeek 402 insufficient-balance error enables Luna recovery.
 for (const message of [
   '402 {"error":{"message":"Insufficient Balance"}}',
-  'insufficient_quota: you exceeded your current quota',
-  '429 Too Many Requests: rate limit reached',
-  'Codex error: The usage limit has been reached',
-  '503 Service Unavailable',
+  'Insufficient Balance: HTTP 402',
 ]) {
+  await emit('session_start');
   reset();
   await fail('deepseek', 'deepseek-flash', message);
-  assert.deepEqual(switched, ['openai-codex/gpt-6-sol'], `Continue on the partner for: ${message}`);
+  assert.deepEqual(switched, ['openai-codex/gpt-6-luna'], `Continue on Luna only for a DeepSeek 402 balance error: ${message}`);
+  assert.deepEqual(thinking, ['high']);
+}
+for (const [provider, model, message] of [
+  ['deepseek', 'deepseek-flash', 'insufficient_quota: you exceeded your current quota'],
+  ['deepseek', 'deepseek-flash', '429 Too Many Requests: rate limit reached'],
+  ['deepseek', 'deepseek-flash', '500 Internal Server Error'],
+  ['openai-codex', 'gpt-6-sol', '402 Insufficient Balance'],
+]) {
+  reset();
+  await fail(provider, model, message);
+  assert.deepEqual(switched, [], `Do not broaden the Luna recovery to: ${message}`);
+  assert.deepEqual(thinking, []);
 }
 
 // A model without a configured partner is left alone.
@@ -145,31 +203,41 @@ reset();
 await fail('openai-codex', 'gpt-5.5', '500 Internal Server Error');
 assert.deepEqual(switched, []);
 
-// A new session forgets the previous failure and honours the user override.
+// Only the exact configured Luna target is permitted, even with a custom map.
+writeFileSync(config, JSON.stringify({ fallbacks: { 'deepseek/deepseek-flash': 'openai-codex/gpt-5.5' } }));
+await emit('session_start');
+reset();
+await fail('deepseek', 'deepseek-flash', '402 Insufficient Balance');
+assert.deepEqual(switched, [], 'A custom provider target must not broaden the single Luna fallback');
+assert.deepEqual(thinking, []);
+
+// A new session forgets the previous failure and honors the exact Luna target.
 writeFileSync(config, JSON.stringify({ fallbacks: { 'deepseek/deepseek-flash': 'openai-codex/gpt-6-luna' } }));
 await emit('session_start');
 reset();
-await fail('deepseek', 'deepseek-flash', '500 Internal Server Error');
-assert.deepEqual(switched, ['openai-codex/gpt-6-luna'], 'Use the configured pair');
+await fail('deepseek', 'deepseek-flash', '402 Insufficient Balance');
+assert.deepEqual(switched, ['openai-codex/gpt-6-luna'], 'Use the configured DeepSeek balance recovery pair');
+assert.deepEqual(thinking, ['high']);
 
 // An empty map is the documented off switch; an unusable file keeps the defaults.
 writeFileSync(config, JSON.stringify({ fallbacks: {} }));
 await emit('session_start');
 reset();
-await fail('deepseek', 'deepseek-flash', '500 Internal Server Error');
+await fail('deepseek', 'deepseek-flash', '402 Insufficient Balance');
 assert.deepEqual(switched, [], 'An empty fallbacks object disables the swap');
 writeFileSync(config, '{ not json');
 await emit('session_start');
 reset();
-await fail('deepseek', 'deepseek-flash', '500 Internal Server Error');
-assert.deepEqual(switched, ['openai-codex/gpt-6-sol'], 'Unusable config keeps the built-in pair');
+await fail('deepseek', 'deepseek-flash', '402 Insufficient Balance');
+assert.deepEqual(switched, ['openai-codex/gpt-6-luna'], 'Unusable config keeps the built-in pair');
+assert.deepEqual(thinking, ['high']);
 
 // An unauthenticated partner cannot be selected, so the session is left untouched.
 rmSync(config);
 loaded.runtime.setModel = async () => false;
 await emit('session_start');
 reset();
-await fail('deepseek', 'deepseek-flash', '502 Bad Gateway');
+await fail('deepseek', 'deepseek-flash', '402 Insufficient Balance');
 assert.equal(sent.length + entries.length + notices.length, 0, 'No switch without a usable partner');
 
 rmSync(temp, { recursive: true, force: true });

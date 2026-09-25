@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "preset": "native",
+  "roles": {
+    "planner": {"provider": "openai-codex", "model": "gpt-6-sol", "thinking": "high"},
+    "scout": {"provider": "openai-codex", "model": "gpt-6-sol", "thinking": "high"},
+    "worker": {"provider": "deepseek", "model": "deepseek-flash", "thinking": "high"},
+    "reviewer": {"provider": "openai-codex", "model": "gpt-6-astra", "thinking": "high"}
+  }
+}

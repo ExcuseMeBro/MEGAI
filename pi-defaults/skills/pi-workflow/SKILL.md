@@ -31,7 +31,7 @@ description: Start and deliver tracked project changes with Plane, dev/main bran
    branch overrides dev delivery: work on/push that branch only and retain it.
    Preserve dev, main, every locally configured extra branch, and unmerged work.
 5. Run task acceptance checks, inspect the full diff, and fix review findings.
-   After acceptance and required review, reserve all integration targets using
+   After acceptance and parent self-review, reserve all integration targets using
    `megai queue`, then automatically deliver verified task commits to local dev
    without waiting for another user confirmation. Ordinary single-task delivery may use
    `git merge --ff-only --no-overwrite-ignore`; `/mdev` all-candidates delivery instead

@@ -399,13 +399,21 @@ class Distribution(unittest.TestCase):
         self.assertNotIn("Use pi-subagents", policy)
         self.assertIn("Do not reinstall it", policy)
         names = sorted(p.stem for p in (DEFAULTS / "prompts").glob("*.md"))
-        self.assertEqual(names, ["factory", "mdev", "prdev"])
+        self.assertEqual(names, ["factory", "mdev", "prdev", "rwbrowser"])
         verify = (DEFAULTS / "verify.mjs").read_text()
         for name in names:
             front = (DEFAULTS / f"prompts/{name}.md").read_text().split("---")[1]
             self.assertIn("description:", front)
             self.assertIn(f"'{name}'", verify)
         self.assertIn('SOURCE / "prompts"', (DEFAULTS / "install.py").read_text())
+        self.assertIn("only that invocation", policy)
+        self.assertIn("Do not launch a separate reviewer", policy)
+        self.assertNotIn("Explicit independent-review requests are honored", policy)
+        browser = (DEFAULTS / "prompts/rwbrowser.md").read_text()
+        self.assertIn("explicitly invoked `/rwbrowser`", browser)
+        self.assertIn("bounded browser review only", browser)
+        self.assertEqual(browser, (ROOT / ".pi/prompts/rwbrowser.md").read_text())
+        self.assertIn("Do not start a browser", (ROOT / "AGENTS.md").read_text())
 
     def test_factory_prompt_is_one_shot_and_fail_closed(self):
         prompt = (DEFAULTS / "prompts/factory.md").read_text()

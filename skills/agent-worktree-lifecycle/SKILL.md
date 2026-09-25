@@ -16,7 +16,7 @@ staging or commits in the dev/main checkout are forbidden.
 ## Pi verification mode
 
 For Pi, `megai` selects routine or guarded verification before edits. Below,
-independent review and formal acceptance apply to guarded work or stricter project
+formal acceptance and parent self-review apply to guarded work or stricter project
 rules; routine work uses actual focused tests and parent self-review. Multi-repo
 delivery and concurrency/shared-state changes are guarded. Workspace isolation,
 backups, target reservations and approval boundaries apply in both modes. Load this
@@ -96,10 +96,10 @@ Production deployment, secrets and destructive migrations retain separate approv
 
 ## All-repo readiness and dev delivery
 
-1. Preserve mode-appropriate review and actual acceptance for **all affected repos and
+1. Preserve parent self-review and mode-appropriate acceptance for **all affected repos and
    configuration scopes before the first dev mutation**: routine Pi uses focused tests
    and parent self-review; guarded Pi (including multi-repo delivery) requires the
-   independent formal gate. Other harnesses retain their required independent review.
+   formal gate and parent self-review. Other harnesses retain their own review rules.
    Commit only owned changes in task worktrees, then capture source-current evidence
    per worktree. Once ready, proceed to local dev delivery without an extra user
    confirmation; a task request already authorizes this step, not push or main.
@@ -143,7 +143,7 @@ Production deployment, secrets and destructive migrations retain separate approv
    remaining repositories may proceed. Never replay already-delivered repositories.
    Only `finish --outcome completed` after
    actual delivery checks the candidate vector; it never substitutes for mode-appropriate
-   current acceptance (independent formal evidence for guarded Pi; focused tests and
+   current acceptance (formal check evidence for guarded Pi; focused tests and
    self-review for routine Pi). Queue release/recovery follows its contract.
 5. Verify the delivered dev vector and task-wide behavior, then automatically run
    **Post-merge cleanup** below without another user prompt, before handoff In Review,
