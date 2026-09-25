@@ -301,7 +301,11 @@ class Distribution(unittest.TestCase):
         removed = re.search(r"const removedTools = \[(.*?)\]", verify, re.S).group(1)
         self.assertIn("subagent", removed)
         self.assertNotIn("sift", required)
-        self.assertNotIn("`sift`", (DEFAULTS / "AGENTS.md").read_text())
+        profile = (DEFAULTS / "AGENTS.md").read_text()
+        # Optional local screening is supported; it must not exclude required evidence.
+        self.assertIn("local `sift` batch", profile)
+        self.assertIn("A low score never excludes a required dependency, test, changed file or error case.", profile)
+        self.assertIn("proves correctness or replaces independent review", profile)
         self.assertNotIn(retired.TOOL, required)
 
     def test_settings_and_mcp_merge_never_drop_operator_keys(self):
