@@ -36,7 +36,6 @@ Pi startup never updates packages or builds indexes automatically.
 | 📐 OpenSpec 1.13.0 | Global core skills and `/opsx-*` commands, telemetry disabled |
 | 🔌 pi-mcp-adapter 2.33.0 | Lazy Plane and zvec MCP |
 | 🌐 pi-web-access 0.29.0 | Exa public search without a separate key, page fetching |
-| ⚡ Local Laya multilingual | On-device typed decisions and file relevance; compaction falls back to Pi when not safely reducible. No browser agent. |
 | 🧑‍🤝‍🧑 Native Paseo agents | Bounded implementation children; parent self-reviews |
 
 Package versions and integrity hashes are in [package-lock.json](pi-defaults/package-lock.json).

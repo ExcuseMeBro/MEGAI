@@ -39,13 +39,6 @@ class Slim(unittest.TestCase):
         for name in ("tgrep", "codedb", "ruff", "pi", "omp", "claude", "codex", "npm", "npx", "curl", "node"):
             self.stub(name, 'printf "%s\\n" "$0 $*" >>"$HOME/calls"\nexit 0\n')
         (self.megai / "state.json").write_text('{"tools":{},"agents":{},"ports":{"agent-memory":3111},"keep":{"value":42}}\n')
-        # An owned offline Laya runtime fixture avoids a network/model download in installer tests.
-        local = self.megai / "laya-runtime"
-        (local / "bin").mkdir(parents=True)
-        (local / ".megai-owned").write_text("megai-laya\nversion=0.3.20\n")
-        executable = local / "bin/python"
-        executable.write_text("#!/bin/sh\nexit 0\n")
-        executable.chmod(0o700)
         self.project = self.root / "project"
         self.project.mkdir()
         # Shared retired Caveman resources are intentionally absent; ambiguous
@@ -146,7 +139,7 @@ class Slim(unittest.TestCase):
         for clause in ("## Non-Git local work", '`isolation: "local"`',
                        '`labels: {"megai.access": "read-only"}`', "not a filesystem sandbox",
                        "Git source isolation", "same task name", "ADAM full",
-                       "Preserve mode-appropriate", "Multiple workspaces are normal",
+                       "mode-appropriate acceptance", "Multiple workspaces are normal",
                        "not permission to delete", "no new infra repo"):
             self.assertIn(clause.lower(), lifecycle.lower())
         self.assertEqual(lifecycle, (ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text())

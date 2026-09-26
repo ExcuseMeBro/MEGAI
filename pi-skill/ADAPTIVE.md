@@ -34,16 +34,14 @@ behavior requires it, in either mode; exit zero alone is insufficient. A bug nee
 an observed failing reproduction and passing regression, even in routine mode.
 No formal-gate claim without running that gate. Existing stricter repo/user rules win.
 
-### Decisions use the on-device Laya helper when useful
+### Decisions use native judgment
 
-Pi may consult the local `laya` tool for typed decision advice and `sift` for
-local file relevance. Laya's multilingual judgments are not calibrated to the
-retired Jev gate: they cannot block tools, replace Pi permissions or authorize
-reserved user decisions (main promotion, deletion, credentials, installs or
-permissions). Keep prompts narrow and avoid secrets. When Laya cannot safely
-reduce a compaction span, Pi's native summarizer handles the original history;
-only repeated byte-identical results may be omitted locally. Pi's provider,
-chat model and thinking level remain unchanged. No hosted decision fallback.
+Pi decides task scope and file relevance from source evidence. No advisory
+ranking can block tools, replace Pi permissions or authorize reserved user
+decisions (main promotion, deletion, credentials, installs or permissions).
+Keep prompts narrow and avoid secrets. Pi's native summarizer handles compaction
+without discarding unique history. Pi's provider, chat model and thinking level
+remain unchanged. No hosted decision fallback.
 
 ## Three-step default
 

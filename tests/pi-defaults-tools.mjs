@@ -29,15 +29,12 @@ try {
   const required = readFileSync(resolve('pi-defaults/verify.mjs'), 'utf8')
     .match(/const requiredTools = \[(.*?)\]/s)[1].match(/'[^']+'/g).map(name => name.slice(1, -1));
   assert.deepEqual(required.filter(name => !tools.includes(name)), [], 'No required Pi tools missing');
-  assert.ok(!tools.includes('sift'), 'Core dependency-only loader does not install optional local Laya');
+  assert.ok(!tools.includes('sift'), 'No local file-ranking companion');
 
-  // Standalone policy install into an isolated profile must instead load only
-  // the local Laya companion; never alter the operator's model preferences.
+  // Standalone policy installation needs no local inference runtime and must
+  // preserve the operator's model preferences.
   const agent = join(temp, '.pi/agent'), megai = join(temp, '.megai');
-  const runtime = join(megai, 'laya-runtime');
-  mkdirSync(join(runtime, 'bin'), { recursive: true });
-  writeFileSync(join(runtime, '.megai-owned'), 'megai-laya\nversion=0.3.20\n');
-  writeFileSync(join(runtime, 'bin/python'), '#!/bin/sh\nexit 0\n');
+  mkdirSync(megai, { recursive: true });
   writeFileSync(join(megai, 'state.json'), '{"tools":{}}\n');
   mkdirSync(agent, { recursive: true });
   const preferences = '{"defaultProvider":"openai-codex","defaultModel":"untouched","defaultThinkingLevel":"high"}\n';
@@ -53,11 +50,11 @@ try {
   const installed = local.getExtensions();
   assert.deepEqual(installed.errors, []);
   const names = installed.extensions.flatMap(e => [...e.tools.keys()]);
-  assert.ok(names.includes('laya') && names.includes('sift'));
+  assert.ok(!names.includes('laya') && !names.includes('sift'));
   assert.ok(!names.includes('jev'));
   assert.ok(!installed.extensions.some(e => e.path.includes('megai-jev')));
   assert.ok(!local.getSkills().skills.some(s => s.name === 'jev-browser'));
-  console.log('PASS: core Pi tools + installed offline Laya; hosted Jev/browser absent');
+  console.log('PASS: core Pi tools; local and hosted decision extensions absent');
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }

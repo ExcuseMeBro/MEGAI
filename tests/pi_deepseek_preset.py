@@ -32,10 +32,6 @@ class Preset(unittest.TestCase):
         self.agent = self.home / ".pi/agent"
         self.agent.mkdir(parents=True)
         megai = self.home / ".megai"
-        runtime = megai / "laya-runtime"
-        (runtime / "bin").mkdir(parents=True)
-        (runtime / ".megai-owned").write_text("megai-laya\nversion=0.3.20\n")
-        (runtime / "bin/python").write_text("test fixture\n")
         self.env = dict(os.environ, HOME=str(self.home), MEGAI_HOME=str(megai),
                         MEGAI_SOURCE=str(ROOT), PI_CODING_AGENT_DIR=str(self.agent),
                         PYTHONDONTWRITEBYTECODE="1")
@@ -57,9 +53,7 @@ class Preset(unittest.TestCase):
     def legacy_source(self, roles, preset="economy"):
         legacy = self.home / "legacy-source"
         for relative in ("pi-skill/delegation.md", "pi-skill/provider-guard/index.ts",
-                         "pi-skill/role-routing/index.ts", "pi-skill/model-fallback/index.ts",
-                         "pi-skill/laya/index.ts", "pi-skill/laya/bridge.py",
-                         "pi-skill/laya/compaction.ts"):
+                         "pi-skill/role-routing/index.ts", "pi-skill/model-fallback/index.ts"):
             path = legacy / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes((ROOT / relative).read_bytes())
