@@ -33,7 +33,6 @@ Pi startup never updates packages or builds indexes automatically.
 | 🔎 codedb / tgrep 1.0.4 / zvec-grep 0.2.1 | Structure, ranked text, local intent search |
 | 🔌 pi-mcp-adapter 2.33.0 | Lazy Plane and zvec MCP |
 | 🌐 pi-web-access 0.29.0 | Exa public search without a separate key, page fetching |
-| ⚡ Local Laya multilingual | On-device typed decisions and file relevance; compaction falls back to Pi when not safely reducible. No browser agent. |
 | 🌳 Native Git worktrees | Verified task isolation; parent self-reviews |
 
 Package versions and integrity hashes are in [package-lock.json](pi-defaults/package-lock.json).

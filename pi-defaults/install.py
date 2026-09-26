@@ -342,7 +342,6 @@ def install(reset=False, remove_omp=False):
     env = {**os.environ, "MEGAI_HOME": str(shared), "MEGAI_SOURCE": str(REPO)}
     for name in ("ruff", "codedb", "tgrep", "headroom"):
         run("bash", REPO / f"lib/install_{name}.sh", env=env)
-    run(sys.executable, REPO / "lib/laya_runtime.py", "--install", env=env)
     # The policy transaction also retires assets from earlier installs, so it runs on
     # every install, not only on first adoption.
     shutil.copytree(
