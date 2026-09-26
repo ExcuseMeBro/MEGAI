@@ -12,10 +12,10 @@ One parent owns scope and delivery. Use one writer for one task; fan out only in
 
 - Keep the orchestrator as the top-level agent tab in the primary clean `dev` workspace.
 - Read-only discovery, planning, review, and UI/design agents are never automatic. Launch one only when the user requests that specialty or the direct focused path cannot locate or verify the change.
-- In a top-level Paseo context that genuinely needs a read-only agent, require exactly one workspace whose `cwd` equals the current `cwd`, then pass its ID to `create_agent`; ask once on zero or multiple matches.
-- For every writing slice, first call `create_workspace` with `isolation: "worktree"`, `mode: "branch-off"`, `baseBranch: "dev"`, and a unique `task/<slug>` branch. Then call `create_agent` with the returned `workspaceId`.
-- Never use bare `create_agent` or the parent workspace for a writer. Assign one writer per non-overlapping file set and serialize shared files, schemas, migrations, and dependency-ordered boundaries.
-- Cross-workspace workers remain attached to the orchestrator's Subagents track. Never detach automatically. Inside Paseo, visible writer workspaces take precedence over OMP native task isolation.
+- A read-only agent uses the existing project checkout; no external workspace registration is needed.
+- For every writing slice, create and verify a separate task-owned native Git worktree from the approved base, with a unique `task/<slug>` branch. Pass its exact cwd to a documented available runner; no runner is mandatory.
+- Never launch a writer in the shared parent checkout. Assign one writer per non-overlapping file set and serialize shared files, schemas, migrations, and dependency-ordered boundaries.
+- Do not detach or replace a writer until ownership and completion are verified.
 
 ## Discovery routing
 
@@ -38,11 +38,11 @@ Use MiniMax Code M2.1 Lightning only inside `smart-router` and read-only scout r
 - `task.agentModelOverrides` pins all write-capable agents to GPT and only `smart-router`, `scout`, and `cavecrew-investigator` to MiniMax.
 - Keep `task.showResolvedModelBadge: true`; if any writer resolves to MiniMax, stop it immediately and relaunch once on `gpt-core-worker` or `gpt-fast-worker`.
 - Generate concise deterministic commit messages in the parent; do not invoke a commit-writing agent.
-- Merge, push, request promotion, and workspace archival use deterministic MEGAI/Paseo tools and require no extra model turns.
+- Merge, push, request promotion, and worktree cleanup use native Git and the approved MEGAI queue; no extra model turns are required.
 
 ## Model portfolio
 
-Choose the narrowest capable model. Paseo workers use the explicit `omp/<selector>` model, while MEGAI-managed OMP agents provide stable operational bindings for every portfolio tier.
+Choose the narrowest capable model. If a documented runner is available, use an explicit `omp/<selector>` model; MEGAI-managed OMP agents provide stable operational bindings for every portfolio tier.
 
 | Selector | Role | Use |
 | --- | --- | --- |
@@ -93,12 +93,12 @@ GPT owns steps 2–4 for every task. MiniMax may supply compact discovery eviden
 
 1. Use one writer for one task.
 2. Fan out only when the user's task contains two or more genuinely independent writing slices with non-overlapping files and a fixed shared contract.
-3. For each writing slice, create its Paseo worktree workspace first, then launch `gpt-core-worker` or `gpt-fast-worker` with that `workspaceId`; cap concurrent writers at four.
+3. For each writing slice, create a verified task-owned Git worktree first, then launch a documented `gpt-core-worker` or `gpt-fast-worker` in its exact cwd when supported; cap concurrent writers at four.
 4. Give each child the exact goal, repository/cwd, scope, authority boundary, acceptance, focused validation, compact output, and stop rule.
 5. Each writer implements, self-reviews its code, runs focused tests, commits a clean branch, and stops. Children never launch agents.
 6. Integrate successful branches into `dev` without an automatic review agent or full-suite run.
-7. Run `megai finish --verified --target dev` to push `dev`, reuse the one open `dev` → `main` request, and clean only successfully merged registered worktrees/branches.
-8. After successful dev delivery and cleanup, call Paseo `archive_workspace` for each merged worker workspace. Never archive the orchestrator/primary `dev` workspace or dirty, unmerged, failed, or ambiguous work.
-9. Complete the tracked task, then ask the user whether to promote `dev` to `main`. Run `megai promote --approved` only after an explicit affirmative reply; never infer approval or enable deferred auto-merge.
+7. Reserve integration with `megai queue`; push `dev` only with explicit approval. Clean only proven-merged, released task-owned worktrees/branches, preserving ignored data.
+8. Never remove the primary `dev` checkout or dirty, unmerged, active, failed, or ambiguous work.
+9. Hand off the tracked task In Review. Promote `dev` to `main` only after separate explicit approval; never infer approval or enable deferred auto-merge.
 
 Stop on dirty or ambiguous ownership, missing branches/origin, failed verification, conflicts, provider/auth failures, or failed push/request/promotion. Main stays unchanged while approval is absent.

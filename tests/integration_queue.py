@@ -24,10 +24,7 @@ class QueueCLI(unittest.TestCase):
         self.project = self.base / "product"
         self.project.mkdir()
         self.home = self.base / "queue"
-        self.paseo = self.base / "paseo"
-        (self.paseo / "projects").mkdir(parents=True)
-        self.env = {**os.environ, "PASEO_HOME": str(self.paseo)}
-        self.register(self.project)
+        self.env = dict(os.environ)
         self.repos = {}
         for name in ("backend", "frontend", "mobile"):
             path = self.project / name
@@ -44,13 +41,13 @@ class QueueCLI(unittest.TestCase):
             self.git(path, "commit", "-am", "candidate")
             self.git(path, "checkout", "dev")
             self.repos[name] = path
+        config = self.project / ".pi"
+        config.mkdir()
+        (config / "project.json").write_text(json.dumps({
+            "layout": "multi", "repositories": list(self.repos), "planeProject": "product"
+        }))
         self.proof = self.base / "recovery.txt"
         self.proof.write_text("Fixture owner stopped; inspected target vectors and working trees.\n")
-
-    def register(self, path):
-        (self.paseo / "projects/projects.json").write_text(json.dumps([
-            {"projectId": "prj_fixture", "rootPath": str(path), "archivedAt": None}
-        ]))
 
     def git(self, path, *args):
         env = {k: v for k, v in self.env.items() if not k.startswith("GIT_")}
@@ -164,7 +161,6 @@ class QueueCLI(unittest.TestCase):
         self.assertEqual(self.finish(grant, "completed")["state"], "completed")
 
     def test_monorepo_and_worktree_map_to_one_primary(self):
-        self.register(self.repos["backend"])
         self.project = self.repos["backend"]
         linked = self.base / "linked"
         self.git(self.project, "worktree", "add", "--detach", str(linked), "task/change")

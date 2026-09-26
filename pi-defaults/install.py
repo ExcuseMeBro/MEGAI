@@ -391,7 +391,7 @@ def install(reset=False, remove_omp=False):
             },
         ),
     )
-    # Children inherit the selected model through native Paseo; no Pi agent profiles.
+    # Preserve the selected model; no extra Pi agent profiles are installed.
     local_bin.mkdir(parents=True, exist_ok=True)
     bridge = shared / "bin/megai-headroom"
     # One canonical byte string: lib/slim_wiring.py owns this same path and refuses a

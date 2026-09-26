@@ -101,7 +101,7 @@ def plan(args):
             path = Path(args.root) / path
         primary, common = repo_identity(path)
         require(identity(primary)["projectId"] == project["projectId"],
-                "Repository must belong to the same existing Paseo project")
+                "Repository must belong to the same configured project folder")
         if args.remote_dev:
             require(args.target_branch is None,
                     "--remote-dev cannot be combined with --target-branch")
@@ -198,7 +198,7 @@ def remote_dev_request(request):
 def observe(request):
     project = identity(request["root"])
     require(project["projectId"] == request["project_id"] and project["root"] == request["root"],
-            "Paseo project identity changed")
+            "Local project identity changed")
     result = []
     for repo in request["repositories"]:
         path = repo["path"]
@@ -474,7 +474,7 @@ def parser():
     result.add_argument("--home", default=os.environ.get("MEGAI_QUEUE_HOME", str(Path.home() / ".megai/queue")),
                         help="One shared private queue directory per machine; never per-worktree")
     actions = result.add_subparsers(dest="action", required=True)
-    p = actions.add_parser("plan", help="Read-only pinned repo vector for an existing Paseo project")
+    p = actions.add_parser("plan", help="Read-only pinned repo vector for a configured project")
     for name in ("root", "id", "plane-project", "plane-item"):
         p.add_argument("--" + name, required=True)
     p.add_argument("--repo", nargs=2, action="append", required=True, metavar=("PATH", "CANDIDATE"))

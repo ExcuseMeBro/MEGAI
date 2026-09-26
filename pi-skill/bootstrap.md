@@ -11,10 +11,9 @@ work stays direct.
 Before edits use `megai-task-flow` once; Plane is the only tracker, reuse the task
 and hand off In Review, never Done. Use hybrid `agent-worktree-lifecycle`:
 isolated worktrees for each affected Git repo; scoped non-Git configuration with
-private backups. Use only existing Paseo projects; resolve projectId and
-verified workspaceId, not a new project to create or rename.
-Missing or ambiguous identity is BLOCKED in every project.
-No child repository registration.
+private backups. Resolve the existing project folder, Plane pair, primary Git
+repository and task-owned worktree by native Git evidence. Missing or ambiguous
+identity is BLOCKED; never create another project implicitly.
 Reserve integration targets with `megai queue`; main/push need separate approval,
 and only approved main pushes need GitHub release notes; Forgejo is required only for
 ADAM and its component repositories.

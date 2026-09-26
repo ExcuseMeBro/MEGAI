@@ -50,7 +50,7 @@ for (const name of requiredSkills) {
 }
 if (skills.skills.some(s => s.name.startsWith('openspec-')) || promptNames.some(n => n.startsWith('opsx-'))) missing.push('retired OpenSpec resources');
 for (const name of removedTools) if (tools.includes(name)) missing.push(`removed tool: ${name}`);
-if (!policy.includes('native Paseo agents')) missing.push('AGENTS.md: native Paseo policy');
+if (!policy.includes('verified task-owned worktree') || new RegExp('pa' + 'seo', 'i').test(policy)) missing.push('AGENTS.md: native Git worktree policy');
 if (policy.includes('Use pi-subagents')) missing.push('AGENTS.md: removed delegation policy');
 const report = { extensions: loaded.extensions.map(e => e.path), tools, skills: skills.skills.map(s => s.name), prompts: promptNames, errors: loaded.errors, diagnostics: [...skills.diagnostics, ...prompts.diagnostics], missing };
 console.log(JSON.stringify(report, null, 2));

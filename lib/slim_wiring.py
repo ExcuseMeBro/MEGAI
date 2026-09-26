@@ -119,11 +119,9 @@ class Plan:
             "Before project changes, the parent loads `megai-task-flow` and starts the linked Plane item. "
             "Plane is the only execution tracker. Reuse the identity through refinements; children never mutate it. "
             "Use hybrid `agent-worktree-lifecycle` for isolated Git worktrees, scoped local configuration and the agreed delivery target. "
-            "Use only existing Paseo projects: resolve projectId before creating a task workspace, then pass its verified workspaceId when opening agent tabs. "
-            "Canonical means the existing project identity, not a new project to create or rename. "
-            "Missing or ambiguous identity is BLOCKED; ask the user instead of registering another project. "
-            "Apply this to every project; coordinate task workspaces under the registered folder and return to one primary workspace after verified delivery. "
-            "Use one task identity and same task branch/slug across isolated worktrees for each affected Git repo; non-Git configuration uses scoped local workspaces with private backups. No child repository registration. Require all-repo acceptance and atomic `megai queue` target reservation before per-repo dev delivery; main promotion needs separate explicit approval of the commit vector. "
+            "Use the existing project folder and Plane identity; verify native Git worktree ownership and the exact target ref before task writes. "
+            "Missing or ambiguous identity is BLOCKED; ask the user rather than creating a parallel project. "
+            "Coordinate one task identity and the same branch/slug across isolated worktrees in affected Git repos; non-Git configuration uses scoped owned directories with private backups. Require all-repo acceptance and atomic `megai queue` target reservation before delivery; main promotion needs separate explicit approval of the commit vector. "
             "Use task-appropriate verification: routine bounded work uses focused tests and parent self-review; "
             "guarded work loads `megai-acceptance`, freezes criteria, captures actual tests/runtime evidence, "
             "requires parent self-review and a source-current PASS before verified handoff. "
@@ -265,9 +263,10 @@ class Plan:
         for relative in ("index.ts", "bridge.py", "assets.py", "persistence.py"):
             self.asset(root / "extensions/megai-headroom" / relative,
                        (SOURCE / "pi-skill/headroom" / relative).read_bytes(), remove)
+        # Retire only receipt-owned legacy external workspace guards. Native Git
+        # worktree provenance is checked by the task workflow and integration queue.
         for relative in ("index.ts", "identity.mjs"):
-            self.asset(root / "extensions/megai-workspace-guard" / relative,
-                       (SOURCE / "pi-skill/workspace-guard" / relative).read_bytes(), remove)
+            self.retire(root / "extensions/megai-workspace-guard" / relative)
         for relative in ("SKILL.md", "reference.md", "contract.example.json"):
             self.asset(root / "skills/megai-acceptance" / relative,
                        (SOURCE / "pi-skill/acceptance" / relative).read_bytes(), remove)

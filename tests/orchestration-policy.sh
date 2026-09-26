@@ -2,7 +2,7 @@
 # Static policy guardrails; does not claim model behavior or latency improvements.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-python3 - "$ROOT/prompts/paseo-orchestrator.md" <<'PY'
+python3 - "$ROOT/prompts/task-orchestrator.md" <<'PY'
 import sys
 from pathlib import Path
 prompt = Path(sys.argv[1]).read_text()
@@ -15,7 +15,7 @@ for contract in (
     'one writer per checkout/worktree',
     'Fresh context by default',
     'Prefer async with completion notification',
-    'fresh independent reviewer for security/data-integrity risks',
+    'source-current formal acceptance and parent self-review',
     'explicitly approved self-hosted endpoint',
     'Claim speed or quality gains only from measurements',
 ):

@@ -34,10 +34,10 @@ Pi startup never updates packages or builds indexes automatically.
 | 🔌 pi-mcp-adapter 2.33.0 | Lazy Plane and zvec MCP |
 | 🌐 pi-web-access 0.29.0 | Exa public search without a separate key, page fetching |
 | ⚡ Local Laya multilingual | On-device typed decisions and file relevance; compaction falls back to Pi when not safely reducible. No browser agent. |
-| 🧑‍🤝‍🧑 Native Paseo agents | Bounded implementation children; parent self-reviews |
+| 🌳 Native Git worktrees | Verified task isolation; parent self-reviews |
 
 Package versions and integrity hashes are in [package-lock.json](pi-defaults/package-lock.json).
-native Paseo agents own delegation, one writer per worktree. Shared legacy skill discovery
+Native Git worktrees isolate task writers; no external workspace manager is required. Shared legacy skill discovery
 is excluded from this Pi profile to avoid contradictory defaults. Other agents retain
 their own configuration.
 
@@ -167,15 +167,14 @@ the current model, thinking, timeout, fallback and MCP preferences. It is an exp
 restoration reference; installing MEGAI does not silently replace preferences with it.
 
 The persistent branches are `dev` and `main`. Normal task branches start from dev
-in managed Paseo worktrees and deliver to dev after tests/review. Main promotion
+in verified task-owned Git worktrees and deliver to dev after tests/review. Main promotion
 requires explicit approval. A specifically requested persistent branch overrides
 dev delivery: push only that branch, retain its worktree, leave the task In Review
 until it reaches main. A persistent branch such as `pi` is used only when the task or
 the user explicitly requests it.
 
 A monorepo gets one worktree per task. A folder containing separate repositories
-gets one worktree per affected repository under the same existing Paseo project and
-Plane task. The coordination folder remains a non-Git folder. The project-rules
+gets one worktree per affected repository under the same existing Plane task. The coordination folder remains a non-Git folder. The project-rules
 extension loads original project rules even when worktrees live outside that folder.
 
 <a id="local-project-configuration"></a>

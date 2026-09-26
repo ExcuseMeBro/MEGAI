@@ -116,53 +116,42 @@ class Slim(unittest.TestCase):
         self.assertIn("slim wiring is missing/stale", result.stderr)
         self.assertIn(str(destination), result.stderr)
 
-    def test_workspace_guard_assets_install_verify_and_remove(self):
+    def test_external_workspace_guard_is_not_installed(self):
         self.wire()
         target = self.home / ".pi/agent/extensions/megai-workspace-guard"
-        for name in ("index.ts", "identity.mjs"):
-            self.assertEqual((target / name).read_bytes(),
-                             (ROOT / "pi-skill/workspace-guard" / name).read_bytes())
+        self.assertFalse((target / "index.ts").exists())
+        self.assertFalse((target / "identity.mjs").exists())
         policy = (self.home / ".pi/agent/AGENTS.md").read_text()
-        for clause in ("Use only existing Paseo projects", "resolve projectId",
-                       "verified workspaceId", "not a new project to create or rename",
-                       "Missing or ambiguous identity is BLOCKED", "every project"):
-            self.assertIn(clause, policy)
+        self.assertIn("native Git evidence", policy)
+        self.assertNotIn("pa" + "seo", policy.lower())
         lifecycle = (self.home / ".pi/agent/skills/agent-worktree-lifecycle/SKILL.md").read_text()
-        self.assertIn("## Existing projects only", lifecycle)
-        self.assertIn("Project creation or reorganization needs a separate explicit user request", lifecycle)
-        self.assertIn("Open agent tabs with `create_agent`", lifecycle)
+        self.assertIn("No specific agent runner or workspace manager is required", lifecycle)
         before = self.snapshot()
         self.wire("--verify")
         self.wire()
         self.assertEqual(self.snapshot(), before)
         self.wire("--remove")
         self.assertFalse((target / "index.ts").exists())
-        self.assertFalse((target / "identity.mjs").exists())
 
     def test_directory_review_policy(self):
         self.wire()
         pi = self.home / ".pi/agent"
         lifecycle = (pi / "skills/agent-worktree-lifecycle/SKILL.md").read_text()
-        for clause in ("## Non-Git local work", '`isolation: "local"`',
-                       '`labels: {"megai.access": "read-only"}`', "not a filesystem sandbox",
-                       "Git source isolation", "same task name", "ADAM full",
-                       "mode-appropriate acceptance", "Multiple workspaces are normal",
-                       "not permission to delete", "no new infra repo"):
+        for clause in ("## Non-Git configuration", "owned local configuration scope",
+                       "private backup", "not a sandbox or lock",
+                       "separate task-owned worktree", "source-current guarded acceptance",
+                       "do not use `git init`", "do not edit symlinks"):
             self.assertIn(clause.lower(), lifecycle.lower())
         self.assertEqual(lifecycle, (ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text())
         normalized = " ".join(lifecycle.split())
-        for clause in ("same task name", "all affected repos", "megai queue",
-                       "queue position", "stale owners", "integration is BLOCKED",
-                       "not atomic", "separate explicit user approval", "commit vector"):
+        for clause in ("megai queue", "exact candidate/target SHAs", "verified delivery",
+                       "private verified backup", "separate explicit approval", "commit vector"):
             self.assertIn(clause, normalized)
-        self.assertLess(normalized.index("all affected repos"),
-                        normalized.index("git -C DEV_CHECKOUT merge --ff-only"))
         policy = (pi / "AGENTS.md").read_text()
         self.assertIn("isolated worktrees for each affected Git repo", policy)
-        self.assertIn("No child repository registration", policy)
         task = (pi / "skills/megai-task-flow/SKILL.md").read_text()
-        self.assertIn("existing registered folder", task)
-        self.assertIn("explicit documented Plane project mapping", task)
+        self.assertIn("folder's documented project mapping", task)
+        self.assertIn("Use an explicit mapping first", task)
         self.assertIn("ADAM full", task)
         self.assertIn("missing states or ambiguity block edits", task)
         self.assertIn("unavailable", task.lower())
@@ -175,10 +164,8 @@ class Slim(unittest.TestCase):
         self.wire()
         pi = self.home / ".pi/agent"
         lifecycle = (pi / "skills/agent-worktree-lifecycle/SKILL.md").read_text()
-        for clause in ('"megai.access": "write"', '"megai.writeScope"',
-                       "one writer", "Back up existing files privately", "not isolated filesystem copies",
-                       "not a filesystem sandbox", "no invented", "absence of Git alone",
-                       "Production deployment", "complete owned configuration"):
+        for clause in ("one writer", "privately back up existing files", "not a sandbox or lock",
+                       "no specific agent runner", "non-Git configuration", "do not edit symlinks"):
             self.assertIn(clause.lower(), lifecycle.lower())
         acceptance = (pi / "skills/megai-acceptance/SKILL.md").read_text()
         self.assertIn("Non-Git configuration has no commit step", acceptance)
@@ -188,17 +175,10 @@ class Slim(unittest.TestCase):
         self.assertIn("No `.gitignore`", reference)
         delegation = (pi / "skills/megai/delegation.md").read_text()
         self.assertEqual(delegation, (ROOT / "pi-skill/delegation.md").read_text())
-        for text in (delegation, (pi / "AGENTS.md").read_text(),
-                     (ROOT / "prompts/paseo-orchestrator.md").read_text(),
-                     (ROOT / "skills/model-composition/routing.md").read_text()):
-            self.assertIn("non-Git configuration", text)
-            self.assertIn("scoped", text)
-            self.assertIn("agent-worktree-lifecycle", text)
-            self.assertIn("hybrid", text)
-            self.assertIn("worktree", text)
-            self.assertIn("megai queue", text)
-            self.assertNotIn("writers still require managed isolated worktrees", " ".join(text.split()))
-            self.assertNotIn("Writers use managed isolated worktrees", " ".join(text.split()))
+        self.assertIn("non-Git configuration", delegation)
+        self.assertIn("private backups", delegation)
+        self.assertIn("task-owned worktrees", delegation)
+        self.assertIn("megai queue", (pi / "AGENTS.md").read_text())
         result = self.run_cmd(sys.executable, "-B", str(self.megai / "lib/acceptance_gate.py"),
                               "snapshot", "--root", str(self.project))
         self.assertRegex(json.loads(result.stdout)["snapshot"], r"^[a-f0-9]{64}$")
@@ -211,7 +191,7 @@ class Slim(unittest.TestCase):
         self.write(self.home / ".pi/agent/extensions/megai-workspace-guard/index.ts",
                    "user-owned workspace guard")
         before = self.snapshot()
-        self.assertIn("custom/legacy asset preserved", self.wire(ok=False).stderr)
+        self.assertIn("unowned retired asset preserved", self.wire(ok=False).stderr)
         self.assertEqual(self.snapshot(), before)
 
     def test_workspace_cli_preserves_arguments_without_startup(self):
@@ -357,20 +337,18 @@ class Slim(unittest.TestCase):
                          ["snapshot", "--root", "path with spaces"])
         self.assertFalse((self.home / "calls").exists())
 
-    def test_task_workspaces_return_to_primary_after_delivery(self):
+    def test_task_worktrees_are_released_only_after_proven_delivery(self):
         policy = " ".join((ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text().split())
-        for clause in ("Each new task", "one primary workspace at rest",
-                       "same task", "safely merged", "read-only reviewers"):
-            self.assertIn(clause, policy)
-        self.assertNotIn("megai finish --verified", policy)
-        self.assertLess(policy.index("Release all task writers"),
-                        policy.index("git -C DEV_CHECKOUT merge --ff-only"))
-        self.assertIn("branch/base/title policy", policy)
+        for clause in ("separate task-owned worktree", "megai queue", "private verified backup",
+                       "clean, task-owned worktree", "proven-merged local task branch",
+                       "Do not use force", "A refusal retains resources"):
+            self.assertIn(clause.lower(), policy.lower())
         self.wire()
         self.assertIn("agent-worktree-lifecycle",
                       (self.home / ".pi/agent/AGENTS.md").read_text())
-        self.assertIn("one primary workspace at rest",
-                      " ".join((self.home / ".pi/agent/skills/agent-worktree-lifecycle/SKILL.md").read_text().split()))
+        installed = self.home / ".pi/agent/skills/agent-worktree-lifecycle/SKILL.md"
+        self.assertEqual(installed.read_bytes(),
+                         (ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_bytes())
 
     def test_user_config_and_policy_text_survive(self):
         files = {

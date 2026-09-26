@@ -11,7 +11,7 @@ persistent: retain local and remote copies even after a merge. Tasks explicitly
 assigned to validationsdk use that branch as their base/delivery target and retain
 the worktree; do not integrate them into dev/main automatically.
 
-For normal tasks, use a separate managed Paseo worktree for each affected component
+For normal tasks, use a separate verified task-owned Git worktree for each affected component
 under the existing ADAM project. Read the original component's AGENTS.md too.
 Preserve active worktrees and uncommitted work. Deliver to dev after verification;
 main promotion needs explicit approval. Plane handoff is In Review; Done requires

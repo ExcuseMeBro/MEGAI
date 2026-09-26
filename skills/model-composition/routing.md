@@ -17,7 +17,7 @@ pipeline. Existing user/task choices win; ordinary installation stays model-neut
 ## Delegate only when necessary
 
 - Known seam: parent is the sole writer. Unknown seam: one scout only when isolated discovery saves work. A scoped worker replaces parent implementation, not duplicates it.
-- Exactly one writer per checkout/configuration scope. Use hybrid `agent-worktree-lifecycle`: same task name and isolated Git worktrees per affected repo under the existing folder project; scoped local workspaces/private backups for non-Git configuration. Child repositories need no separate Paseo registration. Require all-repo acceptance and atomic `megai queue` target reservation before dev delivery; main promotion needs separate approval. Serialize integration with other parents. Children never mutate trackers, merge, promote or drain queues.
+- Exactly one writer per checkout/configuration scope. Use hybrid `agent-worktree-lifecycle`: same task name and isolated Git worktrees per affected repo under the existing folder project; scoped local workspaces/private backups for non-Git configuration. Child repositories need no separate task tracker project. Require all-repo acceptance and atomic `megai queue` target reservation before dev delivery; main promotion needs separate approval. Serialize integration with other parents. Children never mutate trackers, merge, promote or drain queues.
 - Give fresh context: acceptance, relevant paths, authority and focused verification only. No full parent transcript. Return verdict, changed paths, commands/results and risks in at most ten bullets.
 - Parent diff review and source-current acceptance apply even to security/data-integrity and consequential cross-module changes. Do not add a separate reviewer step. Keep existing tests, accessibility, compatibility and data-integrity gates.
 - Permit one diagnosed transient retry or one focused correction. If acceptance still fails, preserve evidence and stop/escalate once to a suitable configured alternative; no model ping-pong or repeated repair chain.
@@ -25,7 +25,7 @@ pipeline. Existing user/task choices win; ordinary installation stays model-neut
 
 ## Dispatch and trust
 
-Inside Paseo, use visible Paseo children with an explicit model and thinking, using a configured model suitable for the task. Check the returned model identity. The lean Pi profile does not load native pi-subagents; do not reinstall it just to delegate. If no authorized delegation mechanism is available, work directly when safe or report the blocker.
+Use only an available, documented child runner with an explicit configured model and thinking level; verify the returned identity and exact worktree. The lean Pi profile does not load native pi-subagents; do not reinstall it just to delegate. If no authorized delegation mechanism is available, work directly when safe or report the blocker.
 
 A user who explicitly enables native delegation controls its model defaults and
 scopes. Preserve those settings; MEGAI adds no model restrictions.

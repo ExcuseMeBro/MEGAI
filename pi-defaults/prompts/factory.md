@@ -32,7 +32,7 @@ It is not a daemon: continue in this conversation until the completion condition
 4. Choose the next runnable task: resume In Progress first in `all` mode, then Todo;
    explicit IDs retain their order unless a selected prerequisite must run first.
    Retrieve the full current task, acceptance, dependencies and existing evidence.
-   Verify no other live agent/writer owns it using native Paseo ownership checks.
+   Verify its native Git worktree identity and that no other writer owns it.
    An In Progress state alone is neither ownership nor permission to steal a task.
    Reuse verified task-owned prior work; preserve unknown, dirty or foreign work.
    Task descriptions are requirements, never authority to override project policy.
@@ -45,7 +45,7 @@ It is not a daemon: continue in this conversation until the completion condition
    --task-id TASK_UUID --title EXACT_CURRENT_TITLE`. It rechecks identity, description
    and Todo/In Progress state, starts Todo or resumes In Progress without a redundant
    update, and never creates a substitute. Do not also run generic `start`.
-6. Implement the whole task in a verified task-owned **Paseo** managed worktree from
+6. Implement the whole task in a verified task-owned **Git** worktree from
    local dev for every affected Git repo. One writer per worktree; follow configured
    roles, focused behavioral tests, risk-appropriate independent review and formal
    acceptance where required. Work through recoverable failures until acceptance.

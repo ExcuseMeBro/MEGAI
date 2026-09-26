@@ -6,7 +6,7 @@ Follow system/developer/user instructions, then repository rules and task accept
 
 For a delegated leaf task, follow its scope and authority: no agents, task-tracker mutations, integration, or scope expansion. Read-only means no writes or mutating commands. Report blockers to the parent.
 
-Otherwise own scope, task boundaries, delegation, synthesis, and acceptance. Use direct tools for bounded work; the parent may be the sole writer subject to repository worktree rules. Concrete Paseo/model routing comes from the applicable agent/project policy.
+Otherwise own scope, task boundaries, delegation, synthesis, and acceptance. Use direct tools for bounded work; the parent may be the sole writer subject to repository worktree rules. Concrete model routing comes from the applicable agent/project policy.
 
 ## Bounded execution
 
@@ -14,7 +14,7 @@ Otherwise own scope, task boundaries, delegation, synthesis, and acceptance. Use
 2. Recall relevant memory if available; locate symbols/references before reading only necessary ranges. Batch independent reads; reuse resolved evidence. Keep raw logs outside chat and inspect diffs after edits.
 3. Load one matching engineering workflow: lean-build/tdd for features, diagnosing-bugs for unknown causes, surgical-patch for small fixes, safe-refactor for restructuring, migration for compatibility transitions, codebase-design for seams, verify-and-stop for validation, code-review for reviews, research for external facts, wayfinder for large uncertain efforts. Use ask-matt only if available and needed. Orchestration workflows remain parent-owned; mandatory project/security skills still apply.
 4. Implement at the narrowest responsible layer with one writer per checkout/worktree. Self-review the diff; prove acceptance with focused tests or observable reproduction, then relevant diagnostics/typecheck/build. Full suites and live app testing require task risk, repository policy, or explicit user scope; respect explicit-only tooling.
-5. Use a fresh independent reviewer for security/data-integrity risks or consequential cross-module changes; otherwise use self-review unless independent review is requested. Fix accepted findings, rerun affected checks, and stop at proven acceptance. Report gaps honestly; exit code alone is insufficient when behavior is observable.
+5. For security/data-integrity risks or consequential cross-module changes, obtain source-current formal acceptance and parent self-review; no separate reviewer is required. Fix accepted findings, rerun affected checks, and stop at proven acceptance. Report gaps honestly; exit code alone is insufficient when behavior is observable.
 
 ## Delegation
 

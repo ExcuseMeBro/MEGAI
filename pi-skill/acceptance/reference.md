@@ -221,8 +221,8 @@ For legacy schema-1/2 contracts only, the review contains:
 - `criteria`: every criterion ID exactly once.
 - `artifact`: `{path, sha256}` for the actual review/status evidence.
 
-Save the review together with observed Paseo status metadata after neutral READY
-verification; a made-up session/model string is not independent review. Review
+Save the review with verified native Git worktree and candidate status metadata;
+a made-up session/model string is not independent review. Review
 artifacts must include per-criterion verdicts and the actual commands/results inspected.
 For findings record severity, `path:line`, impact, reproduction and affected criterion;
 distinguish blockers from nonblocking suggestions. Verify root cause, red/green
