@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { realpathSync, existsSync, readFileSync, accessSync, constants } from 'node:fs';
+import { realpathSync, existsSync, readFileSync, lstatSync, accessSync, constants } from 'node:fs';
 import { dirname, join, delimiter } from 'node:path';
 import { homedir } from 'node:os';
 import { pathToFileURL } from 'node:url';
@@ -39,9 +39,16 @@ const requiredTools = engineeringOnly ? [] : ['mcp', 'web_search', 'fetch_conten
 const removedTools = ['subagent'];
 const requiredSkills = ['pi-workflow', 'codebase-design', 'diagnosing-bugs', 'tdd', 'code-review'];
 const requiredPrompts = engineeringOnly ? [] : ['factory', 'mdev', 'prdev', 'rwbrowser'];
+const selection = JSON.parse(readFileSync(join(agentDir, 'settings.json'), 'utf8'));
+if (selection.prompts !== undefined && (!Array.isArray(selection.prompts) || selection.prompts.some(value => typeof value !== 'string'))) {
+  throw new Error('Invalid Pi prompt selection');
+}
+const excludedPrompts = new Set((selection.prompts ?? []).filter(value => value.startsWith('-prompts/')));
 const policy = existsSync(join(agentDir, 'AGENTS.md')) ? readFileSync(join(agentDir, 'AGENTS.md'), 'utf8') : '';
 const missing = [...requiredTools.filter(t => !tools.includes(t)), ...requiredSkills.filter(s => !skills.skills.some(v => v.name === s))];
-for (const name of requiredPrompts) if (!promptNames.includes(name)) missing.push(`/${name}`);
+for (const name of requiredPrompts) {
+  if (!promptNames.includes(name) && !excludedPrompts.has(`-prompts/${name}.md`)) missing.push(`/${name}`);
+}
 for (const name of ['ponytail', 'using-superpowers']) {
   if (skills.skills.some(s => s.name === name) || commands.includes(name)) missing.push(`retired resource: ${name}`);
 }
@@ -52,6 +59,19 @@ if (skills.skills.some(s => s.name.startsWith('openspec-')) || promptNames.some(
 for (const name of removedTools) if (tools.includes(name)) missing.push(`removed tool: ${name}`);
 if (!policy.includes('verified task-owned worktree') || new RegExp('pa' + 'seo', 'i').test(policy)) missing.push('AGENTS.md: native Git worktree policy');
 if (policy.includes('Use pi-subagents')) missing.push('AGENTS.md: removed delegation policy');
-const report = { extensions: loaded.extensions.map(e => e.path), tools, skills: skills.skills.map(s => s.name), prompts: promptNames, errors: loaded.errors, diagnostics: [...skills.diagnostics, ...prompts.diagnostics], missing };
+// The same prompt can be installed globally and in a project's tracked policy.
+// Accept only byte-identical regular files; a differing override remains a diagnostic.
+const identicalPromptCollision = diagnostic => {
+  const c = diagnostic.collision;
+  if (diagnostic.type !== 'collision' || c?.resourceType !== 'prompt'
+      || typeof c.winnerPath !== 'string' || typeof c.loserPath !== 'string') return false;
+  try {
+    const winner = lstatSync(c.winnerPath), loser = lstatSync(c.loserPath);
+    return winner.isFile() && loser.isFile() && !winner.isSymbolicLink() && !loser.isSymbolicLink()
+      && readFileSync(c.winnerPath).equals(readFileSync(c.loserPath));
+  } catch { return false; }
+};
+const diagnostics = [...skills.diagnostics, ...prompts.diagnostics].filter(d => !identicalPromptCollision(d));
+const report = { extensions: loaded.extensions.map(e => e.path), tools, skills: skills.skills.map(s => s.name), prompts: promptNames, errors: loaded.errors, diagnostics, missing };
 console.log(JSON.stringify(report, null, 2));
-process.exit(loaded.errors.length || skills.diagnostics.length || prompts.diagnostics.length || missing.length ? 1 : 0);
+process.exit(loaded.errors.length || diagnostics.length || missing.length ? 1 : 0);

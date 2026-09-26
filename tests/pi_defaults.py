@@ -419,6 +419,14 @@ class Distribution(unittest.TestCase):
         self.assertEqual(browser, (ROOT / ".pi/prompts/rwbrowser.md").read_text())
         self.assertIn("Do not start a browser", (ROOT / "AGENTS.md").read_text())
 
+    def test_verifier_respects_explicit_prompt_exclusions(self):
+        verify = (DEFAULTS / "verify.mjs").read_text()
+        self.assertIn("selection.prompts", verify)
+        self.assertIn("excludedPrompts.has(`-prompts/${name}.md`)", verify)
+        self.assertIn("Invalid Pi prompt selection", verify)
+        self.assertIn("readFileSync(c.winnerPath).equals(readFileSync(c.loserPath))", verify)
+        self.assertIn("diagnostics.length", verify)
+
     def test_factory_prompt_drains_explicit_scope_and_fails_closed(self):
         prompt = (DEFAULTS / "prompts/factory.md").read_text()
         for clause in (
