@@ -7,10 +7,10 @@ not a mandatory extra phase or an automatic dispatcher.
 | Stage | Smallest useful input | Completion condition |
 | --- | --- | --- |
 | Locate code | General text/name → Codedb `search`; definition → `find`; API → `outline`; known range → native read. Repeated literal/regex on a stable indexed tree → tgrep; exact/freshness evidence → `rg`. | Exact current source and relevant callers located; no unexplained search failure. |
-| `codebase-design` | Affected interfaces and caller ranges. If 4–12 plausible files would otherwise be read broadly, `sift` once to order them. | Required interfaces/dependencies read; rankings never define the impact boundary. |
-| `diagnosing-bugs` | Exact failure/stack plus affected symbol and focused reproduction. Laya may order competing hypotheses from these facts. | Reproduction and native evidence establish the cause; no score counts as proof. |
-| `tdd` | Relevant test seam and changed source only; reuse diagnosis. | Required red/green assertions and raw command exit/results captured. No Laya pass/fail decision. |
-| `code-review` | Fixed base, complete diff including WIP, task criteria, exact evidence paths and targeted dependencies. | Every changed file and criterion reviewed; no sift-based exclusion or transcript replay. |
+| `codebase-design` | Affected interfaces and caller ranges. | Required interfaces/dependencies read; rankings never define the impact boundary. |
+| `diagnosing-bugs` | Exact failure/stack plus affected symbol and focused reproduction. | Reproduction and native evidence establish the cause; no score counts as proof. |
+| `tdd` | Relevant test seam and changed source only; reuse diagnosis. | Required red/green assertions and raw command exit/results captured. |
+| `code-review` | Fixed base, complete diff including WIP, task criteria, exact evidence paths and targeted dependencies. | Every changed file and criterion reviewed; no transcript replay. |
 | Delivery/cleanup | Verified commit vector, fresh ownership/ref checks and current receipts. | Queue, permission, ancestry and cleanup checks satisfied; no model substitutes for them. |
 
 ## Codedb: general search and structure before content
@@ -68,42 +68,10 @@ results against `rg` on a disposable 400-file tree and records build cost, media
 and estimated break-even query count. Timings include process startup and vary with
 hardware/cache/query selectivity; do not claim a universal speedup or token saving.
 
-## Laya: small local decisions, not extra ceremony
-
-Use `sift` only when ranking avoids broad reads of several plausible local files:
-
-```json
-{"query":"Which modules implement payment retry behavior?","paths":["src/payments.ts","src/retry.ts","src/calendar.ts","src/cache.ts"]}
-```
-
-Paths are relative to the task cwd; the API accepts 1–12. Prefer one 4–12-file batch
-for broad exploration. It sends file content to the on-device model and returns
-path/score/error, not full source to the main model. It has inference latency, so
-skip it when exact matching or a few small ranges already answer the question.
-Read the likely paths first, then every dependency/test/changed file required by
-the task regardless of rank. Scores are advisory model outputs, not calibrated
-confidence. Sensitive, outside-root, unreadable or too-long files are unscored,
-not irrelevant; inspect allowed relevant ranges natively instead of looping retries.
-
-For several cheap decisions on compact facts already in context, one `laya` call
-can batch questions. Example of the supported typed shape:
-
-```json
-{"state":"Failure occurs only after a cache hit; uncached requests pass.","questions":{"first":{"type":"choice","instructions":"Which path should be inspected first?","criteria":{"cache":"cache read and invalidation path","network":"uncached request path"}}}}
-```
-
-Do not send full logs/transcripts, invent unseen facts, ask for permission via a
-score or use Laya to replace diagnosis, test execution, security review or acceptance.
-On error or ambiguous output, continue with available native evidence; no remote
-fallback, repeated local retries or model/role changes for this optimization.
-
 ## Compression, handoff and measurement
 
 Headroom handles eligible successful discovery and can retrieve the exact original.
-Raw source, full diffs and failure/test artifacts remain authoritative. Laya's
-existing compaction shortcut only removes supported byte-identical repeated tool
-text while preserving the earlier exact copy; unsupported/unique content falls
-back to Pi's native summarizer. Do not trigger compaction after every step.
+Raw source, full diffs and failure/test artifacts remain authoritative. Pi handles compaction with its native summarizer. Do not trigger compaction after every step.
 
 A reviewer handoff needs the task criteria, base/candidate, changed paths, unresolved
 risks and evidence paths. Read each relevant artifact once, then only changed ranges.

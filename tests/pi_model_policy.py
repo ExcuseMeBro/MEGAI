@@ -428,17 +428,15 @@ class ModelPolicy(Slim):
         self.assertNotIn(source.rstrip(), bootstrap)
         self.assertIn("megai/delegation.md", bootstrap)
         for rule in (
-            "not according to a fixed duration",
-            "Continue while making progress toward acceptance",
-            "same-model retry loop",
-            "suitable, available alternative",
-            "at most two escalation transitions per blocker",
-            "Confirm the old writer has stopped",
-            "rather than killing or replaying a mutation",
-            "One context handoff per task, ideally zero",
-            "gathers its\n  own evidence in its own trace",
-            "Judge the run end to end",
-            "Cost is per delivered change, not per agent token",
+            "No child or external runner is mandatory",
+            "Git writers need separate, proven task-owned worktrees",
+            "Children never delegate",
+            "Never poll or sleep to wait for a child",
+            "Only a confirmed DeepSeek 402 insufficient-balance error",
+            "prove the old writer is quiescent",
+            "No speculative fallback, retry loop",
+            "No automatic retry or substitution",
+            "Parent reviews the resulting full diff and tests",
         ):
             with self.subTest(rule=rule):
                 self.assertIn(rule, installed)

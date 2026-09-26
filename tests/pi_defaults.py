@@ -302,9 +302,8 @@ class Distribution(unittest.TestCase):
         self.assertIn("subagent", removed)
         self.assertNotIn("sift", required)
         profile = (DEFAULTS / "AGENTS.md").read_text()
-        # Optional local screening is supported; it must not exclude required evidence.
-        self.assertIn("`sift` may order reads; it cannot exclude required files", profile)
-        self.assertIn("never authorization or verification", profile)
+        self.assertNotIn(retired.TOOL, profile.lower())
+        self.assertNotIn("`sift`", profile)
         self.assertNotIn(retired.TOOL, required)
 
     def test_settings_and_mcp_merge_never_drop_operator_keys(self):
