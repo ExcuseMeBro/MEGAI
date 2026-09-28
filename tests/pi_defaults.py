@@ -285,21 +285,26 @@ class Distribution(unittest.TestCase):
     def setUp(self):
         self.package = json.loads((DEFAULTS / "package.json").read_text())
 
-    def test_no_pi_subagents_in_packages_settings_or_tools(self):
+    def test_pi_subagents_is_optional_and_not_rejected(self):
         self.assertNotIn("pi-subagents", self.package["dependencies"])
-        self.assertNotIn("pi-subagents", (DEFAULTS / "package-lock.json").read_text())
+        current = {
+            "packages": ["npm:pi-subagents@1.2.3"],
+            "subagents": {"model": "operator-choice"},
+        }
         settings = install.profile_settings(
-            self.package["dependencies"], Path("/Users/example")
+            self.package["dependencies"], Path("/Users/example"), current
         )
-        self.assertNotIn("subagents", settings)
-        sources = [entry["source"] for entry in settings["packages"]]
-        self.assertEqual([s for s in sources if "subagent" in s], [])
+        self.assertIn("npm:pi-subagents@1.2.3", settings["packages"])
+        self.assertEqual(settings["subagents"], current["subagents"])
+        sources = [
+            entry["source"] if isinstance(entry, dict) else entry
+            for entry in settings["packages"]
+        ]
         self.assertFalse(any("pi-superpowers" in s or "ponytail" in s or "openspec" in s for s in sources))
         verify = (DEFAULTS / "verify.mjs").read_text()
         required = re.search(r"const requiredTools = .*?\[(.*?)\];", verify, re.S).group(1)
         self.assertNotIn("subagent", required)
-        removed = re.search(r"const removedTools = \[(.*?)\]", verify, re.S).group(1)
-        self.assertIn("subagent", removed)
+        self.assertNotIn("removed tool: ${name}", verify)
         self.assertNotIn("sift", required)
         profile = (DEFAULTS / "AGENTS.md").read_text()
         self.assertNotIn(retired.TOOL, profile.lower())
@@ -399,8 +404,11 @@ class Distribution(unittest.TestCase):
         policy = (DEFAULTS / "AGENTS.md").read_text()
         self.assertIn("verified task-owned worktree", policy)
         self.assertNotIn("pa" + "seo", policy.lower())
-        self.assertNotIn("Use pi-subagents", policy)
-        self.assertIn("do not reinstall it", policy)
+        self.assertIn("pi-subagents", policy.lower())
+        self.assertNotIn("do not reinstall it", policy.lower())
+        routing = (DEFAULTS.parent / "skills/model-composition/routing.md").read_text()
+        self.assertIn("operator-configured native Pi subagents", routing)
+        self.assertNotIn("do not reinstall it", routing.lower())
         names = sorted(p.stem for p in (DEFAULTS / "prompts").glob("*.md"))
         self.assertEqual(names, ["factory", "mdev", "prdev", "rwbrowser"])
         verify = (DEFAULTS / "verify.mjs").read_text()

@@ -25,7 +25,7 @@ pipeline. Existing user/task choices win; ordinary installation stays model-neut
 
 ## Dispatch and trust
 
-Use only an available, documented child runner with an explicit configured model and thinking level; verify the returned identity and exact worktree. The lean Pi profile does not load native pi-subagents; do not reinstall it just to delegate. If no authorized delegation mechanism is available, work directly when safe or report the blocker.
+Use an available, documented child runner (including operator-configured native Pi subagents) with an explicit configured model and thinking level; verify the returned identity and exact worktree. The lean Pi profile does not require a delegation package. If no authorized delegation mechanism is available, work directly when safe or report the blocker.
 
 A user who explicitly enables native delegation controls its model defaults and
 scopes. Preserve those settings; MEGAI adds no model restrictions.

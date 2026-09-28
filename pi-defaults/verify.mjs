@@ -36,7 +36,6 @@ const prompts = loader.getPrompts();
 const promptNames = prompts.prompts.map(p => p.name);
 const engineeringOnly = process.argv.includes('--engineering-only');
 const requiredTools = engineeringOnly ? [] : ['mcp', 'web_search', 'fetch_content', 'headroom_retrieve', 'headroom_memory'];
-const removedTools = ['subagent'];
 const requiredSkills = ['pi-workflow', 'codebase-design', 'diagnosing-bugs', 'tdd', 'code-review'];
 const requiredPrompts = engineeringOnly ? [] : ['factory', 'mdev', 'prdev', 'rwbrowser'];
 const selection = JSON.parse(readFileSync(join(agentDir, 'settings.json'), 'utf8'));
@@ -56,9 +55,7 @@ for (const name of requiredSkills) {
   if (skills.skills.filter(s => s.name === name).length > 1) missing.push(`duplicate skill: ${name}`);
 }
 if (skills.skills.some(s => s.name.startsWith('openspec-')) || promptNames.some(n => n.startsWith('opsx-'))) missing.push('retired OpenSpec resources');
-for (const name of removedTools) if (tools.includes(name)) missing.push(`removed tool: ${name}`);
 if (!policy.includes('verified task-owned worktree') || new RegExp('pa' + 'seo', 'i').test(policy)) missing.push('AGENTS.md: native Git worktree policy');
-if (policy.includes('Use pi-subagents')) missing.push('AGENTS.md: removed delegation policy');
 // The same prompt can be installed globally and in a project's tracked policy.
 // Accept only byte-identical regular files; a differing override remains a diagnostic.
 const identicalPromptCollision = diagnostic => {
