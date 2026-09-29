@@ -1,0 +1,5 @@
+{
+  "fallbacks": {
+    "deepseek/deepseek-flash": "openai-codex/gpt-6-luna"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "skills/openspec-apply-change/SKILL.md": [
+    "fc61b40f013169b8bd8ad74e6e24b936f66677917ef65b43e8a1891adad2b30f"
+  ],
+  "skills/openspec-archive-change/SKILL.md": [
+    "9964734c29067dfb1667411c9e578cb5a9059c5fa557f719a62584a04a80c265"
+  ],
+  "skills/openspec-explore/SKILL.md": [
+    "3048bdac5b44c254b36456266b1e246a19b0b1b1c592170de03e665ef3f45440"
+  ],
+  "skills/openspec-propose/SKILL.md": [
+    "a40b09602a4014b0898cdfb54663270a33f0966a5a4201daa4bd6357d451c183"
+  ],
+  "skills/openspec-sync-specs/SKILL.md": [
+    "59682c6f0d20b638740c67766c2d913ac3dd4255e72b846eb178c76c2e565150"
+  ],
+  "skills/openspec-update-change/SKILL.md": [
+    "402d16a09832e2e0c423eb80dad128a257e33cc37fb2c66439ca70bf2fd1e8e3"
+  ],
+  "prompts/opsx-apply.md": [
+    "82366d22283f34c186d78e38d7d058bbcb70d675bb30347506f48eaae7a21076"
+  ],
+  "prompts/opsx-archive.md": [
+    "8a8831ccf3b2dce911ee53951a3b8e06c80eac015a3820849d927d3594390d2f"
+  ],
+  "prompts/opsx-explore.md": [
+    "17679aa027e751f849f9600fe3e335c4cf38fc432c683acc310a68eb7816e2e2"
+  ],
+  "prompts/opsx-propose.md": [
+    "e849db99d6f5cab1669ff4308989caf1860bbe80f43503edc4410702b19815cd"
+  ],
+  "prompts/opsx-sync.md": [
+    "0fd576a3bbcb5dacbc3423246ae0401a4e42c8d3658e57cbce05dfcc3bad21b5"
+  ],
+  "prompts/opsx-update.md": [
+    "50aa985fb4831173d0833ddff7896e89c6c646c236ef897dcb9bcc936c728866"
+  ]
+}

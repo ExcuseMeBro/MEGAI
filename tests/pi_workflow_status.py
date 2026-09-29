@@ -13,6 +13,7 @@ single ``context`` baseline test passes and guards the existing commands.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import shutil
@@ -21,6 +22,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / "pi-defaults/workflow.py"
@@ -42,6 +44,8 @@ if hook:
 if os.environ.get("FAKE_PASEO_MODE") == "fail":
     print("paseo: daemon unavailable", file=sys.stderr)
     sys.exit(3)
+state_path = os.environ.get("FAKE_PASEO_STATE")
+state = json.load(open(state_path)) if state_path else None
 if argv[:2] == ["project", "ls"]:
     raw = os.environ.get("FAKE_PROJECTS")
     out = json.loads(raw) if raw else [{
@@ -51,11 +55,59 @@ if argv[:2] == ["project", "ls"]:
         "path": os.environ["FAKE_ROOT"],
     }]
 elif argv[:2] == ["workspace", "ls"]:
-    out = json.loads(os.environ.get("FAKE_WORKSPACES", "[]"))
+    out = state["workspaces"] if state else json.loads(os.environ.get("FAKE_WORKSPACES", "[]"))
+elif argv[:2] == ["workspace", "archive"] and state:
+    if os.environ.get("FAKE_ARCHIVE_LOG"):
+        with open(os.environ["FAKE_ARCHIVE_LOG"], "a") as f:
+            f.write("workspace\n")
+    positional = [a for a in argv[2:] if not a.startswith("-")]
+    key = positional[0] if positional else ""
+    matches = [w for w in state["workspaces"] if w["workspaceId"] == key]
+    if len(matches) != 1:
+        sys.exit(4)
+    subprocess.run(["git", "-C", os.environ["FAKE_ROOT"], "worktree", "remove", matches[0]["cwd"]], check=True)
+    state["workspaces"] = [w for w in state["workspaces"] if w["workspaceId"] != key]
+    with open(state_path, "w") as f:
+        json.dump(state, f)
+    out = {"workspaceId": key}
+elif argv[:2] == ["terminal", "ls"]:
+    counter = os.environ.get("FAKE_TERMINAL_COUNTER")
+    if counter:
+        n = int(open(counter).read()) + 1
+        with open(counter, "w") as f:
+            f.write(str(n))
+        out = [{"id": "new-terminal"}] if n >= 2 else []
+    else:
+        out = json.loads(os.environ.get("FAKE_TERMINALS", "[]"))
 elif argv[:2] == ["agent", "ls"]:
-    out = json.loads(os.environ.get("FAKE_AGENTS", "[]"))
+    out = state.get("agents", []) if state and "agents" in state else json.loads(os.environ.get("FAKE_AGENTS", "[]"))
+    if os.environ.get("FAKE_NATIVE_ARCHIVAL") and "--global" not in argv:
+        out = [a for a in out if a["status"] != "closed"]
+elif argv[:2] == ["agent", "archive"] and state:
+    if os.environ.get("FAKE_AGENT_ARCHIVE_FAIL"):
+        sys.exit(4)
+    positional = [a for a in argv[2:] if not a.startswith("-")]
+    key = positional[0] if positional else ""
+    if key not in state.get("inspects", {}):
+        sys.exit(4)
+    if os.environ.get("FAKE_ARCHIVE_LOG"):
+        with open(os.environ["FAKE_ARCHIVE_LOG"], "a") as f:
+            f.write("agent\n")
+    state["inspects"][key]["Archived"] = True
+    if os.environ.get("FAKE_NATIVE_ARCHIVAL"):
+        state["inspects"][key]["Status"] = "closed"
+        for row in state["agents"]:
+            if row["id"] == key:
+                row["status"] = "closed"
+    if os.environ.get("FAKE_NEW_OWNER_AFTER_ARCHIVE"):
+        state["agents"].append({"id": "foreign", "shortId": "foreign", "name": "foreign",
+                                "provider": "pi", "thinking": "high", "status": "running",
+                                "cwd": state["agents"][0]["cwd"], "created": "now"})
+    with open(state_path, "w") as f:
+        json.dump(state, f)
+    out = {"Id": key, "Archived": True}
 elif argv[:2] == ["agent", "inspect"]:
-    inspects = json.loads(os.environ.get("FAKE_INSPECTS", "{}"))
+    inspects = state.get("inspects", {}) if state and "inspects" in state else json.loads(os.environ.get("FAKE_INSPECTS", "{}"))
     positional = [a for a in argv[2:] if not a.startswith("-")]
     key = positional[0] if positional else ""
     if key not in inspects:
@@ -209,6 +261,301 @@ class Fixture:
 
     def cleanup(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
+
+
+class CleanupContract(unittest.TestCase):
+    def setUp(self):
+        self.fx = Fixture()
+        self.addCleanup(self.fx.cleanup)
+        self.wt = self.fx.add_worktree("cleanup-task", "task/megai-162")
+        self.tip = self.fx.commit_in(self.wt, "task.txt")
+        _git(self.fx.primary, "switch", "dev")
+        _git(self.fx.primary, "merge", "--ff-only", self.tip)
+        self.state = self.fx.tmp / "paseo-state.json"
+        self.state.write_text(json.dumps({"workspaces": [workspace("wks_own", self.wt)]}))
+
+    def run_cleanup(self, *, tip=None, env=None, target=None):
+        default = self.fx.env(agents=[agent("child", self.wt)],
+                              inspects=inspect("child", self.wt, archived=True))
+        default["FAKE_PASEO_STATE"] = str(self.state)
+        if env:
+            default.update(env)
+        return run_cli(["cleanup", "--cwd", str(self.fx.primary), "--workspace", "wks_own",
+                        "--branch", "task/megai-162", "--tip", tip or self.tip,
+                        *(["--target-branch", target] if target else [])], env=default)
+
+    def test_native_closed_archived_owner_is_discovered_globally(self):
+        result = self.run_cleanup(env={
+            "FAKE_NATIVE_ARCHIVAL": "1",
+            "FAKE_AGENTS": json.dumps([agent("child", self.wt, "closed")]),
+            "FAKE_INSPECTS": json.dumps(inspect("child", self.wt, archived=True, status="closed")),
+        })
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.wt.exists())
+
+    def test_native_direct_child_closes_before_workspace_archival(self):
+        child = inspect("child", self.wt)["child"]
+        child["ParentAgentId"] = RUNNER
+        state = json.loads(self.state.read_text())
+        state.update(agents=[agent("child", self.wt)], inspects={"child": child})
+        self.state.write_text(json.dumps(state))
+        result = self.run_cleanup(env={"FAKE_NATIVE_ARCHIVAL": "1"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.wt.exists())
+
+    def test_closed_without_archival_is_not_release(self):
+        result = self.run_cleanup(env={
+            "FAKE_AGENTS": json.dumps([agent("child", self.wt, "closed")]),
+            "FAKE_INSPECTS": json.dumps(inspect("child", self.wt, status="closed")),
+        })
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+
+    def test_pi_delivery_without_pi_checkout_preserves_primary_and_targets(self):
+        _git(self.fx.primary, "branch", "pi", self.tip)
+        _git(self.fx.primary, "reset", "--hard", self.fx.dev)
+        before = _git(self.fx.primary, "rev-parse", "HEAD", "dev", "main", "pi")
+        result = self.run_cleanup(target="pi")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(_git(self.fx.primary, "rev-parse", "HEAD", "dev", "main", "pi"), before)
+        self.assertFalse(self.wt.exists())
+        self.assertEqual(_git(self.fx.primary, "branch", "--list", "task/megai-162"), "")
+        self.assertEqual(json.loads(result.stdout)["targetBranch"], "pi")
+
+    def test_pi_cleanup_rejects_tip_delivered_only_to_dev(self):
+        _git(self.fx.primary, "branch", "pi", self.fx.dev)
+        result = self.run_cleanup(target="pi")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("not included", result.stderr)
+        self.assertTrue(self.wt.exists())
+
+    def test_local_dev_delivery_archives_only_owned_workspace_then_branch(self):
+        result = self.run_cleanup()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.wt.exists())
+        self.assertNotIn("task/megai-162", _git(self.fx.primary, "branch", "--list", "task/megai-162"))
+        self.assertEqual(json.loads(self.state.read_text())["workspaces"], [])
+
+    def test_generated_pyc_is_privately_preserved_before_cleanup(self):
+        info_exclude = self.fx.primary / ".git/info/exclude"
+        info_exclude.write_text(info_exclude.read_text() + "\n__pycache__/\n")
+        generated = self.wt / "pkg/__pycache__/example.cpython-314.pyc"
+        generated.parent.mkdir(parents=True)
+        generated.write_bytes(b"generated bytecode")
+        self.assertIn("__pycache__", _git(self.wt, "ls-files", "--others", "--ignored", "--exclude-standard"))
+        backups = self.fx.tmp / "private-backups"
+        backups.mkdir(mode=0o700)
+        result = self.run_cleanup(env={"MEGAI_CLEANUP_BACKUPS": str(backups)})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        saved = Path(report["backup"]) / "pkg/__pycache__/example.cpython-314.pyc"
+        self.assertEqual(saved.read_bytes(), b"generated bytecode")
+        self.assertEqual(Path(report["backup"]).stat().st_mode & 0o777, 0o700)
+        self.assertEqual((Path(report["backup"]) / "manifest.json").stat().st_mode & 0o777, 0o600)
+        self.assertEqual(json.loads((Path(report["backup"]) / "manifest.json").read_text())["files"][0]["path"],
+                         "pkg/__pycache__/example.cpython-314.pyc")
+        self.assertFalse(self.wt.exists())
+
+    def test_backup_inside_task_checkout_is_refused(self):
+        info_exclude = self.fx.primary / ".git/info/exclude"
+        info_exclude.write_text(info_exclude.read_text() + "\n__pycache__/\n")
+        generated = self.wt / "__pycache__/task.pyc"
+        generated.parent.mkdir()
+        generated.write_bytes(b"keep")
+        result = self.run_cleanup(env={"MEGAI_CLEANUP_BACKUPS": str(self.wt / "backups")})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(generated.read_bytes(), b"keep")
+        self.assertTrue(self.wt.exists())
+
+    def test_generated_parent_symlink_swap_never_moves_foreign_data(self):
+        spec = importlib.util.spec_from_file_location("cleanup_workflow", WORKFLOW)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        owned = self.wt / "pkg/__pycache__"
+        owned.mkdir(parents=True)
+        (owned / "example.pyc").write_bytes(b"same bytes")
+        foreign = self.fx.tmp / "foreign"
+        (foreign / "__pycache__").mkdir(parents=True)
+        foreign_file = foreign / "__pycache__/example.pyc"
+        foreign_file.write_bytes(b"same bytes")
+        backups = self.fx.tmp / "safe-backups"
+        backups.mkdir(mode=0o700)
+        real_rename = os.rename
+        triggered = False
+        def swap_parent(src, dst, **kwargs):
+            nonlocal triggered
+            if not triggered:
+                triggered = True
+                real_rename(self.wt / "pkg", self.wt / "pkg-old")
+                (self.wt / "pkg").symlink_to(foreign, target_is_directory=True)
+            return real_rename(src, dst, **kwargs)
+        with mock.patch.dict(os.environ, {"MEGAI_CLEANUP_BACKUPS": str(backups)}), \
+             mock.patch.object(module.os, "rename", side_effect=swap_parent):
+            saved = module._preserve_generated_ignored(str(self.wt), self.fx.primary,
+                                                       "wks_own", ["pkg/__pycache__/example.pyc"])
+        self.assertEqual(foreign_file.read_bytes(), b"same bytes")
+        self.assertEqual((Path(saved) / "pkg/__pycache__/example.pyc").read_bytes(), b"same bytes")
+
+    def test_generated_growth_beyond_limit_is_refused(self):
+        spec = importlib.util.spec_from_file_location("cleanup_workflow", WORKFLOW)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        generated = self.wt / "__pycache__/example.pyc"
+        generated.parent.mkdir()
+        generated.write_bytes(b"small")
+        backups = self.fx.tmp / "safe-backups"
+        backups.mkdir(mode=0o700)
+        real_open = os.open
+        def grow_after_open(file, flags, *args, **kwargs):
+            fd = real_open(file, flags, *args, **kwargs)
+            if str(file) == "example.pyc":
+                with generated.open("r+b") as stream:
+                    stream.truncate(64 * 1024 * 1024 + 1)
+            return fd
+        with mock.patch.dict(os.environ, {"MEGAI_CLEANUP_BACKUPS": str(backups)}), \
+             mock.patch.object(module.os, "open", side_effect=grow_after_open):
+            with self.assertRaises(ValueError):
+                module._preserve_generated_ignored(str(self.wt), self.fx.primary,
+                                                   "wks_own", ["__pycache__/example.pyc"])
+        self.assertTrue(generated.exists())
+
+    def test_stale_tip_or_ignored_data_keeps_both_resources(self):
+        stale = self.run_cleanup(tip=self.fx.dev)
+        self.assertNotEqual(stale.returncode, 0)
+        self.assertTrue(self.wt.exists())
+        (self.wt / "build").mkdir()
+        (self.wt / "build" / "keep.txt").write_text("private")
+        ignored = self.run_cleanup()
+        self.assertNotEqual(ignored.returncode, 0)
+        self.assertTrue((self.wt / "build" / "keep.txt").exists())
+        self.assertEqual(len(json.loads(self.state.read_text())["workspaces"]), 1)
+
+    def test_idle_direct_child_archives_before_workspace_and_branch(self):
+        child = inspect("child", self.wt, archived=False)["child"]
+        child["ParentAgentId"] = RUNNER
+        self.state.write_text(json.dumps({"workspaces": [workspace("wks_own", self.wt)],
+                                          "agents": [agent("child", self.wt)],
+                                          "inspects": {"child": child}}))
+        order = self.fx.tmp / "archive-order"
+        result = self.run_cleanup(env={"FAKE_ARCHIVE_LOG": str(order)})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(order.read_text().splitlines(), ["agent", "workspace"])
+        self.assertFalse(self.wt.exists())
+        self.assertEqual(_git(self.fx.primary, "branch", "--list", "task/megai-162"), "")
+
+    def test_child_archive_failure_preserves_workspace_and_ref(self):
+        child = inspect("child", self.wt, archived=False)["child"]
+        child["ParentAgentId"] = RUNNER
+        self.state.write_text(json.dumps({"workspaces": [workspace("wks_own", self.wt)],
+                                          "agents": [agent("child", self.wt)],
+                                          "inspects": {"child": child}}))
+        result = self.run_cleanup(env={"FAKE_AGENT_ARCHIVE_FAIL": "1"})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+        self.assertNotEqual(_git(self.fx.primary, "branch", "--list", "task/megai-162"), "")
+
+    def test_new_owner_after_child_archive_keeps_workspace(self):
+        child = inspect("child", self.wt, archived=False)["child"]
+        child["ParentAgentId"] = RUNNER
+        self.state.write_text(json.dumps({"workspaces": [workspace("wks_own", self.wt)],
+                                          "agents": [agent("child", self.wt)],
+                                          "inspects": {"child": child}}))
+        result = self.run_cleanup(env={"FAKE_NEW_OWNER_AFTER_ARCHIVE": "1"})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+        self.assertNotEqual(_git(self.fx.primary, "branch", "--list", "task/megai-162"), "")
+
+    def test_unreleased_agent_keeps_workspace(self):
+        result = self.run_cleanup(env={"FAKE_INSPECTS": json.dumps(inspect("child", self.wt, archived=False))})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+
+    def test_unmerged_task_keeps_workspace(self):
+        _git(self.fx.primary, "reset", "--hard", self.fx.dev)
+        result = self.run_cleanup()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+
+    def test_terminal_or_running_agent_keeps_workspace(self):
+        terminal = self.run_cleanup(env={"FAKE_TERMINALS": json.dumps([{"id": "busy"}])})
+        self.assertNotEqual(terminal.returncode, 0)
+        running = self.run_cleanup(env={"FAKE_AGENTS": json.dumps([agent("child", self.wt, "running")])})
+        self.assertNotEqual(running.returncode, 0)
+        self.assertTrue(self.wt.exists())
+
+    def test_foreign_workspace_or_current_cwd_keeps_resources(self):
+        foreign = self.run_cleanup(env={"FAKE_PROJECTS": json.dumps([{
+            "projectId": "other", "name": "other", "kind": "git", "path": str(self.fx.root)
+        }])})
+        self.assertNotEqual(foreign.returncode, 0)
+        default = self.fx.env(agents=[agent("child", self.wt)],
+                              inspects=inspect("child", self.wt, archived=True))
+        default["FAKE_PASEO_STATE"] = str(self.state)
+        current = run_cli(["cleanup", "--cwd", str(self.wt), "--workspace", "wks_own",
+                           "--branch", "task/megai-162", "--tip", self.tip], env=default)
+        self.assertNotEqual(current.returncode, 0)
+        self.assertTrue(self.wt.exists())
+
+    def test_descendant_agent_or_caller_keeps_workspace(self):
+        nested = self.wt / "nested"
+        nested.mkdir()
+        agents = [agent("child", self.wt), agent("other", nested, "running")]
+        inspects = inspect("child", self.wt, archived=True)
+        inspects.update(inspect("other", nested, archived=False, status="running"))
+        result = self.run_cleanup(env={"FAKE_AGENTS": json.dumps(agents),
+                                       "FAKE_INSPECTS": json.dumps(inspects)})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+        caller = self.fx.env(agents=[agent("caller", nested)],
+                             inspects=inspect("caller", nested, archived=False), runner="caller")
+        caller["FAKE_PASEO_STATE"] = str(self.state)
+        result = run_cli(["cleanup", "--cwd", str(nested), "--workspace", "wks_own",
+                          "--branch", "task/megai-162", "--tip", self.tip], env=caller)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+
+    def test_missing_agent_release_evidence_keeps_workspace(self):
+        result = self.run_cleanup(env={"FAKE_AGENTS": "[]"})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+
+    def test_terminal_appearing_during_preflight_keeps_workspace(self):
+        counter = self.fx.tmp / "terminal-reads"
+        counter.write_text("0")
+        result = self.run_cleanup(env={"FAKE_TERMINAL_COUNTER": str(counter)})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(self.wt.exists())
+
+    def test_failed_branch_readback_never_reports_deletion(self):
+        spec = importlib.util.spec_from_file_location("cleanup_workflow", WORKFLOW)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        real = module._local_ref
+        def fail_after_deletion(path, name):
+            result = real(path, name)
+            if name == "task/megai-162" and result == (None, None):
+                return None, "simulated read failure"
+            return result
+        env = self.fx.env(agents=[agent("child", self.wt)],
+                          inspects=inspect("child", self.wt, archived=True))
+        env["FAKE_PASEO_STATE"] = str(self.state)
+        with mock.patch.dict(os.environ, env), mock.patch.object(module, "_local_ref", side_effect=fail_after_deletion):
+            with self.assertRaises(ValueError):
+                module.cleanup(str(self.fx.primary), "wks_own", "task/megai-162", self.tip)
+
+    def test_no_dev_checkout_keeps_workspace_before_archival(self):
+        _git(self.fx.primary, "switch", "main")
+        result = self.run_cleanup()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("dev checkout", result.stderr)
+        self.assertTrue(self.wt.exists())
+        self.assertEqual(len(json.loads(self.state.read_text())["workspaces"]), 1)
+
+    def test_archived_workspace_is_not_assumed_safe_for_branch_retry(self):
+        self.assertEqual(self.run_cleanup().returncode, 0)
+        result = self.run_cleanup()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("missing", result.stderr)
 
 
 def workspace(ws_id, cwd, project=PROJECT, isolation="worktree", name=None):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Explicit opt-in compact token profile for Pi.
 
-Caveman/Ponytail core adapters, RTK discovery guidance and the Headroom style
+Caveman core adapter, RTK discovery guidance and the Headroom style
 handoff are staged through the existing slim-wiring Plan (receipts and private
 backups). The default is a read-only preflight; --apply, --remove and --verify
 write only owned assets and preserve unrelated Pi configuration, credentials,
@@ -25,7 +25,7 @@ BEGIN = "<!-- megai:token-profile:begin -->"
 END = "<!-- megai:token-profile:end -->"
 SIDECAR = "megai-token-profile.json"
 HEADROOM_ADAPTER = "extensions/megai-headroom/index.ts"
-SKILLS = ("caveman", "ponytail")
+SKILLS = ("caveman",)
 
 
 def agent_root() -> Path:
@@ -82,6 +82,7 @@ def stage_profile(plan: Plan, root: Path, source: Path, remove: bool = False) ->
     copy can never leave the sidecar active against an old extension.
     """
     stage_marker(plan, root, profile_block(source), remove)
+    plan.retire_tree(root / "skills/ponytail", False)
     base = source / "pi-skill/token-profile"
     for skill in SKILLS:
         for name in ("SKILL.md", "LICENSE.md"):

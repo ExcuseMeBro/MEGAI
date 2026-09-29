@@ -14,6 +14,6 @@ export default function projectRules(pi: ExtensionAPI) {
     }
     const context = JSON.parse(result.stdout);
     const rules = context.rules.map((file: string) => `\nLocal rules from ${file}:\n${readFileSync(file, "utf8")}`).join("\n");
-    return { systemPrompt: event.systemPrompt + `\nCanonical project context: ${JSON.stringify(context)}\n${rules}\nThe global pi-workflow owns Plane transitions and branch delivery; packaged Superpowers checklists map to the same Plane item. Main promotion requires approval; Done requires verified main delivery.` };
+    return { systemPrompt: event.systemPrompt + `\nCanonical project context: ${JSON.stringify(context)}\n${rules}\nThe global pi-workflow owns Plane transitions and branch delivery; engineering skills use that same Plane item. Main promotion requires approval; Done requires verified main delivery.` };
   });
 }

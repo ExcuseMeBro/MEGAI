@@ -22,7 +22,7 @@ const config = join(agentDir, 'model-fallback.json');
 const loader = new DefaultResourceLoader({
   cwd: temp, agentDir,
   settingsManager: SettingsManager.inMemory({ packages: [] }),
-  additionalExtensionPaths: [resolve('pi-skill/model-fallback/index.ts')],
+  additionalExtensionPaths: [resolve(process.env.PI_FALLBACK_EXTENSION || 'pi-skill/model-fallback/index.ts')],
 });
 await loader.reload();
 const loaded = loader.getExtensions();

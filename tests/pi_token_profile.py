@@ -29,7 +29,7 @@ class TokenProfile(Slim):
         self.assertIn("preflight ready", result.stdout)
         self.assertEqual(self.snapshot(), before, "preflight must not write")
         self.profile("--apply")
-        for skill in ("caveman", "ponytail"):
+        for skill in ("caveman",):
             for name in ("SKILL.md", "LICENSE.md"):
                 self.assertEqual((agent / "skills" / skill / name).read_bytes(),
                                  (ROOT / "pi-skill/token-profile" / skill / name).read_bytes())
@@ -184,13 +184,13 @@ class TokenProfile(Slim):
 
     def test_verify_blocks_on_core_exclusion(self):
         agent = self.home / ".pi/agent"
-        exclusion = "!" + str(agent / "skills/ponytail") + "/**"
+        exclusion = "!" + str(agent / "skills/caveman") + "/**"
         self.write(agent / "settings.json", json.dumps({"skills": [exclusion]}))
         self.profile("--apply")
         before = self.snapshot()
         result = self.profile("--verify", ok=False)
         self.assertIn("BLOCKED", result.stderr)
-        self.assertIn("ponytail", result.stderr)
+        self.assertIn("caveman", result.stderr)
         self.assertEqual(self.snapshot(), before)
 
     def test_malformed_settings_type_is_reported_without_crashing(self):
@@ -208,7 +208,7 @@ class TokenProfile(Slim):
         self.wire_pi()
         self.profile("--apply")
         self.wire_pi()
-        for skill in ("caveman", "ponytail"):
+        for skill in ("caveman",):
             for name in ("SKILL.md", "LICENSE.md"):
                 self.assertEqual((agent / "skills" / skill / name).read_bytes(),
                                  (ROOT / "pi-skill/token-profile" / skill / name).read_bytes())
@@ -299,9 +299,8 @@ class TokenProfile(Slim):
         self.profile("--verify", env=env)
         cases = (
             ("relative parent-name exclusion", {"skills": ["!caveman"]}),
-            ("relative ponytail exclusion", {"skills": ["!ponytail"]}),
             ("wildcard caveman exclusion", {"skills": ["!" + str(agent / "skills/caveman") + "/**"]}),
-            ("exact force-exclude of the ponytail dir", {"skills": ["-" + str(agent / "skills/ponytail")]}),
+            ("exact force-exclude of the caveman dir", {"skills": ["-" + str(agent / "skills/caveman")]}),
             ("excluded Headroom extension",
              {"extensions": ["-" + str(agent / "extensions/megai-headroom/index.ts")]}),
         )
@@ -325,12 +324,12 @@ class TokenProfile(Slim):
         self.write(agent / "skills/user-skill/SKILL.md", "---\nname: user-skill\ndescription: user\n---\n")
         (agent / "megai-token-profile.json").unlink()
         self.wire_pi()
-        for skill in ("caveman", "ponytail"):
+        for skill in ("caveman",):
             self.assertFalse((agent / "skills" / skill / "SKILL.md").exists())
             self.assertFalse((agent / "skills" / skill / "LICENSE.md").exists())
         self.assertNotIn("megai:token-profile", (agent / "AGENTS.md").read_text())
         receipt = json.loads((self.megai / "slim-wiring.json").read_text())
-        for skill in ("caveman", "ponytail"):
+        for skill in ("caveman",):
             for name in ("SKILL.md", "LICENSE.md"):
                 self.assertNotIn(str(agent / "skills" / skill / name), receipt)
         self.assertNotIn(str(agent / "megai-token-profile.json"), receipt)
