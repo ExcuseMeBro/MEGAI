@@ -28,10 +28,6 @@ def retire_jev_browser(plan, path: Path) -> None:
 def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> None:
     from retire_local_decisions import stage_pi_assets
     from slim_wiring import MEGAI, digest, read
-    from laya_runtime import preflight as laya_preflight
-
-    if not remove:
-        laya_preflight(MEGAI)
 
     policy = (source / "pi-skill/delegation.md").read_bytes()
     path = root / "AGENTS.md"
@@ -80,19 +76,15 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
     # and a compaction companion; its sources and published copies are retired by
     # the same transaction so a reinstall leaves none of it behind.
     stage_pi_assets(plan, root)
-    # Retire only receipt-owned hosted decision resources before staging the
-    # locally pinned extension. No TypeSafe endpoint or credential is consulted.
+    # Retire only receipt-owned decision resources; unknown edits are preserved.
     plan.retire(root / "extensions/megai-jev/index.ts")
     plan.retire(root / "extensions/megai-jev-compaction/index.ts")
-    for filename in ("index.ts", "bridge.py", "compaction.ts"):
-        plan.asset(root / "extensions/megai-laya" / filename,
-                   (source / "pi-skill/laya" / filename).read_bytes(), remove)
     plan.retire(root / "extensions/megai-antigravity/index.ts")
     delegation = root / "skills/megai/delegation.md"
     installed = read(delegation)
     if installed is None or installed == policy or plan.owned(delegation, installed):
         plan.asset(delegation, policy, remove)
-    # No browser automation is offered by the Laya profile; unknown edits block.
+    # Unknown edits to retired browser resources block cleanup.
     plan.retire(root / "skills/jev-browser/SKILL.md")
     retire_jev_browser(plan, MEGAI / "bin/jev-browser")
     # An unowned, operator-edited policy is preserved instead of claimed.

@@ -19,9 +19,6 @@ detect_runtimes
 [ "$MEGAI_HAS_CURL" = "1" ] || die "curl required"
 [ "$MEGAI_HAS_PY" = "1" ] || die "Python 3.11+ required for safe policy/config validation"
 python3 -c 'import tomllib' || die "Python 3.11+ required"
-# Provision the isolated, cached Laya runtime before policy preflight. This
-# never touches Pi settings; an unowned runtime blocks without replacement.
-python3 "${MEGAI_SOURCE:-$MEGAI_HOME}/lib/laya_runtime.py" --install || die "Pinned local Laya runtime unavailable offline"
 # Validate every selected client before source publication or Pi config mutation.
 python3 "$LIB/slim_wiring.py" all --check
 python3 "$LIB/retire_legacy_sources.py" --check

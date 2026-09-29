@@ -2,35 +2,17 @@
 """Offline model-policy wiring; real HOME and credentials remain untouched."""
 import json
 import hashlib
-import shutil
 import sys
 import unittest
 
-from pi_laya_bridge import BridgeTests
 from slim_distribution import ROOT, Slim
 
 
 class ModelPolicy(Slim):
-    def test_missing_laya_runtime_blocks_profile_install_without_writes(self):
-        shutil.rmtree(self.megai / "laya-runtime")
-        before = self.snapshot()
-        result = self.wire(ok=False)
-        self.assertIn("laya-runtime", result.stderr)
-        self.assertEqual(self.snapshot(), before)
-
-    def test_unowned_laya_runtime_blocks_profile_install_without_writes(self):
-        (self.megai / "laya-runtime/.megai-owned").write_text("operator runtime\n")
-        before = self.snapshot()
-        result = self.wire(ok=False)
-        self.assertIn("unowned laya-runtime", result.stderr)
-        self.assertEqual(self.snapshot(), before)
-
-    def test_installs_laya_without_hosted_jev_or_browser(self):
+    def test_policy_needs_no_local_runtime_and_retires_hosted_jev_browser(self):
         self.wire()
         agent = self.home / ".pi/agent"
-        for name in ("index.ts", "bridge.py", "compaction.ts"):
-            self.assertEqual((agent / "extensions/megai-laya" / name).read_bytes(),
-                             (ROOT / "pi-skill/laya" / name).read_bytes())
+        self.assertFalse((agent / "extensions/megai-laya/index.ts").exists())
         for path in ("extensions/megai-jev/index.ts", "extensions/megai-jev-compaction/index.ts",
                      "skills/jev-browser/SKILL.md"):
             self.assertFalse((agent / path).exists(), path)
@@ -257,16 +239,10 @@ class ModelPolicy(Slim):
 
         self.wire()
         for path in seeded:
-            if "extensions/megai-laya/" in str(path):
-                self.assertEqual(path.read_bytes(), (ROOT / "pi-skill/laya" / path.name).read_bytes())
-            else:
-                self.assertFalse(path.exists())
+            self.assertFalse(path.exists())
         receipt = json.loads(receipt_path.read_text())
         for path in seeded:
-            if "extensions/megai-laya/" in str(path):
-                self.assertIn(str(path), receipt)
-            else:
-                self.assertNotIn(str(path), receipt)
+            self.assertNotIn(str(path), receipt)
         state = json.loads(state_path.read_text())
         self.assertNotIn(STATE_TOOL, state["tools"])
         self.assertFalse(published.exists())
@@ -381,16 +357,22 @@ class ModelPolicy(Slim):
         self.assertTrue(runtime.is_dir())
         self.assertFalse(list((self.megai / "backups").glob("retired-decision-runtime*")))
 
-    def test_local_compaction_only_deduplicates_and_falls_back_to_native(self):
-        """Local decisions do not discard unique history or replace Pi permissions."""
+    def test_retired_current_runtime_is_archived_and_unowned_collision_blocks(self):
+        sys.path.insert(0, str(self.megai / "lib"))
+        from retire_local_decisions import CURRENT_OWNER, CURRENT_RUNTIME
+
+        runtime = self.megai / CURRENT_RUNTIME
+        self.write(runtime / ".megai-owned", CURRENT_OWNER)
+        self.write(runtime / "bin/python", "old runtime\n")
         self.wire()
-        agent = self.home / ".pi/agent"
-        source = (agent / "extensions/megai-laya/compaction.ts").read_text()
-        self.assertIn("duplicate", source)
-        self.assertIn("if (!duplicateCount", source)
-        policy = " ".join((agent / "skills/megai/SKILL.md").read_text().split()).lower()
-        self.assertIn("pi's native summarizer", policy)
-        self.assertIn("cannot block tools", policy)
+        self.assertFalse(runtime.exists())
+        backups = self.megai / "backups"
+        self.assertTrue(any(p.is_file() and p.read_text() == CURRENT_OWNER
+                            for p in backups.rglob(".megai-owned")))
+        self.write(runtime / ".megai-owned", "operator runtime\n")
+        before = self.snapshot()
+        self.assertIn("unowned retired runtime preserved", self.wire(ok=False).stderr)
+        self.assertEqual(self.snapshot(), before)
 
     def test_owned_legacy_guard_retired_on_upgrade(self):
         import hashlib
@@ -560,8 +542,7 @@ class ModelPolicy(Slim):
 
 def load_tests(loader, tests, pattern):
     # ModelPolicy inherits the distribution cases; do not run imported Slim twice.
-    return unittest.TestSuite((loader.loadTestsFromTestCase(ModelPolicy),
-                               loader.loadTestsFromTestCase(BridgeTests)))
+    return loader.loadTestsFromTestCase(ModelPolicy)
 
 
 if __name__ == "__main__":

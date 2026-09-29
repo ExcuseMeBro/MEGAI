@@ -20,9 +20,6 @@ const agent = (name) => join(temp, name);
 
 function install(agentDir, ...flags) {
   const megai = join(temp, 'megai');
-  mkdirSync(join(megai, 'laya-runtime', 'bin'), { recursive: true });
-  writeFileSync(join(megai, 'laya-runtime', '.megai-owned'), 'megai-laya\nversion=0.3.20\n');
-  writeFileSync(join(megai, 'laya-runtime', 'bin', 'python'), 'test fixture\n');
   execFileSync('python3', ['-B', resolve('lib/pi_model_policy.py'), ...flags], {
     stdio: 'pipe',
     env: { ...process.env, HOME: temp, MEGAI_HOME: megai, MEGAI_SOURCE: ROOT, PI_CODING_AGENT_DIR: agentDir },
