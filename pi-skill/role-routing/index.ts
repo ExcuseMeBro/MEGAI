@@ -23,7 +23,7 @@ const BLOCKED =
   "not guess role routing or expose raw configuration.\n";
 
 type Role = { provider: string; model: string; thinking: string };
-type Config = { preset?: string; roles: Record<string, Role> };
+type Config = { preset?: string; routing?: "reviewed-hybrid"; fallback?: Role; roles: Record<string, Role> };
 type Read = { kind: "missing" } | { kind: "invalid" } | { kind: "data"; text: string };
 
 const record = (value: unknown): Record<string, unknown> | undefined =>
@@ -66,6 +66,16 @@ function parseConfig(text: string): Config | undefined {
   if (!config || config.schema !== 1 || !roles) return undefined;
   if ("preset" in config && config.preset !== "economy" && config.preset !== "native") return undefined;
   if ("workerExecutor" in config) return undefined;
+  if ("routing" in config && config.routing !== "reviewed-hybrid") return undefined;
+  let fallback: Role | undefined;
+  if ("fallback" in config) {
+    const value = record(config.fallback);
+    const { provider, model, thinking } = value ?? {};
+    if (typeof provider !== "string" || !PROVIDER.test(provider)) return undefined;
+    if (typeof model !== "string" || !MODEL.test(model)) return undefined;
+    if (typeof thinking !== "string" || !THINKING_LEVELS.has(thinking)) return undefined;
+    fallback = { provider, model, thinking };
+  }
   const keys = Object.keys(roles);
   if (keys.length !== ROLE_KEYS.length || !ROLE_KEYS.every((key) => keys.includes(key))) return undefined;
   const parsed: Record<string, Role> = {};
@@ -79,6 +89,8 @@ function parseConfig(text: string): Config | undefined {
   }
   return {
     preset: typeof config.preset === "string" ? config.preset : undefined,
+    routing: config.routing === "reviewed-hybrid" ? config.routing : undefined,
+    fallback,
     roles: parsed,
   };
 }
@@ -103,12 +115,25 @@ function render(config: Config): string {
         "work direct, and a healthy configured worker parent still does its own routine " +
         "work. This routing belongs to the parent; delegated workers never re-delegate.");
   }
+  if (config.routing === "reviewed-hybrid") {
+    parts.push(
+      "Parent-only reviewed-hybrid routing: keep questions, trivial edits, new features, " +
+        "ambiguous work and security/data-integrity changes in the selected GPT parent. " +
+        "Send substantial bounded low-risk bugfix/refactor implementation to ONE configured " +
+        "worker; no mandatory scout/planner launch. A parent already using that worker " +
+        "model performs its own bounded work. Collect actual tests and require a fresh " +
+        "configured GPT reviewer before accepting worker output: passing tests alone " +
+        "did not catch all failures in the paired benchmark. One review-confirmed repair " +
+        "and fresh review is allowed; count its full time/tokens. Unresolved findings " +
+        "remain blocked, not success. Leaves do not dispatch this routing.");
+  }
+  const fallback = config.fallback ?? { provider: "openai-codex", model: "gpt-6-luna", thinking: "high" };
   const eligible = ROLE_KEYS.filter((key) => ELIGIBLE.has(key) && identity(config.roles[key]) === DEEPSEEK_FLASH);
   if (eligible.length > 0) {
     parts.push(
       `Fallback for ${eligible.join("/")} whose configured primary is ${DEEPSEEK_FLASH}: ` +
         `only a confirmed DeepSeek 402 insufficient-balance error permits one transition ` +
-        `to openai-codex/gpt-6-luna (high). Preserve the stopped writer's diff, evidence ` +
+        `to ${identity(fallback)} (${fallback.thinking}). Preserve the stopped writer's diff, evidence ` +
         `and verification; do not retry or cycle providers. Auth/permission failures, ` +
         `shared outages, other errors and uncertain writes need reconciliation, not model ` +
         `hopping; never buy credits. The parent keeps its own selected model and thinking.`);
