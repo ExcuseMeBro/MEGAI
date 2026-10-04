@@ -204,6 +204,21 @@ try {
     && !customTurn.prompt.includes('openai-codex/gpt-6-luna'),
     'custom schema1+roles without preset must keep GPT roles and inject no DeepSeek fallback chain');
 
+  const reviewed = agent('reviewed-hybrid');
+  install(reviewed);
+  const reviewedConfig = JSON.parse(readFileSync(join(ROOT, 'benchmark/pi-routing/recommended-roles.json')));
+  writeFileSync(join(reviewed, 'megai-roles.json'), JSON.stringify(reviewedConfig));
+  const reviewedExtensions = await loadExtensions(reviewed);
+  const reviewedTurn = await blockedNetwork(() => beginTurn(reviewedExtensions, BASE));
+  assert.match(reviewedTurn.prompt, /openai-codex\/gpt-6\.1-sol \(medium\)/);
+  assert.match(reviewedTurn.prompt, /deepseek\/deepseek-flash \(high\)/);
+  assert.match(reviewedTurn.prompt, /openai-codex\/gpt-5\.6-luna \(medium\)/);
+  assert.ok(!reviewedTurn.prompt.includes('openai-codex/gpt-6-luna'), 'explicit fallback replaces the legacy default');
+  assert.match(reviewedTurn.prompt, /Parent-only reviewed-hybrid routing/);
+  assert.match(reviewedTurn.prompt, /new features/);
+  assert.match(reviewedTurn.prompt, /One review-confirmed repair/);
+  assertSystemPromptOnly(reviewedTurn.results, 'custom routing only changes the per-turn system prompt');
+
   // 4. Each new prompt rereads the current config without a reload.
   const reread = agent('reread');
   install(reread, '--preset', 'economy');
@@ -242,6 +257,10 @@ try {
     ['instruction-provider', roleConfig({ ...deepseekRoles, planner: role(`deepseek\n${injection}`, 'deepseek-flash', 'high') })],
     ['instruction-model', roleConfig({ ...deepseekRoles, worker: role('deepseek', `deepseek-flash\n${injection}`, 'high') })],
     ['unknown-thinking', roleConfig({ ...deepseekRoles, planner: role('deepseek', 'deepseek-flash', 'ultra') })],
+    ['instruction-fallback', roleConfig(deepseekRoles, { fallback: role('openai-codex', `gpt-5.6-luna\n${injection}`, 'medium') })],
+    ['invalid-fallback-thinking', roleConfig(deepseekRoles, { fallback: role('openai-codex', 'gpt-5.6-luna', 'ultra') })],
+    ['null-fallback', roleConfig(deepseekRoles, { fallback: null })],
+    ['unknown-routing', roleConfig(deepseekRoles, { routing: injection })],
   ]) {
     const path = join(bad, 'megai-roles.json');
     rmSync(path, { recursive: true, force: true });

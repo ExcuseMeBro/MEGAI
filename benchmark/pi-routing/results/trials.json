@@ -1,0 +1,767 @@
+[
+  {
+    "arm": "deepseek-gpt",
+    "task": "bugfix",
+    "repeat": 1,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 30.47712037502788,
+    "usage": {
+      "input": 7763,
+      "output": 1526,
+      "cache_read": 16000,
+      "cache_write": 0,
+      "reasoning": 391,
+      "total": 25289,
+      "cost_usd": 0.0100971
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 10,
+      "passed": true,
+      "seconds": 0.06162666704040021,
+      "test_sha256": "d108b6655fb0c7fa7703c7cf206ab2e3454883e87a76689b9b0e0d4b7b1800b7",
+      "module_sha256": "d4d830a7eb30e1ed7c0591cae5c50a1cf78fdaff2badbdc8c5a2406966e16d66"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "deepseek/deepseek-flash",
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r1-bugfix-deepseek-gpt/reviewer/ready/receipt.json",
+      "r1-bugfix-deepseek-gpt/reviewer/task/receipt.json",
+      "r1-bugfix-deepseek-gpt/worker/ready/receipt.json",
+      "r1-bugfix-deepseek-gpt/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "intervals.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "gpt-only",
+    "task": "bugfix",
+    "repeat": 1,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 74.16997070796788,
+    "usage": {
+      "input": 16096,
+      "output": 969,
+      "cache_read": 17536,
+      "cache_write": 0,
+      "reasoning": 0,
+      "total": 34601,
+      "cost_usd": 0.0436356
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 10,
+      "passed": true,
+      "seconds": 0.049703334108926356,
+      "test_sha256": "d108b6655fb0c7fa7703c7cf206ab2e3454883e87a76689b9b0e0d4b7b1800b7",
+      "module_sha256": "d4d830a7eb30e1ed7c0591cae5c50a1cf78fdaff2badbdc8c5a2406966e16d66"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r1-bugfix-gpt-only/reviewer/ready/receipt.json",
+      "r1-bugfix-gpt-only/reviewer/task/receipt.json",
+      "r1-bugfix-gpt-only/worker/ready/receipt.json",
+      "r1-bugfix-gpt-only/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "intervals.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "deepseek-gpt",
+    "task": "feature",
+    "repeat": 1,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 38.92572854203172,
+    "usage": {
+      "input": 8169,
+      "output": 2648,
+      "cache_read": 19328,
+      "cache_write": 0,
+      "reasoning": 951,
+      "total": 30145,
+      "cost_usd": 0.01295577
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 12,
+      "passed": true,
+      "seconds": 0.05956629093270749,
+      "test_sha256": "853badbcf5b4ca95b98e3d65d7ae9b6716b31969c662e0c770da5a1a427bb3ef",
+      "module_sha256": "1ea41382c16faf6a62e00f542cb02d5417ff80595d8db26b075c5f11dea49071"
+    },
+    "review_pass": false,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "deepseek/deepseek-flash",
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": false,
+    "stage_paths": [
+      "r1-feature-deepseek-gpt/reviewer/ready/receipt.json",
+      "r1-feature-deepseek-gpt/reviewer/task/receipt.json",
+      "r1-feature-deepseek-gpt/worker/ready/receipt.json",
+      "r1-feature-deepseek-gpt/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "batching.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "gpt-only",
+    "task": "feature",
+    "repeat": 1,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 80.439548375085,
+    "usage": {
+      "input": 14643,
+      "output": 1407,
+      "cache_read": 14592,
+      "cache_write": 0,
+      "reasoning": 46,
+      "total": 30642,
+      "cost_usd": 0.0448152
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 12,
+      "passed": true,
+      "seconds": 0.051636333111673594,
+      "test_sha256": "853badbcf5b4ca95b98e3d65d7ae9b6716b31969c662e0c770da5a1a427bb3ef",
+      "module_sha256": "b2e4e74a247d16123d2058fc8e6c83aa31d6c7781c1661b7d4d34df6459394f5"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r1-feature-gpt-only/reviewer/ready/receipt.json",
+      "r1-feature-gpt-only/reviewer/task/receipt.json",
+      "r1-feature-gpt-only/worker/ready/receipt.json",
+      "r1-feature-gpt-only/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "batching.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "deepseek-gpt",
+    "task": "refactor",
+    "repeat": 1,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 44.340712666045874,
+    "usage": {
+      "input": 9617,
+      "output": 4150,
+      "cache_read": 40704,
+      "cache_write": 0,
+      "reasoning": 1443,
+      "total": 54471,
+      "cost_usd": 0.01618472
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 10,
+      "passed": true,
+      "seconds": 0.055754416971467435,
+      "test_sha256": "120f18bfffed314eb990c5b75d39baaaa96e642435054af3a40234ff2a43f5b6",
+      "module_sha256": "06fbdc310a1b27c9c3c7825f3fab896487845571f1748f7b4502d2617439eeea"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "deepseek/deepseek-flash",
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r1-refactor-deepseek-gpt/reviewer/ready/receipt.json",
+      "r1-refactor-deepseek-gpt/reviewer/task/receipt.json",
+      "r1-refactor-deepseek-gpt/worker/ready/receipt.json",
+      "r1-refactor-deepseek-gpt/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "reporting.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "gpt-only",
+    "task": "refactor",
+    "repeat": 1,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 91.60315125004854,
+    "usage": {
+      "input": 15189,
+      "output": 1620,
+      "cache_read": 20736,
+      "cache_write": 0,
+      "reasoning": 84,
+      "total": 37545,
+      "cost_usd": 0.0486516
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 10,
+      "passed": true,
+      "seconds": 0.05804587504826486,
+      "test_sha256": "120f18bfffed314eb990c5b75d39baaaa96e642435054af3a40234ff2a43f5b6",
+      "module_sha256": "69769f2055c6b09e63093727ad07e59939f3afc57ceec850b74bed391459a740"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r1-refactor-gpt-only/reviewer/ready/receipt.json",
+      "r1-refactor-gpt-only/reviewer/task/receipt.json",
+      "r1-refactor-gpt-only/worker/ready/receipt.json",
+      "r1-refactor-gpt-only/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "reporting.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "deepseek-gpt",
+    "task": "bugfix",
+    "repeat": 2,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 29.408148458926007,
+    "usage": {
+      "input": 7181,
+      "output": 1445,
+      "cache_read": 16256,
+      "cache_write": 0,
+      "reasoning": 353,
+      "total": 24882,
+      "cost_usd": 0.01002064
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 10,
+      "passed": true,
+      "seconds": 0.054195916978642344,
+      "test_sha256": "d108b6655fb0c7fa7703c7cf206ab2e3454883e87a76689b9b0e0d4b7b1800b7",
+      "module_sha256": "d4d830a7eb30e1ed7c0591cae5c50a1cf78fdaff2badbdc8c5a2406966e16d66"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "deepseek/deepseek-flash",
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r2-bugfix-deepseek-gpt/reviewer/ready/receipt.json",
+      "r2-bugfix-deepseek-gpt/reviewer/task/receipt.json",
+      "r2-bugfix-deepseek-gpt/worker/ready/receipt.json",
+      "r2-bugfix-deepseek-gpt/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "intervals.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "gpt-only",
+    "task": "bugfix",
+    "repeat": 2,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 74.81293770798948,
+    "usage": {
+      "input": 24046,
+      "output": 918,
+      "cache_read": 14592,
+      "cache_write": 0,
+      "reasoning": 0,
+      "total": 39556,
+      "cost_usd": 0.0587312
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 10,
+      "passed": true,
+      "seconds": 0.05799820797983557,
+      "test_sha256": "d108b6655fb0c7fa7703c7cf206ab2e3454883e87a76689b9b0e0d4b7b1800b7",
+      "module_sha256": "d4d830a7eb30e1ed7c0591cae5c50a1cf78fdaff2badbdc8c5a2406966e16d66"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r2-bugfix-gpt-only/reviewer/ready/receipt.json",
+      "r2-bugfix-gpt-only/reviewer/task/receipt.json",
+      "r2-bugfix-gpt-only/worker/ready/receipt.json",
+      "r2-bugfix-gpt-only/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "intervals.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "deepseek-gpt",
+    "task": "feature",
+    "repeat": 2,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 37.04322929191403,
+    "usage": {
+      "input": 8319,
+      "output": 3058,
+      "cache_read": 19584,
+      "cache_write": 0,
+      "reasoning": 1157,
+      "total": 30961,
+      "cost_usd": 0.0138222
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 12,
+      "passed": true,
+      "seconds": 0.051831208053044975,
+      "test_sha256": "853badbcf5b4ca95b98e3d65d7ae9b6716b31969c662e0c770da5a1a427bb3ef",
+      "module_sha256": "7b170222570ff203e7c4c729ed6be60e219eb2253074924e05443e28e480fa1a"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "deepseek/deepseek-flash",
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r2-feature-deepseek-gpt/reviewer/ready/receipt.json",
+      "r2-feature-deepseek-gpt/reviewer/task/receipt.json",
+      "r2-feature-deepseek-gpt/worker/ready/receipt.json",
+      "r2-feature-deepseek-gpt/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "batching.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "gpt-only",
+    "task": "feature",
+    "repeat": 2,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 89.82092029193882,
+    "usage": {
+      "input": 21346,
+      "output": 1632,
+      "cache_read": 8704,
+      "cache_write": 0,
+      "reasoning": 83,
+      "total": 31682,
+      "cost_usd": 0.0598824
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 12,
+      "passed": true,
+      "seconds": 0.05096920893993229,
+      "test_sha256": "853badbcf5b4ca95b98e3d65d7ae9b6716b31969c662e0c770da5a1a427bb3ef",
+      "module_sha256": "e024be8879213d3e831dd20cf858d6f4861f09805b2eab2c04804c75865fa843"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r2-feature-gpt-only/reviewer/ready/receipt.json",
+      "r2-feature-gpt-only/reviewer/task/receipt.json",
+      "r2-feature-gpt-only/worker/ready/receipt.json",
+      "r2-feature-gpt-only/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "batching.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "deepseek-gpt",
+    "task": "refactor",
+    "repeat": 2,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 50.77647104195785,
+    "usage": {
+      "input": 10443,
+      "output": 5626,
+      "cache_read": 67968,
+      "cache_write": 0,
+      "reasoning": 3239,
+      "total": 84037,
+      "cost_usd": 0.01759321
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 10,
+      "passed": true,
+      "seconds": 0.06174916692543775,
+      "test_sha256": "120f18bfffed314eb990c5b75d39baaaa96e642435054af3a40234ff2a43f5b6",
+      "module_sha256": "12013e90472c5f0e866e7f75d2ddaffc6ac94a39e7c262171233f24fdacdffd1"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "deepseek/deepseek-flash",
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r2-refactor-deepseek-gpt/reviewer/ready/receipt.json",
+      "r2-refactor-deepseek-gpt/reviewer/task/receipt.json",
+      "r2-refactor-deepseek-gpt/worker/ready/receipt.json",
+      "r2-refactor-deepseek-gpt/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "reporting.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "gpt-only",
+    "task": "refactor",
+    "repeat": 2,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 86.44792945799418,
+    "usage": {
+      "input": 17774,
+      "output": 1621,
+      "cache_read": 8448,
+      "cache_write": 0,
+      "reasoning": 74,
+      "total": 27843,
+      "cost_usd": 0.0526028
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 10,
+      "passed": true,
+      "seconds": 0.06166866607964039,
+      "test_sha256": "120f18bfffed314eb990c5b75d39baaaa96e642435054af3a40234ff2a43f5b6",
+      "module_sha256": "69769f2055c6b09e63093727ad07e59939f3afc57ceec850b74bed391459a740"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r2-refactor-gpt-only/reviewer/ready/receipt.json",
+      "r2-refactor-gpt-only/reviewer/task/receipt.json",
+      "r2-refactor-gpt-only/worker/ready/receipt.json",
+      "r2-refactor-gpt-only/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "reporting.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "deepseek-gpt",
+    "task": "bugfix",
+    "repeat": 3,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 30.936654124991037,
+    "usage": {
+      "input": 7408,
+      "output": 1415,
+      "cache_read": 20608,
+      "cache_write": 0,
+      "reasoning": 379,
+      "total": 29431,
+      "cost_usd": 0.01000525
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 10,
+      "passed": true,
+      "seconds": 0.05729458399582654,
+      "test_sha256": "d108b6655fb0c7fa7703c7cf206ab2e3454883e87a76689b9b0e0d4b7b1800b7",
+      "module_sha256": "d4d830a7eb30e1ed7c0591cae5c50a1cf78fdaff2badbdc8c5a2406966e16d66"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "deepseek/deepseek-flash",
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r3-bugfix-deepseek-gpt/reviewer/ready/receipt.json",
+      "r3-bugfix-deepseek-gpt/reviewer/task/receipt.json",
+      "r3-bugfix-deepseek-gpt/worker/ready/receipt.json",
+      "r3-bugfix-deepseek-gpt/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "intervals.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "gpt-only",
+    "task": "bugfix",
+    "repeat": 3,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 74.12418683397118,
+    "usage": {
+      "input": 14022,
+      "output": 970,
+      "cache_read": 19584,
+      "cache_write": 0,
+      "reasoning": 0,
+      "total": 34576,
+      "cost_usd": 0.0397024
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 10,
+      "passed": true,
+      "seconds": 0.06422808289062232,
+      "test_sha256": "d108b6655fb0c7fa7703c7cf206ab2e3454883e87a76689b9b0e0d4b7b1800b7",
+      "module_sha256": "d4d830a7eb30e1ed7c0591cae5c50a1cf78fdaff2badbdc8c5a2406966e16d66"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r3-bugfix-gpt-only/reviewer/ready/receipt.json",
+      "r3-bugfix-gpt-only/reviewer/task/receipt.json",
+      "r3-bugfix-gpt-only/worker/ready/receipt.json",
+      "r3-bugfix-gpt-only/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "intervals.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "deepseek-gpt",
+    "task": "feature",
+    "repeat": 3,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 45.864404166000895,
+    "usage": {
+      "input": 10136,
+      "output": 4161,
+      "cache_read": 46976,
+      "cache_write": 0,
+      "reasoning": 1034,
+      "total": 61273,
+      "cost_usd": 0.01685166
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 12,
+      "passed": true,
+      "seconds": 0.054313041968271136,
+      "test_sha256": "853badbcf5b4ca95b98e3d65d7ae9b6716b31969c662e0c770da5a1a427bb3ef",
+      "module_sha256": "9a11d555d41a5ff544f57a5977212942ca420afeb63fda0b752532a34e4c5022"
+    },
+    "review_pass": false,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "deepseek/deepseek-flash",
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": false,
+    "stage_paths": [
+      "r3-feature-deepseek-gpt/reviewer/ready/receipt.json",
+      "r3-feature-deepseek-gpt/reviewer/task/receipt.json",
+      "r3-feature-deepseek-gpt/worker/ready/receipt.json",
+      "r3-feature-deepseek-gpt/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "batching.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "gpt-only",
+    "task": "feature",
+    "repeat": 3,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 93.03097983298358,
+    "usage": {
+      "input": 14352,
+      "output": 1667,
+      "cache_read": 9728,
+      "cache_write": 0,
+      "reasoning": 27,
+      "total": 25747,
+      "cost_usd": 0.0463468
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 12,
+      "passed": true,
+      "seconds": 0.06063904205802828,
+      "test_sha256": "853badbcf5b4ca95b98e3d65d7ae9b6716b31969c662e0c770da5a1a427bb3ef",
+      "module_sha256": "a8a394475dc4b1bde768659d10dfe537853a0625cc6f49622479f29613a4fc86"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r3-feature-gpt-only/reviewer/ready/receipt.json",
+      "r3-feature-gpt-only/reviewer/task/receipt.json",
+      "r3-feature-gpt-only/worker/ready/receipt.json",
+      "r3-feature-gpt-only/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "batching.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "deepseek-gpt",
+    "task": "refactor",
+    "repeat": 3,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 75.1845794999972,
+    "usage": {
+      "input": 9753,
+      "output": 3639,
+      "cache_read": 48000,
+      "cache_write": 0,
+      "reasoning": 1446,
+      "total": 61392,
+      "cost_usd": 0.0149523
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 10,
+      "passed": true,
+      "seconds": 0.0582665839465335,
+      "test_sha256": "120f18bfffed314eb990c5b75d39baaaa96e642435054af3a40234ff2a43f5b6",
+      "module_sha256": "76c9308713ec8a01ccf20cf24ab65e4345651b785e988270fa34fa3384b8b0ed"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "deepseek/deepseek-flash",
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r3-refactor-deepseek-gpt/reviewer/ready/receipt.json",
+      "r3-refactor-deepseek-gpt/reviewer/task/receipt.json",
+      "r3-refactor-deepseek-gpt/worker/ready/receipt.json",
+      "r3-refactor-deepseek-gpt/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "reporting.py",
+      "test_participant.py"
+    ]
+  },
+  {
+    "arm": "gpt-only",
+    "task": "refactor",
+    "repeat": 3,
+    "baseline": "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1",
+    "seconds": 113.50883458298631,
+    "usage": {
+      "input": 15352,
+      "output": 1920,
+      "cache_read": 27648,
+      "cache_write": 0,
+      "reasoning": 55,
+      "total": 44920,
+      "cost_usd": 0.0526688
+    },
+    "complete_usage": true,
+    "acceptance": {
+      "exit": 0,
+      "tests": 10,
+      "passed": true,
+      "seconds": 0.055053874966688454,
+      "test_sha256": "120f18bfffed314eb990c5b75d39baaaa96e642435054af3a40234ff2a43f5b6",
+      "module_sha256": "09bb428dcc5cfc3de099067a6aafee58423e9f6c078f8d4b1712aef87f74b862"
+    },
+    "review_pass": true,
+    "scope_ok": true,
+    "fallback": false,
+    "actual_models": [
+      "openai-codex/gpt-6.1-sol"
+    ],
+    "pass_trial": true,
+    "stage_paths": [
+      "r3-refactor-gpt-only/reviewer/ready/receipt.json",
+      "r3-refactor-gpt-only/reviewer/task/receipt.json",
+      "r3-refactor-gpt-only/worker/ready/receipt.json",
+      "r3-refactor-gpt-only/worker/task/receipt.json"
+    ],
+    "changed_files": [
+      "reporting.py",
+      "test_participant.py"
+    ]
+  }
+]

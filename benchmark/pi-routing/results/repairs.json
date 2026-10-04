@@ -1,0 +1,102 @@
+[
+  {
+    "original_trial": "r1-feature-deepseek-gpt",
+    "seconds": 86.40628837491386,
+    "usage": {
+      "input": 9774,
+      "output": 1780,
+      "cache_read": 32000,
+      "cache_write": 0,
+      "reasoning": 402,
+      "total": 43554,
+      "cost_usd": 0.0126483
+    },
+    "original_seconds": 38.92572854203172,
+    "original_usage": {
+      "input": 8169,
+      "output": 2648,
+      "cache_read": 19328,
+      "cache_write": 0,
+      "reasoning": 951,
+      "total": 30145,
+      "cost_usd": 0.01295577
+    },
+    "acceptance": {
+      "exit": 0,
+      "tests": 12,
+      "passed": true,
+      "seconds": 0.051614583004266024,
+      "test_sha256": "853badbcf5b4ca95b98e3d65d7ae9b6716b31969c662e0c770da5a1a427bb3ef",
+      "module_sha256": "26b76fcd42dd43673c811c74101f319a6c05d1c2a8ed3358e19d85f82c3e19b7"
+    },
+    "regression_exit": 0,
+    "review_pass": true,
+    "pass_repair": true,
+    "stage_paths": [
+      "r1-feature-deepseek-gpt/repair/reviewer/ready/receipt.json",
+      "r1-feature-deepseek-gpt/repair/reviewer/task/receipt.json",
+      "r1-feature-deepseek-gpt/repair/worker/ready/receipt.json",
+      "r1-feature-deepseek-gpt/repair/worker/task/receipt.json"
+    ],
+    "end_to_end_seconds": 125.33201691694558,
+    "end_to_end_usage": {
+      "input": 17943,
+      "output": 4428,
+      "cache_read": 51328,
+      "cache_write": 0,
+      "reasoning": 1353,
+      "total": 73699,
+      "cost_usd": 0.02560407
+    }
+  },
+  {
+    "original_trial": "r3-feature-deepseek-gpt",
+    "seconds": 76.70939612505026,
+    "usage": {
+      "input": 12334,
+      "output": 3426,
+      "cache_read": 51200,
+      "cache_write": 0,
+      "reasoning": 1783,
+      "total": 66960,
+      "cost_usd": 0.0166347
+    },
+    "original_seconds": 45.864404166000895,
+    "original_usage": {
+      "input": 10136,
+      "output": 4161,
+      "cache_read": 46976,
+      "cache_write": 0,
+      "reasoning": 1034,
+      "total": 61273,
+      "cost_usd": 0.01685166
+    },
+    "acceptance": {
+      "exit": 0,
+      "tests": 12,
+      "passed": true,
+      "seconds": 0.05652233294676989,
+      "test_sha256": "853badbcf5b4ca95b98e3d65d7ae9b6716b31969c662e0c770da5a1a427bb3ef",
+      "module_sha256": "d7e0e651e4b0f2fefdaee49f459d5179cc907019623311bdd7de04a87f99361c"
+    },
+    "regression_exit": 0,
+    "review_pass": true,
+    "pass_repair": true,
+    "stage_paths": [
+      "r3-feature-deepseek-gpt/repair/reviewer/ready/receipt.json",
+      "r3-feature-deepseek-gpt/repair/reviewer/task/receipt.json",
+      "r3-feature-deepseek-gpt/repair/worker/ready/receipt.json",
+      "r3-feature-deepseek-gpt/repair/worker/task/receipt.json"
+    ],
+    "end_to_end_seconds": 122.57380029105116,
+    "end_to_end_usage": {
+      "input": 22470,
+      "output": 7587,
+      "cache_read": 98176,
+      "cache_write": 0,
+      "reasoning": 2817,
+      "total": 128233,
+      "cost_usd": 0.03348636
+    }
+  }
+]
