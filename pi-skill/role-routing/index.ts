@@ -125,7 +125,13 @@ function render(config: Config): string {
         "configured GPT reviewer before accepting worker output: passing tests alone " +
         "did not catch all failures in the paired benchmark. One review-confirmed repair " +
         "and fresh review is allowed; count its full time/tokens. Unresolved findings " +
-        "remain blocked, not success. Leaves do not dispatch this routing.");
+        "remain blocked, not success. Before implementation, state the routing decision: " +
+        "direct parent with the scope reason, or the selected worker identity. For eligible " +
+        "worker work, discover a supported native launch/completion path and verify the " +
+        "child model/thinking before sending task context. Missing launch, isolation or " +
+        "review capability is BLOCKED; report the exact prerequisite instead of silently " +
+        "doing eligible worker work in GPT or claiming DeepSeek ran. Report the actual " +
+        "worker/reviewer identities and test results at handoff. Leaves do not dispatch this routing.");
   }
   const fallback = config.fallback ?? { provider: "openai-codex", model: "gpt-6-luna", thinking: "high" };
   const eligible = ROLE_KEYS.filter((key) => ELIGIBLE.has(key) && identity(config.roles[key]) === DEEPSEEK_FLASH);
