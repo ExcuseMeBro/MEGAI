@@ -8,7 +8,8 @@
  * Auth/permission, shared quota, other errors and context overflow never trigger a
  * swap. The configured DeepSeek-to-Luna pair comes from `model-fallback.json` when
  * readable and valid, otherwise from `DEFAULT_FALLBACKS`; an empty map disables it.
- * Luna explicitly uses high thinking, and the user sees a notification and session entry.
+ * Legacy Luna uses high thinking; the reviewed GPT-5.6 Luna target uses medium.
+ * The user sees a notification and session entry.
  *
  * The continuation is queued as a follow-up while the run is still alive, because a
  * prompt sent after the run settles is dropped in headless (`--print`) sessions.
@@ -20,6 +21,7 @@ import { join } from "node:path";
 
 const DEEPSEEK_FLASH = "deepseek/deepseek-flash";
 const GPT_LUNA = "openai-codex/gpt-6-luna";
+const REVIEWED_LUNA = "openai-codex/gpt-5.6-luna";
 const DEFAULT_FALLBACKS: Record<string, string> = { [DEEPSEEK_FLASH]: GPT_LUNA };
 const MAX_CONFIG_BYTES = 32 * 1024;
 const MAX_PAIRS = 16;
@@ -105,13 +107,13 @@ export default function modelFallback(pi: ExtensionAPI) {
     failed.add(failure.from);
     if (!failure.fallbackEligible) return;
     const partner = readFallbacks()[failure.from];
-    if (partner !== GPT_LUNA || failed.has(partner)) return;
+    if ((partner !== GPT_LUNA && partner !== REVIEWED_LUNA) || failed.has(partner)) return;
     const slash = partner.indexOf("/");
     const target = ctx.modelRegistry.find(partner.slice(0, slash), partner.slice(slash + 1));
     if (!target || fallbackAttempted) return;
     fallbackAttempted = true;
     if (!(await pi.setModel(target))) return;
-    if (partner === GPT_LUNA) pi.setThinkingLevel("high");
+    pi.setThinkingLevel(partner === REVIEWED_LUNA ? "medium" : "high");
     pi.appendEntry("megai-model-fallback", { from: failure.from, to: partner, reason: failure.reason });
     if (ctx.hasUI) {
       ctx.ui.notify(`MEGAI: ${failure.from} failed (${failure.reason}); continuing on ${partner}.`, "warning");
