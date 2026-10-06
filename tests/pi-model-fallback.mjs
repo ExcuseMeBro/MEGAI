@@ -3,7 +3,7 @@
 // reconciliation-only failures never switch, and that the optional user config is
 // honoured without changing anything else about the session.
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -34,6 +34,7 @@ const models = new Map([
   ['deepseek/deepseek-flash', { id: 'deepseek-flash', provider: 'deepseek' }],
   ['openai-codex/gpt-6-sol', { id: 'gpt-6-sol', provider: 'openai-codex' }],
   ['openai-codex/gpt-6-luna', { id: 'gpt-6-luna', provider: 'openai-codex' }],
+  ['openai-codex/gpt-5.6-luna', { id: 'gpt-5.6-luna', provider: 'openai-codex' }],
   ['openai-codex/gpt-5.5', { id: 'gpt-5.5', provider: 'openai-codex' }],
 ]);
 
@@ -218,6 +219,25 @@ reset();
 await fail('deepseek', 'deepseek-flash', '402 Insufficient Balance');
 assert.deepEqual(switched, ['openai-codex/gpt-6-luna'], 'Use the configured DeepSeek balance recovery pair');
 assert.deepEqual(thinking, ['high']);
+
+// Restore the saved reviewed profile, not a synthetic legacy mapping.
+const savedFallback = readFileSync(resolve('pi-defaults/local-profile/model-fallback.json'), 'utf8');
+writeFileSync(config, savedFallback);
+await emit('session_start');
+reset();
+await fail('deepseek', 'deepseek-flash', '402 Insufficient Balance');
+assert.deepEqual(switched, ['openai-codex/gpt-5.6-luna'], 'Restored reviewed profile must continue on GPT-5.6 Luna');
+assert.deepEqual(thinking, ['medium'], 'Restored reviewed profile must use medium thinking');
+assert.equal(sent.length, 1);
+await fail('deepseek', 'deepseek-flash', '402 Insufficient Balance');
+assert.equal(switched.length, 1, 'Reviewed profile must still permit only one transition');
+assert.equal(sent.length, 1);
+await emit('session_start');
+reset();
+await fail('deepseek', 'deepseek-flash', '402 Insufficient Balance; 403 permission denied');
+assert.deepEqual(switched, [], 'Reviewed profile must preserve permission-error blocking');
+assert.deepEqual(thinking, []);
+assert.equal(sent.length + entries.length + notices.length, 0);
 
 // An empty map is the documented off switch; an unusable file keeps the defaults.
 writeFileSync(config, JSON.stringify({ fallbacks: {} }));
