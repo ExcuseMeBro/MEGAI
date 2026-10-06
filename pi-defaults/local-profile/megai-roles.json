@@ -1,26 +1,11 @@
 {
   "schema": 1,
-  "preset": "native",
+  "routing": "reviewed-hybrid",
   "roles": {
-    "planner": {
-      "provider": "openai-codex",
-      "model": "gpt-6-sol",
-      "thinking": "high"
-    },
-    "scout": {
-      "provider": "openai-codex",
-      "model": "gpt-6-sol",
-      "thinking": "high"
-    },
-    "worker": {
-      "provider": "deepseek",
-      "model": "deepseek-flash",
-      "thinking": "high"
-    },
-    "reviewer": {
-      "provider": "openai-codex",
-      "model": "gpt-6-sol",
-      "thinking": "medium"
-    }
-  }
+    "planner": {"provider": "openai-codex", "model": "gpt-6.1-sol", "thinking": "medium"},
+    "scout": {"provider": "deepseek", "model": "deepseek-flash", "thinking": "high"},
+    "worker": {"provider": "deepseek", "model": "deepseek-flash", "thinking": "high"},
+    "reviewer": {"provider": "openai-codex", "model": "gpt-6.1-sol", "thinking": "medium"}
+  },
+  "fallback": {"provider": "openai-codex", "model": "gpt-5.6-luna", "thinking": "medium"}
 }

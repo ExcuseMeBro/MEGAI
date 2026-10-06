@@ -217,6 +217,11 @@ try {
   assert.match(reviewedTurn.prompt, /Parent-only reviewed-hybrid routing/);
   assert.match(reviewedTurn.prompt, /new features/);
   assert.match(reviewedTurn.prompt, /One review-confirmed repair/);
+  assert.match(reviewedTurn.prompt, /state the routing decision/);
+  assert.match(reviewedTurn.prompt, /verify the child model\/thinking/);
+  assert.match(reviewedTurn.prompt, /Missing launch, isolation or review capability is BLOCKED/);
+  assert.match(reviewedTurn.prompt, /instead of silently doing eligible worker work in GPT/);
+  assert.match(reviewedTurn.prompt, /actual worker\/reviewer identities and test results/);
   assertSystemPromptOnly(reviewedTurn.results, 'custom routing only changes the per-turn system prompt');
 
   // 4. Each new prompt rereads the current config without a reload.
