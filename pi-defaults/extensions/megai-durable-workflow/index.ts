@@ -96,7 +96,7 @@ export default function (pi: ExtensionAPI) {
           `${candidate.title}\n${candidate.content}\n\nEvidence: ${JSON.stringify(candidate.evidence)}\nReview report: ${report.path}\nSHA256: ${report.sha256}\nConfirm you reviewed these artifacts and the supported scope. This is not promotion.`)) {
           // Recheck the exact report displayed before confirmation as well as the record revision.
           if (readArtifact(report.path).sha256 !== report.sha256) throw new Error('Review report changed during confirmation');
-          data.review(candidate.id, candidate.revision, report.path, candidate);
+          data.review(candidate.id, candidate.revision, report.path, candidate, report.sha256);
           ctx.ui.notify('Reviewed. Promotion still needs /knowledge-promote and separate confirmation.', 'info');
         }
       } catch (error) { ctx.ui.notify(String(error), 'error'); }

@@ -123,6 +123,32 @@ test('tampering during confirmation and concurrent revocation block publication'
   assert.equal((await one.tool('knowledge_candidate', { action: 'get', id: candidate.id })).state, 'revoked');
 });
 
+test('report changes after UI recheck but during source capture refuse review publication', async () => {
+  const f = fixture(), one = await instance(f), candidate = await one.tool('knowledge_candidate', input(f));
+  const gitPath = realpathSync(execFileSync('which', ['git'], { encoding: 'utf8' }).trim());
+  const binaries = join(f.base, 'bin'); mkdirSync(binaries);
+  const marker = join(f.base, 'armed');
+  writeFileSync(join(binaries, 'git'), `#!${process.execPath}\n
+const { existsSync, writeFileSync, unlinkSync } = require('node:fs');
+const { spawnSync } = require('node:child_process');
+const args = process.argv.slice(2);
+if (args.includes('rev-parse') && args.includes('HEAD') && existsSync(${JSON.stringify(marker)})) {
+  writeFileSync(${JSON.stringify(f.report)}, 'Different unconfirmed report bytes');
+  unlinkSync(${JSON.stringify(marker)});
+}
+const child = spawnSync(${JSON.stringify(gitPath)}, args, { stdio: 'inherit' });
+process.exit(child.status ?? 1);\n`, { mode: 0o700 });
+  one.ctx.ui.confirm = async () => { writeFileSync(marker, 'armed'); return true; };
+  const previousPath = process.env.PATH;
+  try {
+    process.env.PATH = `${binaries}:${previousPath}`;
+    await one.command('knowledge-review', `${candidate.id} ${f.report}`);
+  } finally { process.env.PATH = previousPath; }
+  assert.equal((await one.tool('knowledge_candidate', { action: 'get', id: candidate.id })).state, 'candidate',
+    'review must not publish bytes different from the confirmed report');
+  assert.match(one.notifications.at(-1).message, /report.*(changed|mismatch)/i);
+});
+
 test('evidence and source drift after review refuse promotion', async () => {
   const f = fixture(), one = await instance(f), candidate = await one.tool('knowledge_candidate', input(f));
   await one.command('knowledge-review', `${candidate.id} ${f.report}`);

@@ -219,13 +219,16 @@ export class DurableStore {
     verifyEvidence(data.evidence);
     return data;
   }
-  review(id, revision, report, expected = null) {
+  review(id, revision, report, expected = null, confirmedReportHash = null) {
+    const confirmed = confirmedReportHash ?? readArtifact(report).sha256;
+    requireValue(HASH.test(confirmed), 'Expected confirmed review report SHA256');
     return this.mutate(() => {
       const data = this.validate(id);
       requireValue(data.revision === revision && data.state === 'candidate', 'Candidate changed or already reviewed');
       requireValue(expected === null || fingerprint(expected) === fingerprint(data), 'Candidate changed during confirmation');
       requireValue(fingerprint(data.source) === fingerprint(source(this.repo)), 'Source changed since staging; stage fresh knowledge');
       const artifact = readArtifact(report);
+      requireValue(artifact.sha256 === confirmed, 'Review report hash mismatch after confirmation');
       requireValue(lstatSync(artifact.path).size > 0, 'Review report must not be empty');
       data.review = { ...artifact, candidateDigest: knowledgeDigest(data), actor: 'user-ui', sessionId: this.sessionId, at: new Date().toISOString() };
       data.state = 'reviewed'; data.revision++;
