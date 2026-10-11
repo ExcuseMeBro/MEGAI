@@ -1,0 +1,20 @@
+{
+  "run_id": "warmup-pig-installed-stream",
+  "case": "stream",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 443.88825,
+  "cpu_ms": 110.00000000000001,
+  "avg_cpu_one_core_pct": 24.781011887564045,
+  "sampled_tree_peak_rss_mib": 90.421875,
+  "sample_count": 73,
+  "max_tree_processes": 3,
+  "time_max_process_rss_mib": 45.953125,
+  "first_request_ms": 83.403209,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    6052
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "run_id": "warmup-pi-installed-error-recovery",
+  "case": "error-recovery",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 341.012333,
+  "cpu_ms": 390.0,
+  "avg_cpu_one_core_pct": 114.36536519633734,
+  "sampled_tree_peak_rss_mib": 161.734375,
+  "sample_count": 54,
+  "max_tree_processes": 3,
+  "time_max_process_rss_mib": 149.71875,
+  "first_request_ms": 252.842875,
+  "requests": 4,
+  "tool_ends": 3,
+  "request_bytes": [
+    6001,
+    6377,
+    6685,
+    6977
+  ]
+}

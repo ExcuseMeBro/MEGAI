@@ -1,0 +1,21 @@
+{
+  "run_id": "warmup-pi-installed-read-large",
+  "case": "read-large",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 286.847166,
+  "cpu_ms": 320.0,
+  "avg_cpu_one_core_pct": 111.55766482280671,
+  "sampled_tree_peak_rss_mib": 138.5,
+  "sample_count": 46,
+  "max_tree_processes": 2,
+  "time_max_process_rss_mib": 137.875,
+  "first_request_ms": 228.923166,
+  "requests": 2,
+  "tool_ends": 1,
+  "request_bytes": [
+    5993,
+    32266
+  ]
+}

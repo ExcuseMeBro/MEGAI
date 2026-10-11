@@ -1,0 +1,20 @@
+{
+  "run_id": "09-pig-native-resume-2000",
+  "case": "resume-2000",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 179.770125,
+  "cpu_ms": 180.00000000000003,
+  "avg_cpu_one_core_pct": 100.12787163606858,
+  "sampled_tree_peak_rss_mib": 67.71875,
+  "sample_count": 29,
+  "max_tree_processes": 2,
+  "time_max_process_rss_mib": 66.78125,
+  "first_request_ms": 153.584208,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    440055
+  ]
+}

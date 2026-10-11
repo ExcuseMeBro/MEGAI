@@ -149,7 +149,7 @@ class ModelPolicy(Slim):
         self.assertIn("no model allowlist", policy)
         self.assertFalse((agent / "extensions/megai-model-guard/index.ts").exists())
         self.assertTrue((agent / "extensions/megai-provider-guard/index.ts").is_file())
-        self.assertTrue((agent / "extensions/megai-role-routing/index.ts").is_file())
+        self.assertFalse((agent / "extensions/megai-role-routing/index.ts").exists())
         self.assertTrue((agent / "extensions/megai-model-fallback/index.ts").is_file())
         self.assertFalse((agent / "extensions/megai-antigravity/index.ts").exists())
         before = self.snapshot()
@@ -184,11 +184,25 @@ class ModelPolicy(Slim):
         self.assertEqual(self.snapshot(), before)
         self.assertEqual(retired.read_text(), "operator-owned extension\n")
 
-    def test_role_routing_asset_installs_idempotently_and_preserves_collision(self):
+    def test_role_routing_is_retired_and_preserves_collision(self):
         self.wire()
         agent = self.home / ".pi/agent"
         target = agent / "extensions/megai-role-routing/index.ts"
-        self.assertEqual(target.read_bytes(), (self.megai / "pi-skill/role-routing/index.ts").read_bytes())
+        self.assertFalse(target.exists())
+        roles = agent / "megai-roles.json"
+        self.assertFalse(roles.exists())
+        # Seed assets owned by an earlier install, then prove retirement.
+        import hashlib
+        self.write(target, "previously managed routing\n")
+        self.write(roles, '{"schema": 1}')
+        receipt_path = self.megai / "slim-wiring.json"
+        receipt = json.loads(receipt_path.read_text())
+        for path in (target, roles):
+            receipt[str(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+        receipt_path.write_text(json.dumps(receipt))
+        self.wire()
+        self.assertFalse(target.exists())
+        self.assertFalse(roles.exists())
         fallback = agent / "extensions/megai-model-fallback/index.ts"
         self.assertEqual(fallback.read_bytes(), (self.megai / "pi-skill/model-fallback/index.ts").read_bytes())
         pool = agent / "extensions/megai-antigravity/index.ts"
@@ -201,7 +215,7 @@ class ModelPolicy(Slim):
         self.assertFalse(target.exists())
         self.write(target, "user-owned role routing")
         before = self.snapshot()
-        self.assertIn("custom/legacy asset preserved", self.wire(ok=False).stderr)
+        self.assertIn("unowned retired asset preserved", self.wire(ok=False).stderr)
         self.assertEqual(self.snapshot(), before)
 
     def test_reinstall_retires_previously_owned_decision_assets(self):
@@ -249,7 +263,7 @@ class ModelPolicy(Slim):
         self.assertFalse(runtime.exists())
         self.assertEqual(len(list((self.megai / "backups").glob("retired-decision-runtime*"))), 1)
         self.assertEqual(state["keep"], {"value": 42})
-        for name in ("megai-provider-guard", "megai-role-routing", "megai-model-fallback"):
+        for name in ("megai-provider-guard", "megai-model-fallback"):
             self.assertTrue((agent / "extensions" / name / "index.ts").is_file(), name)
         self.assertFalse((agent / "extensions/megai-antigravity/index.ts").exists())
         self.assertNotIn(TOOL, (agent / "AGENTS.md").read_text().lower())

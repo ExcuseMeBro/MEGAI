@@ -1,0 +1,11 @@
+[
+  {
+    "received_ns": 259275702757791,
+    "request_bytes": 439983,
+    "messages": 4002,
+    "tools_returned": 0,
+    "tool_results": [],
+    "requested_calls": [],
+    "history_present": true
+  }
+]

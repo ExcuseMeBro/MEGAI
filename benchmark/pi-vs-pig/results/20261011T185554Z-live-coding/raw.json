@@ -1,0 +1,518 @@
+[
+  {
+    "run_id": "00-pi-ttl-lru-feature",
+    "harness": "pi",
+    "task": "ttl-lru-feature",
+    "iteration": 0,
+    "accepted": true,
+    "failures": [],
+    "exit_code": 0,
+    "timed_out": false,
+    "acceptance_tests": {
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 19,
+      "exit_code": 0
+    },
+    "wall_ms": 55889.322834,
+    "cpu_ms": 1240.0,
+    "avg_cpu_one_core_pct": 2.218670646060596,
+    "sampled_tree_peak_rss_mib": 179.109375,
+    "memory_samples": 8967,
+    "first_delta_ms": 9877.596,
+    "assistant_responses": 7,
+    "tools": 7,
+    "tool_errors": 1,
+    "usage": {
+      "input": 7228,
+      "output": 2166,
+      "cacheRead": 11392,
+      "cacheWrite": 0,
+      "totalTokens": 20786
+    },
+    "reported_models": [
+      "gpt-6.1-sol"
+    ],
+    "reported_providers": [
+      "openai-codex"
+    ],
+    "reported_thinking": [
+      "medium"
+    ]
+  },
+  {
+    "run_id": "00-pig-native-ttl-lru-feature",
+    "harness": "pig-native",
+    "task": "ttl-lru-feature",
+    "iteration": 0,
+    "accepted": true,
+    "failures": [],
+    "exit_code": 0,
+    "timed_out": false,
+    "acceptance_tests": {
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 19,
+      "exit_code": 0
+    },
+    "wall_ms": 62693.503333,
+    "cpu_ms": 1530.0,
+    "avg_cpu_one_core_pct": 2.4404442544442295,
+    "sampled_tree_peak_rss_mib": 77.078125,
+    "memory_samples": 10151,
+    "first_delta_ms": 15811.238833,
+    "assistant_responses": 7,
+    "tools": 7,
+    "tool_errors": 1,
+    "usage": {
+      "input": 7416,
+      "output": 2261,
+      "cacheRead": 11904,
+      "cacheWrite": 0,
+      "totalTokens": 21581
+    },
+    "reported_models": [
+      "gpt-6.1-sol"
+    ],
+    "reported_providers": [
+      "openai-codex"
+    ],
+    "reported_thinking": [
+      "medium"
+    ]
+  },
+  {
+    "run_id": "00-pig-native-order-refactor",
+    "harness": "pig-native",
+    "task": "order-refactor",
+    "iteration": 0,
+    "accepted": true,
+    "failures": [],
+    "exit_code": 0,
+    "timed_out": false,
+    "acceptance_tests": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 12,
+      "exit_code": 0
+    },
+    "wall_ms": 62167.800792,
+    "cpu_ms": 1250.0,
+    "avg_cpu_one_core_pct": 2.01068717901447,
+    "sampled_tree_peak_rss_mib": 76.765625,
+    "memory_samples": 10044,
+    "first_delta_ms": 14570.200417,
+    "assistant_responses": 7,
+    "tools": 7,
+    "tool_errors": 1,
+    "usage": {
+      "input": 7764,
+      "output": 2185,
+      "cacheRead": 12160,
+      "cacheWrite": 0,
+      "totalTokens": 22109
+    },
+    "reported_models": [
+      "gpt-6.1-sol"
+    ],
+    "reported_providers": [
+      "openai-codex"
+    ],
+    "reported_thinking": [
+      "medium"
+    ]
+  },
+  {
+    "run_id": "00-pig-native-query-bugfix",
+    "harness": "pig-native",
+    "task": "query-bugfix",
+    "iteration": 0,
+    "accepted": true,
+    "failures": [],
+    "exit_code": 0,
+    "timed_out": false,
+    "acceptance_tests": {
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 16,
+      "exit_code": 0
+    },
+    "wall_ms": 48138.02425,
+    "cpu_ms": 780.0,
+    "avg_cpu_one_core_pct": 1.620340701872491,
+    "sampled_tree_peak_rss_mib": 75.703125,
+    "memory_samples": 7771,
+    "first_delta_ms": 47293.081334,
+    "assistant_responses": 7,
+    "tools": 7,
+    "tool_errors": 0,
+    "usage": {
+      "input": 8114,
+      "output": 1237,
+      "cacheRead": 8192,
+      "cacheWrite": 0,
+      "totalTokens": 17543
+    },
+    "reported_models": [
+      "gpt-6.1-sol"
+    ],
+    "reported_providers": [
+      "openai-codex"
+    ],
+    "reported_thinking": [
+      "medium"
+    ]
+  },
+  {
+    "run_id": "00-pi-query-bugfix",
+    "harness": "pi",
+    "task": "query-bugfix",
+    "iteration": 0,
+    "accepted": true,
+    "failures": [],
+    "exit_code": 0,
+    "timed_out": false,
+    "acceptance_tests": {
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 16,
+      "exit_code": 0
+    },
+    "wall_ms": 39514.624959,
+    "cpu_ms": 919.9999999999999,
+    "avg_cpu_one_core_pct": 2.328251883839422,
+    "sampled_tree_peak_rss_mib": 165.28125,
+    "memory_samples": 6349,
+    "first_delta_ms": 10282.399,
+    "assistant_responses": 7,
+    "tools": 7,
+    "tool_errors": 0,
+    "usage": {
+      "input": 9067,
+      "output": 1278,
+      "cacheRead": 7680,
+      "cacheWrite": 0,
+      "totalTokens": 18025
+    },
+    "reported_models": [
+      "gpt-6.1-sol"
+    ],
+    "reported_providers": [
+      "openai-codex"
+    ],
+    "reported_thinking": [
+      "medium"
+    ]
+  },
+  {
+    "run_id": "00-pi-order-refactor",
+    "harness": "pi",
+    "task": "order-refactor",
+    "iteration": 0,
+    "accepted": true,
+    "failures": [],
+    "exit_code": 0,
+    "timed_out": false,
+    "acceptance_tests": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 12,
+      "exit_code": 0
+    },
+    "wall_ms": 59664.616708,
+    "cpu_ms": 1230.0,
+    "avg_cpu_one_core_pct": 2.0615233414129652,
+    "sampled_tree_peak_rss_mib": 171.640625,
+    "memory_samples": 9550,
+    "first_delta_ms": 11321.310458,
+    "assistant_responses": 6,
+    "tools": 6,
+    "tool_errors": 0,
+    "usage": {
+      "input": 5301,
+      "output": 2177,
+      "cacheRead": 10624,
+      "cacheWrite": 0,
+      "totalTokens": 18102
+    },
+    "reported_models": [
+      "gpt-6.1-sol"
+    ],
+    "reported_providers": [
+      "openai-codex"
+    ],
+    "reported_thinking": [
+      "medium"
+    ]
+  },
+  {
+    "run_id": "01-pig-native-order-refactor",
+    "harness": "pig-native",
+    "task": "order-refactor",
+    "iteration": 1,
+    "accepted": true,
+    "failures": [],
+    "exit_code": 0,
+    "timed_out": false,
+    "acceptance_tests": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 12,
+      "exit_code": 0
+    },
+    "wall_ms": 62726.296667,
+    "cpu_ms": 2540.0,
+    "avg_cpu_one_core_pct": 4.049338371567345,
+    "sampled_tree_peak_rss_mib": 76.6875,
+    "memory_samples": 9676,
+    "first_delta_ms": 9825.1705,
+    "assistant_responses": 7,
+    "tools": 7,
+    "tool_errors": 1,
+    "usage": {
+      "input": 7646,
+      "output": 2222,
+      "cacheRead": 12288,
+      "cacheWrite": 0,
+      "totalTokens": 22156
+    },
+    "reported_models": [
+      "gpt-6.1-sol"
+    ],
+    "reported_providers": [
+      "openai-codex"
+    ],
+    "reported_thinking": [
+      "medium"
+    ]
+  },
+  {
+    "run_id": "01-pig-native-ttl-lru-feature",
+    "harness": "pig-native",
+    "task": "ttl-lru-feature",
+    "iteration": 1,
+    "accepted": true,
+    "failures": [],
+    "exit_code": 0,
+    "timed_out": false,
+    "acceptance_tests": {
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 19,
+      "exit_code": 0
+    },
+    "wall_ms": 51111.031584,
+    "cpu_ms": 2160.0,
+    "avg_cpu_one_core_pct": 4.226093532176281,
+    "sampled_tree_peak_rss_mib": 75.90625,
+    "memory_samples": 7823,
+    "first_delta_ms": 10351.380625,
+    "assistant_responses": 7,
+    "tools": 7,
+    "tool_errors": 1,
+    "usage": {
+      "input": 8258,
+      "output": 1971,
+      "cacheRead": 9984,
+      "cacheWrite": 0,
+      "totalTokens": 20213
+    },
+    "reported_models": [
+      "gpt-6.1-sol"
+    ],
+    "reported_providers": [
+      "openai-codex"
+    ],
+    "reported_thinking": [
+      "medium"
+    ]
+  },
+  {
+    "run_id": "01-pi-ttl-lru-feature",
+    "harness": "pi",
+    "task": "ttl-lru-feature",
+    "iteration": 1,
+    "accepted": true,
+    "failures": [],
+    "exit_code": 0,
+    "timed_out": false,
+    "acceptance_tests": {
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 19,
+      "exit_code": 0
+    },
+    "wall_ms": 59980.068584,
+    "cpu_ms": 1839.9999999999998,
+    "avg_cpu_one_core_pct": 3.0676857220047085,
+    "sampled_tree_peak_rss_mib": 165.890625,
+    "memory_samples": 9271,
+    "first_delta_ms": 12059.2255,
+    "assistant_responses": 7,
+    "tools": 7,
+    "tool_errors": 0,
+    "usage": {
+      "input": 8244,
+      "output": 2091,
+      "cacheRead": 10496,
+      "cacheWrite": 0,
+      "totalTokens": 20831
+    },
+    "reported_models": [
+      "gpt-6.1-sol"
+    ],
+    "reported_providers": [
+      "openai-codex"
+    ],
+    "reported_thinking": [
+      "medium"
+    ]
+  },
+  {
+    "run_id": "01-pi-query-bugfix",
+    "harness": "pi",
+    "task": "query-bugfix",
+    "iteration": 1,
+    "accepted": true,
+    "failures": [],
+    "exit_code": 0,
+    "timed_out": false,
+    "acceptance_tests": {
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 16,
+      "exit_code": 0
+    },
+    "wall_ms": 40319.257209,
+    "cpu_ms": 1500.0,
+    "avg_cpu_one_core_pct": 3.7203066321994944,
+    "sampled_tree_peak_rss_mib": 164.28125,
+    "memory_samples": 6155,
+    "first_delta_ms": 35886.952042,
+    "assistant_responses": 7,
+    "tools": 7,
+    "tool_errors": 0,
+    "usage": {
+      "input": 5929,
+      "output": 1094,
+      "cacheRead": 9984,
+      "cacheWrite": 0,
+      "totalTokens": 17007
+    },
+    "reported_models": [
+      "gpt-6.1-sol"
+    ],
+    "reported_providers": [
+      "openai-codex"
+    ],
+    "reported_thinking": [
+      "medium"
+    ]
+  },
+  {
+    "run_id": "01-pi-order-refactor",
+    "harness": "pi",
+    "task": "order-refactor",
+    "iteration": 1,
+    "accepted": true,
+    "failures": [],
+    "exit_code": 0,
+    "timed_out": false,
+    "acceptance_tests": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 12,
+      "exit_code": 0
+    },
+    "wall_ms": 57894.038792,
+    "cpu_ms": 2010.0000000000002,
+    "avg_cpu_one_core_pct": 3.4718600428300905,
+    "sampled_tree_peak_rss_mib": 179.59375,
+    "memory_samples": 8890,
+    "first_delta_ms": 8442.41025,
+    "assistant_responses": 6,
+    "tools": 6,
+    "tool_errors": 0,
+    "usage": {
+      "input": 6276,
+      "output": 2230,
+      "cacheRead": 9472,
+      "cacheWrite": 0,
+      "totalTokens": 17978
+    },
+    "reported_models": [
+      "gpt-6.1-sol"
+    ],
+    "reported_providers": [
+      "openai-codex"
+    ],
+    "reported_thinking": [
+      "medium"
+    ]
+  },
+  {
+    "run_id": "01-pig-native-query-bugfix",
+    "harness": "pig-native",
+    "task": "query-bugfix",
+    "iteration": 1,
+    "accepted": true,
+    "failures": [],
+    "exit_code": 0,
+    "timed_out": false,
+    "acceptance_tests": {
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 16,
+      "exit_code": 0
+    },
+    "wall_ms": 38241.429291,
+    "cpu_ms": 930.0,
+    "avg_cpu_one_core_pct": 2.431917470770039,
+    "sampled_tree_peak_rss_mib": 76.296875,
+    "memory_samples": 6030,
+    "first_delta_ms": 36855.822333,
+    "assistant_responses": 7,
+    "tools": 7,
+    "tool_errors": 0,
+    "usage": {
+      "input": 5861,
+      "output": 1179,
+      "cacheRead": 10496,
+      "cacheWrite": 0,
+      "totalTokens": 17536
+    },
+    "reported_models": [
+      "gpt-6.1-sol"
+    ],
+    "reported_providers": [
+      "openai-codex"
+    ],
+    "reported_thinking": [
+      "medium"
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "timestamp_utc": "20261011T184001Z",
+  "runs": 1,
+  "warmups": 0,
+  "model": "deterministic loopback OpenAI SSE fixture; no inference or paid calls",
+  "memory": "live process-tree RSS sum sampled at ~5ms, shared pages may be counted more than once; short-lived peaks can be missed; excludes observer/model server",
+  "cpu": "macOS time user+sys cumulative CPU; 10ms granularity. CPU% = CPU time / wall time, 100% is one core, can exceed 100%.",
+  "scope": "warm-cache installed CLI comparison, differing upstream versions; no TUI, MCP, custom extensions, live-model quality, or security isolation claims",
+  "versions": {
+    "pi-installed": "1.1.0",
+    "pig-installed": "0.4.1+1.0.3",
+    "pig-native": "0.4.1+1.0.3"
+  },
+  "binary_sha256": {
+    "pi-installed": "e79626f2dd6f94aa45d30f3fa63cd84319a6eefcd150b353cfaf274366926774",
+    "pig-installed": "05021c1640d4a415f3159bc2b6eb455ed2a8aa27df28c43bef9f006068a795c5",
+    "pig-native": "0fbabf6d8496e260cfb21072fede64daa5a42939ae2934fdb8e4da7a321bb97a"
+  },
+  "machine": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434",
+  "arch": "arm64"
+}

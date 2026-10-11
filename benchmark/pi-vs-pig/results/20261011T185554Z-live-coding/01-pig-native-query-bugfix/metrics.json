@@ -1,0 +1,43 @@
+{
+  "run_id": "01-pig-native-query-bugfix",
+  "harness": "pig-native",
+  "task": "query-bugfix",
+  "iteration": 1,
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "timed_out": false,
+  "acceptance_tests": {
+    "tests": 16,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 16,
+    "exit_code": 0
+  },
+  "wall_ms": 38241.429291,
+  "cpu_ms": 930.0,
+  "avg_cpu_one_core_pct": 2.431917470770039,
+  "sampled_tree_peak_rss_mib": 76.296875,
+  "memory_samples": 6030,
+  "first_delta_ms": 36855.822333,
+  "assistant_responses": 7,
+  "tools": 7,
+  "tool_errors": 0,
+  "usage": {
+    "input": 5861,
+    "output": 1179,
+    "cacheRead": 10496,
+    "cacheWrite": 0,
+    "totalTokens": 17536
+  },
+  "reported_models": [
+    "gpt-6.1-sol"
+  ],
+  "reported_providers": [
+    "openai-codex"
+  ],
+  "reported_thinking": [
+    "medium"
+  ]
+}

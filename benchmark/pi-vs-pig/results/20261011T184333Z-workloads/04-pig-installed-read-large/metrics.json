@@ -1,0 +1,21 @@
+{
+  "run_id": "04-pig-installed-read-large",
+  "case": "read-large",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 107.088791,
+  "cpu_ms": 120.0,
+  "avg_cpu_one_core_pct": 112.0565456752612,
+  "sampled_tree_peak_rss_mib": 98.03125,
+  "sample_count": 18,
+  "max_tree_processes": 3,
+  "time_max_process_rss_mib": 51.15625,
+  "first_request_ms": 81.064833,
+  "requests": 2,
+  "tool_ends": 1,
+  "request_bytes": [
+    6056,
+    32329
+  ]
+}

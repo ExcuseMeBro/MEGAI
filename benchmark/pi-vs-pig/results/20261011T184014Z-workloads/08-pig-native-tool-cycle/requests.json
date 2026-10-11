@@ -1,0 +1,109 @@
+[
+  {
+    "received_ns": 259159582123625,
+    "request_bytes": 6053,
+    "messages": 2,
+    "tools_returned": 0,
+    "tool_results": [],
+    "requested_calls": [
+      "read"
+    ],
+    "history_present": false
+  },
+  {
+    "received_ns": 259159586066583,
+    "request_bytes": 6293,
+    "messages": 4,
+    "tools_returned": 1,
+    "tool_results": [
+      {
+        "role": "tool",
+        "content": "def add(a, b):\n    return a - b\n",
+        "tool_call_id": "call_0_0"
+      }
+    ],
+    "requested_calls": [
+      "edit"
+    ],
+    "history_present": false
+  },
+  {
+    "received_ns": 259159590766333,
+    "request_bytes": 6601,
+    "messages": 6,
+    "tools_returned": 2,
+    "tool_results": [
+      {
+        "role": "tool",
+        "content": "def add(a, b):\n    return a - b\n",
+        "tool_call_id": "call_0_0"
+      },
+      {
+        "role": "tool",
+        "content": "Successfully replaced 1 block(s) in calc.py.",
+        "tool_call_id": "call_1_0"
+      }
+    ],
+    "requested_calls": [
+      "write"
+    ],
+    "history_present": false
+  },
+  {
+    "received_ns": 259159594471708,
+    "request_bytes": 7075,
+    "messages": 8,
+    "tools_returned": 3,
+    "tool_results": [
+      {
+        "role": "tool",
+        "content": "def add(a, b):\n    return a - b\n",
+        "tool_call_id": "call_0_0"
+      },
+      {
+        "role": "tool",
+        "content": "Successfully replaced 1 block(s) in calc.py.",
+        "tool_call_id": "call_1_0"
+      },
+      {
+        "role": "tool",
+        "content": "Successfully wrote to test_calc.py",
+        "tool_call_id": "call_2_0"
+      }
+    ],
+    "requested_calls": [
+      "bash"
+    ],
+    "history_present": false
+  },
+  {
+    "received_ns": 259159655895666,
+    "request_bytes": 7399,
+    "messages": 10,
+    "tools_returned": 4,
+    "tool_results": [
+      {
+        "role": "tool",
+        "content": "def add(a, b):\n    return a - b\n",
+        "tool_call_id": "call_0_0"
+      },
+      {
+        "role": "tool",
+        "content": "Successfully replaced 1 block(s) in calc.py.",
+        "tool_call_id": "call_1_0"
+      },
+      {
+        "role": "tool",
+        "content": "Successfully wrote to test_calc.py",
+        "tool_call_id": "call_2_0"
+      },
+      {
+        "role": "tool",
+        "content": "----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+        "tool_call_id": "call_3_0"
+      }
+    ],
+    "requested_calls": [],
+    "history_present": false
+  }
+]

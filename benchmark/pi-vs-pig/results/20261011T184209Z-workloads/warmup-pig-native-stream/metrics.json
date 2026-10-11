@@ -1,0 +1,20 @@
+{
+  "run_id": "warmup-pig-native-stream",
+  "case": "stream",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 449.222042,
+  "cpu_ms": 90.0,
+  "avg_cpu_one_core_pct": 20.034635789309732,
+  "sampled_tree_peak_rss_mib": 44.171875,
+  "sample_count": 73,
+  "max_tree_processes": 2,
+  "time_max_process_rss_mib": 43.21875,
+  "first_request_ms": 84.653167,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    6049
+  ]
+}

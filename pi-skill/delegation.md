@@ -2,10 +2,8 @@
 
 Load only for actual delegation or model-error escalation. Routine Pi work follows
 `megai` with one parent and self-review; delegation is not a required stage.
-The optional `native` profile uses GPT Sol for coordination, DeepSeek Flash high for
-implementation without a separate reviewer step. The separate `economy`
-preset retains its own DeepSeek role mix. `megai-roles.json` is parent-consumed
-routing guidance, not automatic dispatch or an allowlist.
+MEGAI does not configure role routing or require worker/reviewer dispatch.
+Delegation and model selection follow the actual task and explicit user choices.
 
 ## Handoffs — fewer agents, not cheaper agents
 
@@ -94,13 +92,9 @@ no model allowlist. Select an available model suitable for
 the task; verify its exact identity and supported thinking before sending context.
 Never silently change the parent's model, credentials or provider catalog.
 
-Before selecting a delegated role, read `megai-roles.json` in the Pi agent directory
-(`PI_CODING_AGENT_DIR`, otherwise `~/.pi/agent`) when present. Its roles are the
-user-selected model/thinking defaults; explicit task choices override them. Missing
-role configuration retains normal model choice, not an implicit preset. This is
-parent-consumed policy data, not automatic dispatch or an allowlist; it is not a sandbox.
-Use direct parent tools for bounded work; never require all four roles. Scout,
-planner and reviewer are read-only; a worker gets only its assigned managed paths.
+Use direct parent tools by default. Delegate only when it serves the task or the
+user requests it; no preset assigns agents to models. Discovery/review children
+stay read-only; a writer gets only its assigned managed paths.
 Read-only checks use `python3 -B` and Ruff with
 `--no-fix --no-fix-only --force-exclude --no-cache`; avoid cache-producing checks.
 
@@ -207,10 +201,9 @@ unless already verified in this session. Spark is text-only: no images.
 
 Give only necessary paths/excerpts, one goal, explicit read-only or scoped write
 authority and observable acceptance. Reading and log tasks stay read-only; fixes need a
-safe checkout, one writer, focused tests and the same GPT review. Not for architecture,
-security/data-integrity, consequential cross-module work or final approval. The native
-preset keeps Pi/Paseo in control; GPT coordinates and reviews while DeepSeek is an
-optional implementation worker. A Spark failure or outgrown scope returns to the parent
+safe checkout, one writer, focused tests and parent self-review. Not for architecture,
+security/data-integrity, consequential cross-module work or final approval.
+Pi/Paseo keep control of any explicitly requested helper. A Spark failure or outgrown scope returns to the parent
 with no silent substitution — quiesce any writer first. No scout when direct tools suffice, no
 splitting one fix across extra agents and no launches to consume quota. The existing
 workspace, background launch, Plane tracking, leaf-agent and task-end archive rules

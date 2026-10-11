@@ -1,0 +1,23 @@
+{
+  "model": "gpt-6.1-sol",
+  "provider": "openai-codex",
+  "thinking": "medium",
+  "runs_per_task_harness": 2,
+  "deadline_seconds": 180,
+  "same_account": true,
+  "credential_source": "existing Pi provider OAuth, ephemeral 0600 copy; secrets not in artifacts",
+  "versions": {
+    "pi": "1.1.0",
+    "pig-native": "0.4.1+1.0.3"
+  },
+  "task_prompt_sha256": {
+    "query-bugfix": "6bff348466948a05684bd46f1ffcd3c2c3b1bbbfcca4726911ff728a6c170e94",
+    "ttl-lru-feature": "4d193783cd0615d0f3adaf68e134519197f99c6aed992d4fe7fe3fb50135ea71",
+    "order-refactor": "2a603b86e0563c030fc4e8fb71f71777896cf192cde665efcc32dad9f41b1a41"
+  },
+  "machine": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434",
+  "arch": "arm64",
+  "scope": "Real model, actual coding/tools, 3 small Python tasks; n=2 is exploratory, not statistically decisive. System prompts/tool schemas remain harness defaults. No retry, repair, fallback or best-of selection. No browser.",
+  "memory": "Sampled live process-tree RSS sum (~5ms), includes tool children, excludes observer; shared-page duplication possible.",
+  "usage": "Provider-reported per-response token counters; no invoice/cost estimate for subscription calls."
+}

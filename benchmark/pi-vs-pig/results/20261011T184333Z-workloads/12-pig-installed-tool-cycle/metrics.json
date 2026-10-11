@@ -1,0 +1,24 @@
+{
+  "run_id": "12-pig-installed-tool-cycle",
+  "case": "tool-cycle",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 177.286,
+  "cpu_ms": 169.99999999999997,
+  "avg_cpu_one_core_pct": 95.89025642182686,
+  "sampled_tree_peak_rss_mib": 111.640625,
+  "sample_count": 28,
+  "max_tree_processes": 4,
+  "time_max_process_rss_mib": 46.109375,
+  "first_request_ms": 87.321,
+  "requests": 5,
+  "tool_ends": 4,
+  "request_bytes": [
+    6056,
+    6296,
+    6604,
+    7078,
+    7402
+  ]
+}

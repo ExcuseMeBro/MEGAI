@@ -41,7 +41,7 @@ class Adaptive(Slim):
                      "migrations", "concurrency/shared state", "multi-repo delivery",
                      "safety/acceptance/installer policy", "source-current PASS",
                      "Urgency never downgrades", "failing reproduction",
-                     "Missing optional tools", "GPT", "economy"):
+                     "Missing optional tools", "no configured-role routing"):
             self.assertIn(rule.lower(), policy.lower())
         for name in (".claude", ".agents", ".omp/agent"):
             shared = (self.home / name / "skills/megai/SKILL.md").read_text()
@@ -131,15 +131,8 @@ class Adaptive(Slim):
         for key in ("packages", "extensions"):
             self.assertEqual(selected[key], settings[key])
         self.assertEqual((agent / "auth.json").read_text(), '{"synthetic":"preserve"}')
-        roles = json.loads((agent / "megai-roles.json").read_text())
-        self.assertEqual(roles["roles"]["planner"], {
-            "provider": "deepseek", "model": "deepseek-flash", "thinking": "high",
-        })
-        for role in ("scout", "worker"):
-            self.assertEqual(roles["roles"][role], {
-                "provider": "deepseek", "model": "deepseek-flash", "thinking": "low",
-            })
-        self.assertEqual(roles["roles"]["reviewer"]["provider"], "openai-codex")
+        self.assertFalse((agent / "megai-roles.json").exists())
+        self.assertFalse((agent / "extensions/megai-role-routing/index.ts").exists())
         before = self.snapshot()
         self.run_cmd(*command)
         self.assertEqual(before, self.snapshot())

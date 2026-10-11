@@ -1,0 +1,21 @@
+{
+  "run_id": "warmup-pi-installed-parallel-tools",
+  "case": "parallel-tools",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 449.710083,
+  "cpu_ms": 420.0,
+  "avg_cpu_one_core_pct": 93.39350303159647,
+  "sampled_tree_peak_rss_mib": 179.671875,
+  "sample_count": 72,
+  "max_tree_processes": 6,
+  "time_max_process_rss_mib": 123.234375,
+  "first_request_ms": 247.760625,
+  "requests": 2,
+  "tool_ends": 4,
+  "request_bytes": [
+    6001,
+    6976
+  ]
+}

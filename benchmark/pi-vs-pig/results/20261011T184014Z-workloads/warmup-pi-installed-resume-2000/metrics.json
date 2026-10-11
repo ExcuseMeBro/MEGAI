@@ -1,0 +1,20 @@
+{
+  "run_id": "warmup-pi-installed-resume-2000",
+  "case": "resume-2000",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 347.044542,
+  "cpu_ms": 399.99999999999994,
+  "avg_cpu_one_core_pct": 115.25898021470684,
+  "sampled_tree_peak_rss_mib": 139.953125,
+  "sample_count": 52,
+  "max_tree_processes": 2,
+  "time_max_process_rss_mib": 139.25,
+  "first_request_ms": 321.465667,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    439987
+  ]
+}

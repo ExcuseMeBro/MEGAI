@@ -1,0 +1,20 @@
+{
+  "run_id": "12-pig-native-stream",
+  "case": "stream",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 378.776,
+  "cpu_ms": 90.0,
+  "avg_cpu_one_core_pct": 23.760745136967497,
+  "sampled_tree_peak_rss_mib": 45.1875,
+  "sample_count": 62,
+  "max_tree_processes": 2,
+  "time_max_process_rss_mib": 44.234375,
+  "first_request_ms": 54.382041,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    6045
+  ]
+}

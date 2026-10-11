@@ -53,7 +53,7 @@ class Preset(unittest.TestCase):
     def legacy_source(self, roles, preset="economy"):
         legacy = self.home / "legacy-source"
         for relative in ("pi-skill/delegation.md", "pi-skill/provider-guard/index.ts",
-                         "pi-skill/role-routing/index.ts", "pi-skill/model-fallback/index.ts"):
+                         "pi-skill/model-fallback/index.ts"):
             path = legacy / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes((ROOT / relative).read_bytes())
@@ -80,8 +80,7 @@ class Preset(unittest.TestCase):
         self.run_cli("--preset", "economy", "--check")
         self.assertEqual(self.snapshot(), before)
         self.run_cli("--preset", "economy")
-        roles = json.loads((self.agent / "megai-roles.json").read_text())
-        self.assertEqual(roles, {"schema": 1, "preset": "economy", "roles": EXPECTED})
+        self.assertFalse((self.agent / "megai-roles.json").exists())
         settings = json.loads((self.agent / "settings.json").read_text())
         native = {}
         for role in EXPECTED.values():
@@ -98,7 +97,7 @@ class Preset(unittest.TestCase):
         policy = (self.agent / "AGENTS.md").read_text()
         self.assertIn("megai/delegation.md", policy)
         delegation = (self.agent / "skills/megai/delegation.md").read_text()
-        for clause in ("megai-roles.json", "PI_REASONING_LEVEL", "not a sandbox", "--no-cache"):
+        for clause in ("no preset assigns agents to models", "PI_REASONING_LEVEL", "--no-cache"):
             self.assertIn(clause, delegation)
         after = self.snapshot()
         self.run_cli("--preset", "economy")
@@ -111,9 +110,8 @@ class Preset(unittest.TestCase):
         for role in config["roles"].values():
             identity = role["provider"] + "/" + role["model"]
             self.assertNotIn("minimax", identity.lower())
-        # One cheap model plans with judgment and executes cheaply: a shared model
-        # keeps a per-role level in megai-roles.json, and the planner's level is the
-        # unambiguous native startup level in settings.json.
+        # Legacy labels only derive startup/per-model preferences; the first
+        # entry for a shared model selects its startup thinking.
         self.assertEqual(config["roles"]["planner"], FLASH)
         self.assertEqual(config["roles"]["scout"], EXECUTOR)
         self.assertEqual(config["roles"]["worker"], EXECUTOR)
@@ -146,7 +144,7 @@ class Preset(unittest.TestCase):
         before["defaultThinkingLevel"] = "high"
         before["modelThinkingLevels"]["deepseek/deepseek-flash"] = "high"
         self.assertEqual(after, before)
-        self.assertEqual(json.loads((self.agent / "megai-roles.json").read_text())["roles"], EXPECTED)
+        self.assertFalse((self.agent / "megai-roles.json").exists())
         snapshot = self.snapshot()
         self.run_cli("--preset", "economy")
         self.assertEqual(self.snapshot(), snapshot)
@@ -171,22 +169,19 @@ class Preset(unittest.TestCase):
         self.env["MEGAI_SOURCE"] = str(legacy)
         self.run_cli("--preset", "economy")
         role_path = self.agent / "megai-roles.json"
-        old_bytes = role_path.read_bytes()
         old_settings = (self.agent / "settings.json").read_bytes()
-        self.assertEqual(json.loads(old_bytes)["roles"], old_roles)
+        self.assertFalse(role_path.exists())
 
-        # Ordinary policy installation preserves the owned selection.
+        # Ordinary policy installation preserves native settings, not role maps.
         self.env["MEGAI_SOURCE"] = str(ROOT)
         self.run_cli()
-        self.assertEqual(role_path.read_bytes(), old_bytes)
+        self.assertFalse(role_path.exists())
         self.assertEqual((self.agent / "settings.json").read_bytes(), old_settings)
         before = self.snapshot()
         self.run_cli("--preset", "economy", "--check")
         self.assertEqual(self.snapshot(), before)
         self.run_cli("--preset", "economy")
-        self.assertEqual(json.loads(role_path.read_text()), {
-            "schema": 1, "preset": "economy", "roles": EXPECTED,
-        })
+        self.assertFalse(role_path.exists())
         selected = json.loads((self.agent / "settings.json").read_text())
         self.assertEqual(selected["defaultProvider"], "deepseek")
         self.assertEqual(selected["defaultModel"], "deepseek-flash")
@@ -197,7 +192,7 @@ class Preset(unittest.TestCase):
         self.assertEqual(selected["custom"], original["custom"])
         for path in protected:
             self.assertEqual(path.read_text(), '{"synthetic":"unchanged"}\n')
-        self.assertTrue(any(p.is_file() and p.read_bytes() == old_bytes
+        self.assertTrue(any(p.is_file() and p.read_bytes() == old_settings
                             for p in (self.home / ".megai/backups").rglob("*")))
         before = self.snapshot()
         self.run_cli("--preset", "economy")
@@ -210,7 +205,8 @@ class Preset(unittest.TestCase):
             with self.subTest(path=relative):
                 text = (ROOT / relative).read_text().lower()
                 self.assertNotIn("minimax", text)
-                self.assertIn("deepseek", text)
+                if relative != "pi-skill/ADAPTIVE.md":
+                    self.assertIn("deepseek", text)
         # Historical records and non-Pi routing are deliberately not rewritten.
         for relative in ("docs/audits/pi-fast-workflow.md", "docs/audits/pi-task-sample.json",
                          "omp-config/balanced-minimax.yml"):

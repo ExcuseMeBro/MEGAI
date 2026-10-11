@@ -142,11 +142,9 @@ When a wait did happen, record what it was for and why it was not replaceable.
 
 ## User-approved Pi / Paseo routing
 
-The optional `native` preset selects GPT Sol high coordination and one native DeepSeek
-Flash high implementation worker; no separate reviewer step is used. The separate
-`economy` preset remains independently opt-in. Role files guide parent choices but do
-not dispatch agents or change permissions. Keep the active parent's selected model and
-thinking unchanged. Only a confirmed DeepSeek 402 insufficient-balance error may
+Use direct parent tools by default. There is no configured-role routing or mandatory
+worker/reviewer dispatch. Delegate only when it serves the task or the user requests it.
+Keep the active parent's selected model and thinking unchanged. Only a confirmed DeepSeek 402 insufficient-balance error may
 continue once on GPT Luna high; auth/permission failures, shared outages, other errors
 and uncertain writes need reconciliation, not model hopping.
 Use an isolated task worktree for Git implementation, with one writer per worktree.
@@ -176,8 +174,8 @@ The 2026-09-15 native Pi/Paseo smoke test failed with
 `The 'gpt-5.3-codex-spark' model is not supported when using Codex with a ChatGPT account.`,
 so no Spark dispatch happens until a user-requested access retest succeeds: no
 automatic retry, no authentication change, no silent substitution. Scope, launch
-syntax and the bounded-helper rules are in `megai/delegation.md`. Native role choices
-remain opt-in; Pi/Paseo own worktree isolation and task handoff.
+syntax and the bounded-helper rules are in `megai/delegation.md`.
+Pi/Paseo own worktree isolation and task handoff.
 
 ## Bounded shell discovery
 

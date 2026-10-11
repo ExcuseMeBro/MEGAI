@@ -36,7 +36,7 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
     text = current.decode()
     block = (BEGIN + "\n"
              "Pi children: load `megai/delegation.md` only when delegating or escalating a model failure. "
-             "Use configured roles; verify Pi/native model/thinking before task context. "
+             "Delegation is optional; verify Pi/native model/thinking before task context. "
              "Children never delegate or mutate Plane.\n" + END + "\n")
     key = str(path) + "#subagent-models"
     if text.count(BEGIN) != text.count(END) or text.count(BEGIN) > 1:
@@ -68,8 +68,8 @@ def stage_model_policy(plan, root: Path, source: Path, remove: bool = False) -> 
     plan.retire(root / "extensions/megai-model-guard/index.ts")
     plan.asset(root / "extensions/megai-provider-guard/index.ts",
                (source / "pi-skill/provider-guard/index.ts").read_bytes(), remove)
-    plan.asset(root / "extensions/megai-role-routing/index.ts",
-               (source / "pi-skill/role-routing/index.ts").read_bytes(), remove)
+    plan.retire(root / "extensions/megai-role-routing/index.ts")
+    plan.retire(root / "megai-roles.json")
     plan.asset(root / "extensions/megai-model-fallback/index.ts",
                (source / "pi-skill/model-fallback/index.ts").read_bytes(), remove)
     # The retired local decision tool shipped here as an extension, a stdio bridge
@@ -157,13 +157,9 @@ def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
             or set(roles) != {"planner", "scout", "worker", "reviewer"}):
         raise ValueError("invalid role preset")
     levels = {}
-    # The planner is declared first and owns the native startup level for a shared
-    # model; every other role keeps its own level in megai-roles.json. That lets one
-    # cheap model plan at high thinking and execute at low while settings.json stays
-    # unambiguous about the level a native session starts with. The whitelist below
-    # validates the level name only: whether the model accepts it lives in the Pi
-    # model store (deepseek-flash maps minimal and medium to null), so a preset must
-    # use levels the model supports.
+    # Legacy preset labels only select startup/per-model preferences; they no
+    # longer install role configuration or influence delegation. First identity
+    # wins when several labels refer to the same model.
     for name in ("planner", "scout", "worker", "reviewer"):
         role = roles[name]
         if (not isinstance(role, dict)
@@ -173,7 +169,6 @@ def stage_preset(plan, root: Path, source: Path, preset: str) -> None:
             raise ValueError("invalid preset role identity/thinking")
         identity = role["provider"] + "/" + role["model"]
         levels.setdefault(identity, role["thinking"])
-    plan.asset(root / "megai-roles.json", encoded(config), False)
     if preset == "native":
         # Explicit opt-in only; asset() refuses to replace an unowned custom map.
         plan.asset(root / "model-fallback.json", encoded({"fallbacks": {
@@ -207,7 +202,7 @@ def main() -> None:
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument("--remove", action="store_true")
     selection.add_argument("--preset", choices=("economy", "native"),
-                           help="explicitly apply role and native startup model preferences")
+                           help="explicitly apply native startup model preferences")
     args = parser.parse_args()
     if args.adaptive and args.remove:
         parser.error("--adaptive cannot be combined with --remove")

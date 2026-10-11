@@ -1,0 +1,20 @@
+{
+  "run_id": "12-pi-installed-stream",
+  "case": "stream",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 554.241542,
+  "cpu_ms": 350.0,
+  "avg_cpu_one_core_pct": 63.14936241282325,
+  "sampled_tree_peak_rss_mib": 152.734375,
+  "sample_count": 89,
+  "max_tree_processes": 2,
+  "time_max_process_rss_mib": 152.125,
+  "first_request_ms": 217.928958,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    5981
+  ]
+}

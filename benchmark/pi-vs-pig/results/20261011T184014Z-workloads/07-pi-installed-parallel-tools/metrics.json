@@ -1,0 +1,21 @@
+{
+  "run_id": "07-pi-installed-parallel-tools",
+  "case": "parallel-tools",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 396.773208,
+  "cpu_ms": 380.0,
+  "avg_cpu_one_core_pct": 95.77259561336106,
+  "sampled_tree_peak_rss_mib": 183.421875,
+  "sample_count": 64,
+  "max_tree_processes": 6,
+  "time_max_process_rss_mib": 126.5625,
+  "first_request_ms": 222.945542,
+  "requests": 2,
+  "tool_ends": 4,
+  "request_bytes": [
+    5997,
+    6972
+  ]
+}

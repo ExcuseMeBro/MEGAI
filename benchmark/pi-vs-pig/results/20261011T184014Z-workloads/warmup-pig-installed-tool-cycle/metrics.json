@@ -1,0 +1,24 @@
+{
+  "run_id": "warmup-pig-installed-tool-cycle",
+  "case": "tool-cycle",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 180.835542,
+  "cpu_ms": 169.99999999999997,
+  "avg_cpu_one_core_pct": 94.00806839177663,
+  "sampled_tree_peak_rss_mib": 110.8125,
+  "sample_count": 29,
+  "max_tree_processes": 4,
+  "time_max_process_rss_mib": 46.109375,
+  "first_request_ms": 91.198667,
+  "requests": 5,
+  "tool_ends": 4,
+  "request_bytes": [
+    6060,
+    6300,
+    6608,
+    7082,
+    7406
+  ]
+}

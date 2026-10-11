@@ -1,0 +1,21 @@
+{
+  "run_id": "00-pig-installed-parallel-tools",
+  "case": "parallel-tools",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 223.192458,
+  "cpu_ms": 180.0,
+  "avg_cpu_one_core_pct": 80.64788640841978,
+  "sampled_tree_peak_rss_mib": 146.0625,
+  "sample_count": 36,
+  "max_tree_processes": 7,
+  "time_max_process_rss_mib": 46.09375,
+  "first_request_ms": 81.786125,
+  "requests": 2,
+  "tool_ends": 4,
+  "request_bytes": [
+    6064,
+    7039
+  ]
+}

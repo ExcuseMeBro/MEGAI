@@ -1,0 +1,24 @@
+{
+  "run_id": "01-pig-native-tool-cycle",
+  "case": "tool-cycle",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 113.26125,
+  "cpu_ms": 110.00000000000001,
+  "avg_cpu_one_core_pct": 97.12059508437353,
+  "sampled_tree_peak_rss_mib": 66.125,
+  "sample_count": 18,
+  "max_tree_processes": 3,
+  "time_max_process_rss_mib": 44.140625,
+  "first_request_ms": 45.521917,
+  "requests": 5,
+  "tool_ends": 4,
+  "request_bytes": [
+    6053,
+    6293,
+    6601,
+    7075,
+    7399
+  ]
+}

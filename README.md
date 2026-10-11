@@ -40,10 +40,10 @@ native Paseo agents own delegation, one writer per worktree. Shared legacy skill
 is excluded from this Pi profile to avoid contradictory defaults. Other agents retain
 their own configuration.
 
-Model routing stays user-selected: the repo ships separate explicit opt-in `native`
-and `economy` presets. `native` uses GPT Sol coordination, a DeepSeek Flash high
-worker and GPT Astra review; `economy` keeps its distinct DeepSeek role mix. Nothing
-is applied until you run a preset command yourself. Measure a change instead of assuming it: `megai report --text`
+Model choice stays user-selected; role routing is removed. The explicit opt-in
+`native` and `economy` presets select startup/per-model preferences only (GPT Sol
+or DeepSeek Flash high), not worker/reviewer dispatch. Nothing is applied until you
+run a preset command yourself. Measure a change instead of assuming it: `megai report --text`
 reports turns, prompt tokens per turn, reported cost per model and estimated
 tool-output replay from local sessions, and `megai budget --check` previews the
 optional native context budget without writing.

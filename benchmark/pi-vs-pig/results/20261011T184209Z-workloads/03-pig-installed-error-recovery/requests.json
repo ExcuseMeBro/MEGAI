@@ -1,0 +1,77 @@
+[
+  {
+    "received_ns": 259238470256000,
+    "request_bytes": 6064,
+    "messages": 2,
+    "tools_returned": 0,
+    "tool_results": [],
+    "requested_calls": [
+      "edit"
+    ],
+    "history_present": false
+  },
+  {
+    "received_ns": 259238474631583,
+    "request_bytes": 6440,
+    "messages": 4,
+    "tools_returned": 1,
+    "tool_results": [
+      {
+        "role": "tool",
+        "content": "Could not find the exact text in calc.py. The old text must match exactly including all whitespace and newlines.",
+        "tool_call_id": "call_0_0"
+      }
+    ],
+    "requested_calls": [
+      "edit"
+    ],
+    "history_present": false
+  },
+  {
+    "received_ns": 259238478692958,
+    "request_bytes": 6748,
+    "messages": 6,
+    "tools_returned": 2,
+    "tool_results": [
+      {
+        "role": "tool",
+        "content": "Could not find the exact text in calc.py. The old text must match exactly including all whitespace and newlines.",
+        "tool_call_id": "call_0_0"
+      },
+      {
+        "role": "tool",
+        "content": "Successfully replaced 1 block(s) in calc.py.",
+        "tool_call_id": "call_1_0"
+      }
+    ],
+    "requested_calls": [
+      "bash"
+    ],
+    "history_present": false
+  },
+  {
+    "received_ns": 259238507184833,
+    "request_bytes": 7040,
+    "messages": 8,
+    "tools_returned": 3,
+    "tool_results": [
+      {
+        "role": "tool",
+        "content": "Could not find the exact text in calc.py. The old text must match exactly including all whitespace and newlines.",
+        "tool_call_id": "call_0_0"
+      },
+      {
+        "role": "tool",
+        "content": "Successfully replaced 1 block(s) in calc.py.",
+        "tool_call_id": "call_1_0"
+      },
+      {
+        "role": "tool",
+        "content": "RECOVERED\n",
+        "tool_call_id": "call_2_0"
+      }
+    ],
+    "requested_calls": [],
+    "history_present": false
+  }
+]

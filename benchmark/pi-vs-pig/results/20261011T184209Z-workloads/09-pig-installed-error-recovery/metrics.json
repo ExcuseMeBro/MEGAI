@@ -1,0 +1,23 @@
+{
+  "run_id": "09-pig-installed-error-recovery",
+  "case": "error-recovery",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 129.27425,
+  "cpu_ms": 120.0,
+  "avg_cpu_one_core_pct": 92.82591080590295,
+  "sampled_tree_peak_rss_mib": 103.125,
+  "sample_count": 21,
+  "max_tree_processes": 4,
+  "time_max_process_rss_mib": 46.09375,
+  "first_request_ms": 78.969917,
+  "requests": 4,
+  "tool_ends": 3,
+  "request_bytes": [
+    6064,
+    6440,
+    6748,
+    7040
+  ]
+}
