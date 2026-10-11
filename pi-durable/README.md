@@ -20,6 +20,10 @@ Installs a private, content-addressed runtime under `~/.megai/pi-durable/runtime
 and one owned launcher at `~/.local/bin/pi-durable`. Add `~/.local/bin` to your PATH
 if necessary. `--home` / `--bin-dir` support alternative install locations. Runtime
 versions and private upgrade backups are retained; no automatic cleanup of data.
+The destination command is published atomically without clobbering an existing
+file. Its dispatcher remains unchanged on upgrades; only the private runtime
+receipt switches versions. Installers targeting the same bin directory coordinate
+through a destination lock, even with different installation homes.
 The installer refuses changed/custom launchers, symlinks and managed-source drift.
 An interrupted publication may require manual reconciliation; never delete unknown
 files or retry an uncertain install blindly. It starts no server or background job.
@@ -31,6 +35,7 @@ TASK="$HOME/.megai/pi-durable/tasks/my-task"
 pi-durable init --task "$TASK" --cwd "$PWD" \
   --provider openai-codex --model gpt-6.1-sol --thinking medium
 pi-durable doctor --task "$TASK"
+umask 077
 printf '%s\n' 'Inspect the project and explain the failing test.' > /tmp/task-prompt.txt
 pi-durable run --task "$TASK" --prompt-file /tmp/task-prompt.txt --request-id inspection-1
 ```

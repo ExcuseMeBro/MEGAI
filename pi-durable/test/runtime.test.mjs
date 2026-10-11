@@ -149,3 +149,71 @@ test('restart budget is bounded, config drift and read-only policy fail closed',
   assert.equal(readResult.code, 0, readResult.out + readResult.err);
   assert(!existsSync(join(readonly.task, 'write-effects')), 'disabled write must never execute');
 });
+
+test('early interruption never admits work and still releases the initialized runtime', { timeout: 20000 }, async t => {
+  const { task, prompt } = await setup(t, { initializationDelay: true, tool: 'write' });
+  const active = start(['run', '--task', task, '--prompt-file', prompt, '--request-id', 'early-stop']);
+  let pid;
+  t.after(() => { if (pid) { try { process.kill(pid, 'SIGKILL'); } catch {} } if (active.process.exitCode === null) active.process.kill('SIGKILL'); });
+  await until(() => existsSync(join(task, 'initializing')));
+  pid = Number(readFileSync(join(task, 'initializing'), 'utf8'));
+  process.kill(pid, 'SIGTERM');
+  writeFileSync(join(task, 'init-gate'), 'open');
+  await until(() => existsSync(join(task, 'model-calls')) || active.process.exitCode !== null);
+  assert(!existsSync(join(task, 'model-calls')), 'early stop must prevent model admission');
+  const result = await active.done;
+  assert.equal(result.code, 130, result.out + result.err);
+  assert(!existsSync(join(task, 'write-effects')), 'early stop must prevent side effects');
+  assert.equal((await run(task, 'status')).code, 0);
+});
+
+test('published CodingTools read/write execute and an actual bash interruption blocks recovery', { timeout: 25000 }, async t => {
+  const read = await setup(t, { realTools: true, tool: 'read' });
+  writeFileSync(join(dirname(read.task), 'fixture.txt'), 'PUBLISHED_READ_CONTENT');
+  const readResult = await run(read.task, 'run', ['--prompt-file', read.prompt, '--request-id', 'real-read']);
+  assert.equal(readResult.code, 0, readResult.out + readResult.err); assert.match(readResult.out, /PUBLISHED_READ_CONTENT/);
+  const write = await setup(t, { realTools: true, tool: 'write' });
+  const writeResult = await run(write.task, 'run', ['--prompt-file', write.prompt, '--request-id', 'real-write']);
+  assert.equal(writeResult.code, 0, writeResult.out + writeResult.err);
+  assert.equal(readFileSync(join(dirname(write.task), 'fixture.txt'), 'utf8'), 'REAL_TOOL_EFFECT');
+  const bash = await setup(t, { realTools: true, tool: 'bash', command: 'printf EFFECT > effect; echo $$ > shell-pid; while [ ! -f gate ]; do sleep 0.1; done' });
+  const active = start(['run', '--task', bash.task, '--prompt-file', bash.prompt, '--request-id', 'real-bash', '--max-restarts', '0']);
+  const cwd = dirname(bash.task);
+  let shellPid;
+  t.after(() => { if (shellPid) { try { process.kill(shellPid, 'SIGTERM'); } catch {} } if (active.process.exitCode === null) active.process.kill('SIGKILL'); });
+  await until(() => existsSync(join(cwd, 'effect')) && existsSync(join(cwd, 'shell-pid')) && /"workerPid":/.test(active.output()));
+  shellPid = Number(readFileSync(join(cwd, 'shell-pid'), 'utf8'));
+  const lines = active.output().trim().split('\n').filter(line => line.startsWith('{'));
+  const pid = lines.map(line => JSON.parse(line)).find(row => row.workerPid)?.workerPid;
+  process.kill(pid, 'SIGKILL');
+  assert.equal((await active.done).code, 2);
+  assert.equal((await run(bash.task, 'resume')).code, 2);
+  assert.equal(readFileSync(join(cwd, 'effect'), 'utf8'), 'EFFECT');
+  writeFileSync(join(cwd, 'gate'), 'open');
+  await until(() => { try { process.kill(shellPid, 0); return false; } catch { return true; } });
+  shellPid = undefined;
+  const cancel = await run(bash.task, 'cancel', ['--note', 'Known interrupted shell: cancellation must remain blocked until reconciliation.']);
+  assert.equal(cancel.code, 2);
+});
+
+test('explicit cancellation aborts pending safe work and preserves its admission history', { timeout: 20000 }, async t => {
+  const { task, prompt } = await setup(t, { tool: 'read' });
+  await killedWorker(t, task, prompt);
+  const cancelled = await run(task, 'cancel', ['--note', 'Abandon the inspected pending safe read, retaining the transcript.']);
+  assert.equal(cancelled.code, 0, cancelled.out + cancelled.err);
+  assert(!existsSync(join(task, 'active.json')));
+  const status = await run(task, 'status'); assert.equal(status.code, 0);
+  assert.match(status.out, /"tasks":\[\]/); assert.equal(rows(join(task, 'read-effects')), 1);
+});
+
+test('native ModelRuntime local auth/catalog check works without the test provider', { timeout: 15000 }, async t => {
+  const { task } = await setup(t);
+  const config = JSON.parse(readFileSync(join(task, 'config.json')));
+  config.provider = 'openai'; config.model = 'gpt-4.1'; config.agentDir = dirname(task);
+  writeFileSync(join(task, 'config.json'), JSON.stringify(config));
+  const realEnv = { ...process.env, OPENAI_API_KEY: 'not-a-secret-disposable-fixture' };
+  delete realEnv.MEGAI_DURABLE_TESTING; delete realEnv.MEGAI_DURABLE_TEST_MODULE;
+  const result = await run(task, 'doctor', [], { env: realEnv });
+  assert.equal(result.code, 0, result.out + result.err); assert.match(result.out, /openai\/gpt-4.1/);
+  assert(!existsSync(join(task, 'model-calls')));
+});

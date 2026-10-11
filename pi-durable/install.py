@@ -64,9 +64,11 @@ def _install(source, home, bin_dir, apply=False, offline=False):
                     "await import('./runtime.mjs'); console.log('standalone imports OK')"],
                    cwd=target, check=True, timeout=30)
     atomic_json(ready, {"version": version})
-    content = f"#!/bin/sh\n# MEGAI standalone Pi Durable (managed)\nexec python3 '{target}/launcher.py' \"$@\"\n"
-    # The user-owned install paths may contain spaces, but not shell-quoting characters.
-    if "'" in str(target) or "\n" in str(target):
+    # Stable dispatcher: upgrades publish only the private receipt, never replace a destination command.
+    dispatch = ('import json,os,sys; r=json.load(open(sys.argv[1])); '
+                'os.execv(sys.executable,[sys.executable,r["runtime"]+"/launcher.py",*sys.argv[2:]])')
+    content = f"#!/bin/sh\n# MEGAI standalone Pi Durable (managed)\nexec python3 -c '{dispatch}' '{receipt_path}' \"$@\"\n"
+    if "'" in str(receipt_path) or "\n" in str(receipt_path):
         raise ValueError("Unsupported install path characters")
     temporary = launcher.with_name(f".pi-durable-{version}")
     if temporary.exists():
@@ -88,7 +90,14 @@ def _install(source, home, bin_dir, apply=False, offline=False):
             (backup / "launcher").chmod(0o600)
         if not (backup / "receipt.json").exists():
             atomic_json(backup / "receipt.json", previous)
-    os.replace(temporary, launcher)
+    if launcher.exists():
+        if launcher.read_bytes() != content.encode():
+            raise ValueError("Managed launcher format changed; explicit migration required")
+        temporary.unlink()
+    else:
+        # Atomic no-clobber publication: even an uncoordinated publisher cannot be overwritten.
+        os.link(temporary, launcher)
+        temporary.unlink()
     sync_directory(bin_dir)
     receipt = {"schema": 1, "version": version, "runtime": str(target), "launcher": str(launcher),
                "launcherHash": hashlib.sha256(content.encode()).hexdigest(), "assets": hashes}
@@ -105,11 +114,17 @@ def install(source, home, bin_dir, apply=False, offline=False):
     stat = scope.stat()
     if stat.st_uid != os.getuid() or stat.st_mode & 0o077:
         raise ValueError("Install scope must be private and user-owned")
+    destination = safe_path(bin_dir)
+    destination.mkdir(parents=True, exist_ok=True)
     fd = os.open(safe_path(scope / "install.lock"), os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    bin_lock = os.open(safe_path(destination / ".pi-durable-install.lock"), os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
     try:
+        # One destination lock coordinates different installation homes targeting this bin directory.
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fcntl.flock(bin_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         return _install(source, home, bin_dir, True, offline)
     finally:
+        os.close(bin_lock)
         os.close(fd)
 
 

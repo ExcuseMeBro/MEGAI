@@ -19,8 +19,14 @@ let view;
 let closePromise;
 const close = () => {
   closing = true;
-  closePromise ??= runtime ? runtime.harness.close(context) : Promise.resolve();
+  if (!runtime) return Promise.resolve(); // pending interruption is honored after initialization
+  closePromise ??= runtime.harness.close(context);
   return closePromise;
+};
+const honorStop = async () => {
+  const stopPath = join(taskDir, 'stop.json');
+  if (existsSync(stopPath) && readJson(stopPath).runId === process.env.MEGAI_DURABLE_RUN_ID) closing = true;
+  if (closing) { await close(); throw new Error('Stop requested before admission'); }
 };
 const requestClose = () => { void close().catch(error => emit({ event: 'diagnostic', message: String(error) })); };
 process.on('SIGINT', requestClose);
@@ -45,8 +51,10 @@ try {
       assert(getSupportedThinkingLevels(model).includes(config.thinking), `Unsupported thinking level ${config.thinking}; no silent clamping`);
       assert(await models.checkAuth(config.provider), `Provider not configured: ${config.provider}`);
     }
+    await honorStop();
     runtime = await openRuntime(taskDir, { models, tools: injected?.tools,
       onReport: error => emit({ event: 'diagnostic', message: String(error) }) });
+    await honorStop();
     if (command === 'status') {
       const inspection = await runtime.harness.inspect(context);
       emit({ status: 'offline', unsafe: await unsafeTasks(runtime), inspection, usage: await runtime.harness.usage(context) });
@@ -89,6 +97,7 @@ try {
         assert(existsSync(join(taskDir, 'active.json')), 'No active request to resume');
         request = readJson(join(taskDir, 'active.json'));
       }
+      await honorStop();
       emit({ event: 'admitting', requestId: request.requestId, workerPid: process.pid });
       const submission = await submit(runtime, request);
       emit({ event: 'admitted', submissionId: submission.id, requestId: request.requestId });

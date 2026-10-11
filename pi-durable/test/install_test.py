@@ -1,4 +1,5 @@
 """Real offline scoped installs with disposable homes and preserved sentinel configs."""
+import fcntl
 import hashlib
 import json
 import os
@@ -7,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 SOURCE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE))
@@ -71,6 +73,42 @@ class InstallTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "runtime drift"):
                 install(SOURCE, root / "megai", root / "bin")
             self.assertEqual(list(outside.iterdir()), [])
+
+    def test_concurrent_destination_publication_never_clobbers_a_new_command(self):
+        with tempfile.TemporaryDirectory(dir=Path(tempfile.gettempdir()).resolve()) as temporary:
+            root = Path(temporary)
+            launcher = root / 'bin/pi-durable'
+            original_replace, original_link = os.replace, os.link
+
+            def competing_publication(source, destination, *args, **kwargs):
+                if Path(destination) == launcher and not launcher.exists():
+                    launcher.write_text('concurrent human-owned command\\n')
+                return original_replace(source, destination, *args, **kwargs)
+
+            def competing_link(source, destination, *args, **kwargs):
+                if Path(destination) == launcher and not launcher.exists():
+                    launcher.write_text('concurrent human-owned command\\n')
+                return original_link(source, destination, *args, **kwargs)
+
+            with mock.patch('os.replace', competing_publication), mock.patch('os.link', competing_link):
+                with self.assertRaises((ValueError, OSError)):
+                    install(SOURCE, root / 'megai', root / 'bin', apply=True, offline=True)
+            self.assertEqual(launcher.read_text(), 'concurrent human-owned command\\n')
+
+    def test_different_installation_homes_share_the_destination_lock(self):
+        with tempfile.TemporaryDirectory(dir=Path(tempfile.gettempdir()).resolve()) as temporary:
+            root = Path(temporary)
+            destination = root / 'bin'
+            destination.mkdir()
+            fd = os.open(destination / '.pi-durable-install.lock', os.O_RDWR | os.O_CREAT, 0o600)
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                with self.assertRaises(BlockingIOError):
+                    install(SOURCE, root / 'other-home', destination, apply=True, offline=True)
+                self.assertFalse((destination / 'pi-durable').exists())
+                self.assertFalse((root / 'other-home/pi-durable/install.json').exists())
+            finally:
+                os.close(fd)
 
     def test_launcher_conflicts_and_private_state(self):
         with tempfile.TemporaryDirectory(dir=Path(tempfile.gettempdir()).resolve()) as temporary:
