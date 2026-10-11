@@ -42,13 +42,11 @@ and post-edit/branch-switch freshness. Never repeat a successful discovery throu
 all tools. No index build for a tiny one-off search.
 Unavailable/stale discovery falls back to native tools; failure is never “no matches”.
 
-When several plausible files would require broad reads, use one local `sift` batch
-of 4–12 candidate paths to order reading; skip it for known files or small snippets.
-A low score never excludes a required dependency, test, changed file or error case.
-Errors/oversized/unreadable files remain unresolved: inspect relevant ranges natively.
-`laya` batches advisory typed decisions on already-known compact facts only when they
-avoid larger reads or repeated reasoning. Skip obvious choices. Neither tool authorizes
-writes, chooses permissions, proves correctness or replaces independent review.
+Use native judgment to choose task scope and relevant files from source evidence.
+Do not restore retired local screening or decision tools. Required dependencies,
+tests, changed files and error cases remain in scope; unreadable or oversized files
+need native inspection. Discovery never authorizes writes, chooses permissions or
+proves correctness.
 
 Headroom compresses eligible successful discovery with exact retrieval. Source reads,
 full diffs, tests and failures stay authoritative. Keep raw diagnostics and exit codes;
@@ -77,9 +75,9 @@ consequential cross-module changes. Verify behavior before handoff.
 - Reuse known source, CLI syntax, task IDs and current receipts; refresh after relevant
   drift. A handoff carries task/commit, needed paths, constraints and evidence paths,
   not the conversation transcript. Review still covers every changed file.
-- Compact at a phase boundary only when context pressure warrants it. Laya's existing
-  duplicate-only shortcut preserves unique results; otherwise Pi summarizes natively.
-  No manual pruning of source, failures or acceptance evidence to save tokens.
+- Compact at a phase boundary only when context pressure warrants it. Pi summarizes
+  natively while preserving unique results. No manual pruning of source, failures or
+  acceptance evidence to save tokens.
 - `megai report --text` measures session tokens/turns and estimated replay. Compare the
   same task/model/acceptance before claiming savings; local ranking has latency too.
   Character counts are a context-size proxy, not measured tokens or billed cost.
@@ -92,12 +90,10 @@ round trips, not verification. Beats packaged workflow ceremony for routine fixe
 substantial behavior changes still need the applicable design/spec workflow.
 - Clear implementation request → proceed; ask only blocking user-owned decisions. No
   optional brainstorming, separate plan or approval round trip.
-- With the explicitly selected native profile, GPT Sol coordinates and validates;
-  substantial bounded implementation may use one native DeepSeek Flash worker;
-  no separate reviewer step is used. Routine and read-only work stays direct.
-  No scouts, planners, separate testers or parallel children without a named
-  independent need. Review/model
-  rules below apply. Non-Git runtime settings may stay with the parent in an
+- Direct parent tools are the default; no preset assigns models to delegated roles.
+  Delegate only for a named independent need or explicit user request, with no
+  separate reviewer step. Review/model rules below apply.
+  Non-Git runtime settings may stay with the parent in an
   explicitly owned local configuration workspace with a private backup.
 - Reuse instructions, CLI syntax, project/task IDs and source already in the session;
   reread only after changes, missing context or compaction. Load matching required

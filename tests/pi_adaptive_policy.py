@@ -15,14 +15,15 @@ class Adaptive(Slim):
         self.assertIn("Routine bounded work uses the smallest focused test", policy)
         self.assertIn("does not require a contract hash", policy)
         self.assertIn("Guarded Pi work loads `megai-acceptance`", policy)
-        self.assertIn("one fresh independent Pi review", policy)
+        self.assertIn("parent self-review and a source-current", policy)
+        self.assertIn("`megai acceptance check` PASS", policy)
         self.assertIn("routine task grows into a guarded risk", " ".join(policy.split()))
         self.assertNotIn("On Pi, load `megai-acceptance` once before implementation", policy)
 
     def test_shared_slim_block_preserves_mode_appropriate_review(self):
         source = (ROOT / "lib/slim_wiring.py").read_text()
         self.assertIn("Use task-appropriate verification", source)
-        self.assertIn("Do not launch a second reviewer for routine work", source)
+        self.assertIn("Do not launch a separate reviewer", source)
         self.assertIn("behavior-changing safety/acceptance/installer policy", source)
         self.assertNotIn("On Pi, load `megai-acceptance` before implementation", source)
 
@@ -57,14 +58,14 @@ class Adaptive(Slim):
                        "Changing approval, permissions,",
                        "validation, data handling, acceptance requirements or installer ownership checks is",
                        "guarded even when expressed only as instructions",
-                       "one independent reviewer", "existing raw evidence",
+                       "source-current checks and parent self-review", "Reuse raw evidence",
                        "each needed check once per candidate", "concrete unresolved risk",
                        "never turn a failed gate into a routine PASS"):
             self.assertIn(clause, policy)
         acceptance = (ROOT / "pi-skill/acceptance/SKILL.md").read_text()
         self.assertIn("including instruction-only changes to approval or", acceptance)
         self.assertIn("validation requirements", acceptance)
-        self.assertIn("Editorial preferences are nonblocking", acceptance)
+        self.assertIn("Resolve blocking findings and rerun affected diagnostics", acceptance)
         self.assertIn("source-current PASS", acceptance)
         bootstrap = (ROOT / "pi-skill/bootstrap.md").read_text()
         self.assertIn("Routine work is three steps", bootstrap)
@@ -193,9 +194,9 @@ class Adaptive(Slim):
         text = " ".join((ROOT / "skills/agent-worktree-lifecycle/SKILL.md").read_text().split())
         self.assertNotIn("Preserve independent review and actual acceptance", text)
         self.assertNotIn("never substitutes for independent current acceptance", text)
-        self.assertIn("Preserve mode-appropriate review and actual acceptance", text)
+        self.assertIn("Preserve parent self-review and mode-appropriate acceptance", text)
         self.assertIn("routine Pi uses focused tests and parent self-review", text)
-        self.assertIn("guarded Pi (including multi-repo delivery) requires the independent formal gate", text)
+        self.assertIn("guarded Pi (including multi-repo delivery) requires the formal gate and parent self-review", text)
 
     def test_all_reachable_workflows_respect_mode(self):
         paths = ("pi-skill/acceptance/SKILL.md", "pi-skill/acceptance/reference.md",
@@ -219,11 +220,12 @@ class Adaptive(Slim):
 
         policy = (ROOT / "pi-skill/ADAPTIVE.md").read_text().lower()
         self.assertIn("### decisions use native judgment", policy)
-        for step in ("triage", "task-flow labels", "isolation", "delegation",
-                     "verification", "loop control", "verdict", "delivery handoff"):
-            self.assertIn(step, policy)
-        self.assertIn("no local decision tool", policy)
-        self.assertIn("compaction stays pi's own", policy)
+        for clause in ("task scope and file relevance from source evidence",
+                       "no advisory", "replace pi permissions",
+                       "pi's native summarizer handles compaction",
+                       "without discarding unique history",
+                       "no hosted decision fallback"):
+            self.assertIn(clause, policy)
         for path in ("pi-defaults/skills/pi-workflow/SKILL.md",
                      "task-flow/skills/megai-task-flow/SKILL.md",
                      "pi-skill/acceptance/SKILL.md", "pi-skill/delegation.md",
