@@ -104,6 +104,63 @@ class QueueCLI(unittest.TestCase):
         return self.call("finish", "--id", grant["id"], "--owner", grant["owner"],
                          "--token", grant["token"], "--outcome", outcome, code=code)
 
+    def test_repin_preserves_identity_fifo_old_head_and_fences_executor(self):
+        path = self.repos["backend"]
+        original = self.call("plan", "--root", self.project, "--id", "repin",
+                             "--plane-project", "00000000-0000-4000-8000-000000000001",
+                             "--plane-item", "00000000-0000-4000-8000-000000000002",
+                             "--repo", path, "dev")
+        file = self.base / "repin.json"
+        file.write_text(json.dumps(original))
+        self.call("enqueue", "--request", file)
+        grant = self.claim("repin")
+        self.call("hold", "--id", "repin", "--owner", grant["owner"], "--token", grant["token"],
+                  "--reason", "approved history reconciliation")
+        old = self.git(path, "rev-parse", "dev")
+        ref = "refs/heads/preservation/before-reconcile"
+        self.git(path, "branch", "preservation/before-reconcile", old)
+        self.git(path, "merge", "--ff-only", "task/change")
+        revised = json.loads(json.dumps(original))
+        for key in ("expected_head", "candidate_head", "checkout_head"):
+            revised["repositories"][0][key] = self.git(path, "rev-parse", "HEAD")
+        file.write_text(json.dumps(revised))
+        args = ["reconcile", "--id", "repin", "--outcome", "repin", "--owner-stopped",
+                "--evidence", self.proof, "--request", file, "--preserved-ref", path.resolve(), ref]
+        self.assertIn("acknowledgment", self.call(*args, code=2)["reason"])
+        args += ["--acknowledge-head-change"]
+        (path / "foreign").write_text("retain me")
+        self.assertIn("dirty", self.call(*args, code=2)["reason"])
+        (path / "foreign").unlink()
+        changed = json.loads(json.dumps(revised))
+        changed["resources"] = ["external:wrong:target"]
+        file.write_text(json.dumps(changed))
+        self.assertIn("identity", self.call(*args, code=2)["reason"])
+        file.write_text(json.dumps(revised))
+        self.git(path, "branch", "-D", "preservation/before-reconcile")
+        self.call(*args, code=2)
+        self.git(path, "branch", "preservation/before-reconcile", old)
+        result = self.call(*args)
+        self.assertEqual(result["state"], "queued")
+        self.assertEqual(result["seq"], grant["seq"])
+        self.assertEqual(result["request"]["plane"], original["plane"])
+        self.assertEqual(self.git(path, "rev-parse", ref), old)
+        self.finish(grant, code=2)
+        fresh = self.claim("repin", owner="new-parent")
+        self.assertNotEqual(fresh["token"], grant["token"])
+        self.finish(fresh)
+
+    def test_repin_refuses_live_grant_and_delivery_candidate(self):
+        self.enqueue("live-repin", "backend")
+        self.claim("live-repin")
+        args = ["reconcile", "--id", "live-repin", "--outcome", "repin", "--owner-stopped",
+                "--acknowledge-head-change", "--evidence", self.proof,
+                "--request", self.base / "live-repin.json"]
+        self.assertIn("held or expired", self.call(*args, code=2)["reason"])
+        grant = self.claim("live-repin")
+        self.call("hold", "--id", grant["id"], "--owner", grant["owner"], "--token", grant["token"],
+                  "--reason", "paused")
+        self.assertIn("pre-delivery", self.call(*args, code=2)["reason"])
+
     def test_idempotency_and_independent_fifo_resources(self):
         original = self.enqueue("first", "backend")
         duplicate = self.call("enqueue", "--request", self.base / "first.json")
