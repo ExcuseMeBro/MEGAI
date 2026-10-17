@@ -70,6 +70,44 @@ test('real Pi loader exposes tools and restores saved data into a new session wi
   assert.equal((await first.tool('workflow_checkpoint', { action: 'list' }))[0].revision, 1);
 });
 
+test('checkpoint repository selection saves and resumes from a non-Git umbrella', async () => {
+  const f = fixture(), one = await instance(f);
+  one.ctx.cwd = f.base;
+  const params = { action: 'save', repositoryPath: f.repo, projectId, taskId, expectedRevision: 0,
+    phase: 'tested', summary: 'Explicit repo', nextAction: 'Revalidate source', uncertainOperations: [] };
+  await assert.doesNotReject(() => one.tool('workflow_checkpoint', params),
+    'checkpoint repository selection must save from a non-Git umbrella');
+  const resumed = await one.tool('workflow_checkpoint', { action: 'load', repositoryPath: f.repo, taskId });
+  assert.equal(resumed.canContinue, true);
+  assert.equal(resumed.checkpoint.repository, join(realpathSync(f.repo), '.git'));
+  assert.equal((await one.tool('workflow_checkpoint', { action: 'list', repositoryPath: f.repo }))[0].revision, 1);
+  await assert.rejects(() => one.tool('workflow_checkpoint', params), /Stale checkpoint revision/);
+  writeFileSync(join(f.repo, 'code.txt'), 'drift\n');
+  assert.equal((await one.tool('workflow_checkpoint', { action: 'load', repositoryPath: f.repo, taskId })).canContinue, false);
+});
+
+test('checkpoint repository selection rejects invalid paths without fallback or store writes', async () => {
+  const f = fixture(), one = await instance(f);
+  for (const repositoryPath of ['', 'repo', '~/repo', join(f.base, 'missing'), f.base, join(f.repo, 'code.txt')]) {
+    await assert.rejects(() => one.tool('workflow_checkpoint', { action: 'list', repositoryPath }),
+      /repositoryPath|Checkpoint repository unavailable/);
+    assert.equal(existsSync(join(f.base, 'shared/durable-workflow')), false);
+  }
+  one.ctx.cwd = f.base;
+  await assert.rejects(() => one.tool('workflow_checkpoint', { action: 'list' }), /Checkpoint repository unavailable/);
+  assert.equal(existsSync(join(f.base, 'shared/durable-workflow')), false);
+});
+
+test('checkpoint repository selection remains scoped to the explicitly selected repository', async () => {
+  const f = fixture(), one = await instance(f), other = fixture();
+  // Both repositories use the same private store, but must not share checkpoint records.
+  await one.tool('workflow_checkpoint', { action: 'save', repositoryPath: f.repo, projectId, taskId,
+    expectedRevision: 0, phase: 'test', summary: 'one repo', nextAction: 'inspect', uncertainOperations: [] });
+  assert.deepEqual(await one.tool('workflow_checkpoint', { action: 'list', repositoryPath: other.repo }), []);
+  await assert.rejects(() => one.tool('workflow_checkpoint', { action: 'load', repositoryPath: other.repo, taskId }),
+    /Checkpoint not found in this repository/);
+});
+
 test('only two explicit user command confirmations enable knowledge recall', async () => {
   const f = fixture(), one = await instance(f);
   const candidate = await one.tool('knowledge_candidate', input(f));
