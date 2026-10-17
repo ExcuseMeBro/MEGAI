@@ -3,10 +3,21 @@
 ## Implemented, not assumed
 
 - `workflow_checkpoint` accepts optional `repositoryPath`: an absolute, verified Git
-  repository/worktree (or its subdirectory). Omit it in a normal repository session.
-  In an umbrella session pass it on **every** checkpoint call. Invalid/relative paths
-  fail without fallback or repository creation. Existing revision, source-drift,
-  repository scoping and human knowledge-approval checks are unchanged.
+  repository/worktree (or its subdirectory), or a configured coordination folder.
+  Omit it in normal repo sessions and at ADAM/SPM-style coordination roots: existing
+  `.pi/project.json` with `layout: "multi"` and a nonempty `repositories` list binds
+  **all declared component repositories** automatically. The manifest takes precedence
+  even if an unborn wrapper `.git` happens to exist. No root Git initialization,
+  arbitrary child selection, recursive discovery or project-file rewriting occurs.
+  Each component must be an independent committed Git root inside the coordination
+  folder; missing, symlink, escaping, duplicate or invalid entries fail closed.
+  Vector checkpoints include each component's HEAD/source digest and hashes of the
+  manifest and optional root AGENTS.md. Drift anywhere requires reconciliation.
+  Coordination scope is separate from component scope; legacy single-repo records,
+  revision checks and explicit human knowledge approvals remain intact.
+  For an unconfigured umbrella pass a relevant component path on **every** call.
+  Manifest membership is authoritative, not exhaustive: undeclared sibling repos
+  are not silently added. Resolve membership changes with the project owner.
 - Save requires `uncertainOperations`, explicitly `[]` when no mutation is uncertain.
   Unsupported checkpoints are reported once, not retried unchanged. A non-Git runtime
   task must not select an unrelated Git repo just to get a checkpoint.
@@ -37,17 +48,17 @@ absence claim. No historical numeric report or private session transcript is shi
 ## Selective local application and rollback
 
 Only apply after reviewing the complete diff and passing focused acceptance.
-Back up `~/.pi/agent/AGENTS.md` and the installed durable extension `index.ts` in a
-private task receipt directory outside the source; record pre/post SHA256 and modes.
-Confirm installed extension store bytes match this source before replacing its entry
-point. Install exactly the reviewed profile and extension entry point. Preserve
+Back up `~/.pi/agent/AGENTS.md` and the installed durable extension `index.ts` and
+`store.mjs` in a private task receipt directory outside the source; record pre/post
+SHA256 and modes. Verify installed pre-change bytes against the last receipt before
+replacing them. Install exactly the reviewed profile, store and extension entry point. Preserve
 settings, auth, MCP, sessions and unrelated extensions; do not run the broad installer.
 Check installed hashes and run the real-loader suite with
 `MEGAI_DURABLE_EXTENSION=/absolute/installed/megai-durable-workflow/index.ts`.
 A running session may keep its original system prompt/tool schema: start a **new Pi
 session** for the policy; `/reload` refreshes extensions but is not proof that the
 original system prompt changed. Do not restart/kill somebody else's active session.
-For rollback, restore ONLY those two receipt-backed files after verifying their
+For rollback, restore ONLY those receipt-backed files after verifying their
 current bytes are still the installed post-change hashes. Never overwrite later
 operator changes. Keep private backups; do not commit them.
 

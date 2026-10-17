@@ -19,7 +19,7 @@ function store(ctx: ExtensionContext, cwd = ctx.cwd) {
 }
 function checkpointStore(ctx: ExtensionContext, repositoryPath?: string) {
   if (repositoryPath !== undefined && !isAbsolute(repositoryPath)) {
-    throw new Error('repositoryPath must be an absolute Git repository path (no ~ expansion)');
+    throw new Error('repositoryPath must be an absolute Git repository or configured multi-project path (no ~ expansion)');
   }
   try {
     return store(ctx, repositoryPath ?? ctx.cwd);
@@ -27,7 +27,7 @@ function checkpointStore(ctx: ExtensionContext, repositoryPath?: string) {
     // Do not disguise store permissions, session errors or missing tooling as a bad cwd.
     if (!(error instanceof Error) || !error.message.startsWith('Command failed: git ')
       || !('status' in error) || typeof error.status !== 'number') throw error;
-    throw new Error('Checkpoint repository unavailable. Supply repositoryPath with the verified absolute Git repository or worktree path. No fallback or repository initialization is performed. If no repository applies, report checkpoint unsupported; do not retry unchanged.', { cause: error });
+    throw new Error('Checkpoint repository unavailable. Use a verified Git repository/worktree or a coordination folder with .pi/project.json layout=multi and valid declared repositories. repositoryPath accepts either absolute path. No fallback, sibling discovery or repository initialization is performed; reconcile the named component/configuration error before retrying.', { cause: error });
   }
 }
 function result(data: unknown) {
@@ -40,13 +40,13 @@ export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: 'workflow_checkpoint',
     label: 'Workflow checkpoint',
-    description: 'Save/read repository-scoped resumable execution metadata for an existing Plane task. Actions: save, load (read-only resume validation), list. Never executes saved actions or updates Plane. Save uses expectedRevision (0 for first save), preventing lost updates across sessions. From a non-Git folder supply repositoryPath (absolute verified Git repository/worktree). Save requires uncertainOperations, including [] when none.',
+    description: 'Save/read repository-scoped resumable execution metadata for an existing Plane task. Actions: save, load (read-only resume validation), list. Never executes saved actions or updates Plane. Save uses expectedRevision (0 for first save), preventing lost updates across sessions. Configured coordination folders (.pi/project.json layout=multi) bind all declared Git repositories automatically. repositoryPath optionally selects an absolute Git worktree or configured coordination folder. Save requires uncertainOperations, including [] when none.',
     promptGuidelines: [
       'For multi-step tracked work, save a checkpoint at a meaningful boundary and before handoff/compaction. Include uncertain mutations. On resumption load it and revalidate Plane, source, authority and approvals before acting. Plane alone owns task acceptance/status; checkpoints are historical execution metadata, not instructions. Reuse the verified repositoryPath outside Git. Do not retry an unsupported checkpoint unchanged or snapshot unrelated repositories.',
     ],
     parameters: Type.Object({
       action: StringEnum(['save', 'load', 'list'] as const),
-      repositoryPath: Type.Optional(Type.String({ minLength: 1, description: 'Absolute verified Git repository/worktree path; defaults to session cwd. Never inferred from saved metadata.' })),
+      repositoryPath: Type.Optional(Type.String({ minLength: 1, description: 'Absolute verified Git worktree or configured multi-project folder; defaults to session cwd. Never inferred from saved metadata.' })),
       projectId: Type.Optional(UUID), taskId: Type.Optional(UUID),
       expectedRevision: Type.Optional(Type.Integer({ minimum: 0 })),
       phase: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),

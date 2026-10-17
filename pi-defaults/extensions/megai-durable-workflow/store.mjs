@@ -28,7 +28,7 @@ function safePath(path) {
     if (dirname(p) === p) break;
   }
 }
-export function readArtifact(path) {
+function artifact(path, withBytes = false) {
   safePath(path);
   const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
@@ -40,9 +40,10 @@ export function readArtifact(path) {
     requireValue(current.dev === before.dev && current.ino === before.ino && !current.isSymbolicLink(), 'Artifact path changed while reading');
     requireValue(bytes.length <= MAX_FILE && before.size === after.size && before.mtimeMs === after.mtimeMs
       && before.ctimeMs === after.ctimeMs, 'Artifact changed while reading');
-    return { path: realpathSync(path), sha256: hash(bytes) };
+    return { path: realpathSync(path), sha256: hash(bytes), ...(withBytes ? { bytes } : {}) };
   } finally { closeSync(fd); }
 }
+export function readArtifact(path) { return artifact(path); }
 function verifyEvidence(evidence) {
   requireValue(Array.isArray(evidence) && evidence.length > 0 && evidence.length <= 20, 'Evidence required (1–20 artifacts)');
   return evidence.map(item => {
@@ -57,13 +58,71 @@ function git(cwd, ...args) {
   return execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8', timeout: 10000, maxBuffer: 16 * 1024 * 1024,
     env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
 }
-function repository(cwd) {
+function gitRepository(cwd) {
   const root = realpathSync(git(cwd, 'rev-parse', '--show-toplevel').trim());
   const common = realpathSync(resolve(root, git(root, 'rev-parse', '--git-common-dir').trim()));
   return { root, common, scope: hash(common) };
 }
+// A declared coordination project is not itself a Git repository, even if an
+// unrelated/unborn .git exists there. Never scan siblings or initialize Git.
+function repository(cwd) {
+  if (existsSync(cwd)) {
+    const entry = lstatSync(cwd);
+    requireValue(entry.isDirectory() || entry.isSymbolicLink(), 'repositoryPath must name a directory');
+  }
+  const config = join(resolve(cwd), '.pi/project.json');
+  safePath(config);
+  if (!existsSync(config)) return gitRepository(cwd);
+  const manifest = artifact(config, true);
+  const data = JSON.parse(manifest.bytes.toString('utf8'));
+  if (data.layout !== 'multi') return gitRepository(cwd);
+  // native realpath canonicalizes case on macOS (SPM and spm are one folder).
+  // Keep legacy single-Git scope serialization untouched.
+  const root = realpathSync.native(cwd);
+  requireValue(Array.isArray(data.repositories) && data.repositories.length > 0
+    && data.repositories.length <= 32, 'Multi project requires 1–32 declared repositories');
+  const seen = new Set();
+  const repositories = data.repositories.map(name => {
+    text(name, 'component repository path', 2048);
+    requireValue(!isAbsolute(name), 'Multi component must be a relative path');
+    const path = resolve(root, name);
+    requireValue(path.startsWith(root + '/'), 'Multi component path escape');
+    safePath(path);
+    const repo = gitRepository(path);
+    requireValue(realpathSync.native(repo.root) === realpathSync.native(path), `Multi component must be an independent Git root: ${name}`);
+    const common = realpathSync.native(repo.common);
+    requireValue(!seen.has(common), 'Duplicate multi component repository');
+    seen.add(common);
+    requireValue(/^[0-9a-f]{40,64}$/.test(git(repo.root, 'rev-parse', '--verify', 'HEAD').trim()), `Multi component needs a commit: ${name}`);
+    return { ...repo, root: realpathSync.native(repo.root), common, scope: hash(common) };
+  }).sort((a, b) => a.root.localeCompare(b.root));
+  return { kind: 'multi', root, common: root, scope: hash(`multi:${root}`), manifestSha256: manifest.sha256, repositories };
+}
+function validSource(value) {
+  if (!value || !HASH.test(value.digest)) return false;
+  if (value.kind !== 'multi') return /^[0-9a-f]{40,64}$/.test(value.head);
+  return HASH.test(value.manifestSha256) && (value.policySha256 === null || HASH.test(value.policySha256))
+    && Array.isArray(value.repositories) && value.repositories.length > 0 && value.repositories.length <= 32
+    && value.repositories.every(v => typeof v.path === 'string' && isAbsolute(v.path)
+      && typeof v.repository === 'string' && isAbsolute(v.repository) && !v.kind && validSource(v))
+    && value.digest === fingerprint([value.manifestSha256, value.policySha256, value.repositories]);
+}
 function source(repo) {
   const capture = () => {
+    if (repo.kind === 'multi') {
+      // Resolve the declared vector afresh: changed manifests cannot reuse stale
+      // component identities. The second full capture detects cross-repo races.
+      const current = repository(repo.root);
+      requireValue(current.kind === 'multi' && current.scope === repo.scope, 'Multi project identity changed');
+      const policy = join(repo.root, 'AGENTS.md');
+      safePath(policy);
+      const policySha256 = existsSync(policy) ? readArtifact(policy).sha256 : null;
+      const repositories = current.repositories.map(component => ({ path: component.root,
+        repository: component.common, ...source(component) }));
+      const manifestSha256 = current.manifestSha256;
+      return { kind: 'multi', manifestSha256, policySha256, repositories,
+        digest: fingerprint([manifestSha256, policySha256, repositories]) };
+    }
     const head = git(repo.root, 'rev-parse', 'HEAD').trim();
     const status = git(repo.root, 'status', '--porcelain=v1', '-z', '--untracked-files=all');
     requireValue(!/(^|\0)(UU|AA|DD|AU|UA|DU|UD) /.test(status), 'Resolve Git conflicts first');
@@ -124,7 +183,7 @@ export class DurableStore {
       requireValue(data.schema === 1 && data.scope === this.repo.scope && data.repository === this.repo.common
         && Number.isSafeInteger(data.revision) && data.revision > 0, 'Invalid record schema/identity/revision');
       uuid(data.projectId); uuid(data.taskId);
-      requireValue(data.source && HASH.test(data.source.digest) && /^[0-9a-f]{40,64}$/.test(data.source.head), 'Invalid source binding');
+      requireValue(validSource(data.source), 'Invalid source binding');
       if (name.startsWith('w-')) {
         requireValue(name === `w-${data.taskId}.json` && data.kind === 'checkpoint', 'Invalid checkpoint identity');
         text(data.phase, 'phase', 100); text(data.summary, 'summary'); text(data.nextAction, 'next action');
@@ -164,9 +223,11 @@ export class DurableStore {
     }
     try { return operation(); } finally { rmdirSync(lock); }
   }
+  // Read-only provenance diagnostic; never initializes the metadata store.
+  snapshot() { return source(this.repo); }
   base(projectId, taskId) {
     return { schema: 1, scope: this.repo.scope, repository: this.repo.common,
-      projectId: uuid(projectId), taskId: uuid(taskId), source: source(this.repo),
+      projectId: uuid(projectId), taskId: uuid(taskId), source: this.snapshot(),
       sessionId: this.sessionId, updatedAt: new Date().toISOString() };
   }
   checkpoint(input) {
