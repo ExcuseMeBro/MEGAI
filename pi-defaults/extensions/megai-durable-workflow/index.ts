@@ -25,7 +25,8 @@ function checkpointStore(ctx: ExtensionContext, repositoryPath?: string) {
     return store(ctx, repositoryPath ?? ctx.cwd);
   } catch (error) {
     // Do not disguise store permissions, session errors or missing tooling as a bad cwd.
-    if (!(error instanceof Error) || !('cmd' in error) || typeof error.cmd !== 'string' || !error.cmd.startsWith('git ')) throw error;
+    if (!(error instanceof Error) || !error.message.startsWith('Command failed: git ')
+      || !('status' in error) || typeof error.status !== 'number') throw error;
     throw new Error('Checkpoint repository unavailable. Supply repositoryPath with the verified absolute Git repository or worktree path. No fallback or repository initialization is performed. If no repository applies, report checkpoint unsupported; do not retry unchanged.', { cause: error });
   }
 }
