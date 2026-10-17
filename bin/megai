@@ -20,6 +20,8 @@ megai
   report [args]                 Read-only local Pi usage/cost report (no writes)
   budget [args]                 Opt-in native Pi context budget (apply needs --apply)
   queue [args]                  Durable integration reservations (no auto merge)
+  task start|verify|ready|deliver [args]
+                                Explicit isolated task flow; no launch hooks
   workspace --root CHECKOUT     Resolve canonical local Git project (read-only)
   reindex                       Explicit local codedb index/rebuild
   plane [args]                  Secure Plane connector setup/status/removal
@@ -184,6 +186,7 @@ case "${1:-__project__}" in
   report) shift; exec_lib_python pi_usage_report.py "$@" ;;
   budget) shift; exec_lib_python pi_context_budget.py "$@" ;;
   queue) shift; exec python3 -B "$LIB/integration_queue.py" "$@" ;;
+  task) shift; exec_lib_python task_runner.py "$@" ;;
   workspace) shift; exec node "$MEGAI_HOME/pi-skill/workspace-guard/identity.mjs" "$@" ;;
   start) shift; cmd_start "$@" ;;
   stop) shift; cmd_stop "$@" ;;

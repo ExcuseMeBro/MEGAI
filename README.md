@@ -23,6 +23,13 @@ run it with `MEGAI_REF=pi MEGAI_PI_RESET=1 MEGAI_REMOVE_OMP=1`. Reset/removal ar
 explicit options. Reinstallation of a clean profile reuses its pinned packages;
 Pi startup never updates packages or builds indexes automatically.
 
+## Explicit task automation
+
+`megai task start|verify|ready|deliver` provides native isolated worktrees,
+source-pinned check receipts and guarded, queue-serialized dev delivery. No daemon,
+automatic rebase, main push or Plane status changes. See [task flow](docs/task-runner.md)
+for caller attestations, installation boundaries and blocked-delivery recovery.
+
 ## 🧰 Included tools
 
 | Default | Purpose |
