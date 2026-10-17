@@ -35,10 +35,12 @@ try {
     assert.match(text, /non-force push/);
     assert.doesNotMatch(text, /^(<<<<<<<|=======|>>>>>>>)/m);
   }
-  assert.match(mdev, /local `dev` ahead of remote `dev` as a delivery-only row/);
-  assert.match(mdev, /uncommitted work remains an\s+explicit unfinished row/);
-  assert.match(mdev, /all-repo acceptance and one atomic reservation/);
-  assert.match(mdev, /pi-workflow cleanup/);
+  assert.match(mdev, /git worktree list --porcelain/);
+  assert.match(mdev, /Tracked or untracked task source needs its own task acceptance/);
+  assert.match(mdev, /source-current formal PASS/);
+  assert.match(mdev, /megai queue plan/);
+  assert.match(mdev, /Retain active, dirty, unknown or unmerged resources/);
+  assert.doesNotMatch(mdev, /pi-workflow cleanup/);
   assert.match(prdev, /necessary non-force push of verified `dev`/);
   assert.match(prdev, /rev-list --count <main-sha>\.\.<dev-sha>/);
   assert.match(prdev, /never a reason to create a duplicate PR/);

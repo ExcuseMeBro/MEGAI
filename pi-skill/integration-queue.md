@@ -8,10 +8,10 @@ share an explicitly named runtime resource. Installed copy:
 
 - Plane remains the task/acceptance/status authority. The SQLite queue is a local
   resource-reservation journal, not a second task board. Every request carries the
-  existing Plane pair and existing Paseo project identity.
-- Workspace isolation belongs to `agent-worktree-lifecycle`: one canonical Paseo
-  project, a managed worktree for each affected Git repo/task, no child-project
-  registration. Queue planning resolves linked worktrees to their primary repo.
+  existing Plane pair and canonical local project folder identity.
+- Worktree isolation belongs to `agent-worktree-lifecycle`: one task-owned native Git
+  worktree for each affected Git repo. Queue planning resolves linked worktrees to
+  their primary repository without a third-party registry.
 - The queue NEVER merges, rebases, switches branches, pushes, starts an agent or
   daemon, installs hooks, calls Plane, or approves deployment. A grant does not
   prove acceptance or authorize main promotion. Complete the mode-appropriate
@@ -57,8 +57,9 @@ repository resource as local integration. Fetch before planning and after the
 non-force push so `finish` verifies the delivered remote vector. This mode supports
 origin/dev only; it does not authorize another remote or ref. Keep cleanup that requires
 local dev reconciliation separate from successful remote delivery.
-Planning is read-only and needs a unique existing Paseo project; umbrella folders
-need no Git. Use separate operations if repos require different target branch names.
+Planning is read-only and needs an unambiguous existing project folder; non-Git
+umbrella folders need an explicit `.pi/project.json`. Use separate operations if
+repos require different target branch names.
 
 Optional `--after OP_ID` references already enqueued integration operations, not
 arbitrary Plane IDs. This earlier-only rule prevents dependency cycles. Only a

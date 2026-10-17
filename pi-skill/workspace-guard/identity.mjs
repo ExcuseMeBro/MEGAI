@@ -1,165 +1,86 @@
-// Read-only identity lookup. No daemon/config writes, network or startup work.
+// Read-only project identity from Git and explicit local project configuration.
+// No external workspace registry, daemon, or network access.
 import { execFile } from 'node:child_process';
-import { readFile, realpath, lstat, readdir } from 'node:fs/promises';
-import { homedir } from 'node:os';
-import { join, relative, isAbsolute, resolve, dirname } from 'node:path';
+import { readFile, realpath, lstat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
 const exec = promisify(execFile);
-export const paseoHome = () => resolve(process.env.PASEO_HOME || join(homedir(), '.paseo'));
-
-async function git(cwd, args) {
+async function git(cwd, ...args) {
   const env = { ...process.env, LC_ALL: 'C' };
   for (const key of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_INDEX_FILE']) delete env[key];
   const result = await exec('git', ['-C', cwd, ...args], { env, timeout: 5000, maxBuffer: 1024 * 1024 });
-  return result.stdout;
+  return result.stdout.trimEnd();
 }
 
 export async function gitIdentity(cwd) {
-  const fields = (await git(cwd, ['worktree', 'list', '--porcelain', '-z'])).split('\0');
+  const fields = (await git(cwd, 'worktree', 'list', '--porcelain', '-z')).split('\0');
   if (!fields[0]?.startsWith('worktree ') || fields.includes('bare')) throw new Error('A non-bare Git project is required');
   const root = await realpath(fields[0].slice(9));
-  const commonDir = await realpath((await git(cwd, ['rev-parse', '--path-format=absolute', '--git-common-dir'])).replace(/\n$/, ''));
-  const checkout = await realpath((await git(cwd, ['rev-parse', '--show-toplevel'])).replace(/\n$/, ''));
+  const commonDir = await realpath(await git(cwd, 'rev-parse', '--path-format=absolute', '--git-common-dir'));
+  const checkout = await realpath(await git(cwd, 'rev-parse', '--show-toplevel'));
   return { root, commonDir, checkout };
 }
 
-export async function registry(name, home = paseoHome()) {
-  if (!['projects', 'workspaces'].includes(name)) throw new Error('Unknown registry');
-  const value = JSON.parse(await readFile(join(home, 'projects', name + '.json'), 'utf8'));
-  const key = name === 'projects' ? 'projectId' : 'workspaceId';
-  if (!Array.isArray(value) || value.some(row => !row || typeof row !== 'object' || Array.isArray(row)
-      || typeof row[key] !== 'string' || !row[key]
-      || (row.archivedAt != null && typeof row.archivedAt !== 'string'))
-      || new Set(value.map(row => row[key])).size !== value.length) throw new Error(`Malformed Paseo ${name} registry`);
-  return value;
+async function configAt(path) {
+  let data;
+  try { data = JSON.parse(await readFile(join(path, '.pi/project.json'), 'utf8')); }
+  catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error; // Malformed or unreadable configuration must not silently fall back.
+  }
+  if (!data || !['mono', 'multi'].includes(data.layout)) throw new Error('Malformed local project configuration');
+  const repos = data.repositories ?? (data.layout === 'mono' ? ['.'] : null);
+  if (!Array.isArray(repos) || !repos.length || repos.some(name => typeof name !== 'string' || !name)) {
+    throw new Error('Malformed local project repositories');
+  }
+  return { ...data, repositories: repos };
 }
 
-async function directoryIdentity(cwd, error) {
-  // Only a genuine non-repository error permits fallback. Missing Git, permissions,
-  // timeouts, unsafe ownership and corrupt worktree metadata remain failures.
-  if (error?.code !== 128 || !/^fatal: not a git repository\b/m.test(error.stderr ?? '')) throw error;
-  const root = await realpath(cwd);
-  for (let current = root; ; current = dirname(current)) {
-    try {
-      await lstat(join(current, '.git'));
-      throw new Error('Git metadata exists; repair the checkout instead of using directory review');
-    } catch (probe) {
-      if (probe.code !== 'ENOENT') throw probe;
-    }
-    if (dirname(current) === current) break;
-  }
-  return { root, checkout: root, commonDir: null, kind: 'directory' };
-}
-
-export async function validateWriteScope(scope, identity) {
-  if (typeof scope !== 'string' || !scope || isAbsolute(scope) || scope.includes('\\')
-      || (scope !== '.' && scope.split('/').some(part => !part || part === '.' || part === '..'))) {
-    throw new Error('Local writer needs an owned relative directory scope, or . for the project folder');
-  }
-  let target = identity.root;
-  for (const part of scope === '.' ? [] : scope.split('/')) {
-    target = join(target, part);
-    const info = await lstat(target);
-    if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('Write scope must be an existing non-symlink directory');
-  }
-  let error;
-  try { await gitIdentity(target); }
-  catch (cause) { error = cause; }
-  if (!error) throw new Error('Git source writers use a managed task worktree, not a shared local checkout');
-  await directoryIdentity(target, error);
-  // A broad umbrella scope must not smuggle child Git repos into a local writer.
-  const pending = [target];
-  let entries = 0;
-  while (pending.length) {
-    const directory = pending.pop();
-    for (const entry of await readdir(directory, { withFileTypes: true })) {
-      if (++entries > 10000) throw new Error('Local configuration scope exceeds 10,000 entries');
-      if (entry.name === '.git' || entry.isSymbolicLink()) throw new Error('Local configuration scope contains Git metadata or symlinks; narrow the scope');
-      if (entry.isDirectory()) pending.push(join(directory, entry.name));
-    }
-  }
-}
-
-export async function projectIdentity(cwd, home = paseoHome()) {
+export async function projectIdentity(cwd) {
   let source;
   try { source = await gitIdentity(cwd); }
-  catch (error) { source = await directoryIdentity(cwd, error); }
-  // Existing linked worktrees retain their primary identity. Otherwise the nearest
-  // registered containing folder wins, including an umbrella over child repositories.
-  const anchor = source.checkout !== source.root ? source.root : await realpath(cwd);
-  const matches = [];
-  for (const project of await registry('projects', home)) {
-    if (project.archivedAt || typeof project.rootPath !== 'string') continue;
-    let root;
-    try { root = await realpath(project.rootPath); } catch { continue; }
-    const location = relative(root, anchor);
-    if (!location || (location !== '..' && !location.startsWith('../') && !isAbsolute(location))) {
-      matches.push({ root, projectId: project.projectId });
+  catch (error) {
+    if (error.code !== 128 || !/^fatal: not a git repository\b/m.test(error.stderr ?? '')) throw error;
+    const root = await realpath(cwd);
+    // A broken checkout is not a non-Git umbrella. Never grant a directory
+    // identity when Git metadata exists but cannot be read.
+    for (let folder = root; ; folder = dirname(folder)) {
+      try { await lstat(join(folder, '.git')); throw new Error('Git metadata exists; repair the checkout'); }
+      catch (probe) { if (probe.code !== 'ENOENT') throw probe; }
+      if (dirname(folder) === folder) break;
     }
+    source = { root, checkout: root, commonDir: null, kind: 'directory' };
   }
-  matches.sort((a, b) => b.root.length - a.root.length);
-  if (!matches.length || (matches[1] && matches[0].root === matches[1].root)) {
-    throw new Error('Canonical folder must have exactly one active Paseo project; reconcile registration, never create a sibling project');
-  }
-  const selected = matches[0];
-  let identity = source;
-  if (selected.root !== source.root) {
-    try { identity = await gitIdentity(selected.root); }
-    catch (error) { identity = await directoryIdentity(selected.root, error); }
-    identity = { ...identity, root: selected.root, checkout: selected.root };
-  }
-  return { ...identity, projectId: selected.projectId };
-}
-
-export async function validateWorktreeSource(path, identity, home = paseoHome()) {
-  if (typeof path !== 'string' || !isAbsolute(path)) throw new Error('Worktree source must be an absolute primary repository path');
-  const source = await gitIdentity(path);
-  const owner = await projectIdentity(source.root, home);
-  if (source.checkout !== source.root || await realpath(path) !== source.root
-      || owner.projectId !== identity.projectId || owner.root !== identity.root) {
-    throw new Error('Worktree source must be a primary Git repository inside the existing project folder');
-  }
-}
-
-export async function validateWorkspace(workspaceId, identity, home = paseoHome()) {
-  const rows = (await registry('workspaces', home)).filter(row => row.workspaceId === workspaceId && !row.archivedAt);
-  if (rows.length !== 1) throw new Error('Explicit active workspaceId is missing or ambiguous');
-  const row = rows[0];
-  if (row.kind === 'directory' || row.kind === 'local_checkout') {
-    if (row.projectId !== identity.projectId || row.isPaseoOwnedWorktree !== false
-        || typeof row.cwd !== 'string' || await realpath(row.cwd) !== identity.root
-        || (row.worktreeRoot != null && (row.kind !== 'local_checkout'
-          || typeof row.worktreeRoot !== 'string' || await realpath(row.worktreeRoot) !== identity.root))) {
-      throw new Error('Local workspace must belong to the exact registered project folder');
+  const anchor = source.root;
+  let selected;
+  for (let folder = anchor; ; folder = dirname(folder)) {
+    const config = await configAt(folder);
+    if (config) {
+      const repos = await Promise.all(config.repositories.map(async name => {
+        const path = resolve(folder, name);
+        if (path !== folder && !path.startsWith(folder + '/')) throw new Error('Repository escapes project folder');
+        const canonical = await realpath(path);
+        if (canonical !== folder && !canonical.startsWith(folder + '/')) throw new Error('Repository symlink escapes project folder');
+        return canonical;
+      }));
+      if (config.layout === 'mono' && repos.length !== 1) throw new Error('Mono project needs one repository');
+      if (repos.includes(anchor) || (source.commonDir === null && folder === anchor)) {
+        selected = { root: folder, config };
+      }
     }
-    const actual = await projectIdentity(row.cwd, home);
-    if (actual.root !== identity.root || actual.projectId !== identity.projectId) {
-      throw new Error('Local workspace filesystem identity does not match its registration');
-    }
-    return 'local';
+    if (dirname(folder) === folder || folder === resolve(process.env.PI_PROJECTS_ROOT || join(process.env.HOME || '', 'PROJECTS'))) break;
   }
-  if (row.projectId !== identity.projectId || row.kind !== 'worktree' || row.isPaseoOwnedWorktree !== true || typeof row.cwd !== 'string' || typeof row.worktreeRoot !== 'string') {
-    throw new Error('Delegate workspace must be a Paseo-managed worktree of the canonical project');
-  }
-  const actual = await gitIdentity(row.cwd);
-  const owner = await projectIdentity(actual.root, home);
-  const primary = await gitIdentity(actual.root);
-  const managedRoot = await realpath(join(home, 'worktrees'));
-  const location = relative(managedRoot, actual.checkout);
-  if (!location || location === '..' || location.startsWith('../') || isAbsolute(location)
-      || owner.root !== identity.root || owner.projectId !== identity.projectId
-      || actual.commonDir !== primary.commonDir || actual.checkout === actual.root
-      || await realpath(row.worktreeRoot) !== actual.checkout
-      || typeof row.mainRepoRoot !== 'string' || await realpath(row.mainRepoRoot) !== actual.root) {
-    throw new Error('Workspace filesystem/Git identity does not match its managed canonical registration');
-  }
+  if (!selected && source.commonDir === null) throw new Error('Non-Git project needs explicit .pi/project.json');
+  const root = selected?.root ?? source.root;
+  return { ...source, root, projectId: 'git-' + createHash('sha256').update(root).digest('hex').slice(0, 24) };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   if (process.argv.length !== 4 || process.argv[2] !== '--root') {
-    console.error('Usage: node identity.mjs --root EXISTING_CHECKOUT_OR_REGISTERED_DIRECTORY');
+    console.error('Usage: node identity.mjs --root EXISTING_CHECKOUT_OR_PROJECT_DIRECTORY');
     process.exitCode = 2;
   } else {
     try { console.log(JSON.stringify(await projectIdentity(process.argv[3]))); }

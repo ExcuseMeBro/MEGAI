@@ -280,32 +280,35 @@ class Delivery(unittest.TestCase):
 
 
 class Distribution(unittest.TestCase):
-    """The distribution must match the approved clean native-Paseo profile."""
+    """The distribution must match the approved clean native-Git profile."""
 
     def setUp(self):
         self.package = json.loads((DEFAULTS / "package.json").read_text())
 
-    def test_no_pi_subagents_in_packages_settings_or_tools(self):
+    def test_pi_subagents_is_optional_and_not_rejected(self):
         self.assertNotIn("pi-subagents", self.package["dependencies"])
-        self.assertNotIn("pi-subagents", (DEFAULTS / "package-lock.json").read_text())
+        current = {
+            "packages": ["npm:pi-subagents@1.2.3"],
+            "subagents": {"model": "operator-choice"},
+        }
         settings = install.profile_settings(
-            self.package["dependencies"], Path("/Users/example")
+            self.package["dependencies"], Path("/Users/example"), current
         )
-        self.assertNotIn("subagents", settings)
-        sources = [entry["source"] for entry in settings["packages"]]
-        self.assertEqual([s for s in sources if "subagent" in s], [])
+        self.assertIn("npm:pi-subagents@1.2.3", settings["packages"])
+        self.assertEqual(settings["subagents"], current["subagents"])
+        sources = [
+            entry["source"] if isinstance(entry, dict) else entry
+            for entry in settings["packages"]
+        ]
         self.assertFalse(any("pi-superpowers" in s or "ponytail" in s or "openspec" in s for s in sources))
         verify = (DEFAULTS / "verify.mjs").read_text()
         required = re.search(r"const requiredTools = .*?\[(.*?)\];", verify, re.S).group(1)
         self.assertNotIn("subagent", required)
-        removed = re.search(r"const removedTools = \[(.*?)\]", verify, re.S).group(1)
-        self.assertIn("subagent", removed)
+        self.assertNotIn("removed tool: ${name}", verify)
         self.assertNotIn("sift", required)
         profile = (DEFAULTS / "AGENTS.md").read_text()
-        # Optional local screening is supported; it must not exclude required evidence.
-        self.assertIn("local `sift` batch", profile)
-        self.assertIn("A low score never excludes a required dependency, test, changed file or error case.", profile)
-        self.assertIn("proves correctness or replaces independent review", profile)
+        self.assertNotIn(retired.TOOL, profile.lower())
+        self.assertNotIn("`sift`", profile)
         self.assertNotIn(retired.TOOL, required)
 
     def test_settings_and_mcp_merge_never_drop_operator_keys(self):
@@ -399,9 +402,13 @@ class Distribution(unittest.TestCase):
 
     def test_native_policy_and_prompts_are_distributed_and_verified(self):
         policy = (DEFAULTS / "AGENTS.md").read_text()
-        self.assertIn("native Paseo agents", policy)
-        self.assertNotIn("Use pi-subagents", policy)
-        self.assertIn("Do not reinstall it", policy)
+        self.assertIn("verified task-owned worktree", policy)
+        self.assertNotIn("pa" + "seo", policy.lower())
+        self.assertIn("pi-subagents", policy.lower())
+        self.assertNotIn("do not reinstall it", policy.lower())
+        routing = (DEFAULTS.parent / "skills/model-composition/routing.md").read_text()
+        self.assertIn("operator-configured native Pi subagents", routing)
+        self.assertNotIn("do not reinstall it", routing.lower())
         names = sorted(p.stem for p in (DEFAULTS / "prompts").glob("*.md"))
         self.assertEqual(names, ["factory", "mdev", "prdev", "rwbrowser"])
         verify = (DEFAULTS / "verify.mjs").read_text()
@@ -410,8 +417,8 @@ class Distribution(unittest.TestCase):
             self.assertIn("description:", front)
             self.assertIn(f"'{name}'", verify)
         self.assertIn('SOURCE / "prompts"', (DEFAULTS / "install.py").read_text())
-        self.assertIn("only that invocation", policy)
-        self.assertIn("Do not launch a separate reviewer", policy)
+        self.assertIn("Main promotion and pushes require separate explicit approval", policy)
+        self.assertIn("No separate reviewer is required", policy)
         self.assertNotIn("Explicit independent-review requests are honored", policy)
         browser = (DEFAULTS / "prompts/rwbrowser.md").read_text()
         self.assertIn("explicitly invoked `/rwbrowser`", browser)
@@ -419,11 +426,19 @@ class Distribution(unittest.TestCase):
         self.assertEqual(browser, (ROOT / ".pi/prompts/rwbrowser.md").read_text())
         self.assertIn("Do not start a browser", (ROOT / "AGENTS.md").read_text())
 
+    def test_verifier_respects_explicit_prompt_exclusions(self):
+        verify = (DEFAULTS / "verify.mjs").read_text()
+        self.assertIn("selection.prompts", verify)
+        self.assertIn("excludedPrompts.has(`-prompts/${name}.md`)", verify)
+        self.assertIn("Invalid Pi prompt selection", verify)
+        self.assertIn("readFileSync(c.winnerPath).equals(readFileSync(c.loserPath))", verify)
+        self.assertIn("diagnostics.length", verify)
+
     def test_factory_prompt_drains_explicit_scope_and_fails_closed(self):
         prompt = (DEFAULTS / "prompts/factory.md").read_text()
         for clause in (
             "${@:-}", "Todo", "In Progress", "comma-separated", "project identity",
-            "all pages", "pi-workflow factory-start", "Paseo", "In Review", "--no-overwrite-ignore",
+            "all pages", "pi-workflow factory-start", "Git", "In Review", "--no-overwrite-ignore",
             "not a daemon", "no push", "no main", "no Done", "factory-plan",
             "frozen selected UUIDs", "zero Todo", "only blocked/externally owned",
         ):
@@ -431,30 +446,21 @@ class Distribution(unittest.TestCase):
                 self.assertIn(clause, prompt)
         self.assertNotIn("pi-workflow start --title", prompt)
 
-    def test_never_block_prompts_and_status_reasons(self):
-        """Delivery prompts finish recoverable work; status stops blocking on it."""
-        for name in ("mdev", "prdev"):
-            self.assertIn("**Never stop for a recoverable prerequisite**",
-                          (DEFAULTS / f"prompts/{name}.md").read_text())
+    def test_delivery_prompts_use_native_git_and_keep_fail_closed_boundaries(self):
         mdev = (DEFAULTS / "prompts/mdev.md").read_text()
-        for clause in ("`pi-workflow status`", "ignored-untracked", "pi-workflow start --title",
-                       "--no-overwrite-ignore", "candidate ledger", "every eligible task branch",
-                       "merge --no-edit --no-overwrite-ignore", "never wait indefinitely",
-                       "continue with the next repository", "monorepo", "multi-repo",
-                       "cleanup each delivered repository independently"):
+        for clause in ("git worktree list --porcelain", "--no-overwrite-ignore",
+                       "megai queue plan", "source-current formal PASS", "non-force push",
+                       "In Review", "uncertain ownership"):
             self.assertIn(clause, mdev)
+        for obsolete in ("pi-workflow status", "pi-workflow cleanup", "pa" + "seo"):
+            self.assertNotIn(obsolete, mdev.lower() if obsolete == "pa" + "seo" else mdev)
         prdev = (DEFAULTS / "prompts/prdev.md").read_text()
         for clause in ("github.com", "Missing evidence for the captured `dev` SHA",
                        "No commits in that diff means no PR"):
             self.assertIn(clause, prdev)
-        # Ignored files affect cleanup or colliding merges, not inventory readiness.
-        self.assertNotIn('blocked.append("ignored-untracked")',
-                         (DEFAULTS / "workflow.py").read_text())
-        base = {"Id": "a", "Status": "idle", "Cwd": "/tmp", "Archived": False}
-        self.assertIsNone(w._inspect_problem(
-            {**base, "Capabilities": {"tools": True}, "AvailableModes": "all"}))
-        self.assertEqual(w._inspect_problem({**base, "PendingPermissions": "unknown"}),
-                         "inspect-field:PendingPermissions")
+        self.assertNotIn("cleanup", subprocess.run(
+            [sys.executable, "-B", str(DEFAULTS / "workflow.py"), "--help"],
+            capture_output=True, text=True, timeout=10, check=True).stdout)
 
     def test_pi_version_is_resolved_at_install_and_read_back_from_the_manifest(self):
         """The profile installs the newest Pi and records what it resolved.
@@ -470,49 +476,17 @@ class Distribution(unittest.TestCase):
         self.assertIn("defaults/manifest.json", verify)
         self.assertNotIn("0.85.1", verify)
 
-    def test_child_launch_background_keeps_main_focus(self):
+    def test_native_worktree_and_user_decision_policy(self):
         policy = (DEFAULTS / "AGENTS.md").read_text()
         for required in (
-            "`paseo agent run --background`",
-            "an explicit existing task workspace and cwd",
-            "The invoking main tab keeps focus",
-            "is background execution, not proof that",
-            "invoke `paseo agent open`",
-            "desktop agent deep links",
-            "app/window activation",
-            "focus-switch-then-restore workaround",
-            "verify its documented non-focusing behavior first",
-            "never invent flags such as",
-            "Only an explicit user request may focus a child",
+            "one writer per worktree", "verified task-owned worktree",
+            "never edit, stage or commit task source in the dev/main checkout",
+            "Never idle over a decision", "at most five minutes",
+            "Reserved user decisions", "Main/push/publishing still need separate explicit approval",
+            "Cleanup only clean, released, proven-merged task-owned resources",
         ):
             self.assertIn(required, policy)
-
-    def test_waits_and_pending_decisions_policy(self):
-        policy = (DEFAULTS / "AGENTS.md").read_text()
-        for required in (
-            "## Waits and pending decisions",
-            "record the recommendation, continue",
-            "autonomous for five minutes at most",
-            "ask the user for the decision",
-            "Reserved user decisions",
-        ):
-            self.assertIn(required, policy)
-
-    def test_end_of_task_agent_tab_cleanup_policy(self):
-        policy = (DEFAULTS / "AGENTS.md").read_text()
-        for required in (
-            "PASEO_AGENT_ID",
-            "ParentAgentId",
-            "`paseo agent archive EXACT_ID --json`",
-            "never `--force`",
-            "soft archive",
-            "workspace archive",
-            "invoking main agent",
-            "before the final reply",
-            "not background daemon automation",
-        ):
-            self.assertIn(required, policy)
-        self.assertNotIn("archive --force", policy)
+        self.assertNotIn("pa" + "seo", policy.lower())
 
 
 class InstallerPreflight(unittest.TestCase):

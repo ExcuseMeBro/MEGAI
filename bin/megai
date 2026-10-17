@@ -20,7 +20,7 @@ megai
   report [args]                 Read-only local Pi usage/cost report (no writes)
   budget [args]                 Opt-in native Pi context budget (apply needs --apply)
   queue [args]                  Durable integration reservations (no auto merge)
-  workspace --root CHECKOUT     Resolve canonical Git/Paseo project (read-only)
+  workspace --root CHECKOUT     Resolve canonical local Git project (read-only)
   reindex                       Explicit local codedb index/rebuild
   plane [args]                  Secure Plane connector setup/status/removal
   dev | finish | promote       Explicit branch lifecycle commands

@@ -10,7 +10,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 
 Use the existing Plane task and acceptance as the spec. Pi workflow owns task identity,
 worktrees and delivery. The parent reviews both axes separately by default; a required
-independent review follows the active project's policy and native Paseo ownership rules.
+independent review follows the active project's policy and native Git worktree ownership rules.
 Do not create another tracker, require a setup wizard or launch browser checks. Browser
 review is explicit via `/rwbrowser`, except evidence already required by acceptance.
 

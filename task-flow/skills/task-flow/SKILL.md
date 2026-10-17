@@ -71,7 +71,7 @@ Prefer these over hand-editing — they move the line atomically and refresh `mo
 
 **MEGAI Plane boundary:** when `megai-task-flow` is installed, Plane is the coordination authority and `.todos` is its local mirror. Consume every project and project-work-item page before counting candidates; exactly one is usable, zero requires user direction, and multiple matches block. Keep the original `<!-- asana:GID -->` marker until the confirmed `(project UUID, work item UUID)` is recorded. Agents hand off at Plane `In Review` with the item incomplete; only the user moves it to `Done`. Do not use `/td` as a substitute for that user-only transition.
 
-- **Parallel implementation invariant:** when tracked/high-risk work has two or more independent implementation slices, the parent owns integration. Inside Paseo, create one visible managed worktree workspace per writer from `dev`, then launch the writer with that workspace ID; read-only workers remain tabs in the parent workspace. Outside Paseo, native isolated task worktrees are allowed. Define non-overlapping ownership up front and serialize shared-file or dependency boundaries.
+- **Parallel implementation invariant:** when tracked/high-risk work has two or more independent implementation slices, the parent owns integration. Create one verified isolated Git worktree per writer from the approved base; pass the exact checkout path and non-overlapping file ownership to each writer. Read-only children need no worktree. Serialize shared-file or dependency boundaries; no particular agent runner is required.
 
 For tracked/high-risk work:
 

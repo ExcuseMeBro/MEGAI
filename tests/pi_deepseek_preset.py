@@ -97,7 +97,8 @@ class Preset(unittest.TestCase):
         policy = (self.agent / "AGENTS.md").read_text()
         self.assertIn("megai/delegation.md", policy)
         delegation = (self.agent / "skills/megai/delegation.md").read_text()
-        for clause in ("no preset assigns agents to models", "PI_REASONING_LEVEL", "--no-cache"):
+        for clause in ("no preset assigns worker/reviewer roles", "model/thinking",
+                       "exclusive writer ownership", "old writer is quiescent"):
             self.assertIn(clause, delegation)
         after = self.snapshot()
         self.run_cli("--preset", "economy")
