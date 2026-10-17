@@ -27,7 +27,7 @@ is not a measured end-to-end latency, quality or token-saving claim.
 
 ## Explicit native and economy profiles
 
-Ordinary wiring preserves native model/auth/role preferences. To select the native
+Ordinary wiring preserves native model/auth preferences and retires owned role routing. To select the native
 profile for new sessions:
 
 ```bash
@@ -35,15 +35,11 @@ python3 -B ~/.megai/lib/pi_model_policy.py --adaptive --preset native --check
 python3 -B ~/.megai/lib/pi_model_policy.py --adaptive --preset native
 ```
 
-The native profile uses `openai-codex/gpt-6-sol` high for coordination, one
-`deepseek/deepseek-flash` high implementation worker and `openai-codex/gpt-6-astra`
-high reviewer role remains configured but is not dispatched by this workflow.
-The separate `economy` preset remains
-independently available: it
-uses DeepSeek Flash high planning, low scout/worker, and GPT Sol high review. Roles are
-parent guidance, not mandatory agent launches or a dispatcher. Explicit user/task
-choices override either profile, and an already-running parent's model/thinking never
-changes from installer writes.
+The native profile selects `openai-codex/gpt-6-sol` high as the startup default.
+The separate `economy` preset selects DeepSeek Flash high. Both configure native
+model preferences only: there is no role file, routing injection or mandatory
+worker/reviewer dispatch. Explicit user/task choices govern delegation; an
+already-running parent's model/thinking never changes from installer writes.
 
 Only a confirmed DeepSeek 402 insufficient-balance error allows one continuation on
 `openai-codex/gpt-6-luna` at high thinking, preserving existing task context. Auth or
@@ -62,7 +58,7 @@ different branch. Historical workflow metrics are at
 The installer preflights ownership, privately backs up managed edits and preserves
 credentials, unrelated settings and resource exclusions. A customized roles file is
 preserved with an error rather than overwritten; reconcile it deliberately. Ordinary
-wiring keeps existing role/model preferences. Open a fresh Pi session to use updated
+wiring keeps existing model preferences and retires receipt-owned role assets. Open a fresh Pi session to use updated
 startup defaults; an existing Paseo tab retains its explicit selection.
 
 ## One decision call per boundary, speculative branches included

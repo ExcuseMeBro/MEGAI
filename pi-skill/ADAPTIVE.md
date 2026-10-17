@@ -12,15 +12,8 @@ State the observable outcome and smallest useful check, then classify:
 
 | Mode | Trigger | Work and proof |
 | --- | --- | --- |
-| Routine | Clear, reversible, bounded change without guarded risks: copy/style fix, isolated bug, tests/docs, small feature with a known seam, safe scoped configuration | Parent implements directly, checks the smallest observable outcome, self-reviews the diff inline, reports the result. No mandatory subagent beyond configured economy routing, written plan, contract hash or acceptance CLI. Subject to economy routing below. |
+| Routine | Clear, reversible, bounded change without guarded risks: copy/style fix, isolated bug, tests/docs, small feature with a known seam, safe scoped configuration | Parent implements directly, checks the smallest observable outcome, self-reviews the diff inline, reports the result. No mandatory subagent, written plan, contract hash or acceptance CLI. |
 | Guarded | Security/auth/permissions, sensitive data, payments, destructive operations, migrations, concurrency/shared state, consequential cross-module/API changes, behavior-changing safety/acceptance/installer policy, multi-repo delivery, or explicitly requested formal assurance | Load `megai-acceptance` before implementation; freeze criteria, capture real evidence, self-review the diff and obtain source-current PASS. |
-
-Before deciding to work directly, use the injected role context or `megai-roles.json`
-(`PI_CODING_AGENT_DIR`, otherwise `~/.pi/agent`) to discover the configured roles:
-with the explicit `economy` preset, route substantial bounded implementation to ONE
-configured worker instead of duplicating it in GPT; trivial or read-only work stays
-direct, and a healthy configured worker parent still does its own routine work.
-Explicit user or task model choices override this.
 
 Classify the actual effect, not the filename or number of files. Editing a skill,
 AGENTS.md, release-note prose or installing already-reviewed policy bytes is not
@@ -118,10 +111,9 @@ auto-compaction setting or transcript edits; do not claim savings without measur
 
 Direct parent tools are the default for trivial and non-Git local work. Load
 [delegation.md](delegation.md) before native delegation or model-error escalation.
-The optional `native` profile guides GPT Sol coordination, a DeepSeek Flash high
-implementation worker without a separate reviewer step; `economy` remains a separate opt-in.
-Use one writer and verify its diff/tests. Explicit user/task choices override the
-profile, and the active parent's model/thinking never change silently. Auth/permission
+There is no configured-role routing or mandatory worker/reviewer dispatch.
+Use one writer and verify its diff/tests. Follow explicit user/task model choices;
+the active parent's model/thinking never change silently. Auth/permission
 failures, shared outages and uncertain writes need reconciliation, not model hopping.
 Do not create a separate reviewer. No speculative extra team.
 

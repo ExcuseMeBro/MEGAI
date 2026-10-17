@@ -1,0 +1,20 @@
+{
+  "run_id": "warmup-pi-installed-text",
+  "case": "text",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 289.679375,
+  "cpu_ms": 310.0,
+  "avg_cpu_one_core_pct": 107.01486773091801,
+  "sampled_tree_peak_rss_mib": 122.890625,
+  "sample_count": 46,
+  "max_tree_processes": 2,
+  "time_max_process_rss_mib": 122.15625,
+  "first_request_ms": 270.721417,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    5981
+  ]
+}

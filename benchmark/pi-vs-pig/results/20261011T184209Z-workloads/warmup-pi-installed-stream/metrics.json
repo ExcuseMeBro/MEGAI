@@ -1,0 +1,20 @@
+{
+  "run_id": "warmup-pi-installed-stream",
+  "case": "stream",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 606.162375,
+  "cpu_ms": 329.99999999999994,
+  "avg_cpu_one_core_pct": 54.440858359115396,
+  "sampled_tree_peak_rss_mib": 150.9375,
+  "sample_count": 99,
+  "max_tree_processes": 2,
+  "time_max_process_rss_mib": 150.328125,
+  "first_request_ms": 224.838084,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    5985
+  ]
+}

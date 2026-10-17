@@ -1,0 +1,20 @@
+{
+  "run_id": "warmup-pig-installed-resume-2000",
+  "case": "resume-2000",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 228.586459,
+  "cpu_ms": 200.0,
+  "avg_cpu_one_core_pct": 87.4942465423991,
+  "sampled_tree_peak_rss_mib": 116.078125,
+  "sample_count": 37,
+  "max_tree_processes": 3,
+  "time_max_process_rss_mib": 69.140625,
+  "first_request_ms": 170.8245,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    440062
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "run_id": "warmup-pig-native-parallel-tools",
+  "case": "parallel-tools",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 234.692542,
+  "cpu_ms": 160.0,
+  "avg_cpu_one_core_pct": 68.17430099674833,
+  "sampled_tree_peak_rss_mib": 99.546875,
+  "sample_count": 38,
+  "max_tree_processes": 6,
+  "time_max_process_rss_mib": 42.40625,
+  "first_request_ms": 51.781583,
+  "requests": 2,
+  "tool_ends": 4,
+  "request_bytes": [
+    6065,
+    7040
+  ]
+}

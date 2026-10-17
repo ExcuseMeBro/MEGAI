@@ -1,0 +1,620 @@
+{
+  "baseline": "7c07b9a1ce89f6e8e56e3552933b746f0111f8c5",
+  "model": "gpt-6.1-sol",
+  "requestedThinking": "high",
+  "piVersion": "1.0.0",
+  "e2eVersion": "0.16.0",
+  "webVersion": "0.11.2",
+  "playwrightVersion": "1.63.0",
+  "nodeVersion": "24.18.0",
+  "sourceManifest": "7de35c53b9cf0f5bbc4de7dfa4d6f48a42164fe33e4340de29084f0de89a8526  bench.mjs\nf54678fa40f9f70b2d071374cead66a59fa225d9b17b18308545fd058853fc8d  browser-bridge.mjs\n3d463f1e0995a6345e84847dff9d2294f20528a98528f33fa15f023a63881d8e  browser.mjs\n23fe50dbb88037a22f60418ba5d235002770e8661a5d4b656204f067239789ad  fixture.mjs\n91448be02646c42030d03525cbc8910b9fcc6a880fa605a11d48e342efef0040  saved-playwright.mjs\nd56ca1b07a2ec73f43dad78570d012782755424e83eb20119382bb491937db18  e2e.config.ts\n49fffdf688de7a8c483e8a4785446b430633b056596a6e5136b231bd5bf9aa09  package-lock.json\n564f3991b14a0de7f24597dd9da70c93a570305fcd8d1fe6d8ee1757eb1df8fb  package.json\n82935c07008478c3c6fbb4a47f2c7a8e49a1e0af8a25528a91a8a4264905e852  tests/flow.e2e.ts\n",
+  "matrixTokens": 133040,
+  "summary": [
+    {
+      "arm": "pi-live",
+      "repetitions": 3,
+      "passed": 3,
+      "meanSeconds": 25.441801736333332,
+      "medianSeconds": 25.463085250000002,
+      "minSeconds": 22.678384459,
+      "maxSeconds": 28.183935499999993,
+      "meanTokens": 6098,
+      "medianTokens": 5603,
+      "meanCachedTokens": 341.3333333333333,
+      "meanPiTokens": 6098,
+      "meanE2eTokens": 0
+    },
+    {
+      "arm": "e2e-cold",
+      "repetitions": 3,
+      "passed": 3,
+      "meanSeconds": 46.06492904133333,
+      "medianSeconds": 46.281955249999996,
+      "minSeconds": 44.40032941599999,
+      "maxSeconds": 47.512502458,
+      "meanTokens": 34985,
+      "medianTokens": 34987,
+      "meanCachedTokens": 12842.666666666666,
+      "meanPiTokens": 1823,
+      "meanE2eTokens": 33162
+    },
+    {
+      "arm": "e2e-warm",
+      "repetitions": 3,
+      "passed": 3,
+      "meanSeconds": 15.649770777666683,
+      "medianSeconds": 15.759610167000035,
+      "minSeconds": 15.370724333000005,
+      "maxSeconds": 15.818977833000012,
+      "meanTokens": 1762.6666666666667,
+      "medianTokens": 1763,
+      "meanCachedTokens": 0,
+      "meanPiTokens": 1762.6666666666667,
+      "meanE2eTokens": 0
+    },
+    {
+      "arm": "pi-saved",
+      "repetitions": 3,
+      "passed": 3,
+      "meanSeconds": 11.110391931000004,
+      "medianSeconds": 11.133581250000002,
+      "minSeconds": 10.544321334000008,
+      "maxSeconds": 11.653273209000007,
+      "meanTokens": 1501,
+      "medianTokens": 1501,
+      "meanCachedTokens": 0,
+      "meanPiTokens": 1501,
+      "meanE2eTokens": 0
+    }
+  ],
+  "records": [
+    {
+      "id": "pi-live-1",
+      "arm": "pi-live",
+      "rep": 1,
+      "wallSeconds": 22.678384459,
+      "passed": true,
+      "totalTokens": 5596,
+      "cacheReadTokens": 0,
+      "pi": {
+        "input": 5334,
+        "output": 262,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 5596,
+        "calls": 5,
+        "models": [
+          "openai-codex/gpt-6.1-sol"
+        ],
+        "errors": []
+      },
+      "e2e": {
+        "total": 0,
+        "calls": 0,
+        "cacheRead": 0,
+        "models": [],
+        "cache": [],
+        "statuses": []
+      }
+    },
+    {
+      "id": "e2e-cold-1",
+      "arm": "e2e-cold",
+      "rep": 1,
+      "wallSeconds": 46.281955249999996,
+      "passed": true,
+      "totalTokens": 34988,
+      "cacheReadTokens": 17792,
+      "pi": {
+        "input": 1754,
+        "output": 70,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 1824,
+        "calls": 2,
+        "models": [
+          "openai-codex/gpt-6.1-sol"
+        ],
+        "errors": []
+      },
+      "e2e": {
+        "input": 32949,
+        "output": 215,
+        "cacheRead": 17792,
+        "total": 33164,
+        "calls": 8,
+        "models": [
+          "chatgpt.responses/gpt-6.1-sol"
+        ],
+        "accounting": [
+          "provider"
+        ],
+        "cache": [
+          {
+            "mode": "missed",
+            "reason": "no-entry",
+            "replayedActions": 0,
+            "totalActions": 0
+          }
+        ],
+        "statuses": [
+          "passed"
+        ]
+      }
+    },
+    {
+      "id": "e2e-warm-1",
+      "arm": "e2e-warm",
+      "rep": 1,
+      "wallSeconds": 15.370724333000005,
+      "passed": true,
+      "totalTokens": 1763,
+      "cacheReadTokens": 0,
+      "pi": {
+        "input": 1695,
+        "output": 68,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 1763,
+        "calls": 2,
+        "models": [
+          "openai-codex/gpt-6.1-sol"
+        ],
+        "errors": []
+      },
+      "e2e": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "total": 0,
+        "calls": 0,
+        "models": [],
+        "accounting": [],
+        "cache": [
+          {
+            "mode": "self-finalized",
+            "replayedActions": 7,
+            "totalActions": 7
+          }
+        ],
+        "statuses": [
+          "passed"
+        ]
+      }
+    },
+    {
+      "id": "pi-saved-1",
+      "arm": "pi-saved",
+      "rep": 1,
+      "wallSeconds": 11.133581250000002,
+      "passed": true,
+      "totalTokens": 1501,
+      "cacheReadTokens": 0,
+      "pi": {
+        "input": 1447,
+        "output": 54,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 1501,
+        "calls": 2,
+        "models": [
+          "openai-codex/gpt-6.1-sol"
+        ],
+        "errors": []
+      },
+      "e2e": {
+        "total": 0,
+        "calls": 0,
+        "cacheRead": 0,
+        "models": [],
+        "cache": [],
+        "statuses": []
+      }
+    },
+    {
+      "id": "e2e-cold-2",
+      "arm": "e2e-cold",
+      "rep": 2,
+      "wallSeconds": 47.512502458,
+      "passed": true,
+      "totalTokens": 34987,
+      "cacheReadTokens": 9216,
+      "pi": {
+        "input": 1755,
+        "output": 71,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 1826,
+        "calls": 2,
+        "models": [
+          "openai-codex/gpt-6.1-sol"
+        ],
+        "errors": []
+      },
+      "e2e": {
+        "input": 32949,
+        "output": 212,
+        "cacheRead": 9216,
+        "total": 33161,
+        "calls": 8,
+        "models": [
+          "chatgpt.responses/gpt-6.1-sol"
+        ],
+        "accounting": [
+          "provider"
+        ],
+        "cache": [
+          {
+            "mode": "missed",
+            "reason": "no-entry",
+            "replayedActions": 0,
+            "totalActions": 0
+          }
+        ],
+        "statuses": [
+          "passed"
+        ]
+      }
+    },
+    {
+      "id": "e2e-warm-2",
+      "arm": "e2e-warm",
+      "rep": 2,
+      "wallSeconds": 15.818977833000012,
+      "passed": true,
+      "totalTokens": 1762,
+      "cacheReadTokens": 0,
+      "pi": {
+        "input": 1696,
+        "output": 66,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 1762,
+        "calls": 2,
+        "models": [
+          "openai-codex/gpt-6.1-sol"
+        ],
+        "errors": []
+      },
+      "e2e": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "total": 0,
+        "calls": 0,
+        "models": [],
+        "accounting": [],
+        "cache": [
+          {
+            "mode": "self-finalized",
+            "replayedActions": 7,
+            "totalActions": 7
+          }
+        ],
+        "statuses": [
+          "passed"
+        ]
+      }
+    },
+    {
+      "id": "pi-saved-2",
+      "arm": "pi-saved",
+      "rep": 2,
+      "wallSeconds": 10.544321334000008,
+      "passed": true,
+      "totalTokens": 1501,
+      "cacheReadTokens": 0,
+      "pi": {
+        "input": 1447,
+        "output": 54,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 1501,
+        "calls": 2,
+        "models": [
+          "openai-codex/gpt-6.1-sol"
+        ],
+        "errors": []
+      },
+      "e2e": {
+        "total": 0,
+        "calls": 0,
+        "cacheRead": 0,
+        "models": [],
+        "cache": [],
+        "statuses": []
+      }
+    },
+    {
+      "id": "pi-live-2",
+      "arm": "pi-live",
+      "rep": 2,
+      "wallSeconds": 28.183935499999993,
+      "passed": true,
+      "totalTokens": 7095,
+      "cacheReadTokens": 1024,
+      "pi": {
+        "input": 5772,
+        "output": 299,
+        "cacheRead": 1024,
+        "cacheWrite": 0,
+        "total": 7095,
+        "calls": 6,
+        "models": [
+          "openai-codex/gpt-6.1-sol"
+        ],
+        "errors": []
+      },
+      "e2e": {
+        "total": 0,
+        "calls": 0,
+        "cacheRead": 0,
+        "models": [],
+        "cache": [],
+        "statuses": []
+      }
+    },
+    {
+      "id": "pi-live-3",
+      "arm": "pi-live",
+      "rep": 3,
+      "wallSeconds": 25.463085250000002,
+      "passed": true,
+      "totalTokens": 5603,
+      "cacheReadTokens": 0,
+      "pi": {
+        "input": 5334,
+        "output": 269,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 5603,
+        "calls": 5,
+        "models": [
+          "openai-codex/gpt-6.1-sol"
+        ],
+        "errors": []
+      },
+      "e2e": {
+        "total": 0,
+        "calls": 0,
+        "cacheRead": 0,
+        "models": [],
+        "cache": [],
+        "statuses": []
+      }
+    },
+    {
+      "id": "e2e-cold-3",
+      "arm": "e2e-cold",
+      "rep": 3,
+      "wallSeconds": 44.40032941599999,
+      "passed": true,
+      "totalTokens": 34980,
+      "cacheReadTokens": 11520,
+      "pi": {
+        "input": 1755,
+        "output": 64,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 1819,
+        "calls": 2,
+        "models": [
+          "openai-codex/gpt-6.1-sol"
+        ],
+        "errors": []
+      },
+      "e2e": {
+        "input": 32949,
+        "output": 212,
+        "cacheRead": 11520,
+        "total": 33161,
+        "calls": 8,
+        "models": [
+          "chatgpt.responses/gpt-6.1-sol"
+        ],
+        "accounting": [
+          "provider"
+        ],
+        "cache": [
+          {
+            "mode": "missed",
+            "reason": "no-entry",
+            "replayedActions": 0,
+            "totalActions": 0
+          }
+        ],
+        "statuses": [
+          "passed"
+        ]
+      }
+    },
+    {
+      "id": "e2e-warm-3",
+      "arm": "e2e-warm",
+      "rep": 3,
+      "wallSeconds": 15.759610167000035,
+      "passed": true,
+      "totalTokens": 1763,
+      "cacheReadTokens": 0,
+      "pi": {
+        "input": 1694,
+        "output": 69,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 1763,
+        "calls": 2,
+        "models": [
+          "openai-codex/gpt-6.1-sol"
+        ],
+        "errors": []
+      },
+      "e2e": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "total": 0,
+        "calls": 0,
+        "models": [],
+        "accounting": [],
+        "cache": [
+          {
+            "mode": "self-finalized",
+            "replayedActions": 7,
+            "totalActions": 7
+          }
+        ],
+        "statuses": [
+          "passed"
+        ]
+      }
+    },
+    {
+      "id": "pi-saved-3",
+      "arm": "pi-saved",
+      "rep": 3,
+      "wallSeconds": 11.653273209000007,
+      "passed": true,
+      "totalTokens": 1501,
+      "cacheReadTokens": 0,
+      "pi": {
+        "input": 1447,
+        "output": 54,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 1501,
+        "calls": 2,
+        "models": [
+          "openai-codex/gpt-6.1-sol"
+        ],
+        "errors": []
+      },
+      "e2e": {
+        "total": 0,
+        "calls": 0,
+        "cacheRead": 0,
+        "models": [],
+        "cache": [],
+        "statuses": []
+      }
+    }
+  ],
+  "receipts": [
+    {
+      "id": "pi-live-1",
+      "hashes": {
+        "pi.stdout": "282df8d768008cb254ac94084cb7db42dc9e4e44ea84b9550c98aa0d5c5ec757",
+        "pi.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "record.json": "96a7e434c6ba0605ac48c0d04520b5495089766034d1063d2ab35cf485df12a9",
+        "prompt.txt": "1a80804729895a5dd1f2108cbaab4c33afcf24c94bfdbe70a99406c92f9a2648"
+      }
+    },
+    {
+      "id": "e2e-cold-1",
+      "hashes": {
+        "pi.stdout": "454d0d9accc522caafeeb7ff278ed9191a9e169f634d816194a9a7760c661fbb",
+        "pi.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "record.json": "cc960cd6d88b9575c98778fbe1006b36ea6826d6a173f2b163814ee6e35796b2",
+        "prompt.txt": "ae0f9bbc86cd9618ec882fb78db23742b6d577464e3ddac18564900b266a2d85",
+        "e2e/report.json": "64583134fc959b62b4df3dfb6c94b799ffc6ea5942e39f79c11aca0ec9cf250b",
+        "e2e-requests.jsonl": "46518a1687473b5def60c846a991f645dd205f4888738ce9d77b7c8f78125e08"
+      }
+    },
+    {
+      "id": "e2e-warm-1",
+      "hashes": {
+        "pi.stdout": "7c4bfc980d20eb1dda8a71a7855d0cc9bc7e06830a29e151bda73319bd869e47",
+        "pi.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "record.json": "bc34a49e7ccdb6eb112a5df4bd37adfe91d0b09d0f1638366ab6312c3926e89c",
+        "prompt.txt": "ae0f9bbc86cd9618ec882fb78db23742b6d577464e3ddac18564900b266a2d85",
+        "e2e/report.json": "316ca79fc8c22994e5516a3c715d1f2a04c46ac001ca994f03a6506663890816"
+      }
+    },
+    {
+      "id": "pi-saved-1",
+      "hashes": {
+        "pi.stdout": "72a4a9eb5ac2c42bf8356a518768c13d793a255d1db0c431d897d95a0413dc72",
+        "pi.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "record.json": "bcb7595cdbfd49e56a6561e84be9b3352342330dcf14ac7945bceb3aaaeb1561",
+        "prompt.txt": "00e87519e6da2f8b0d6640f14a2bcb2eb7b43360adef4080f21482cdb4903ad7"
+      }
+    },
+    {
+      "id": "e2e-cold-2",
+      "hashes": {
+        "pi.stdout": "08cff1296e902f97e181709cd6090471a001a250effddfa454488ececa7de680",
+        "pi.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "record.json": "62039b4bc89f5f4bb15726d22233be1a60f814a041abe12f8d23e8ccab922eae",
+        "prompt.txt": "ae0f9bbc86cd9618ec882fb78db23742b6d577464e3ddac18564900b266a2d85",
+        "e2e/report.json": "2da1d1c25f877fc055573516f107d5acb29c7476357bab616622fc18c5a6a449",
+        "e2e-requests.jsonl": "f05dfb229ac93add74311c3c1b07ac4d50b6a6b48df4154a7740fe86a4838646"
+      }
+    },
+    {
+      "id": "e2e-warm-2",
+      "hashes": {
+        "pi.stdout": "8ac8f13da284923704e1c09bf1317be89a9c6a9dd17206dbf0e37953186a5cf3",
+        "pi.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "record.json": "601f099485acc6bd8867924b834f6b44912d48878c88275b07a33a8b34e9770c",
+        "prompt.txt": "ae0f9bbc86cd9618ec882fb78db23742b6d577464e3ddac18564900b266a2d85",
+        "e2e/report.json": "cf59d37ddf96d0b65f796c5ac2d3c5d1f67a5f8d692c6b56dc6c739ef2aa05f6"
+      }
+    },
+    {
+      "id": "pi-saved-2",
+      "hashes": {
+        "pi.stdout": "022340c826a60918ee597a820807fdd16357ab58439973ff74bc1b38b9568ccc",
+        "pi.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "record.json": "2dac4e8daa8616dfe85123ab5f6d5841247dfa1cb62399ef6c1a2b96e507876d",
+        "prompt.txt": "00e87519e6da2f8b0d6640f14a2bcb2eb7b43360adef4080f21482cdb4903ad7"
+      }
+    },
+    {
+      "id": "pi-live-2",
+      "hashes": {
+        "pi.stdout": "9fbeaf7c04a8e86ade9d50b15ca521c307a56568f2966ba8d020f213d4e05c2e",
+        "pi.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "record.json": "3000405cf111fd6e9ecd31cc353c65cb2efa2d6179b53c2bc80fa160f7450780",
+        "prompt.txt": "1a80804729895a5dd1f2108cbaab4c33afcf24c94bfdbe70a99406c92f9a2648"
+      }
+    },
+    {
+      "id": "pi-live-3",
+      "hashes": {
+        "pi.stdout": "0455e571cd932f075d77b939119ab381a2664dc5ad7631cc4b6d285a46f60ef2",
+        "pi.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "record.json": "e24cf9aa097e85f502a03dd7affa7ab6157251565ebdc6ebe24d41ca4fa10377",
+        "prompt.txt": "1a80804729895a5dd1f2108cbaab4c33afcf24c94bfdbe70a99406c92f9a2648"
+      }
+    },
+    {
+      "id": "e2e-cold-3",
+      "hashes": {
+        "pi.stdout": "80106cd0524992462327e8c3dc75d31aff4effc76e18013d90bbf1e15ca3492e",
+        "pi.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "record.json": "915d925493ee4b3c3cde58dd9c818282fddc4c92cb22e8f69ee166e1ad0dbc93",
+        "prompt.txt": "ae0f9bbc86cd9618ec882fb78db23742b6d577464e3ddac18564900b266a2d85",
+        "e2e/report.json": "87bbd8a7761f985f847b8ee9a856274ca00d907749ce7796e71544a6281bf9bb",
+        "e2e-requests.jsonl": "23242a2d9fbd502669d8642105fca78a7947d1b7f6bd43223e0810ff2d07ae54"
+      }
+    },
+    {
+      "id": "e2e-warm-3",
+      "hashes": {
+        "pi.stdout": "b87f2ca72d9c838efa786ad9f01003dc632ae41624179b86a2910aa1e224262a",
+        "pi.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "record.json": "a6ba2cef5ffc77acd2dc5372c035dce87fb7af04607d35fced2f3352e1d610df",
+        "prompt.txt": "ae0f9bbc86cd9618ec882fb78db23742b6d577464e3ddac18564900b266a2d85",
+        "e2e/report.json": "e11d2b26a2266715c563af565680d0adb7665f659d8554c5753a9ae18e74c199"
+      }
+    },
+    {
+      "id": "pi-saved-3",
+      "hashes": {
+        "pi.stdout": "24f8ad7775ccd63864d3ee2e1ec844cb30936e5b0d8e24b04725902017576909",
+        "pi.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "record.json": "04c6e30ac482ceb9e3be973f6594f72d69c74db8a349ca38bf32a0eedbb7478a",
+        "prompt.txt": "00e87519e6da2f8b0d6640f14a2bcb2eb7b43360adef4080f21482cdb4903ad7"
+      }
+    }
+  ]
+}

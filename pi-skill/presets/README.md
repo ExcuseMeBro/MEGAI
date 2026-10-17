@@ -1,16 +1,17 @@
 # Optional Pi presets
 
-The `native` preset selects GPT Sol high for coordination, DeepSeek Flash high for
-implementation; the configured GPT Astra reviewer role is not dispatched. It installs the single
+The `native` preset selects GPT Sol high as the startup default and per-model
+thinking preferences. It no longer installs role routing. It installs the single
 fallback edge from `deepseek/deepseek-flash` to `openai-codex/gpt-6-luna`:
 only a confirmed DeepSeek 402 insufficient-balance error continues once on Luna at
 high thinking. Auth/permission errors, shared outages, other failures and uncertain
 writes do not trigger model hopping.
 
-The independent `economy` preset is unchanged: DeepSeek Flash plans at high and
-scouts/implements at low, with GPT Sol high reviewer. Neither preset automatically
-launches a role; role files guide parent choice. The active parent model/thinking and
-unrelated settings remain unchanged until a fresh session uses explicit defaults.
+The independent `economy` preset selects DeepSeek Flash high as the startup
+default. Legacy role labels in preset JSON are only used to derive startup/per-model
+preferences; no role configuration is installed or consumed by the harness.
+The active parent model/thinking and unrelated settings remain unchanged until a
+fresh session uses explicit defaults.
 
 Preview and apply a selected profile from the reviewed checkout:
 
@@ -32,8 +33,8 @@ for manual reconciliation. Ordinary policy refresh does not select a preset or c
 native model settings. An already-running parent's model is never switched by editing
 settings; open a fresh Pi session to use updated startup defaults.
 
-`megai-roles.json` is MEGAI parent guidance, not a native Pi setting, automatic
-scheduler or permission boundary. Explicit user/task model choices override it. The
+Policy refresh retires receipt-owned `megai-roles.json` and the role-routing
+extension. Explicit user/task model choices govern delegation. The
 native profile's model-fallback extension preserves the failed task context and queues
 a follow-up only while the Pi run is active. A failed Luna continuation cannot cycle
 back to DeepSeek.

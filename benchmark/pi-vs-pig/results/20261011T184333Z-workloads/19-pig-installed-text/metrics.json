@@ -1,0 +1,20 @@
+{
+  "run_id": "19-pig-installed-text",
+  "case": "text",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 84.373208,
+  "cpu_ms": 80.0,
+  "avg_cpu_one_core_pct": 94.81682858378456,
+  "sampled_tree_peak_rss_mib": 88.078125,
+  "sample_count": 14,
+  "max_tree_processes": 3,
+  "time_max_process_rss_mib": 45.875,
+  "first_request_ms": 79.988416,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    6044
+  ]
+}

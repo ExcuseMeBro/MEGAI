@@ -485,7 +485,18 @@ plane_status() {
   kind="$(plane_entry_kind "$PLANE_HEADER_HELPER")"
   case "$kind" in
     missing) echo 'Plane MCP: not configured';;
-    unmanaged) echo 'Plane MCP: unmanaged plane entry preserved' >&2; return 1;;
+    unmanaged)
+      if ! jq -e '.mcpServers.plane | type == "object" and
+        (((.url | type) == "string" and (.url | length) > 0) or
+         ((.command | type) == "string" and (.command | length) > 0))' "$PLANE_CONFIG" >/dev/null 2>&1; then
+        echo 'Plane MCP: invalid plane entry (missing URL or command)' >&2
+        return 1
+      fi
+      if jq -e '.mcpServers.plane.disabled == true' "$PLANE_CONFIG" >/dev/null; then
+        echo 'Plane MCP: configured (user-managed, disabled)' >&2
+        return 1
+      fi
+      echo 'Plane MCP: configured (user-managed; use Pi /mcp for connection health)';;
     legacy-owned) echo 'Plane MCP: legacy credential reference; rerun setup' >&2; return 1;;
     owned)
       token_file="$(jq -r '.mcpServers.plane.requestHeadersCommand.args[2]' "$PLANE_CONFIG")"

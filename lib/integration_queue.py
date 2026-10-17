@@ -101,7 +101,7 @@ def plan(args):
             path = Path(args.root) / path
         primary, common = repo_identity(path)
         require(identity(primary)["projectId"] == project["projectId"],
-                "Repository must belong to the same existing Paseo project")
+                "Repository must belong to the same configured project folder")
         if args.remote_dev:
             require(args.target_branch is None,
                     "--remote-dev cannot be combined with --target-branch")
@@ -198,7 +198,7 @@ def remote_dev_request(request):
 def observe(request):
     project = identity(request["root"])
     require(project["projectId"] == request["project_id"] and project["root"] == request["root"],
-            "Paseo project identity changed")
+            "Local project identity changed")
     result = []
     for repo in request["repositories"]:
         path = repo["path"]
@@ -416,6 +416,48 @@ class Queue:
             require(args.owner_stopped, "Explicit old-writer-stopped attestation required")
             require(row["state"] in ("active", "held"), "Only held/active grants need reconciliation")
             proof = evidence(args.evidence)
+            if args.outcome == "repin":
+                require(args.acknowledge_head_change and args.request,
+                        "Repin requires explicit approved-head-change acknowledgment and request")
+                require(row["state"] == "held" or row["expires"] <= now,
+                        "Repin requires a held or expired grant; pause the writer first")
+                previous = row["request"]
+                revised = validate_request(load_json(args.request))
+                require(all(revised[key] == previous[key] for key in (
+                    "id", "plane", "project_id", "root", "resources", "depends_on")),
+                    "Repin must preserve request identity and resources")
+                old_repos, new_repos = previous["repositories"], revised["repositories"]
+                require(len(old_repos) == len(new_repos) and all(
+                    all(old[key] == new[key] for key in ("path", "common_dir", "branch", "checkout_branch"))
+                    for old, new in zip(old_repos, new_repos)),
+                    "Repin must preserve repository and target identity")
+                require(all(repo["candidate_head"] == repo["expected_head"]
+                            for repo in old_repos + new_repos),
+                        "Repin is only for pre-delivery reservations; reconcile candidate delivery separately")
+                preservation = dict(args.preserved_ref or [])
+                require(len(preservation) == len(old_repos) and set(preservation) == {
+                    repo["path"] for repo in old_repos}, "Preservation refs required for every repository")
+                for repo in old_repos:
+                    ref = preservation[repo["path"]]
+                    require(ref.startswith("refs/heads/"), "Preservation must be a local branch ref")
+                    require(ref not in (repo["branch"], repo["checkout_branch"]),
+                            "Preservation must be independent of the target")
+                    require(commit(repo["path"], ref) == repo["expected_head"],
+                            "Preservation ref must retain the exact old head")
+                # Observe both vectors: dirty/busy checkouts, missing objects and changed
+                # project/target identities still block even with explicit acknowledgment.
+                observe(previous)
+                vector_matches(revised, "expected_head")
+                require(all(repo["checkout_head"] is None or repo["checkout_head"] ==
+                            commit(repo["path"], "HEAD") for repo in new_repos),
+                        "Revised checkout pin must match actual HEAD")
+                audit = {"evidence": proof, "previous_request": previous,
+                         "revised_request": revised, "previous_recovery": row["recovery"],
+                         "preserved_refs": preservation, "approved_head_change": True}
+                self.db.execute("""UPDATE requests SET state='queued',request=?,token=NULL,
+                    owner=NULL,expires=NULL,reason='',recovery=?,updated=? WHERE id=?""",
+                    (encoded(revised), encoded(audit), now, args.id))
+                return self.public(self.row(args.id))
             if args.outcome == "resume":
                 repos = row["request"]["repositories"]
                 actual = observe(row["request"])
@@ -474,7 +516,7 @@ def parser():
     result.add_argument("--home", default=os.environ.get("MEGAI_QUEUE_HOME", str(Path.home() / ".megai/queue")),
                         help="One shared private queue directory per machine; never per-worktree")
     actions = result.add_subparsers(dest="action", required=True)
-    p = actions.add_parser("plan", help="Read-only pinned repo vector for an existing Paseo project")
+    p = actions.add_parser("plan", help="Read-only pinned repo vector for a configured project")
     for name in ("root", "id", "plane-project", "plane-item"):
         p.add_argument("--" + name, required=True)
     p.add_argument("--repo", nargs=2, action="append", required=True, metavar=("PATH", "CANDIDATE"))
@@ -504,10 +546,13 @@ def parser():
         if name in ("hold", "cancel"):
             p.add_argument("--reason", required=True)
         if name in ("finish", "reconcile"):
-            outcomes = ["completed", "failed"] + (["retry", "resume"] if name == "reconcile" else [])
+            outcomes = ["completed", "failed"] + (["retry", "resume", "repin"] if name == "reconcile" else [])
             p.add_argument("--outcome", choices=outcomes, required=True)
         if name == "reconcile":
             p.add_argument("--owner-stopped", action="store_true")
+            p.add_argument("--request", help="Reviewed replacement vector for explicit repin")
+            p.add_argument("--acknowledge-head-change", action="store_true")
+            p.add_argument("--preserved-ref", nargs=2, action="append", metavar=("PATH", "REF"))
             p.add_argument("--evidence", required=True)
             p.add_argument("--owner", help="New unique executor identity for resume")
             p.add_argument("--lease-seconds", type=bounded_int(1, 300), default=120)

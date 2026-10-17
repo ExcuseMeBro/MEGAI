@@ -1,0 +1,50 @@
+diff --git a/orders.py b/orders.py
+index 4a3812a..e8111a0 100644
+--- a/orders.py
++++ b/orders.py
+@@ -1,23 +1,26 @@
+ from decimal import Decimal
+ 
++
+ def summarize(rows):
+-    data = {}
+-    grand = Decimal('0')
++    """Summarize quantities and discounted totals for non-cancelled rows."""
++    customers = {}
++    grand_total = Decimal('0')
+     for row in rows:
+-        if row.get('status', '') != 'cancelled':
+-            if str(row.get('customer', 'unknown')) in data:
+-                q = int(row.get('qty', 1))
+-                p = Decimal(str(row.get('price', '0')))
+-                d = Decimal(str(row.get('discount', '0')))
+-                total = p*q*(Decimal('1')-d)
+-                data[str(row.get('customer', 'unknown'))]['qty'] = data[str(row.get('customer', 'unknown'))]['qty'] + q
+-                data[str(row.get('customer', 'unknown'))]['total'] = data[str(row.get('customer', 'unknown'))]['total'] + total
+-                grand = grand + total
+-            else:
+-                q = int(row.get('qty', 1))
+-                p = Decimal(str(row.get('price', '0')))
+-                d = Decimal(str(row.get('discount', '0')))
+-                total = p*q*(Decimal('1')-d)
+-                data[str(row.get('customer', 'unknown'))] = {'qty': q, 'total': total}
+-                grand = grand + total
+-    return {'customers': data, 'grand_total': grand}
++        if row.get('status', '') == 'cancelled':
++            continue
++
++        customer = str(row.get('customer', 'unknown'))
++        qty = int(row.get('qty', 1))
++        price = Decimal(str(row.get('price', '0')))
++        discount = Decimal(str(row.get('discount', '0')))
++        amount = price * qty * (Decimal('1') - discount)
++
++        if customer in customers:
++            summary = customers[customer]
++            summary['qty'] += qty
++            summary['total'] += amount
++        else:
++            customers[customer] = {'qty': qty, 'total': amount}
++        grand_total += amount
++
++    return {'customers': customers, 'grand_total': grand_total}

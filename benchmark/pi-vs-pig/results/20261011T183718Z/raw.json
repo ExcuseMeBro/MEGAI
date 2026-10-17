@@ -1,0 +1,1531 @@
+{
+  "metadata": {
+    "timestamp_utc": "20261011T183718Z",
+    "machine": {
+      "arch": "arm64",
+      "macos": "ProductName:\t\tmacOS\nProductVersion:\t\t27.0.1\nBuildVersion:\t\t26A434",
+      "model": "MacBookPro18,2",
+      "ram_bytes": 68719476736,
+      "cpus": 10
+    },
+    "node": "v24.18.0",
+    "measured_runs": 30,
+    "warmups": 3,
+    "commands": {
+      "pi-installed": {
+        "path": "/Users/bro/.bun/bin/pi",
+        "version": "1.1.0",
+        "sha256": "e79626f2dd6f94aa45d30f3fa63cd84319a6eefcd150b353cfaf274366926774"
+      },
+      "pig-installed": {
+        "path": "/Users/bro/.npm-global/bin/pig",
+        "version": "0.4.1+1.0.3",
+        "sha256": "05021c1640d4a415f3159bc2b6eb455ed2a8aa27df28c43bef9f006068a795c5"
+      },
+      "pig-native": {
+        "path": "/Users/bro/.npm-global/lib/node_modules/@pi-in-go/pig/node_modules/@pi-in-go/pig-darwin-arm64/pig",
+        "version": "0.4.1+1.0.3",
+        "sha256": "0fbabf6d8496e260cfb21072fede64daa5a42939ae2934fdb8e4da7a321bb97a"
+      }
+    },
+    "scope": "Installed versions, warm filesystem cache; no model/task-quality measurement. macOS time maximum RSS is a per-process maximum, NOT summed process-tree memory."
+  },
+  "runs": [
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 0,
+      "wall_ms": 95.056541,
+      "cpu_ms": 100.0,
+      "max_process_rss_mib": 45.9375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 0,
+      "wall_ms": 232.134042,
+      "cpu_ms": 290.0,
+      "max_process_rss_mib": 126.671875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 0,
+      "wall_ms": 57.893875,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 45.984375
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 0,
+      "wall_ms": 19.446792,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.3125
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 0,
+      "wall_ms": 170.31325,
+      "cpu_ms": 180.0,
+      "max_process_rss_mib": 114.515625
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 0,
+      "wall_ms": 57.234209,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.265625
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 1,
+      "wall_ms": 19.2005,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.484375
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 1,
+      "wall_ms": 96.92725,
+      "cpu_ms": 100.0,
+      "max_process_rss_mib": 46.390625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 1,
+      "wall_ms": 54.914375,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.0
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 1,
+      "wall_ms": 174.296291,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 115.125
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 1,
+      "wall_ms": 60.656791,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.625
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 1,
+      "wall_ms": 228.071875,
+      "cpu_ms": 280.0,
+      "max_process_rss_mib": 123.734375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 2,
+      "wall_ms": 172.45275,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 117.21875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 2,
+      "wall_ms": 96.809042,
+      "cpu_ms": 100.0,
+      "max_process_rss_mib": 46.171875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 2,
+      "wall_ms": 56.245333,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.0625
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 2,
+      "wall_ms": 19.434208,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.078125
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 2,
+      "wall_ms": 58.254417,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.734375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 2,
+      "wall_ms": 229.629041,
+      "cpu_ms": 279.99999999999994,
+      "max_process_rss_mib": 126.28125
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 3,
+      "wall_ms": 92.691167,
+      "cpu_ms": 90.0,
+      "max_process_rss_mib": 46.0
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 3,
+      "wall_ms": 54.894333,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.03125
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 3,
+      "wall_ms": 19.395208,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 27.40625
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 3,
+      "wall_ms": 59.135417,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.1875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 3,
+      "wall_ms": 231.416292,
+      "cpu_ms": 290.0,
+      "max_process_rss_mib": 125.875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 3,
+      "wall_ms": 173.695625,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 114.15625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 4,
+      "wall_ms": 54.289542,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.03125
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 4,
+      "wall_ms": 57.932417,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.796875
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 4,
+      "wall_ms": 19.388917,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 27.078125
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 4,
+      "wall_ms": 94.647959,
+      "cpu_ms": 90.0,
+      "max_process_rss_mib": 46.109375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 4,
+      "wall_ms": 174.198458,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 115.125
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 4,
+      "wall_ms": 231.134292,
+      "cpu_ms": 280.0,
+      "max_process_rss_mib": 125.84375
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 5,
+      "wall_ms": 19.137458,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.953125
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 5,
+      "wall_ms": 59.670292,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.96875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 5,
+      "wall_ms": 55.646125,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.15625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 5,
+      "wall_ms": 95.091,
+      "cpu_ms": 90.0,
+      "max_process_rss_mib": 45.96875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 5,
+      "wall_ms": 169.901292,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 114.921875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 5,
+      "wall_ms": 239.067459,
+      "cpu_ms": 300.0,
+      "max_process_rss_mib": 124.015625
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 6,
+      "wall_ms": 237.30675,
+      "cpu_ms": 290.00000000000006,
+      "max_process_rss_mib": 126.296875
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 6,
+      "wall_ms": 66.046833,
+      "cpu_ms": 70.0,
+      "max_process_rss_mib": 39.6875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 6,
+      "wall_ms": 101.13925,
+      "cpu_ms": 110.0,
+      "max_process_rss_mib": 45.984375
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 6,
+      "wall_ms": 19.734375,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.953125
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 6,
+      "wall_ms": 55.065417,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.109375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 6,
+      "wall_ms": 172.248709,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 116.15625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 7,
+      "wall_ms": 55.757875,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.0
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 7,
+      "wall_ms": 20.062375,
+      "cpu_ms": 10.0,
+      "max_process_rss_mib": 26.5625
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 7,
+      "wall_ms": 241.603833,
+      "cpu_ms": 290.0,
+      "max_process_rss_mib": 125.8125
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 7,
+      "wall_ms": 69.494208,
+      "cpu_ms": 70.0,
+      "max_process_rss_mib": 39.65625
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 7,
+      "wall_ms": 178.102042,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 114.8125
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 7,
+      "wall_ms": 111.734875,
+      "cpu_ms": 110.0,
+      "max_process_rss_mib": 46.140625
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 8,
+      "wall_ms": 236.56175,
+      "cpu_ms": 290.0,
+      "max_process_rss_mib": 125.515625
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 8,
+      "wall_ms": 19.68625,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.40625
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 8,
+      "wall_ms": 177.994084,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 115.390625
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 8,
+      "wall_ms": 67.976084,
+      "cpu_ms": 70.0,
+      "max_process_rss_mib": 40.5625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 8,
+      "wall_ms": 106.253667,
+      "cpu_ms": 110.0,
+      "max_process_rss_mib": 45.921875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 8,
+      "wall_ms": 59.252791,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.109375
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 9,
+      "wall_ms": 69.685084,
+      "cpu_ms": 70.0,
+      "max_process_rss_mib": 38.671875
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 9,
+      "wall_ms": 19.651458,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.34375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 9,
+      "wall_ms": 240.254917,
+      "cpu_ms": 300.0,
+      "max_process_rss_mib": 126.84375
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 9,
+      "wall_ms": 55.730625,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.15625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 9,
+      "wall_ms": 103.687834,
+      "cpu_ms": 110.0,
+      "max_process_rss_mib": 46.046875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 9,
+      "wall_ms": 211.240042,
+      "cpu_ms": 199.99999999999997,
+      "max_process_rss_mib": 120.09375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 10,
+      "wall_ms": 253.21875,
+      "cpu_ms": 290.0,
+      "max_process_rss_mib": 124.28125
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 10,
+      "wall_ms": 19.006541,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 27.234375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 10,
+      "wall_ms": 171.4725,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 114.078125
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 10,
+      "wall_ms": 54.995833,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.0625
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 10,
+      "wall_ms": 58.604417,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 38.890625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 10,
+      "wall_ms": 94.125209,
+      "cpu_ms": 90.0,
+      "max_process_rss_mib": 46.03125
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 11,
+      "wall_ms": 19.100541,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 27.0
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 11,
+      "wall_ms": 228.616584,
+      "cpu_ms": 280.0,
+      "max_process_rss_mib": 126.015625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 11,
+      "wall_ms": 56.329208,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 45.984375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 11,
+      "wall_ms": 171.273417,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 113.625
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 11,
+      "wall_ms": 58.607625,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.328125
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 11,
+      "wall_ms": 91.866625,
+      "cpu_ms": 90.0,
+      "max_process_rss_mib": 45.96875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 12,
+      "wall_ms": 229.018542,
+      "cpu_ms": 280.0,
+      "max_process_rss_mib": 125.875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 12,
+      "wall_ms": 174.273375,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 115.75
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 12,
+      "wall_ms": 55.240125,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.015625
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 12,
+      "wall_ms": 58.486709,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 38.765625
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 12,
+      "wall_ms": 18.937916,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.640625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 12,
+      "wall_ms": 94.588583,
+      "cpu_ms": 100.0,
+      "max_process_rss_mib": 46.125
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 13,
+      "wall_ms": 93.84925,
+      "cpu_ms": 100.0,
+      "max_process_rss_mib": 46.171875
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 13,
+      "wall_ms": 58.516666,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 40.34375
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 13,
+      "wall_ms": 19.132208,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.53125
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 13,
+      "wall_ms": 177.49525,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 115.265625
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 13,
+      "wall_ms": 232.362708,
+      "cpu_ms": 290.0,
+      "max_process_rss_mib": 126.65625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 13,
+      "wall_ms": 57.663042,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.046875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 14,
+      "wall_ms": 226.596084,
+      "cpu_ms": 279.99999999999994,
+      "max_process_rss_mib": 126.03125
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 14,
+      "wall_ms": 60.252542,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.71875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 14,
+      "wall_ms": 95.0035,
+      "cpu_ms": 90.0,
+      "max_process_rss_mib": 46.125
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 14,
+      "wall_ms": 55.187167,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.015625
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 14,
+      "wall_ms": 172.9795,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 116.296875
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 14,
+      "wall_ms": 19.85625,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 27.03125
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 15,
+      "wall_ms": 171.82675,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 116.125
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 15,
+      "wall_ms": 226.982333,
+      "cpu_ms": 290.0,
+      "max_process_rss_mib": 125.875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 15,
+      "wall_ms": 57.360833,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.203125
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 15,
+      "wall_ms": 19.239333,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.484375
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 15,
+      "wall_ms": 57.399542,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.53125
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 15,
+      "wall_ms": 96.281125,
+      "cpu_ms": 90.0,
+      "max_process_rss_mib": 46.046875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 16,
+      "wall_ms": 57.635875,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.125
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 16,
+      "wall_ms": 19.034917,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.796875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 16,
+      "wall_ms": 171.676667,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 116.515625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 16,
+      "wall_ms": 96.510959,
+      "cpu_ms": 100.0,
+      "max_process_rss_mib": 46.0625
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 16,
+      "wall_ms": 230.839167,
+      "cpu_ms": 280.0,
+      "max_process_rss_mib": 127.296875
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 16,
+      "wall_ms": 97.023791,
+      "cpu_ms": 70.0,
+      "max_process_rss_mib": 38.8125
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 17,
+      "wall_ms": 71.588166,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.078125
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 17,
+      "wall_ms": 58.487958,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.53125
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 17,
+      "wall_ms": 229.369417,
+      "cpu_ms": 290.0,
+      "max_process_rss_mib": 126.53125
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 17,
+      "wall_ms": 20.424291,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 27.25
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 17,
+      "wall_ms": 173.121333,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 116.0625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 17,
+      "wall_ms": 99.016292,
+      "cpu_ms": 100.0,
+      "max_process_rss_mib": 46.03125
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 18,
+      "wall_ms": 18.932125,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 27.171875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 18,
+      "wall_ms": 229.518458,
+      "cpu_ms": 279.99999999999994,
+      "max_process_rss_mib": 125.265625
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 18,
+      "wall_ms": 171.557833,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 116.6875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 18,
+      "wall_ms": 94.381917,
+      "cpu_ms": 90.0,
+      "max_process_rss_mib": 46.09375
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 18,
+      "wall_ms": 60.002083,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 40.0
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 18,
+      "wall_ms": 56.313417,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.21875
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 19,
+      "wall_ms": 58.350042,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.71875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 19,
+      "wall_ms": 97.0815,
+      "cpu_ms": 90.0,
+      "max_process_rss_mib": 46.03125
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 19,
+      "wall_ms": 57.632959,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.015625
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 19,
+      "wall_ms": 232.024791,
+      "cpu_ms": 290.0,
+      "max_process_rss_mib": 125.921875
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 19,
+      "wall_ms": 19.04475,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.984375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 19,
+      "wall_ms": 170.303709,
+      "cpu_ms": 180.0,
+      "max_process_rss_mib": 114.984375
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 20,
+      "wall_ms": 59.11875,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.734375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 20,
+      "wall_ms": 173.390167,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 115.375
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 20,
+      "wall_ms": 56.751125,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 45.96875
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 20,
+      "wall_ms": 19.130125,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.796875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 20,
+      "wall_ms": 233.393375,
+      "cpu_ms": 290.0,
+      "max_process_rss_mib": 124.828125
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 20,
+      "wall_ms": 96.757917,
+      "cpu_ms": 100.0,
+      "max_process_rss_mib": 46.046875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 21,
+      "wall_ms": 232.024625,
+      "cpu_ms": 290.0,
+      "max_process_rss_mib": 126.515625
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 21,
+      "wall_ms": 19.509708,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 27.0
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 21,
+      "wall_ms": 62.272291,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.265625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 21,
+      "wall_ms": 104.495458,
+      "cpu_ms": 110.0,
+      "max_process_rss_mib": 45.921875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 21,
+      "wall_ms": 58.288583,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.046875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 21,
+      "wall_ms": 171.565625,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 114.796875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 22,
+      "wall_ms": 319.367,
+      "cpu_ms": 310.0,
+      "max_process_rss_mib": 126.1875
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 22,
+      "wall_ms": 19.190458,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.796875
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 22,
+      "wall_ms": 64.2435,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 38.609375
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 22,
+      "wall_ms": 104.725833,
+      "cpu_ms": 110.0,
+      "max_process_rss_mib": 46.171875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 22,
+      "wall_ms": 55.96325,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.109375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 22,
+      "wall_ms": 174.320125,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 117.484375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 23,
+      "wall_ms": 232.777125,
+      "cpu_ms": 290.0,
+      "max_process_rss_mib": 125.984375
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 23,
+      "wall_ms": 98.568792,
+      "cpu_ms": 100.0,
+      "max_process_rss_mib": 46.0625
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 23,
+      "wall_ms": 177.176625,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 115.75
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 23,
+      "wall_ms": 57.189,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.109375
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 23,
+      "wall_ms": 19.49525,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.546875
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 23,
+      "wall_ms": 64.761958,
+      "cpu_ms": 70.0,
+      "max_process_rss_mib": 39.453125
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 24,
+      "wall_ms": 103.27575,
+      "cpu_ms": 110.0,
+      "max_process_rss_mib": 46.03125
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 24,
+      "wall_ms": 181.740041,
+      "cpu_ms": 199.99999999999997,
+      "max_process_rss_mib": 115.796875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 24,
+      "wall_ms": 55.881625,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.015625
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 24,
+      "wall_ms": 19.339541,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.734375
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 24,
+      "wall_ms": 66.462667,
+      "cpu_ms": 70.0,
+      "max_process_rss_mib": 39.875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 24,
+      "wall_ms": 229.720792,
+      "cpu_ms": 280.0,
+      "max_process_rss_mib": 125.34375
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 25,
+      "wall_ms": 59.4675,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 40.515625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 25,
+      "wall_ms": 54.914875,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.171875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 25,
+      "wall_ms": 172.490417,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 116.96875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 25,
+      "wall_ms": 94.245708,
+      "cpu_ms": 90.0,
+      "max_process_rss_mib": 46.03125
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 25,
+      "wall_ms": 18.809333,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.671875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 25,
+      "wall_ms": 232.719084,
+      "cpu_ms": 290.0,
+      "max_process_rss_mib": 125.25
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 26,
+      "wall_ms": 54.867625,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.0625
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 26,
+      "wall_ms": 57.329917,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.734375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 26,
+      "wall_ms": 226.47475,
+      "cpu_ms": 279.99999999999994,
+      "max_process_rss_mib": 125.53125
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 26,
+      "wall_ms": 172.926875,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 117.453125
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 26,
+      "wall_ms": 95.43475,
+      "cpu_ms": 90.0,
+      "max_process_rss_mib": 46.03125
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 26,
+      "wall_ms": 19.176333,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.359375
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 27,
+      "wall_ms": 94.063708,
+      "cpu_ms": 100.0,
+      "max_process_rss_mib": 46.0625
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 27,
+      "wall_ms": 59.573208,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.65625
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 27,
+      "wall_ms": 169.822375,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 114.859375
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 27,
+      "wall_ms": 228.495958,
+      "cpu_ms": 280.0,
+      "max_process_rss_mib": 123.59375
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 27,
+      "wall_ms": 57.481292,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.015625
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 27,
+      "wall_ms": 19.539625,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.765625
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 28,
+      "wall_ms": 54.775542,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 45.96875
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 28,
+      "wall_ms": 57.257291,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 40.5
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 28,
+      "wall_ms": 19.207791,
+      "cpu_ms": 0.0,
+      "max_process_rss_mib": 26.890625
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 28,
+      "wall_ms": 229.749708,
+      "cpu_ms": 280.0,
+      "max_process_rss_mib": 123.75
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 28,
+      "wall_ms": 171.378458,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 114.75
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 28,
+      "wall_ms": 94.746958,
+      "cpu_ms": 100.0,
+      "max_process_rss_mib": 46.171875
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "iteration": 29,
+      "wall_ms": 230.297584,
+      "cpu_ms": 280.0,
+      "max_process_rss_mib": 126.6875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "iteration": 29,
+      "wall_ms": 93.008083,
+      "cpu_ms": 90.0,
+      "max_process_rss_mib": 46.125
+    },
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "iteration": 29,
+      "wall_ms": 179.722167,
+      "cpu_ms": 190.0,
+      "max_process_rss_mib": 116.703125
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "iteration": 29,
+      "wall_ms": 59.621625,
+      "cpu_ms": 60.0,
+      "max_process_rss_mib": 39.265625
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "iteration": 29,
+      "wall_ms": 19.039333,
+      "cpu_ms": 10.0,
+      "max_process_rss_mib": 27.71875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "iteration": 29,
+      "wall_ms": 55.023666,
+      "cpu_ms": 40.0,
+      "max_process_rss_mib": 46.21875
+    }
+  ],
+  "summary": [
+    {
+      "harness": "pi-installed",
+      "case": "version",
+      "n": 30,
+      "median_ms": 172.9531875,
+      "p90_ms": 178.102042,
+      "median_cpu_ms": 190.0,
+      "median_max_process_rss_mib": 115.5703125
+    },
+    {
+      "harness": "pi-installed",
+      "case": "help",
+      "n": 30,
+      "median_ms": 231.27529199999998,
+      "p90_ms": 240.254917,
+      "median_cpu_ms": 290.0,
+      "median_max_process_rss_mib": 125.875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "version",
+      "n": 30,
+      "median_ms": 55.9224375,
+      "p90_ms": 57.893875,
+      "median_cpu_ms": 40.0,
+      "median_max_process_rss_mib": 46.0546875
+    },
+    {
+      "harness": "pig-installed",
+      "case": "help",
+      "n": 30,
+      "median_ms": 95.85793749999999,
+      "p90_ms": 104.495458,
+      "median_cpu_ms": 100.0,
+      "median_max_process_rss_mib": 46.046875
+    },
+    {
+      "harness": "pig-native",
+      "case": "version",
+      "n": 30,
+      "median_ms": 19.223562,
+      "p90_ms": 19.734375,
+      "median_cpu_ms": 0.0,
+      "median_max_process_rss_mib": 26.796875
+    },
+    {
+      "harness": "pig-native",
+      "case": "help",
+      "n": 30,
+      "median_ms": 59.520354,
+      "p90_ms": 67.976084,
+      "median_cpu_ms": 60.0,
+      "median_max_process_rss_mib": 39.65625
+    }
+  ]
+}

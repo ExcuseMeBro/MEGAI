@@ -1,0 +1,26 @@
+diff --git a/query.py b/query.py
+index 9282b8c..8f8e186 100644
+--- a/query.py
++++ b/query.py
+@@ -1,10 +1,16 @@
++from urllib.parse import unquote_plus
++
++
+ def parse_query(query):
++    """Parse a raw query string into decoded keys and ordered value lists."""
++    if query.startswith('?'):
++        query = query[1:]
+     result = {}
+-    for field in query.lstrip('?').split('&'):
++    for field in query.split('&'):
+         if not field:
+             continue
+-        parts = field.split('=')
+-        if len(parts) != 2:
+-            continue
+-        result[parts[0]] = [parts[1]]
++        key, _, value = field.partition('=')
++        key = unquote_plus(key)
++        value = unquote_plus(value)
++        result.setdefault(key, []).append(value)
+     return result

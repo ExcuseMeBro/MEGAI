@@ -1,0 +1,43 @@
+{
+  "run_id": "00-pig-native-ttl-lru-feature",
+  "harness": "pig-native",
+  "task": "ttl-lru-feature",
+  "iteration": 0,
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "timed_out": false,
+  "acceptance_tests": {
+    "tests": 19,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 19,
+    "exit_code": 0
+  },
+  "wall_ms": 62693.503333,
+  "cpu_ms": 1530.0,
+  "avg_cpu_one_core_pct": 2.4404442544442295,
+  "sampled_tree_peak_rss_mib": 77.078125,
+  "memory_samples": 10151,
+  "first_delta_ms": 15811.238833,
+  "assistant_responses": 7,
+  "tools": 7,
+  "tool_errors": 1,
+  "usage": {
+    "input": 7416,
+    "output": 2261,
+    "cacheRead": 11904,
+    "cacheWrite": 0,
+    "totalTokens": 21581
+  },
+  "reported_models": [
+    "gpt-6.1-sol"
+  ],
+  "reported_providers": [
+    "openai-codex"
+  ],
+  "reported_thinking": [
+    "medium"
+  ]
+}

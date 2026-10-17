@@ -1,0 +1,43 @@
+{
+  "run_id": "01-pig-native-order-refactor",
+  "harness": "pig-native",
+  "task": "order-refactor",
+  "iteration": 1,
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "timed_out": false,
+  "acceptance_tests": {
+    "tests": 12,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 12,
+    "exit_code": 0
+  },
+  "wall_ms": 62726.296667,
+  "cpu_ms": 2540.0,
+  "avg_cpu_one_core_pct": 4.049338371567345,
+  "sampled_tree_peak_rss_mib": 76.6875,
+  "memory_samples": 9676,
+  "first_delta_ms": 9825.1705,
+  "assistant_responses": 7,
+  "tools": 7,
+  "tool_errors": 1,
+  "usage": {
+    "input": 7646,
+    "output": 2222,
+    "cacheRead": 12288,
+    "cacheWrite": 0,
+    "totalTokens": 22156
+  },
+  "reported_models": [
+    "gpt-6.1-sol"
+  ],
+  "reported_providers": [
+    "openai-codex"
+  ],
+  "reported_thinking": [
+    "medium"
+  ]
+}

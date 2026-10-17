@@ -1,0 +1,23 @@
+{
+  "run_id": "warmup-pig-installed-error-recovery",
+  "case": "error-recovery",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 186.117625,
+  "cpu_ms": 130.0,
+  "avg_cpu_one_core_pct": 69.84830157810148,
+  "sampled_tree_peak_rss_mib": 103.484375,
+  "sample_count": 30,
+  "max_tree_processes": 4,
+  "time_max_process_rss_mib": 46.140625,
+  "first_request_ms": 86.118167,
+  "requests": 4,
+  "tool_ends": 3,
+  "request_bytes": [
+    6068,
+    6444,
+    6752,
+    7044
+  ]
+}

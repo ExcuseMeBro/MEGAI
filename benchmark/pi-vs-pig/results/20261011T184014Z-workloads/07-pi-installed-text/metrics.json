@@ -1,0 +1,20 @@
+{
+  "run_id": "07-pi-installed-text",
+  "case": "text",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 237.594291,
+  "cpu_ms": 280.0,
+  "avg_cpu_one_core_pct": 117.84794946945927,
+  "sampled_tree_peak_rss_mib": 124.203125,
+  "sample_count": 39,
+  "max_tree_processes": 2,
+  "time_max_process_rss_mib": 123.53125,
+  "first_request_ms": 217.890166,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    5977
+  ]
+}

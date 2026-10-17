@@ -1,0 +1,24 @@
+{
+  "run_id": "00-pi-installed-tool-cycle",
+  "case": "tool-cycle",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 338.441583,
+  "cpu_ms": 360.0,
+  "avg_cpu_one_core_pct": 106.36990786087893,
+  "sampled_tree_peak_rss_mib": 172.796875,
+  "sample_count": 55,
+  "max_tree_processes": 3,
+  "time_max_process_rss_mib": 151.453125,
+  "first_request_ms": 211.192625,
+  "requests": 5,
+  "tool_ends": 4,
+  "request_bytes": [
+    5989,
+    6229,
+    6537,
+    7011,
+    7335
+  ]
+}

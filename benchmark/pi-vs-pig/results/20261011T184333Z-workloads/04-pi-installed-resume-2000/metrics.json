@@ -1,0 +1,20 @@
+{
+  "run_id": "04-pi-installed-resume-2000",
+  "case": "resume-2000",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 262.767333,
+  "cpu_ms": 339.99999999999994,
+  "avg_cpu_one_core_pct": 129.39203519639938,
+  "sampled_tree_peak_rss_mib": 133.28125,
+  "sample_count": 42,
+  "max_tree_processes": 2,
+  "time_max_process_rss_mib": 132.546875,
+  "first_request_ms": 247.665125,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    439983
+  ]
+}

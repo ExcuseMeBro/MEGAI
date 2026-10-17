@@ -3,18 +3,11 @@
 
 Covers current routing and the preserved MEGAI-60 retrospective evidence:
 
-1. The shipped policy text preserves the routing clauses that close the economy
-   gap (healthy DeepSeek parent does routine work directly; inherited GPT/Paseo
-   parent with the ``economy`` preset routes substantial bounded coding to ONE
-   DeepSeek worker; the parent owns scope, validation and guarded review or
-   integration; explicit user/task model choices always override; an agent
-   team or every role is never required).
-2. ``delegation.md`` keeps the verified-launch clause that prefers native
-   ``model_change``/``thinking_level_change`` records from the status-provided
-   session handle and falls back to the neutral runtime-check prompt only when
-   those records are missing, stale, ambiguous, or from a restored agent on a
-   different branch; no extra model-based environment prompt is needed once
-   the native identity is proven.
+1. The shipped policy keeps direct parent work, explicit model choices and
+   parent self-review. Role routing stays retired when older history is merged;
+   presets do not require worker/reviewer dispatch.
+2. ``delegation.md`` keeps exclusive writer ownership, explicit identity,
+   bounded completion and model-failure reconciliation without an external runner.
 3. The frozen sanitized retrospective dataset
    (``docs/audits/pi-task-sample.json``) is the redacted in-repo copy and
    matches the expected shape: three real repository tasks, all-GPT parents,
@@ -45,7 +38,7 @@ SAMPLE = ROOT / "docs/audits/pi-task-sample.json"
 # Captured once from the private acceptance folder for this refinement; the
 # test itself never reads that folder.
 FROZEN_SAMPLE_SHA256 = "fa2db80ec37b8e70b24b13f3aabd771be4024871b2a7daccede6e8cc9f78616e"
-BOOTSTRAP_BASELINE_SHA256 = "63565caaaafbad025bcc26111449be15e3c501b7b36ed4336e11822d095c68b9"
+BOOTSTRAP_BASELINE_SHA256 = "55b9151f2239a4246db0dbb1a8e8513e8c001d2199dda0933247b05acf5313f1"
 # Growth guard, not a target: ADAPTIVE.md is loaded as the `megai` skill, so
 # silent expansion of the always-available execution core is a token regression.
 # 8038 -> 8528 chars when the bounded-output/batching clauses landed; the ceiling
@@ -99,35 +92,27 @@ def _clause(text: str, fragment: str) -> None:
 
 
 class FastWorkflow(unittest.TestCase):
-    def test_adaptive_keeps_economy_routing_clauses_under_char_budget(self):
+    def test_adaptive_keeps_direct_execution_under_char_budget(self):
         text = ADAPTIVE.read_text()
         self.assertLess(len(text), ADAPTIVE_CHAR_CEILING,
                         "ADAPTIVE.md must stay under its reviewed char ceiling")
         delegation_section = _section(text, "Delegation and cost")
         for fragment in (
             "Direct parent tools are the default",
-            "healthy DeepSeek parent performs its own routine work directly",
-            "does not launch a child just to use the same model",
-            "inherited GPT/Paseo parent",
-            "ONE DeepSeek worker",
-            "trivial read-only or single edit may remain direct",
-            "parent still owns scope",
-            "guarded review or integration",
-            "Explicit user/task model choices always override",
-            "never silently switch",
-            "never require an agent team or every role",
+            "Follow explicit user/task model choices",
+            "active parent's model/thinking never change silently",
+            "Use one writer and verify its diff/tests",
         ):
             with self.subTest(fragment=fragment):
                 _clause(delegation_section, fragment)
 
-    def test_adaptive_routine_row_points_at_economy_routing(self):
+    def test_adaptive_routine_row_does_not_restore_role_routing(self):
         text = ADAPTIVE.read_text()
         choose_once = _section(text, "Choose once, escalate on evidence")
-        # The Routine row must still say parent implements directly (so the
-        # existing regression fragment is preserved) AND must point at the
-        # economy routing below for the inherited-parent case.
+        # Old economy instructions must not override the direct-parent default.
         _clause(choose_once, "Parent implements directly")
-        _clause(choose_once, "Subject to economy routing below")
+        self.assertNotIn("Subject to economy routing below", choose_once)
+        _clause(_section(text, "Delegation and cost"), "no configured-role routing")
 
     def test_adaptive_keeps_guarded_review_and_explicit_overrides_in_reach(self):
         text = ADAPTIVE.read_text()
@@ -135,11 +120,9 @@ class FastWorkflow(unittest.TestCase):
         tight_loop = _section(text, "Three-step default")
         delegation_section = _section(text, "Delegation and cost")
         for fragment in (
-            "Routine", "Guarded",
-            "source-current PASS", "self-review",
-            "missing required reviewer is BLOCKED",
-            "explicit user/task model choices always override",
-            "GPT is reserved for guarded independent review",
+            "Routine", "Guarded", "source-current", "self-review",
+            "Follow explicit user/task model choices",
+            "Do not create a separate reviewer",
         ):
             with self.subTest(fragment=fragment):
                 _clause(choose_once + tight_loop + delegation_section, fragment)
@@ -157,10 +140,9 @@ class FastWorkflow(unittest.TestCase):
         ):
             with self.subTest(phrase=forbidden):
                 self.assertNotIn(forbidden, section)
-        # Required positive clause: substantial GPT-parent work routes to one
-        # DeepSeek worker when the preset is economy.
-        _clause(section, "substantial bounded implementation to ONE DeepSeek worker")
-        _clause(section, "instead of duplicating it in GPT")
+        # Role routing was retired on dev; merging history must not restore it.
+        _clause(section, "no configured-role routing or mandatory worker/reviewer dispatch")
+        self.assertNotIn("substantial bounded implementation to one", section)
 
     def test_bootstrap_remains_unchanged(self):
         # Bootstrap must remain byte-identical to its pinned baseline; the
@@ -168,39 +150,16 @@ class FastWorkflow(unittest.TestCase):
         # stays portable and never embeds the full always-loaded text.
         self.assertEqual(_sha256(BOOTSTRAP), BOOTSTRAP_BASELINE_SHA256)
 
-    def test_delegation_prefers_native_records_with_fallback(self):
+    def test_delegation_preserves_model_and_writer_ownership(self):
         text = DELEGATION.read_text()
-        verified = _section(text, "Verified launch")
         for fragment in (
-            "neutral READY prompt",
-            "status-provided session handle",
-            "model_change",
-            "thinking_level_change",
-            "Verify the Paseo harness is `pi` separately from the model provider",
-            "same current native session ID",
-            "provider-qualified status model",
-            "model_change.provider",
-            "model_change.modelId",
-            "`deepseek/deepseek-flash` means `deepseek` + `deepseek-flash`, not `pi`",
-            "thinking_level_change.thinkingLevel",
-            "effective thinking reported in status",
-            "do not run a second neutral runtime-check model prompt",
-            "missing, stale, ambiguous",
-            "restored",
-            "different branch",
-            "fall back to the second neutral runtime-check prompt",
-            "PI_PROVIDER",
-            "PI_MODEL",
-            "PI_REASONING_LEVEL",
-            "Paseo labels alone",
-            "stop as BLOCKED",
-            "on mismatch cancel the child",
-            "Re-check restored agents before reuse",
+            "Direct parent work is the default", "exclusive writer ownership", "worktrees",
+            "private backups", "Children never delegate", "never invent a launch command",
+            "confirmed DeepSeek 402", "old writer is quiescent", "No speculative fallback",
         ):
             with self.subTest(fragment=fragment):
-                _clause(verified, fragment)
-        self.assertNotRegex(verified, r"(?m)^\+\s+`deepseek-flash`",
-                            "Model identity continuation must not become a Markdown list item")
+                _clause(text, fragment)
+        self.assertNotIn("pa" + "seo", text.lower())
 
     def test_report_links_redacted_dataset_and_admits_unknowns(self):
         text = REPORT.read_text()

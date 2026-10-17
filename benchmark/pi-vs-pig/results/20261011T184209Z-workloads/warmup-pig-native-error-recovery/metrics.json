@@ -1,0 +1,23 @@
+{
+  "run_id": "warmup-pig-native-error-recovery",
+  "case": "error-recovery",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 129.116708,
+  "cpu_ms": 90.0,
+  "avg_cpu_one_core_pct": 69.70437938984628,
+  "sampled_tree_peak_rss_mib": 57.15625,
+  "sample_count": 21,
+  "max_tree_processes": 3,
+  "time_max_process_rss_mib": 43.328125,
+  "first_request_ms": 50.831,
+  "requests": 4,
+  "tool_ends": 3,
+  "request_bytes": [
+    6065,
+    6441,
+    6749,
+    7041
+  ]
+}

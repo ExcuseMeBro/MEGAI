@@ -1,0 +1,20 @@
+{
+  "run_id": "13-pig-native-text",
+  "case": "text",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 80.022958,
+  "cpu_ms": 60.0,
+  "avg_cpu_one_core_pct": 74.97848304982678,
+  "sampled_tree_peak_rss_mib": 40.796875,
+  "sample_count": 11,
+  "max_tree_processes": 2,
+  "time_max_process_rss_mib": 40.5,
+  "first_request_ms": 75.736458,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    6041
+  ]
+}

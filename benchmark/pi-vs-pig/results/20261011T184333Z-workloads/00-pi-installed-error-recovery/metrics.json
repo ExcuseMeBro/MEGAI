@@ -1,0 +1,23 @@
+{
+  "run_id": "00-pi-installed-error-recovery",
+  "case": "error-recovery",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 261.300959,
+  "cpu_ms": 329.99999999999994,
+  "avg_cpu_one_core_pct": 126.29115532637596,
+  "sampled_tree_peak_rss_mib": 163.515625,
+  "sample_count": 42,
+  "max_tree_processes": 3,
+  "time_max_process_rss_mib": 148.875,
+  "first_request_ms": 205.379334,
+  "requests": 4,
+  "tool_ends": 3,
+  "request_bytes": [
+    5997,
+    6373,
+    6681,
+    6973
+  ]
+}

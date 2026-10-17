@@ -1,0 +1,20 @@
+{
+  "run_id": "warmup-pig-native-text",
+  "case": "text",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 133.405209,
+  "cpu_ms": 60.0,
+  "avg_cpu_one_core_pct": 44.975755032174185,
+  "sampled_tree_peak_rss_mib": 41.453125,
+  "sample_count": 22,
+  "max_tree_processes": 2,
+  "time_max_process_rss_mib": 41.796875,
+  "first_request_ms": 102.021084,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    6045
+  ]
+}

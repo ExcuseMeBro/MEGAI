@@ -1,0 +1,21 @@
+{
+  "run_id": "warmup-pig-installed-read-large",
+  "case": "read-large",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 124.397666,
+  "cpu_ms": 120.0,
+  "avg_cpu_one_core_pct": 96.464832386807,
+  "sampled_tree_peak_rss_mib": 97.234375,
+  "sample_count": 20,
+  "max_tree_processes": 3,
+  "time_max_process_rss_mib": 51.328125,
+  "first_request_ms": 87.18925,
+  "requests": 2,
+  "tool_ends": 1,
+  "request_bytes": [
+    6060,
+    32333
+  ]
+}

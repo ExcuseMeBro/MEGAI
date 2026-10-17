@@ -1,0 +1,43 @@
+{
+  "run_id": "01-pi-query-bugfix",
+  "harness": "pi",
+  "task": "query-bugfix",
+  "iteration": 1,
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "timed_out": false,
+  "acceptance_tests": {
+    "tests": 16,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 16,
+    "exit_code": 0
+  },
+  "wall_ms": 40319.257209,
+  "cpu_ms": 1500.0,
+  "avg_cpu_one_core_pct": 3.7203066321994944,
+  "sampled_tree_peak_rss_mib": 164.28125,
+  "memory_samples": 6155,
+  "first_delta_ms": 35886.952042,
+  "assistant_responses": 7,
+  "tools": 7,
+  "tool_errors": 0,
+  "usage": {
+    "input": 5929,
+    "output": 1094,
+    "cacheRead": 9984,
+    "cacheWrite": 0,
+    "totalTokens": 17007
+  },
+  "reported_models": [
+    "gpt-6.1-sol"
+  ],
+  "reported_providers": [
+    "openai-codex"
+  ],
+  "reported_thinking": [
+    "medium"
+  ]
+}

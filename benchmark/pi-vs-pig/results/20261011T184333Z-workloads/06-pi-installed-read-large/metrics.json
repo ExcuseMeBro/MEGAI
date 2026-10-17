@@ -1,0 +1,21 @@
+{
+  "run_id": "06-pi-installed-read-large",
+  "case": "read-large",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 302.926334,
+  "cpu_ms": 320.0,
+  "avg_cpu_one_core_pct": 105.63624356276664,
+  "sampled_tree_peak_rss_mib": 135.765625,
+  "sample_count": 46,
+  "max_tree_processes": 2,
+  "time_max_process_rss_mib": 134.859375,
+  "first_request_ms": 267.954709,
+  "requests": 2,
+  "tool_ends": 1,
+  "request_bytes": [
+    5989,
+    32262
+  ]
+}

@@ -1,0 +1,46 @@
+[
+  {
+    "received_ns": 259339582952041,
+    "request_bytes": 5997,
+    "messages": 2,
+    "tools_returned": 0,
+    "tool_results": [],
+    "requested_calls": [
+      "bash",
+      "bash",
+      "bash",
+      "bash"
+    ],
+    "history_present": false
+  },
+  {
+    "received_ns": 259339726735416,
+    "request_bytes": 6972,
+    "messages": 7,
+    "tools_returned": 4,
+    "tool_results": [
+      {
+        "role": "tool",
+        "content": "PARALLEL_0\n",
+        "tool_call_id": "call_0_0"
+      },
+      {
+        "role": "tool",
+        "content": "PARALLEL_1\n",
+        "tool_call_id": "call_0_1"
+      },
+      {
+        "role": "tool",
+        "content": "PARALLEL_2\n",
+        "tool_call_id": "call_0_2"
+      },
+      {
+        "role": "tool",
+        "content": "PARALLEL_3\n",
+        "tool_call_id": "call_0_3"
+      }
+    ],
+    "requested_calls": [],
+    "history_present": false
+  }
+]

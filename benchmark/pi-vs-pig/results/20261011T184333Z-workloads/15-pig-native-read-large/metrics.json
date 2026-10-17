@@ -1,0 +1,21 @@
+{
+  "run_id": "15-pig-native-read-large",
+  "case": "read-large",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 86.865375,
+  "cpu_ms": 80.0,
+  "avg_cpu_one_core_pct": 92.09653443618933,
+  "sampled_tree_peak_rss_mib": 51.015625,
+  "sample_count": 13,
+  "max_tree_processes": 2,
+  "time_max_process_rss_mib": 51.734375,
+  "first_request_ms": 61.614292,
+  "requests": 2,
+  "tool_ends": 1,
+  "request_bytes": [
+    6053,
+    32326
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "run_id": "00-pig-installed-resume-2000",
+  "case": "resume-2000",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 166.078625,
+  "cpu_ms": 200.0,
+  "avg_cpu_one_core_pct": 120.42488911502008,
+  "sampled_tree_peak_rss_mib": 110.1875,
+  "sample_count": 27,
+  "max_tree_processes": 3,
+  "time_max_process_rss_mib": 67.328125,
+  "first_request_ms": 161.288584,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    440058
+  ]
+}

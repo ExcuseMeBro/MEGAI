@@ -1,0 +1,43 @@
+{
+  "run_id": "01-pi-ttl-lru-feature",
+  "harness": "pi",
+  "task": "ttl-lru-feature",
+  "iteration": 1,
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "timed_out": false,
+  "acceptance_tests": {
+    "tests": 19,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 19,
+    "exit_code": 0
+  },
+  "wall_ms": 59980.068584,
+  "cpu_ms": 1839.9999999999998,
+  "avg_cpu_one_core_pct": 3.0676857220047085,
+  "sampled_tree_peak_rss_mib": 165.890625,
+  "memory_samples": 9271,
+  "first_delta_ms": 12059.2255,
+  "assistant_responses": 7,
+  "tools": 7,
+  "tool_errors": 0,
+  "usage": {
+    "input": 8244,
+    "output": 2091,
+    "cacheRead": 10496,
+    "cacheWrite": 0,
+    "totalTokens": 20831
+  },
+  "reported_models": [
+    "gpt-6.1-sol"
+  ],
+  "reported_providers": [
+    "openai-codex"
+  ],
+  "reported_thinking": [
+    "medium"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "run_id": "00-pig-installed-stream",
+  "case": "stream",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 501.965875,
+  "cpu_ms": 150.0,
+  "avg_cpu_one_core_pct": 29.882509443495536,
+  "sampled_tree_peak_rss_mib": 90.171875,
+  "sample_count": 80,
+  "max_tree_processes": 3,
+  "time_max_process_rss_mib": 46.546875,
+  "first_request_ms": 114.870125,
+  "requests": 1,
+  "tool_ends": 0,
+  "request_bytes": [
+    6048
+  ]
+}

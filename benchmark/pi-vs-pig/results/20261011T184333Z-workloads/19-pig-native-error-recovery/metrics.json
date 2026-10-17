@@ -1,0 +1,23 @@
+{
+  "run_id": "19-pig-native-error-recovery",
+  "case": "error-recovery",
+  "accepted": true,
+  "failures": [],
+  "exit_code": 0,
+  "wall_ms": 99.595792,
+  "cpu_ms": 90.0,
+  "avg_cpu_one_core_pct": 90.3652636247925,
+  "sampled_tree_peak_rss_mib": 56.59375,
+  "sample_count": 17,
+  "max_tree_processes": 3,
+  "time_max_process_rss_mib": 43.8125,
+  "first_request_ms": 57.998792,
+  "requests": 4,
+  "tool_ends": 3,
+  "request_bytes": [
+    6061,
+    6437,
+    6745,
+    7037
+  ]
+}
