@@ -1,0 +1,2172 @@
+{
+  "metadata": {
+    "started_at": "2026-10-20T12:43:10Z",
+    "pi_version": "1.3.0",
+    "pi": "/Users/bro/.bun/install/global/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js",
+    "python": "3.14.6 (v3.14.6:c63aec69bd5, Jun 10 2026, 08:07:54) [Clang 21.0.0 (clang-2100.1.1.101)]",
+    "node": "v24.18.0",
+    "scope": "isolated Pi RPC with -ne -ns -np --no-themes; no selected model overrides",
+    "prototype": "original SQLite receipt wrapper inspired by T3, not upstream runtime",
+    "command": "python3 -B bench.py --out <new-private-directory> --repeats 20 --live 3",
+    "platform": {
+      "system": "Darwin",
+      "release": "27.0.0",
+      "machine": "arm64"
+    },
+    "source_sha256": {
+      "bench.py": "5c4ed1738261ece61d2bfbd75482e4f329e37ef51fb2ec9909d6c7d67095a6e2",
+      "test_bench.py": "327d7bb107babd9928a97d018d09dccd6c8e49168d989bc64186eb75a8eea99a"
+    },
+    "upstream_commit": "67c0fc0cdaf963b103518862dd7b68a9c758ecf2",
+    "upstream_inspected_sha256": {
+      "RunFinalizationService.ts": "931ac0de742b8e9fe6c93a960b1e4485b7e94ccf72bf998b02ab71ad5afdbd29",
+      "EventSink.ts": "c4213f9a229b75d54834b3430204b2e84ba6f0dd53e07b41c97d4b93229a2000",
+      "EventStore.ts": "6480e91c474d993914a4338923faf9a79cf82d9483145912858d5af78d54a7b3",
+      "LICENSE": "935d8f2af0c703f9c39517ee57cc4930b19d02d533be930b63f0e82f93614b43",
+      "Orchestrator.ts": "7f065c1582b7a9adf3760fcc76ab19640ac54ed7dda3c9d7cd4813eadae72823",
+      "ProviderRuntimeRecoveryService.ts": "f225c35568924a4596fe41a9de64f519c20b423c183f8926398cd7402944d300",
+      "CommandReceiptStore.ts": "59802d8815f21c22a63f776422471aada693168ee199b7851adb1b9499e3b647"
+    }
+  },
+  "rows": [
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 0,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 10.502208024263382
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 1,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.8711249362677336
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 2,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.660542075522244
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 3,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.5314169945195317
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 4,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.467625007033348
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 5,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.602999961003661
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 6,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.706416977569461
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 7,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.590499982237816
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 8,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.13633300922811
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 9,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.766707959584892
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 10,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 5.233832984231412
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 11,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.2588749891147017
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 12,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.5177910467609763
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 13,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.2392499269917607
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 14,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.6315409233793616
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 15,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.25804203748703
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 16,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.2961670076474547
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 17,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.6975829862058163
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 18,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.4482909832149744
+    },
+    {
+      "mode": "plain",
+      "scenario": "normal",
+      "trial": 19,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.447957966476679
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 0,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 10.153208975680172
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 1,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 12.61987502221018
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 2,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 13.238291023299098
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 3,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 9.863334009423852
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 4,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 9.074999950826168
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 5,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 9.280207916162908
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 6,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 9.312500013038516
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 7,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 10.027959011495113
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 8,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 9.113915963098407
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 9,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 12.722708052024245
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 10,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 9.534833021461964
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 11,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 8.934499928727746
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 12,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 11.394916917197406
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 13,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 10.685165994800627
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 14,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 12.233415967784822
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 15,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 9.392875013872981
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 16,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 11.635708971880376
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 17,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 9.47008398361504
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 18,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 10.324416914954782
+    },
+    {
+      "mode": "plain",
+      "scenario": "duplicate",
+      "trial": 19,
+      "rpc_calls": 3,
+      "effects": 3,
+      "blocked": false,
+      "ms": 11.664292076602578
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 0,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 7.40258302539587
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 1,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.915000034496188
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 2,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.53933291323483
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 3,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.923791952431202
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 4,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 8.117874967865646
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 5,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 7.52874999307096
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 6,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 8.051375043578446
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 7,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.600541993975639
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 8,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 7.598833064548671
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 9,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.707750027999282
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 10,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 9.119917056523263
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 11,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.491582957096398
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 12,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 8.602458983659744
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 13,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.200666073709726
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 14,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 7.09025003015995
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 15,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.877874955534935
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 16,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.334583042189479
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 17,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 9.91866597905755
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 18,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.20445900131017
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_committed",
+      "trial": 19,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.820332957431674
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 0,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 7.612167042680085
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 1,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.423541926778853
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 2,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.86483399476856
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 3,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.9166249595582485
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 4,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 7.138333981856704
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 5,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 7.215708028525114
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 6,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.179749965667725
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 7,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 7.236666977405548
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 8,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 7.648125058040023
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 9,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 7.739917025901377
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 10,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.900542066432536
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 11,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 8.900500019080937
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 12,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.377915968187153
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 13,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.880083936266601
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 14,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 9.126499993726611
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 15,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 7.27808300871402
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 16,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.963749998249114
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 17,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 6.479084026068449
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 18,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 7.532000076025724
+    },
+    {
+      "mode": "plain",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 19,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 8.213708060793579
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 0,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 9.28033294621855
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 1,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 7.5833339942619205
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 2,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.3553749565035105
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 3,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.051749943755567
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 4,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.572917008772492
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 5,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.182083066552877
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 6,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 8.977374993264675
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 7,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.8364590145647526
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 8,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.636917030438781
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 9,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.775832989253104
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 10,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.6756669180467725
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 11,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.476250032894313
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 12,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.362875013612211
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 13,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.576582927256823
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 14,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.987708012573421
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 15,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.105375031940639
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 16,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.475417081266642
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 17,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 5.010874941945076
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 18,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.520707949064672
+    },
+    {
+      "mode": "durable",
+      "scenario": "normal",
+      "trial": 19,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.7863750476390123
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 0,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.346000030636787
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 1,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.689082968980074
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 2,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 6.6600419813767076
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 3,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.788791993632913
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 4,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 5.865250015631318
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 5,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.539457964710891
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 6,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.295082995668054
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 7,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 6.322208093479276
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 8,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.287917050532997
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 9,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.503584001213312
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 10,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.586415947414935
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 11,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.667916102334857
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 12,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.7528339782729745
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 13,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.532874911092222
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 14,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.812125000171363
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 15,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.316250095143914
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 16,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.634917015209794
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 17,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.376249969936907
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 18,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 5.81245799548924
+    },
+    {
+      "mode": "durable",
+      "scenario": "duplicate",
+      "trial": 19,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.586542025208473
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 0,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.346999921835959
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 1,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 5.023458041250706
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 2,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.9831250216811895
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 3,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.864542046561837
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 4,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 6.348541006445885
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 5,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 5.319832940585911
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 6,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 9.740374982357025
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 7,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 6.281082984060049
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 8,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.349082941189408
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 9,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.3290420435369015
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 10,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 5.616709007881582
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 11,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 3.9065409218892455
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 12,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.034792073071003
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 13,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 6.600459106266499
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 14,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.644665983505547
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 15,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.3747080489993095
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 16,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.347833106294274
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 17,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.555375082418323
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 18,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.237249959260225
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_committed",
+      "trial": 19,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 4.588457988575101
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 0,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.121457925066352
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 1,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.195499932393432
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 2,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.039249964989722
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 3,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 3.694291925057769
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 4,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 3.8917920319363475
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 5,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 3.6920829443261027
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 6,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 3.878084011375904
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 7,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.107499960809946
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 8,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 3.824500017799437
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 9,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 5.567291053012013
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 10,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 3.904041019268334
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 11,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.293999983929098
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 12,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.013041965663433
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 13,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.035375081002712
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 14,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 3.7412920501083136
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 15,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.1809999383986
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 16,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.377709003165364
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 17,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 3.7842500023543835
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 18,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.261124995537102
+    },
+    {
+      "mode": "durable",
+      "scenario": "lost_ack_uncommitted",
+      "trial": 19,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.423124948516488
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 0,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 5.101500079035759
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 1,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.473875043913722
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 2,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 6.376291974447668
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 3,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.640124971047044
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 4,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.474917077459395
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 5,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.1313329711556435
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 6,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.630082985386252
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 7,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.988750093616545
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 8,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.421457997523248
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 9,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 5.777290905825794
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 10,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.444500082172453
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 11,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.654749995097518
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 12,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.458207986317575
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 13,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.721749923191965
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 14,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.4707499910146
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 15,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.214624990709126
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 16,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 6.459750002250075
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 17,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 3.6687080282717943
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 18,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 3.71825008187443
+    },
+    {
+      "mode": "durable",
+      "scenario": "parallel_duplicate",
+      "trial": 19,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": true,
+      "ms": 4.9006250919774175
+    },
+    {
+      "mode": "plain",
+      "scenario": "clean_pi_restart",
+      "trial": 0,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 473.2659589499235
+    },
+    {
+      "mode": "plain",
+      "scenario": "clean_pi_restart",
+      "trial": 1,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 472.9946249863133
+    },
+    {
+      "mode": "plain",
+      "scenario": "clean_pi_restart",
+      "trial": 2,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 469.70633405726403
+    },
+    {
+      "mode": "plain",
+      "scenario": "clean_pi_restart",
+      "trial": 3,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 478.12479198910296
+    },
+    {
+      "mode": "plain",
+      "scenario": "clean_pi_restart",
+      "trial": 4,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 475.32554203644395
+    },
+    {
+      "mode": "durable",
+      "scenario": "clean_pi_restart",
+      "trial": 0,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 472.19104098621756
+    },
+    {
+      "mode": "durable",
+      "scenario": "clean_pi_restart",
+      "trial": 1,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 478.1630829675123
+    },
+    {
+      "mode": "durable",
+      "scenario": "clean_pi_restart",
+      "trial": 2,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 469.4721249397844
+    },
+    {
+      "mode": "durable",
+      "scenario": "clean_pi_restart",
+      "trial": 3,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 466.1612920463085
+    },
+    {
+      "mode": "durable",
+      "scenario": "clean_pi_restart",
+      "trial": 4,
+      "rpc_calls": 1,
+      "effects": 1,
+      "blocked": false,
+      "ms": 471.0197920212522
+    },
+    {
+      "mode": "plain",
+      "scenario": "independent_parallel",
+      "trial": 0,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 243.08725004084408
+    },
+    {
+      "mode": "plain",
+      "scenario": "independent_parallel",
+      "trial": 1,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 239.8157500429079
+    },
+    {
+      "mode": "plain",
+      "scenario": "independent_parallel",
+      "trial": 2,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 239.13270805496722
+    },
+    {
+      "mode": "plain",
+      "scenario": "independent_parallel",
+      "trial": 3,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 239.0557921025902
+    },
+    {
+      "mode": "plain",
+      "scenario": "independent_parallel",
+      "trial": 4,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 244.22649992629886
+    },
+    {
+      "mode": "plain",
+      "scenario": "independent_parallel",
+      "trial": 5,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 237.9523339914158
+    },
+    {
+      "mode": "plain",
+      "scenario": "independent_parallel",
+      "trial": 6,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 240.1925000594929
+    },
+    {
+      "mode": "plain",
+      "scenario": "independent_parallel",
+      "trial": 7,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 241.28295900300145
+    },
+    {
+      "mode": "plain",
+      "scenario": "independent_parallel",
+      "trial": 8,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 240.00204191543162
+    },
+    {
+      "mode": "plain",
+      "scenario": "independent_parallel",
+      "trial": 9,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 243.28091694042087
+    },
+    {
+      "mode": "durable",
+      "scenario": "independent_parallel",
+      "trial": 0,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 246.47625000216067
+    },
+    {
+      "mode": "durable",
+      "scenario": "independent_parallel",
+      "trial": 1,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 248.47895791754127
+    },
+    {
+      "mode": "durable",
+      "scenario": "independent_parallel",
+      "trial": 2,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 244.26341708749533
+    },
+    {
+      "mode": "durable",
+      "scenario": "independent_parallel",
+      "trial": 3,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 245.39466702844948
+    },
+    {
+      "mode": "durable",
+      "scenario": "independent_parallel",
+      "trial": 4,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 243.0770000210032
+    },
+    {
+      "mode": "durable",
+      "scenario": "independent_parallel",
+      "trial": 5,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 247.81962507404387
+    },
+    {
+      "mode": "durable",
+      "scenario": "independent_parallel",
+      "trial": 6,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 250.05862500984222
+    },
+    {
+      "mode": "durable",
+      "scenario": "independent_parallel",
+      "trial": 7,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 251.38912501279265
+    },
+    {
+      "mode": "durable",
+      "scenario": "independent_parallel",
+      "trial": 8,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 247.15774995274842
+    },
+    {
+      "mode": "durable",
+      "scenario": "independent_parallel",
+      "trial": 9,
+      "rpc_calls": 2,
+      "effects": 2,
+      "blocked": false,
+      "ms": 254.5504589797929
+    },
+    {
+      "mode": "plain",
+      "scenario": "live_coding",
+      "trial": 0,
+      "attempt": 0,
+      "ms": 20998.43904201407,
+      "accepted": true,
+      "provider_failed": false,
+      "actual_prompt_calls": 1,
+      "usage_this_call": {
+        "input": 4856,
+        "output": 569,
+        "cacheRead": 14336,
+        "cacheWrite": 0
+      },
+      "model": {
+        "provider": "openai-codex",
+        "id": "gpt-6.1-sol",
+        "api": "openai-codex-responses",
+        "thinkingLevel": "medium"
+      }
+    },
+    {
+      "mode": "plain",
+      "scenario": "live_coding",
+      "trial": 0,
+      "attempt": 1,
+      "ms": 7641.03741699364,
+      "accepted": true,
+      "provider_failed": false,
+      "actual_prompt_calls": 2,
+      "usage_this_call": {
+        "input": 4829,
+        "output": 100,
+        "cacheRead": 8320,
+        "cacheWrite": 0
+      },
+      "model": {
+        "provider": "openai-codex",
+        "id": "gpt-6.1-sol",
+        "api": "openai-codex-responses",
+        "thinkingLevel": "medium"
+      }
+    },
+    {
+      "mode": "durable",
+      "scenario": "live_coding",
+      "trial": 0,
+      "attempt": 0,
+      "ms": 29210.792833939195,
+      "accepted": true,
+      "provider_failed": false,
+      "actual_prompt_calls": 1,
+      "usage_this_call": {
+        "input": 4464,
+        "output": 441,
+        "cacheRead": 13440,
+        "cacheWrite": 0
+      },
+      "model": {
+        "provider": "openai-codex",
+        "id": "gpt-6.1-sol",
+        "api": "openai-codex-responses",
+        "thinkingLevel": "medium"
+      }
+    },
+    {
+      "mode": "durable",
+      "scenario": "live_coding",
+      "trial": 0,
+      "attempt": 1,
+      "ms": 0.3863750025629997,
+      "accepted": true,
+      "provider_failed": false,
+      "actual_prompt_calls": 1,
+      "usage_this_call": {},
+      "model": {
+        "provider": "openai-codex",
+        "id": "gpt-6.1-sol",
+        "api": "openai-codex-responses",
+        "thinkingLevel": "medium"
+      }
+    },
+    {
+      "mode": "durable",
+      "scenario": "live_coding",
+      "trial": 1,
+      "attempt": 0,
+      "ms": 22812.68629198894,
+      "accepted": true,
+      "provider_failed": false,
+      "actual_prompt_calls": 1,
+      "usage_this_call": {
+        "input": 5093,
+        "output": 613,
+        "cacheRead": 18048,
+        "cacheWrite": 0
+      },
+      "model": {
+        "provider": "openai-codex",
+        "id": "gpt-6.1-sol",
+        "api": "openai-codex-responses",
+        "thinkingLevel": "medium"
+      }
+    },
+    {
+      "mode": "durable",
+      "scenario": "live_coding",
+      "trial": 1,
+      "attempt": 1,
+      "ms": 0.4423329373821616,
+      "accepted": true,
+      "provider_failed": false,
+      "actual_prompt_calls": 1,
+      "usage_this_call": {},
+      "model": {
+        "provider": "openai-codex",
+        "id": "gpt-6.1-sol",
+        "api": "openai-codex-responses",
+        "thinkingLevel": "medium"
+      }
+    },
+    {
+      "mode": "plain",
+      "scenario": "live_coding",
+      "trial": 1,
+      "attempt": 0,
+      "ms": 23449.999124975875,
+      "accepted": true,
+      "provider_failed": false,
+      "actual_prompt_calls": 1,
+      "usage_this_call": {
+        "input": 8967,
+        "output": 567,
+        "cacheRead": 14208,
+        "cacheWrite": 0
+      },
+      "model": {
+        "provider": "openai-codex",
+        "id": "gpt-6.1-sol",
+        "api": "openai-codex-responses",
+        "thinkingLevel": "medium"
+      }
+    },
+    {
+      "mode": "plain",
+      "scenario": "live_coding",
+      "trial": 1,
+      "attempt": 1,
+      "ms": 7464.128292049281,
+      "accepted": true,
+      "provider_failed": false,
+      "actual_prompt_calls": 2,
+      "usage_this_call": {
+        "input": 4955,
+        "output": 102,
+        "cacheRead": 8320,
+        "cacheWrite": 0
+      },
+      "model": {
+        "provider": "openai-codex",
+        "id": "gpt-6.1-sol",
+        "api": "openai-codex-responses",
+        "thinkingLevel": "medium"
+      }
+    },
+    {
+      "mode": "plain",
+      "scenario": "live_coding",
+      "trial": 2,
+      "attempt": 0,
+      "ms": 20164.316084003076,
+      "accepted": true,
+      "provider_failed": false,
+      "actual_prompt_calls": 1,
+      "usage_this_call": {
+        "input": 8158,
+        "output": 493,
+        "cacheRead": 13568,
+        "cacheWrite": 0
+      },
+      "model": {
+        "provider": "openai-codex",
+        "id": "gpt-6.1-sol",
+        "api": "openai-codex-responses",
+        "thinkingLevel": "medium"
+      }
+    },
+    {
+      "mode": "plain",
+      "scenario": "live_coding",
+      "trial": 2,
+      "attempt": 1,
+      "ms": 7658.388457959518,
+      "accepted": true,
+      "provider_failed": false,
+      "actual_prompt_calls": 2,
+      "usage_this_call": {
+        "input": 1126,
+        "output": 101,
+        "cacheRead": 11264,
+        "cacheWrite": 0
+      },
+      "model": {
+        "provider": "openai-codex",
+        "id": "gpt-6.1-sol",
+        "api": "openai-codex-responses",
+        "thinkingLevel": "medium"
+      }
+    },
+    {
+      "mode": "durable",
+      "scenario": "live_coding",
+      "trial": 2,
+      "attempt": 0,
+      "ms": 22237.41358402185,
+      "accepted": true,
+      "provider_failed": false,
+      "actual_prompt_calls": 1,
+      "usage_this_call": {
+        "input": 5138,
+        "output": 702,
+        "cacheRead": 18176,
+        "cacheWrite": 0
+      },
+      "model": {
+        "provider": "openai-codex",
+        "id": "gpt-6.1-sol",
+        "api": "openai-codex-responses",
+        "thinkingLevel": "medium"
+      }
+    },
+    {
+      "mode": "durable",
+      "scenario": "live_coding",
+      "trial": 2,
+      "attempt": 1,
+      "ms": 0.42699999175965786,
+      "accepted": true,
+      "provider_failed": false,
+      "actual_prompt_calls": 1,
+      "usage_this_call": {},
+      "model": {
+        "provider": "openai-codex",
+        "id": "gpt-6.1-sol",
+        "api": "openai-codex-responses",
+        "thinkingLevel": "medium"
+      }
+    }
+  ]
+}
