@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Explicit, dependency-free task worktrees and source-pinned dev delivery.
 
-No launch hook, daemon, Plane client, automatic reconciliation or cleanup.
+No launch hook, daemon, Plane client or automatic reconciliation.
+Finish includes cleanup only when the caller verifies task resources are released.
 The caller must verify the existing Plane task/authority before start or delivery.
 """
 import argparse
@@ -217,11 +218,56 @@ def readiness(args):
     return data, directory, pins, receipt
 
 
-def queue_action(*words):
+def queue_action(*words, allow_wait=False):
     result = subprocess.run([sys.executable, "-B", str(Path(queue.__file__)), *words],
                             capture_output=True, text=True, env=queue.environment(), timeout=60)
-    require(result.returncode == 0, result.stdout.strip() or result.stderr.strip() or "Queue action failed")
-    return json.loads(result.stdout)
+    value = json.loads(result.stdout) if result.stdout.strip() else {}
+    waiting = allow_wait and result.returncode == 2 and value.get("state") == "queued"
+    require(result.returncode == 0 or waiting,
+            result.stdout.strip() or result.stderr.strip() or "Queue action failed")
+    return value
+
+
+def cleanup_owned(data, released):
+    """Retain on uncertainty. Never stop sessions or force worktree/ref deletion."""
+    retained = {"state": "retained", "worktree": data["worktree"], "branch": data["branch"]}
+    if not released:
+        return retained | {"reason": "Task resources active or release not verified"}
+    try:
+        task_path = Path(data["worktree"]).resolve()
+        require(not Path.cwd().resolve().is_relative_to(task_path),
+                "Current process is inside task worktree")
+        require(not any(Path(tool).resolve().is_relative_to(task_path)
+                        for tool in (__file__, queue.__file__)),
+                "Running lifecycle tools reside in task worktree; retain until released")
+        require(Path(data["worktree"]).resolve() == Path(data["worktree"])
+                and queue.repo_identity(data["worktree"]) == (data["primary"], data["common"])
+                and git(data["worktree"], "symbolic-ref", "--quiet", "HEAD") == data["branch"],
+                "Task ownership changed before cleanup")
+        clean(data["worktree"])
+        clean(data["primary"])
+        require(not git(data["worktree"], "clean", "-ndx"),
+                "Ignored/untracked data or directories retained")
+        candidate = head(data["worktree"])
+        require(candidate == data["delivered_candidate"]
+                and head(data["primary"], data["branch"]) == candidate
+                and git(data["primary"], "symbolic-ref", "--quiet", "HEAD") == "refs/heads/dev"
+                and remote(data["primary"]) == data["remote"]
+                and queue.ancestor(data["primary"], candidate, "refs/heads/dev")
+                and queue.ancestor(data["primary"], candidate, queue.REMOTE_DEV_REF),
+                "Delivery/ownership changed before cleanup")
+        git(data["primary"], "worktree", "remove", data["worktree"])
+        # Revalidate immediately before the next shared write. Native safe deletion
+        # also refuses a ref that is checked out or not merged.
+        clean(data["primary"])
+        require(head(data["primary"], data["branch"]) == candidate
+                and git(data["primary"], "symbolic-ref", "--quiet", "HEAD") == "refs/heads/dev"
+                and queue.ancestor(data["primary"], candidate, "refs/heads/dev"),
+                "Task/target ref changed after worktree removal; retain branch")
+        git(data["primary"], "branch", "-d", data["branch"].removeprefix("refs/heads/"))
+        return retained | {"state": "removed", "reason": "Released, clean and verified in local/remote dev"}
+    except (Blocked, OSError, subprocess.SubprocessError) as error:
+        return retained | {"reason": str(error), "worktree_exists": Path(data["worktree"]).exists()}
 
 
 def deliver(args):
@@ -241,21 +287,44 @@ def deliver(args):
         fetch_dev(data["primary"])
         data, directory, pins, receipt = readiness(args)
         require(args.reviewed_sha == pins["candidate"], "Review must name the exact verified SHA")
-        require(not (directory / "delivery.json").exists(),
-                "Delivery already attempted; inspect evidence/queue and reconcile, never blindly replay")
-        request_id = "task-" + args.task + "-" + uuid.uuid4().hex
-        resource = "external:remote-dev:" + hashlib.sha256(data["remote"].encode()).hexdigest()
-        request = queue.plan(argparse.Namespace(
-            root=data["primary"], id=request_id, plane_project=data["plane_project"],
-            plane_item=args.task, repo=[(data["primary"], pins["candidate"])],
-            remote_dev=False, target_branch="dev", resource=[resource], after=[]))
-        save(directory / "request.json", request)
-        journal = {"task": args.task, **pins, "request": request_id,
-                   "remote": data["remote"], "state": "enqueue-intent", "time": time.time()}
-        save(directory / "delivery.json", journal)
-        queue_action("enqueue", "--request", str(directory / "request.json"))
+        previous = directory / "delivery.json"
+        if previous.exists():
+            journal = queue.load_json(previous)
+            require(journal["state"] == "waiting",
+                    "Delivery already attempted; inspect evidence/queue and reconcile, never blindly replay")
+            require(all(journal[key] == value for key, value in pins.items())
+                    and journal["remote"] == data["remote"]
+                    and journal["queue_home"] == str(queue_home),
+                    "Waiting delivery pins changed; reconcile queued request before retry")
+            request_id = journal["request"]
+            waiting = queue_action("status", "--id", request_id)
+            require(waiting["state"] == "queued"
+                    and waiting["request"] == queue.load_json(directory / "request.json"),
+                    "Waiting request changed or may own a grant; inspect before replay")
+        else:
+            request_id = "task-" + args.task + "-" + uuid.uuid4().hex
+            resource = "external:remote-dev:" + hashlib.sha256(data["remote"].encode()).hexdigest()
+            request = queue.plan(argparse.Namespace(
+                root=data["primary"], id=request_id, plane_project=data["plane_project"],
+                plane_item=args.task, repo=[(data["primary"], pins["candidate"])],
+                remote_dev=False, target_branch="dev", resource=[resource], after=[]))
+            save(directory / "request.json", request)
+            journal = {"task": args.task, **pins, "request": request_id,
+                       "remote": data["remote"], "queue_home": str(queue_home),
+                       "state": "enqueue-intent", "time": time.time()}
+            save(previous, journal)
+            queue_action("enqueue", "--request", str(directory / "request.json"))
         owner = "task-runner-" + uuid.uuid4().hex
-        grant = queue_action("claim", "--id", request_id, "--owner", owner, "--lease-seconds", "300")
+        # An interrupted/uncertain claim is not ordinary waiting and cannot replay.
+        journal["state"] = "claim-intent"
+        save(previous, journal)
+        grant = queue_action("claim", "--id", request_id, "--owner", owner,
+                             "--lease-seconds", "300", allow_wait=True)
+        if grant.get("state") == "queued" and "token" not in grant:
+            journal.update(state="waiting", wait_reason=grant["wait_reason"])
+            save(previous, journal)
+            raise Blocked("Delivery waiting: " + grant["wait_reason"]
+                          + "; same request retained; retry finish/deliver after blocker resolves")
         token = grant["token"]
         journal["state"] = "granted"
         save(directory / "delivery.json", journal)
@@ -297,12 +366,19 @@ def deliver(args):
             require(queue.ancestor(data["primary"], pins["candidate"], "refs/heads/dev")
                     and queue.ancestor(data["primary"], pins["candidate"], queue.REMOTE_DEV_REF),
                     "Delivered SHA missing from local or remote dev")
+            journal.update(state="delivery-verified", observed_remote=observed,
+                           local_dev=head(data["primary"], "dev"), verified_at=time.time(),
+                           verification=receipt)
+            save(directory / "delivery.json", journal)
+            lease()
+            if args.action == "finish":
+                journal["cleanup"] = cleanup_owned(
+                    data | {"delivered_candidate": pins["candidate"]}, args.cleanup_released)
+                save(directory / "delivery.json", journal)
             lease()
             queue_action("finish", "--id", request_id, "--owner", owner,
                          "--token", token, "--outcome", "completed")
-            journal.update(state="verified", observed_remote=observed,
-                           local_dev=head(data["primary"], "dev"), verified_at=time.time(),
-                           verification=receipt)
+            journal["state"] = "verified"
             save(directory / "delivery.json", journal)
             return journal
         except BaseException:
@@ -319,11 +395,11 @@ def deliver(args):
 def parser():
     result = argparse.ArgumentParser(description=__doc__)
     actions = result.add_subparsers(dest="action", required=True)
-    for name in ("start", "verify", "ready", "deliver"):
+    for name in ("start", "verify", "ready", "deliver", "finish"):
         p = actions.add_parser(name)
         p.add_argument("--root", default=".")
         p.add_argument("--task", type=uuid_arg, required=True, help="Verified existing Plane task UUID")
-        if name in ("start", "deliver"):
+        if name in ("start", "deliver", "finish"):
             p.add_argument("--plane-current", action="store_true", help="Caller attests live Plane identity/authority checked")
         if name == "start":
             p.add_argument("--project", type=uuid_arg, required=True, help="Verified Plane project UUID")
@@ -331,9 +407,12 @@ def parser():
         if name == "verify":
             p.add_argument("--check", action="append", required=True, help="Explicit shell command; repeat for focused checks")
             p.add_argument("--timeout", type=int, default=600)
-        if name == "deliver":
+        if name in ("deliver", "finish"):
             p.add_argument("--reviewed-sha", required=True, help="Caller attests complete self-review of exact candidate/range")
             p.add_argument("--targets-idle", action="store_true", help="Caller attests primary/task checkouts have no other writer")
+        if name == "finish":
+            p.add_argument("--cleanup-released", action="store_true",
+                           help="Caller freshly verified task resources released (not active/uncertain); never stop sessions")
     return result
 
 
@@ -345,7 +424,7 @@ def main():
             value = {"status": "READY_LOCAL", **pins, "checks": receipt["checks"],
                      "note": "No network/queue/Plane check; delivery revalidates all refs"}
         else:
-            value = {"start": start, "verify": verify, "deliver": deliver}[args.action](args)
+            value = {"start": start, "verify": verify, "deliver": deliver, "finish": deliver}[args.action](args)
         print(json.dumps(value, indent=2))
         return 0
     except (Blocked, OSError, ValueError, KeyError, subprocess.SubprocessError) as error:

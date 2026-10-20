@@ -107,6 +107,20 @@ Priority, workflow state, assignees and release/version stay in their native fie
 
 ## Execute and hand off
 
+For the supported single-repository dev path, use `megai task start` once and
+reuse its owned worktree for refinements; implementation/tests/commits never need
+a queue grant. After required checks, acceptance, full self-review and current
+Plane/dev-push authority, prefer `megai task finish` over separate manual delivery
+and cleanup steps; see `docs/task-runner.md`. The agent performs the already-authorized
+steps without asking the user to repeat merge/cleanup instructions. Add
+`--cleanup-released` only when task resources are actually released; active or
+uncertain resources remain with a precise retention reason, never terminated.
+Ordinary contention reuses the same queued request and explains the exact blocker;
+never enqueue replacements, poll, steal grants or hold a grant while coding.
+Multi-repository projects retain complete-vector atomic reservation/delivery;
+this helper is not a partial-delivery shortcut. Partial/uncertain writes still
+require evidence-backed reconciliation. No main/publishing approval is inferred.
+
 - Inspect, implement, parent self-review, and verify observable acceptance with relevant tests. Security/data-integrity risks or consequential cross-module changes still require source-current formal acceptance; no separate reviewer step runs. Preserve accessibility, compatibility and error handling.
 - Reuse the active pair throughout refinements. Keep only boundary writes: no routine stage sync, milestone comments, polling, second tracker or automatic queue draining.
 - Complete the user's agreed hybrid delivery via `agent-worktree-lifecycle`: one Plane task/umbrella project, same task branch/slug in each affected Git repo's isolated task worktree, scoped local non-Git configuration. Record the complete repo/commit/worktree/acceptance vector in this item. Require all-repo readiness and atomic `megai queue` target reservation before each repo's dev integration; preserve waiting position and journal partial failures. The queue is not a Plane replacement and grants no main/push approval. Explicit main promotion is bound to the reviewed repo/commit vector. No child-repository registration or branch switching under another session.

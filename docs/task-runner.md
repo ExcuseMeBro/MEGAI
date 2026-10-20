@@ -1,4 +1,4 @@
-# Explicit fast task flow
+# Explicit task lifecycle: implement freely, finish once
 
 `megai task` is a small Python 3.11+ / POSIX CLI, not a Pi extension or a daemon.
 It adds no model calls, startup scanning, role routing, package installation, or
@@ -26,8 +26,10 @@ megai task verify --root /path/to/repo --task TASK_UUID \
 megai task ready --root /path/to/repo --task TASK_UUID
 # Self-review the COMPLETE base..candidate range and revalidate Plane/authority.
 # Confirm both checkouts are idle: no other agent/editor/job owns either writer.
-megai task deliver --root /path/to/repo --task TASK_UUID \
+megai task finish --root /path/to/repo --task TASK_UUID \
   --plane-current --targets-idle --reviewed-sha FULL_VERIFIED_CANDIDATE_SHA
+# Add --cleanup-released ONLY after verifying task resources are released.
+# Active/uncertain task sessions stay intact; never stop them to enable cleanup.
 ```
 
 `start` creates `task/TASK_UUID` from freshly observed dev in a new native Git
@@ -50,7 +52,13 @@ or write. It does not prove online remote freshness or that the queue is free.
 It requires the committed candidate, passing receipt, clean/idle Git state and
 local/fetched dev pins to agree. The operator still verifies absence of other writers.
 
-`deliver` reuses source-pinned checks instead of running them a second time when
+`finish` is the normal single-repository handoff operation: verified delivery and
+eligible cleanup under the same short-lived queue grant. `deliver` remains available
+for callers intentionally retaining all task resources. Neither command runs tests,
+review, a Plane call, or an approval conversation while holding a grant. Existing
+dev-push authority must already be verified; main remains separately authorized.
+
+Both reuse source-pinned checks instead of running them a second time when
 nothing changed. It re-fetches, checks the origin fetch/push URL pair and advertised
 SHA, and requires review of the exact verified candidate. It uses the **existing
 shared** `megai queue` home, with repository common-dir and remote-dev resources.
@@ -63,9 +71,15 @@ While holding a live grant it rechecks pins, runs
 `git merge --ff-only --no-overwrite-ignore FULL_SHA` in primary dev, pushes only
 `FULL_SHA:refs/heads/dev` to verified origin, fetches again, compares the fetched
 and independently advertised head, and checks candidate inclusion in local and
-remote dev. Only then does it finish the queue reservation. No bare/force push,
-main promotion, PR creation, rebase, reconciliation, reset, stash, automatic
-worktree/branch deletion, or changes to other tasks are performed.
+remote dev. `finish` then attempts eligible cleanup before completing the queue
+reservation. `--cleanup-released` attests a fresh ownership/release check, not
+permission to close a user's session. Without it cleanup is retained and reported.
+Removal requires the exact owned branch/SHA, inclusion in both dev refs, clean
+Git state, no ignored/untracked data (including empty directories), and a caller
+outside the task worktree. Native non-force worktree removal and `branch -d` are
+used. A cleanup blocker is recorded separately and does not invalidate verified
+delivery. No bare/force push, main promotion, PR creation, rebase, reconciliation,
+reset, stash, session termination, or changes to other tasks are performed.
 
 ## Evidence and blocked delivery
 
@@ -79,7 +93,9 @@ Private task metadata is in `<git-common-dir>/megai-tasks/TASK_UUID/`:
 After verified delivery, attach exact SHAs, affected paths, receipt/check results,
 remote URL, local and observed remote tips and timestamp to the **same** Plane task;
 then move it In Review, not Done. The helper does not perform tracker acceptance.
-All owned resources are intentionally retained; cleanup is a separate guarded step.
+`finish` includes a structured `cleanup` result (`removed` or `retained` with a
+reason and paths). Do not claim full cleanup for retained or partially removed
+resources. `deliver` deliberately retains everything.
 
 Changed dev or divergence requires new source-current checks/review and, where
 needed, **explicit** reconciliation. No automatic merge/rebase is attempted.
@@ -88,8 +104,15 @@ contention, or push/verification failure stop delivery. A failed push can leave
 local dev integrated but remote unchanged: keep Plane In Progress and preserve
 worktree, branch, journal and queue reservation. Exceptions after grant attempt a
 queue hold; an expired/uncertain grant remains blocking even if hold cannot run.
-A queued contention remains queued. Interrupted starts/deliveries are deliberately
-not replayable; inspect intent/journal and actual Git/queue state first. Reconcile
+Ordinary contention records `waiting` and the actual `fifo:`, `resource:` or
+`reconcile:` blocker, without a traceback. After that blocker resolves, invoke the
+same `finish`/`deliver` operation again: it revalidates authority, checks, pins,
+queue home and the exact still-queued request, preserving FIFO position rather
+than creating another reservation. It does not wait/poll or touch the blocking
+request. A changed base/candidate needs explicit queued-request reconciliation
+and new verification; this narrow retry is not automatic rebase or stale-test reuse.
+An interrupted claim, active/held/unknown grant, partial delivery or other uncertain
+phase remains non-replayable; inspect intent/journal and actual Git/queue state first. Reconcile
 using the existing queue's evidence/owner-stopped procedure, never by deleting its
 journal/database or switching to another integration target.
 

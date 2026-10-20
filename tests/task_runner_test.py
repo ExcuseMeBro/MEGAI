@@ -241,6 +241,59 @@ class TaskRunnerTest(unittest.TestCase):
         self.assertEqual(len(self.queue_rows()), 2)
         self.assertTrue(all(row["state"] == "queued" for row in self.queue_rows()))
 
+    def test_waiting_delivery_reuses_request_after_contention(self):
+        self.test_queue_contention_does_not_integrate()
+        first = json.loads((self.directory / "delivery.json").read_text())
+        self.assertEqual(first["state"], "waiting", "ordinary contention must remain retryable")
+        blocked = self.deliver(expected=2)
+        self.assertIn("fifo:foreign-reservation", blocked.stderr)
+        self.assertNotIn("Traceback", blocked.stderr)
+        self.assertEqual(len(self.queue_rows()), 2)
+        self.run_command([sys.executable, "-B", str(QUEUE), "cancel", "--id",
+                          "foreign-reservation", "--reason", "disposable test releases queued owner"])
+        self.deliver()
+        self.assertEqual(json.loads((self.directory / "delivery.json").read_text())["request"], first["request"])
+        self.assertEqual(len(self.queue_rows()), 2)
+
+    def test_finish_removes_only_explicitly_released_owned_resources(self):
+        self.prepared()
+        result = self.cli("finish", "--plane-current", "--targets-idle", "--cleanup-released",
+                          "--reviewed-sha", self.sha)
+        delivery = json.loads(result.stdout)
+        self.assertEqual(delivery["state"], "verified")
+        self.assertEqual(delivery["cleanup"]["state"], "removed")
+        self.assertFalse(self.worktree.exists())
+        self.assertFalse(self.git("branch", "--list", "task/" + self.task))
+        self.assertEqual(self.queue_rows()[0]["state"], "completed")
+
+    def test_finish_retains_active_or_unknown_worktree(self):
+        self.prepared()
+        result = self.cli("finish", "--plane-current", "--targets-idle", "--reviewed-sha", self.sha)
+        self.assertEqual(json.loads(result.stdout)["cleanup"]["state"], "retained")
+        self.assertTrue(self.worktree.exists())
+        self.assertEqual(self.queue_rows()[0]["state"], "completed")
+
+    def test_finish_preserves_ignored_data(self):
+        self.prepared()
+        (self.primary / ".git/info/exclude").write_text("private-data/\n")
+        (self.worktree / "private-data").mkdir()
+        (self.worktree / "private-data/file").write_text("keep")
+        result = self.cli("finish", "--plane-current", "--targets-idle", "--cleanup-released",
+                          "--reviewed-sha", self.sha)
+        self.assertEqual(json.loads(result.stdout)["cleanup"]["state"], "retained")
+        self.assertEqual((self.worktree / "private-data/file").read_text(), "keep")
+        self.assertEqual(self.queue_rows()[0]["state"], "completed")
+
+    def test_finish_push_failure_never_cleans(self):
+        self.prepared()
+        hook = self.remote / "hooks/pre-receive"
+        hook.write_text("#!/bin/sh\nexit 1\n")
+        hook.chmod(0o700)
+        self.cli("finish", "--plane-current", "--targets-idle", "--cleanup-released",
+                 "--reviewed-sha", self.sha, expected=2)
+        self.assertTrue(self.worktree.exists())
+        self.assertEqual(self.queue_rows()[0]["state"], "held")
+
     def test_start_never_reuses_unknown_path_or_task(self):
         self.worktree.mkdir()
         self.cli("start", "--project", self.project, "--worktree", str(self.worktree),
