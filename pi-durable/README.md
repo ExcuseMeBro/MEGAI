@@ -28,6 +28,14 @@ The installer refuses changed/custom launchers, symlinks and managed-source drif
 An interrupted publication may require manual reconciliation; never delete unknown
 files or retry an uncertain install blindly. It starts no server or background job.
 
+## Optional Pi commands
+
+For explicit read-only jobs started from the existing Pi UI, see
+[`megai-local-worker`](../pi-defaults/extensions/megai-local-worker/README.md).
+It pins the current model/provider/thinking and requires human confirmation;
+installation starts no worker and does not replace this standalone CLI. This
+local SQLite bridge is not Vercel `durable-harness` or a Workflow World service.
+
 ## Start a task
 
 ```sh
