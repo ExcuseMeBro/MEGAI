@@ -343,6 +343,7 @@ class Distribution(unittest.TestCase):
             [e["source"] for e in settings["packages"] if isinstance(e, dict) and "pi-superpowers" in e["source"]],
             [],
         )
+
         mcp = install.profile_mcp(
             Path("/tmp/defaults"),
             Path("/Users/example"),
@@ -358,6 +359,45 @@ class Distribution(unittest.TestCase):
             broken.write_text("not json")
             with self.assertRaises(SystemExit):
                 install.read_object(broken)
+
+    def test_profile_settings_enables_shipped_ui_skills_under_blanket_exclude(self):
+        """A blanket "!**" filter must not hide the profile's own UI skills.
+
+        install.py copies pi-defaults/skills into Pi's default skills directory; with
+        "!**" in settings.skills nothing was model-invocable, which is why the design
+        skills appeared installed yet never ran.
+        """
+        expected = [f"+skills/{name}/SKILL.md" for name in install.UI_SKILLS]
+        current = {"skills": ["!**"], "theme": "light"}
+        settings = install.profile_settings(
+            self.package["dependencies"], Path("/Users/example"), current
+        )
+        self.assertEqual(settings["theme"], "light")
+        self.assertEqual(settings["skills"][0], "!**")
+        self.assertEqual([s for s in settings["skills"] if s.startswith("+")], expected)
+        again = install.profile_settings(
+            self.package["dependencies"], Path("/Users/example"), settings
+        )
+        self.assertEqual(again["skills"], settings["skills"])
+        self.assertEqual(len(settings["skills"]), len(set(settings["skills"])))
+
+    def test_shipped_ui_skills_are_vendored_and_verifiable(self):
+        """Every shipped UI skill must be a real, self-declaring, model-invocable skill."""
+        verify = (DEFAULTS / "verify.mjs").read_text()
+        required = re.search(r"const requiredSkills = .*?\[(.*?)\];", verify, re.S).group(1)
+        self.assertTrue(install.UI_SKILLS)
+        for name in install.UI_SKILLS:
+            path = DEFAULTS / "skills" / name / "SKILL.md"
+            self.assertTrue(path.is_file(), path)
+            text = path.read_text()
+            header = re.match(r"---\n(.*?)\n---\n", text, re.S)
+            self.assertIsNotNone(header, name)
+            self.assertIn(f"name: {name}", header.group(1))
+            self.assertRegex(header.group(1), r"(?m)^description: ?")
+            description = header.group(1).split("description:", 1)[1].lstrip("-|> \n")
+            self.assertGreaterEqual(len(description.strip()), 20, name)
+            self.assertNotIn("disable-model-invocation", header.group(1))
+            self.assertIn(f"'{name}'", required)
 
     def test_an_update_keeps_the_injected_policy_blocks(self):
         """Other wirings own the blocks marked inside AGENTS.md; the document is ours."""

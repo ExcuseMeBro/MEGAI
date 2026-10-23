@@ -20,6 +20,17 @@ PI_PACKAGE = "@earendil-works/pi-coding-agent"
 SOURCE = Path(__file__).resolve().parent
 REPO = SOURCE.parent
 
+# Design-engineering skills vendored in skills/ (provenance in UI-SKILLS.md). install.py
+# copies them into Pi's default skills directory, which a blanket "!**" operator filter
+# hides, so profile_settings() also names each one explicitly.
+UI_SKILLS = (
+    "frontend-design",
+    "interface-design",
+    "baseline-ui",
+    "make-interfaces-feel-better",
+    "fixing-accessibility",
+)
+
 
 def run(*args, **kwargs):
     print("+", " ".join(str(a) for a in args), flush=True)
@@ -74,6 +85,12 @@ def profile_settings(versions, home, current=None):
     narrow = f"!{home}/.agents/skills/**"
     if narrow not in skills:
         skills.append(narrow)
+    # Explicit includes win over the operator's blanket "!**" exclude; keep them stable
+    # and idempotent so repeated installs do not grow the list.
+    for name in UI_SKILLS:
+        enabled = f"+skills/{name}/SKILL.md"
+        if enabled not in skills:
+            skills.append(enabled)
     settings["skills"] = skills
     return settings
 
