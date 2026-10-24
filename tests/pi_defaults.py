@@ -285,6 +285,14 @@ class Distribution(unittest.TestCase):
     def setUp(self):
         self.package = json.loads((DEFAULTS / "package.json").read_text())
 
+    def test_blanket_filter_keeps_engineering_skills_invocable(self):
+        settings = install.profile_settings(
+            self.package["dependencies"], Path("/Users/example"), {"skills": ["!**"]}
+        )
+        for name in ("pi-workflow", "code-review", "codebase-design", "diagnosing-bugs", "tdd"):
+            self.assertIn(f"+skills/{name}/SKILL.md", settings["skills"],
+                          "blanket filter hides shipped engineering skills")
+
     def test_pi_subagents_is_optional_and_not_rejected(self):
         self.assertNotIn("pi-subagents", self.package["dependencies"])
         current = {
@@ -361,13 +369,16 @@ class Distribution(unittest.TestCase):
                 install.read_object(broken)
 
     def test_profile_settings_enables_shipped_ui_skills_under_blanket_exclude(self):
-        """A blanket "!**" filter must not hide the profile's own UI skills.
+        """A blanket "!**" filter must not hide the profile's own skills.
 
         install.py copies pi-defaults/skills into Pi's default skills directory; with
         "!**" in settings.skills nothing was model-invocable, which is why the design
-        skills appeared installed yet never ran.
+        skills appeared installed yet never ran and why pi-workflow was unreachable.
         """
-        expected = [f"+skills/{name}/SKILL.md" for name in install.UI_SKILLS]
+        shipped = install.shipped_skills()
+        self.assertEqual(shipped, tuple(sorted(shipped)))
+        self.assertTrue({"pi-workflow", "code-review", "tdd"}.issubset(shipped))
+        expected = [f"+skills/{name}/SKILL.md" for name in shipped]
         current = {"skills": ["!**"], "theme": "light"}
         settings = install.profile_settings(
             self.package["dependencies"], Path("/Users/example"), current
@@ -383,10 +394,12 @@ class Distribution(unittest.TestCase):
 
     def test_shipped_ui_skills_are_vendored_and_verifiable(self):
         """Every shipped UI skill must be a real, self-declaring, model-invocable skill."""
+        ui_skills = ("frontend-design", "interface-design", "baseline-ui",
+                     "make-interfaces-feel-better", "fixing-accessibility")
         verify = (DEFAULTS / "verify.mjs").read_text()
         required = re.search(r"const requiredSkills = .*?\[(.*?)\];", verify, re.S).group(1)
-        self.assertTrue(install.UI_SKILLS)
-        for name in install.UI_SKILLS:
+        self.assertTrue(set(ui_skills).issubset(install.shipped_skills()))
+        for name in ui_skills:
             path = DEFAULTS / "skills" / name / "SKILL.md"
             self.assertTrue(path.is_file(), path)
             text = path.read_text()

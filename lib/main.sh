@@ -43,15 +43,15 @@ state_set '.tools.headroom' '{"installed":true,"version":"0.37.0","mode":"local-
 bash "$LIB/retire_argent.sh"
 bash "$LIB/retire_numasec.sh"
 bash "$LIB/retire_openspec.sh"
+bash "$LIB/retire_ux_ui_agent_skills.sh"
 python3 "$LIB/retire_legacy_sources.py"
 
 step 3 7 "Installing core search and local tools (indexing starts only on request)"
 bash "$LIB/install_tgrep.sh" || die "tgrep install failed"
 bash "$LIB/install_codedb.sh" || die "codedb install failed"
 
-step 4 7 "Installing Ruff and requested skill kits"
+step 4 7 "Installing Ruff and the requested skill kit"
 bash "$LIB/install_ruff.sh" || die "Ruff install failed"
-bash "$LIB/install_ux_ui_agent_skills.sh" || die "ux-ui-agent-skills install failed"
 bash "$LIB/install_mattpocock_skills.sh" || die "Matt Pocock skills install failed"
 
 step 5 7 "Installing Plane-only task flow and worktree safety"
@@ -72,7 +72,6 @@ bash "$LIB/wire_path.sh"  || warn "PATH wiring skipped"
 for tool in tgrep codedb ruff; do
   command -v "$tool" >/dev/null 2>&1 || die "$tool missing after installation; slim is not ready"
 done
-[ -f "$MEGAI_HOME/ux-ui-agent-skills/package.json" ] || die "UX/UI kit missing after installation"
 [ -d "$MEGAI_HOME/mattpocock-skills/skills" ] || die "Matt skill kit missing after installation"
 python3 "$LIB/slim_wiring.py" all --verify
 if ! command -v pi >/dev/null 2>&1; then

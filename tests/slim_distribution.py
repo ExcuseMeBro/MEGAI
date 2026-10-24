@@ -561,9 +561,8 @@ class Slim(unittest.TestCase):
 
     def test_pipeline_install_update_exact_stack_and_failure(self):
         self.wire()
-        self.write(self.megai / "ux-ui-agent-skills/package.json", '{}')
         (self.megai / "mattpocock-skills/skills").mkdir(parents=True)
-        selected = ("headroom", "tgrep", "codedb", "ruff", "ux_ui_agent_skills", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
+        selected = ("headroom", "tgrep", "codedb", "ruff", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
         for path in (self.megai / "lib").glob("install_*.sh"):
             name = path.stem.removeprefix("install_")
             self.write(path, f'#!/bin/sh\necho install:{name} >>"$HOME/install-calls"\n')
@@ -752,8 +751,6 @@ assert first.read_bytes()==b'concurrent after publish'
             if not (self.bin / name).exists():
                 (self.bin / name).symlink_to(shutil.which(name))
         env = dict(self.env, PATH=str(self.bin))
-        ui = self.write(self.megai / "ux-ui-agent-skills/package.json", '{}')
-        self.write(self.megai / "ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md", 'fixture')
         matt = self.write(self.megai / "mattpocock-skills/skills/example/SKILL.md", 'fixture')
         runtime = self.write(self.megai / "venv/headroom/bin/python",
                              '#!/bin/sh\necho checked >>"$HOME/headroom-probes"\nexit 0\n')
@@ -776,7 +773,7 @@ assert first.read_bytes()==b'concurrent after publish'
             finally:
                 if not pi_present:
                     hidden_pi.rename(pi)
-        for path in (self.bin / "codedb", ui, matt):
+        for path in (self.bin / "codedb", matt):
             hidden = path.with_name(path.name + ".hidden")
             path.rename(hidden)
             self.run_cmd("bash", str(self.megai / "bin/megai"), "doctor", ok=False, env=env)
