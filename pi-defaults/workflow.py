@@ -21,7 +21,7 @@ import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
-from plane_mcp_headers import read_token  # noqa: E402
+from plane_mcp_headers import tokens  # noqa: E402
 
 # Transport failures are routine against the hosted Plane MCP endpoint. Retrying with
 # backoff here is what makes /mdev and /prdev keep going instead of stopping the agent
@@ -38,11 +38,12 @@ TRANSIENT = re.compile(
 
 
 class PlaneError(ValueError):
-    """A Plane call failure, carrying whether a retry can help."""
+    """A Plane call failure, carrying whether a retry can help and whether it is auth."""
 
-    def __init__(self, message, transient=False):
+    def __init__(self, message, transient=False, auth=False):
         super().__init__(message)
         self.transient = transient
+        self.auth = auth
 
 ENDPOINT = "https://mcp.plane.so/http/api-key/mcp"
 MARKER = r"<pre>PI_DELIVERY_V1:(.*?):END_PI_DELIVERY_V1</pre>"
@@ -153,8 +154,38 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         raise ValueError("Plane redirect refused")
 
 
-def _call_once(name, arguments):
-    token = read_token(str(Path.home() / ".config/megai/credentials/plane-api-token"))
+TOKEN_FILE = Path.home() / ".config/megai/credentials/plane-api-token"
+CREDENTIAL = {"source": None, "token": None}
+
+
+def credentials():
+    """Known-good credential first, then every other candidate, without duplicates."""
+    known = CREDENTIAL.get("token")
+    ordered = [*tokens(TOKEN_FILE)]
+    if known:
+        source = CREDENTIAL.get("source") or "cached credential"
+        ordered = [(source, known)] + [(name, value) for name, value in ordered if value != known]
+    if not ordered:
+        raise PlaneError(
+            f"no usable Plane credential: set PLANE_API_TOKEN, or write a token to {TOKEN_FILE}",
+            auth=True,
+        )
+    return ordered
+
+
+def error_detail(error):
+    try:
+        body = json.loads(error.read() or b"{}")
+    except (ValueError, OSError):
+        return ""
+    for key in ("error_description", "error", "message"):
+        value = body.get(key) if isinstance(body, dict) else None
+        if isinstance(value, str) and value:
+            return value
+    return ""
+
+
+def _call_once(name, arguments, token):
     payload = {
         "jsonrpc": "2.0",
         "id": 1,
@@ -179,6 +210,15 @@ def _call_once(name, arguments):
     try:
         with opener.open(request, timeout=REQUEST_TIMEOUT) as response:
             raw = response.read(8_000_001)
+    except urllib.error.HTTPError as error:  # a subclass of URLError: classify it first
+        detail = error_detail(error)
+        suffix = f": {detail}" if detail else ""
+        if error.code in (401, 403):
+            raise PlaneError(f"Plane rejected the credential ({error.code}){suffix}",
+                             auth=True) from error
+        if error.code == 429 or error.code >= 500:
+            raise PlaneError(f"Plane unavailable ({error.code}){suffix}", transient=True) from error
+        raise PlaneError(f"Plane request failed ({error.code}){suffix}") from error
     except (TimeoutError, urllib.error.URLError, ConnectionError, ssl.SSLError,
             http.client.HTTPException) as error:
         raise PlaneError(f"Plane unreachable: {error}", transient=True) from error
@@ -215,18 +255,31 @@ def _call_once(name, arguments):
 
 
 def call(name, arguments, attempts=None, sleep=time.sleep):
-    """One logical Plane call: retry only transient failures, then surface the detail."""
+    """One logical Plane call: retry transient failures, rotate credentials on auth.
+
+    A rejected credential is not a reason to stop the agent's work: the next candidate is
+    tried, and the credential that worked is reused for the rest of the process. Only when
+    every candidate is rejected does this raise, and then with an actionable message.
+    """
     total = attempts or ATTEMPTS
-    last = None
-    for attempt in range(1, total + 1):
-        try:
-            return _call_once(name, arguments)
-        except PlaneError as error:
-            last = error
-            if not error.transient or attempt == total:
-                raise
-            sleep(min(0.5 * 2 ** (attempt - 1), 4.0))
-    raise last
+    last, tried = None, []
+    candidates = credentials()
+    for source, token in candidates:
+        for attempt in range(1, total + 1):
+            try:
+                result = _call_once(name, arguments, token)
+                CREDENTIAL.update(source=source, token=token)
+                return result
+            except PlaneError as error:
+                last = error
+                if error.auth:
+                    tried.append(source)
+                    break  # this credential is rejected; try the next candidate
+                if not error.transient or attempt == total:
+                    raise
+                sleep(min(0.5 * 2 ** (attempt - 1), 4.0))
+    raise PlaneError(f"{last} (rejected credentials: {', '.join(tried) or 'none'})",
+                     auth=bool(last and last.auth))
 
 
 def pages(name, **arguments):
@@ -433,6 +486,60 @@ def plane_adapter():
     return Adapter()
 
 
+def plane_check(repair=False):
+    """Probe every credential source; optionally install a working one as the canonical file.
+
+    A rejected token must never be a dead end: usually a valid credential already exists
+    somewhere else on the machine (an exported variable, the token file this machine's MCP
+    server declares). Repair copies that proven token into the canonical file so every
+    later session and the MCP proxy start healthy, and keeps the old file as a backup.
+    """
+    report = {"tokenFile": str(TOKEN_FILE), "candidates": [], "working": None, "repaired": None}
+    working = None
+    for source, token in tokens(TOKEN_FILE):
+        entry = {"source": source, "canonical": source == "credential file"}
+        try:
+            _call_once("project", {"action": "list", "per_page": 1}, token)
+            entry["status"] = "accepted"
+            working = working or (source, token)
+        except PlaneError as error:
+            entry["status"] = "rejected" if error.auth else "unreachable"
+            entry["detail"] = str(error)
+        report["candidates"].append(entry)
+    if working:
+        report["working"] = working[0]
+    canonical_ok = any(c["canonical"] and c["status"] == "accepted" for c in report["candidates"])
+    if not repair:
+        report["hint"] = ("credential accepted" if canonical_ok else
+                          "run plane-check --repair to install the accepted credential"
+                          if working else
+                          f"no accepted credential; write a fresh token to {TOKEN_FILE}")
+        return report
+    if not working:
+        report["hint"] = f"no accepted credential to install; write a fresh token to {TOKEN_FILE}"
+        return report
+    if canonical_ok:
+        report["hint"] = "canonical credential already accepted"
+        return report
+    TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
+    backup = None
+    if TOKEN_FILE.exists():
+        backup = TOKEN_FILE.with_name(TOKEN_FILE.name + ".backup")
+        shutil.copy2(TOKEN_FILE, backup)
+        os.chmod(backup, 0o600)
+    handle = os.open(TOKEN_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        os.write(handle, (working[1] + "\n").encode())
+    finally:
+        os.close(handle)
+    os.chmod(TOKEN_FILE, 0o600)
+    CREDENTIAL.update(source="credential file", token=working[1])
+    report["repaired"] = {"from": working[0], "tokenFile": str(TOKEN_FILE),
+                          "backup": str(backup) if backup else None}
+    report["hint"] = "canonical credential replaced from an accepted source"
+    return report
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -461,6 +568,8 @@ def main():
     cmd.add_argument("receipt")
     # /mdev and /prdev run their own multi-step sweep; their options are passed through
     # unchanged so the workflow CLI stays the single installed entry point.
+    cmd = sub.add_parser("plane-check")
+    cmd.add_argument("--repair", action="store_true")
     sub.add_parser("mdev")
     sub.add_parser("prdev")
     args, delivery_argv = parser.parse_known_args()
@@ -468,6 +577,8 @@ def main():
         return delivery_command(args.command, delivery_argv)
     if delivery_argv:
         parser.error(f"unrecognized arguments: {' '.join(delivery_argv)}")
+    if args.command == "plane-check":
+        return plane_check(args.repair)
     if args.command == "context":
         return context(args.cwd)
     if args.command == "verify-main":

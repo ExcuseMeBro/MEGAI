@@ -16,7 +16,7 @@ import sys
 import threading
 import uuid
 
-from workflow import call, context, pages
+from workflow import PlaneError, call, context, pages
 
 UUID = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\Z")
 SOURCE = "megai-orchestrator"
@@ -155,7 +155,17 @@ class Runner:
             pid = project["id"]
             require(bool(UUID.fullmatch(pid)) and isinstance(project.get("name"), str),
                     "Invalid Plane project identity")
-            rows = self.list_pages("workitem", project_id=pid, fields="id,name,project,state,sequence_id")
+            try:
+                rows = self.list_pages("workitem", project_id=pid,
+                                       fields="id,name,project,state,sequence_id")
+            except PlaneError as error:
+                # A rejected or unreachable credential blocks this project's rows only:
+                # the snapshot still reports the other projects instead of aborting the
+                # whole run and stopping the operator's task on a recoverable cause.
+                if not error.auth:
+                    raise
+                blocked.append((f"{pid}/credential", str(error)))
+                continue
             try:
                 workflow = states_for(self.list_pages, pid)
             except WorkflowUnavailable as error:
@@ -357,6 +367,21 @@ def states_for(list_pages, pid):
     return result
 
 
+REMEDIES = (
+    ("credential", "run: pi-workflow plane-check --repair, then repeat the sweep"),
+    ("unreachable", "Plane was unreachable; repeat the sweep once connectivity returns"),
+)
+
+
+def remedy(blocked):
+    """One actionable line per failure class, so nobody stops the task to ask about it."""
+    text = " ".join(str(reason) for _, reason in blocked)
+    for needle, advice in REMEDIES:
+        if needle in text:
+            return advice
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True, type=Path)
@@ -378,6 +403,7 @@ def main():
         if not args.run:
             tasks, blocked = runner.snapshot()
             return {"todo_or_waiting": len(tasks), "blocked": blocked,
+                    "remedy": remedy(blocked),
                     "note": "Dry run only; no sessions or Plane writes"}
         events = []
         result = {}
@@ -398,6 +424,7 @@ def main():
         return {"model_runs": len(events), "events": events,
                 "queue_empty": result.get("queue_empty", False),
                 "blocked": result.get("blocked", []),
+                "remedy": remedy(result.get("blocked", [])),
                 "note": "Queue empty only after a complete fresh snapshot with no blockers"}
 
 

@@ -50,7 +50,9 @@ It is not a daemon: continue in this conversation until the completion condition
    roles, focused behavioral tests, risk-appropriate independent review and formal
    acceptance where required. Work through recoverable failures until acceptance.
    For In Progress tasks with existing implementations, verify and complete only
-   the remaining work instead of starting over. No automatic browser review; retain
+   the remaining work instead of starting over. A rejected Plane credential is recoverable:
+   run `pi-workflow plane-check`, then `--repair` once, and continue; finish the Git work
+   before reporting any credential problem, and never ask for a key mid-task. No automatic browser review; retain
    browser checks required by the task's existing acceptance.
 7. After source-current acceptance and required review, reserve integration targets
    with `megai queue`, deliver verified commits to local dev, and perform safe

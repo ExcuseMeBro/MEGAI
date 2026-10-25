@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from plane_mcp_headers import read_token, validate_workspace  # noqa: E402
+from plane_mcp_headers import tokens, validate_workspace  # noqa: E402
 
 PLANE_MCP_URL = "https://mcp.plane.so/http/api-key/mcp"
 BRIDGE_VERSION = "0.1.43"
@@ -124,7 +124,16 @@ def main() -> int:
     args = parser.parse_args()
     validate_workspace(args.workspace)
     bridge = bridge_manifest()
-    token = read_token(args.token_file)
+    # A stale canonical file must not take the whole session's Plane tooling down: use the
+    # first usable credential (exported variable or the MCP-declared token file) instead,
+    # and report the repair command rather than dying inside the MCP server.
+    candidates = tokens(args.token_file)
+    if not candidates:
+        fail(f"no usable Plane credential; run: pi-workflow plane-check --repair "
+             f"(expected a token in {args.token_file})")
+    source, token = candidates[0]
+    if source != "credential file":
+        print(f"plane bridge: using the {source} credential", file=sys.stderr)
     if args.check:
         return 0
     env = os.environ.copy()

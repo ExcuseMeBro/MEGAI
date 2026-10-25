@@ -3,15 +3,18 @@
 import copy
 import html
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
 import re
+import stat
 import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+import urllib.error
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location(
@@ -277,6 +280,155 @@ class Delivery(unittest.TestCase):
             args for _, args in calls if args["action"] in ("create", "update")
         ]
         self.assertEqual([m["state"] for m in mutations], ["Todo", "In Progress"])
+
+
+def load_orchestrator():
+    """The queue runner imports workflow by name; share the module already under test."""
+    sys.modules["workflow"] = w
+    spec = importlib.util.spec_from_file_location(
+        "pi_defaults_orchestrator", ROOT / "pi-defaults/orchestrator.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class CredentialResilience(unittest.TestCase):
+    """A rejected or unreachable Plane credential must never stop a session's work."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name).resolve()
+        self.token_file = self.root / "plane-api-token"
+        self.token_file.write_text("stale\n")
+        self.token_file.chmod(0o600)
+        self.addCleanup(self.tmp.cleanup)
+        for name, value in (("TOKEN_FILE", self.token_file),):
+            patcher = patch.object(w, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        for name in ("PLANE_API_TOKEN", "PLANE_API_KEY"):
+            os.environ.pop(name, None)
+            self.addCleanup(os.environ.pop, name, None)
+        credential = patch.dict(w.CREDENTIAL, {"source": None, "token": None})
+        credential.start()
+        self.addCleanup(credential.stop)
+
+    def test_a_rejected_credential_rotates_to_the_next_candidate(self):
+        attempts = []
+
+        def fake(name, arguments, token):
+            attempts.append(token)
+            if token == "stale":
+                raise w.PlaneError("Plane rejected the credential (401)", auth=True)
+            return {"results": []}
+
+        candidates = [("credential file", "stale"), ("environment PLANE_API_TOKEN", "fresh")]
+        with patch.object(w, "tokens", return_value=candidates), patch.object(
+            w, "_call_once", fake
+        ):
+            self.assertEqual(w.call("project", {"action": "list"}), {"results": []})
+            self.assertEqual(w.CREDENTIAL["source"], "environment PLANE_API_TOKEN")
+            attempts.clear()
+            w.call("project", {"action": "list"})
+        self.assertEqual(attempts, ["fresh"])
+
+    def test_transient_failure_retries_without_rotating_credentials(self):
+        attempts, sleeps = [], []
+
+        def fake(name, arguments, token):
+            attempts.append(token)
+            if len(attempts) < 3:
+                raise w.PlaneError("Plane unreachable: timed out", transient=True)
+            return {"results": []}
+
+        with patch.object(w, "tokens", return_value=[("credential file", "only")]), patch.object(
+            w, "_call_once", fake
+        ):
+            self.assertEqual(
+                w.call("project", {"action": "list"}, sleep=sleeps.append), {"results": []}
+            )
+        self.assertEqual(attempts, ["only", "only", "only"])
+        self.assertEqual(sleeps, [0.5, 1.0])
+
+    def test_http_401_is_a_credential_failure_not_transport(self):
+        rejection = urllib.error.HTTPError(
+            w.ENDPOINT,
+            401,
+            "Unauthorized",
+            {},
+            io.BytesIO(b'{"error":"invalid_token","error_description":"Authentication failed"}'),
+        )
+        self.addCleanup(rejection.close)
+        opener = Mock()
+        opener.open.side_effect = rejection
+        with patch.object(w.urllib.request, "build_opener", return_value=opener):
+            with self.assertRaises(w.PlaneError) as caught:
+                w._call_once("project", {"action": "list"}, "token")
+        self.assertTrue(caught.exception.auth)
+        self.assertFalse(caught.exception.transient)
+        self.assertIn("rejected the credential", str(caught.exception))
+        self.assertIn("Authentication failed", str(caught.exception))
+
+    def test_plane_check_repair_installs_the_accepted_credential(self):
+        def fake(name, arguments, token):
+            if token == "stale":
+                raise w.PlaneError("Plane rejected the credential (401)", auth=True)
+            return {"results": []}
+
+        candidates = [("credential file", "stale"), ("environment PLANE_API_TOKEN", "fresh")]
+        with patch.object(w, "tokens", return_value=candidates), patch.object(
+            w, "_call_once", fake
+        ):
+            report = w.plane_check()
+            self.assertEqual(
+                [entry["status"] for entry in report["candidates"]], ["rejected", "accepted"]
+            )
+            self.assertEqual(report["working"], "environment PLANE_API_TOKEN")
+            self.assertIn("--repair", report["hint"])
+            repaired = w.plane_check(repair=True)
+        self.assertEqual(self.token_file.read_text(), "fresh\n")
+        self.assertEqual(stat.S_IMODE(self.token_file.stat().st_mode), 0o600)
+        backup = self.token_file.with_name("plane-api-token.backup")
+        self.assertEqual(backup.read_text(), "stale\n")
+        self.assertEqual(repaired["repaired"]["from"], "environment PLANE_API_TOKEN")
+
+    def test_plane_check_reports_an_unrepairable_credential_without_raising(self):
+        def fake(name, arguments, token):
+            raise w.PlaneError("Plane rejected the credential (401)", auth=True)
+
+        with patch.object(w, "tokens", return_value=[("credential file", "stale")]), patch.object(
+            w, "_call_once", fake
+        ):
+            report = w.plane_check(repair=True)
+        self.assertIsNone(report["working"])
+        self.assertIsNone(report["repaired"])
+        self.assertIn(str(self.token_file), report["hint"])
+        self.assertEqual(self.token_file.read_text(), "stale\n")
+
+    def test_plane_tokens_orders_sources_and_never_repeats_a_value(self):
+        config = self.root / "mcp.json"
+        declared = self.root / "declared-token"
+        declared.write_text("declared\n")
+        declared.chmod(0o600)
+        config.write_text(
+            json.dumps({"mcpServers": {"plane": {"args": ["--token-file", str(declared)]}}})
+        )
+        self.token_file.write_text("fresh\n")
+        os.environ["PLANE_API_TOKEN"] = "fresh"
+        found = w.tokens(self.token_file, config)
+        self.assertEqual(
+            found,
+            [("environment PLANE_API_TOKEN", "fresh"), ("mcp.json plane", "declared")],
+        )
+
+    def test_an_orchestrator_snapshot_survives_a_rejected_credential(self):
+        orchestrator = load_orchestrator()
+        remedy = orchestrator.remedy([("project/task", "Plane rejected the credential (401)")])
+        self.assertIn("plane-check --repair", remedy)
+        self.assertIsNone(orchestrator.remedy([]))
+        unreachable = orchestrator.remedy([("project/task", "Plane unreachable: timed out")])
+        self.assertIn("repeat the sweep", unreachable)
 
 
 class Distribution(unittest.TestCase):

@@ -165,6 +165,8 @@ pi-workflow mdev scan                 # read-only: branches, checkouts, writer s
 pi-workflow mdev run --check "python3 -B tests/pi_defaults.py"
 pi-workflow mdev resume               # replay Plane hand-offs after an outage
 pi-workflow prdev                     # reuse or open the single dev -> main request
+pi-workflow plane-check               # probe every credential source, print no secrets
+pi-workflow plane-check --repair      # install the accepted credential as the canonical file
 ```
 
 `mdev run` adopts an inactive dirty checkout after a private backup, merges each exact
@@ -176,7 +178,16 @@ an unmerged or data-bearing checkout and an unreachable Plane are reported and r
 and the shared `dev` checkout itself only blocks while a real Git operation holds it, since
 fresh writes or an open session in the operator's own directory are not a competing writer,
 and the remaining repositories still complete. Transient Plane transport failures are
-retried with backoff inside `workflow.call`, and a hand-off that cannot be proven is
+retried with backoff inside `workflow.call`. A rejected credential (`401 Unauthorized`,
+`invalid_token`) is classified as a credential failure, not a transport flake, and
+`workflow.call` rotates to the next candidate instead of dying: `PLANE_API_TOKEN`,
+`PLANE_API_KEY`, the canonical token file and the token file the machine's `mcp.json`
+declares for its Plane server, in that order. `plane-check` probes each candidate without
+printing a token, and `plane-check --repair` copies the accepted one into
+`~/.config/megai/credentials/plane-api-token` with mode 600, keeping the previous file as
+`plane-api-token.backup`, so later sessions and the MCP bridge start healthy. The queue
+runner reports a rejected credential per project with a one-line remedy instead of aborting
+its snapshot. A hand-off that cannot be proven is
 journaled under `~/.megai/state/delivery` until `mdev resume` replays it, and a task that
 Plane already closed needs no proof, so its merged branch is retired without touching the
 task. The sweep ignores its own session transcript and holds `megai-mdev.lock` per

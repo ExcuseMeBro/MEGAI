@@ -26,6 +26,10 @@ Complete each of these and continue; report each per repository:
   `pi-workflow review` before the pull-request write. Absent evidence is work, not a blocker.
 - Moved refs: re-fetch and revalidate, at most three passes, then publish the now-stable SHA.
 - `dev` identical to `main`: report "no pull request needed" as a completed result.
+- Rejected Plane credential or unreachable Plane: run `pi-workflow plane-check` and then
+  `pi-workflow plane-check --repair` once, retry the boundary, and keep the pull request
+  as the last step. A credential problem never cancels the delivery and never becomes a
+  question for the operator mid-task.
 Unusable authentication, an unsupported host, ambiguous destination, missing required evidence,
 failed checks, missing branches or exhausted ref retries hold that repository with a concrete
 reason, without abandoning independent repositories. Continue prerequisites only while safe;

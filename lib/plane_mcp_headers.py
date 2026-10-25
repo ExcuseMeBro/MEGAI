@@ -98,6 +98,68 @@ def validate_request_envelope() -> None:
         fail()
 
 
+def sanitize(token):
+    """One header-safe token: no whitespace, no control characters, bounded length."""
+    if not isinstance(token, str):
+        return None
+    token = token.strip()
+    if not token or len(token.encode("utf-8")) > MAX_TOKEN_BYTES:
+        return None
+    if any(character.isspace() or ord(character) < 32 or ord(character) == 127
+           for character in token):
+        return None
+    return token
+
+
+def tokens(primary=None, config=None):
+    """Ordered credential candidates as (source, token); never raises, never logs a token.
+
+    A stale canonical file is the single most common Plane failure, and the valid
+    credential is usually somewhere else already: the environment an operator exported,
+    or the token file this machine's MCP server declares. Callers try each candidate in
+    order, so one rejected credential never stops a whole session or a whole sweep.
+    """
+    found, seen = [], set()
+
+    def add(source, token):
+        token = sanitize(token)
+        if token and token not in seen:
+            seen.add(token)
+            found.append((source, token))
+
+    for name in ("PLANE_API_TOKEN", "PLANE_API_KEY"):
+        add(f"environment {name}", os.environ.get(name))
+    paths = []
+    if primary:
+        paths.append(("credential file", str(primary)))
+    try:
+        with open(config or os.path.expanduser("~/.pi/agent/mcp.json"), encoding="utf-8") as handle:
+            configured = json.load(handle)
+    except (OSError, ValueError):
+        configured = {}
+    servers = configured.get("mcpServers") if isinstance(configured, dict) else None
+    for name, server in (servers or {}).items():
+        if not isinstance(server, dict) or "plane" not in str(name).lower():
+            continue
+        arguments = server.get("args")
+        if isinstance(arguments, list) and "--token-file" in arguments:
+            index = arguments.index("--token-file")
+            if index + 1 < len(arguments):
+                paths.append((f"mcp.json {name}", os.path.expanduser(str(arguments[index + 1]))))
+        headers = server.get("headers")
+        if isinstance(headers, dict):
+            for key, value in headers.items():
+                if str(key).lower() == "authorization" and isinstance(value, str):
+                    add(f"mcp.json {name} header", value.split()[-1])
+    for source, path in paths:
+        try:
+            token = read_token(path)
+        except (SystemExit, OSError, ValueError):  # unreadable or unsafe: try the next one
+            continue
+        add(source, token)
+    return found
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--check", action="store_true")
