@@ -177,8 +177,10 @@ and the shared `dev` checkout itself only blocks while a real Git operation hold
 fresh writes or an open session in the operator's own directory are not a competing writer,
 and the remaining repositories still complete. Transient Plane transport failures are
 retried with backoff inside `workflow.call`, and a hand-off that cannot be proven is
-journaled under `~/.megai/state/delivery` until `mdev resume` replays it. The sweep holds
-`megai-mdev.lock` per repository, so two sessions never merge the same target at once.
+journaled under `~/.megai/state/delivery` until `mdev resume` replays it, and a task that
+Plane already closed needs no proof, so its merged branch is retired without touching the
+task. The sweep ignores its own session transcript and holds `megai-mdev.lock` per
+repository, so two sessions never merge the same target at once.
 
 Both complete recoverable prerequisites instead of stopping: a local `dev` ahead of its remote,
 ignored or ignored-untracked files, a missing Plane identity, missing or stale evidence, a moved

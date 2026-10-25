@@ -155,13 +155,21 @@ def newest_write(root):
 
 
 def session_reference(path, window, session_dir=None):
-    """Return the newest Pi transcript that mentions this path, if it is recent."""
+    """Return the newest *other* Pi transcript that mentions this path, if it is recent.
+
+    The sweep's own transcript names every checkout it inspects, so counting itself
+    would make the command refuse work that nobody else is doing.
+    """
     root = Path(session_dir or os.environ.get("MEGAI_PI_SESSIONS", Path.home() / ".pi/agent/sessions"))
     if not root.is_dir():
         return None
+    own = os.environ.get("PI_SESSION_FILE")
+    own_name = Path(own).name if own else None
     needles = {str(path), str(path).replace(str(Path.home()), "~")}
     candidates = []
     for entry in root.rglob("*.jsonl"):
+        if own_name and entry.name == own_name:
+            continue
         try:
             modified = entry.stat().st_mtime
         except OSError:
@@ -554,6 +562,22 @@ def evidence_text(row, delivered, remote, check, when):
     return "\n".join(lines)
 
 
+def closed_states(plane, identity):
+    """Plane states whose work is already finished: Done and Cancelled need no proof."""
+    cached = identity.get("closed")
+    if cached is not None:
+        return cached
+    closed = set()
+    try:
+        rows = plane.pages("state", project_id=identity.get("project_id"))
+        closed = {row["id"] for row in rows
+                  if str(row.get("group") or "").lower() in ("completed", "cancelled")}
+    except Exception:  # identity stays best effort; the boundary re-checks its own state
+        closed = set()
+    identity["closed"] = closed
+    return closed
+
+
 def handoff(plane, identity, state, row, delivered, remote, check, report):
     """Prove the work on its Plane task; journal instead of stopping when Plane is down.
 
@@ -586,6 +610,11 @@ def handoff(plane, identity, state, row, delivered, remote, check, report):
         if len(matches) != 1:
             raise Blocked(f"task MEGAI-{row['task']} is missing or ambiguous in Plane")
         task = matches[0]
+        if task.get("state") in closed_states(plane, identity):
+            report["plane"].append({"branch": row["branch"], "task": row["task"],
+                                    "state": "closed", "id": task["id"],
+                                    "skipped": "task is already closed in Plane; nothing to prove"})
+            return
         if identity.get("inReview") and task.get("state") == identity["inReview"]:
             report["plane"].append({"branch": row["branch"], "task": row["task"],
                                     "state": "In Review", "id": task["id"],
@@ -817,14 +846,22 @@ def resume(plane, ctx, opts):
             report["pending"].append({"journal": str(path), "reason": "Plane still unreachable"})
             continue
         try:
-            task_id = entry.get("task_id")
-            if not task_id and entry.get("branch"):
-                number = task_number(entry["branch"], _prefixes(identity, ctx))
-                items = plane.pages("workitem", project_id=identity["project_id"])
+            items = plane.pages("workitem", project_id=identity["project_id"])
+            if entry.get("task_id"):
+                task = next((item for item in items if item.get("id") == entry["task_id"]), None)
+            else:
+                number = task_number(entry.get("branch") or "", _prefixes(identity, ctx))
                 matches = [item for item in items if item.get("sequence_id") == number]
-                if len(matches) != 1:
-                    raise Blocked(f"task for {entry['branch']} is missing or ambiguous")
-                task_id = matches[0]["id"]
+                task = matches[0] if len(matches) == 1 else None
+            if task is None:
+                raise Blocked(f"task for {entry.get('branch')} is missing or ambiguous")
+            if task.get("state") in closed_states(plane, identity):
+                path.unlink()
+                report["replayed"].append({"journal": str(path), "branch": entry.get("branch"),
+                                           "state": "closed",
+                                           "dropped": "task is already closed in Plane"})
+                continue
+            task_id = task["id"]
             receipt = dict(entry.get("receipt") or {}, project_id=identity["project_id"], task_id=task_id)
             result = plane.review_boundary(identity["project_id"], task_id, receipt, entry["evidence"])
             path.unlink()

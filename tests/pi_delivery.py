@@ -25,7 +25,7 @@ import delivery  # noqa: E402
 
 PROJECT = {"id": "project-1", "name": "MEGAI", "identifier": "MEGAI"}
 STATES = {"Todo": "state-todo", "In Progress": "state-progress",
-          "In Review": "state-review", "Done": "state-done"}
+          "In Review": "state-review", "Done": "state-done", "Cancelled": "state-cancelled"}
 
 
 def run_git(path, *args, env=None):
@@ -61,7 +61,8 @@ class StubPlane:
                         ("Todo", STATES["Todo"], "unstarted"),
                         ("In Progress", STATES["In Progress"], "started"),
                         ("In Review", STATES["In Review"], "started"),
-                        ("Done", STATES["Done"], "completed"))]
+                        ("Done", STATES["Done"], "completed"),
+                        ("Cancelled", STATES["Cancelled"], "cancelled"))]
         if name == "workitem":
             return [dict(item) for item in self.items.values()]
         raise AssertionError(f"unexpected Plane resource {name}")
@@ -194,6 +195,18 @@ class SweepCase(unittest.TestCase):
                          ["task-7", "task-8"])
         self.assertEqual(list((self.state / "pending").glob("*.json")), [])
 
+    def test_resume_drops_a_journal_whose_task_closed_meanwhile(self):
+        self.plane.offline = True
+        self.sweep()
+        self.plane.offline = False
+        self.plane.items["8"]["state"] = STATES["Cancelled"]
+        replayed = delivery.resume(self.plane, self.context(), self.options())
+        self.assertEqual([review["task_id"] for review in self.plane.reviews], ["task-7"])
+        dropped = [row for row in replayed["replayed"] if row.get("state") == "closed"]
+        self.assertEqual(len(dropped), 1)
+        self.assertEqual(replayed["pending"], [])
+        self.assertEqual(list((self.state / "pending").glob("*.json")), [])
+
     def test_busy_writer_is_retained(self):
         delivery.newest_write = lambda root: __import__("time").time()
         report = self.sweep()
@@ -240,6 +253,30 @@ class SweepCase(unittest.TestCase):
         self.assertIn("task/megai-7-alpha", {row["branch"] for row in report["merged"]})
         reasons = " ".join(row["reason"] for row in report["retained"])
         self.assertNotIn("task/megai-7-alpha", reasons)
+
+    def test_own_transcript_never_counts_as_another_writer(self):
+        sessions = self.root / "sessions"
+        sessions.mkdir()
+        mine = sessions / "2026-01-01T00-00-00Z_mine.jsonl"
+        mine.write_text(json.dumps({"cwd": str(self.alpha)}) + "\n")
+        other = sessions / "2026-01-01T00-00-01Z_other.jsonl"
+        other.write_text(json.dumps({"cwd": str(self.alpha)}) + "\n")
+        previous = os.environ.get("PI_SESSION_FILE")
+        os.environ["PI_SESSION_FILE"] = str(mine)
+        self.addCleanup(lambda: os.environ.__setitem__("PI_SESSION_FILE", previous)
+                        if previous else os.environ.pop("PI_SESSION_FILE", None))
+        self.assertEqual(delivery.session_reference(self.alpha, 15, session_dir=sessions),
+                         other.name)
+
+    def test_closed_plane_task_needs_no_handoff_and_can_be_retired(self):
+        self.plane.items["7"]["state"] = STATES["Cancelled"]
+        report = self.sweep()
+        self.assertEqual([review["task_id"] for review in self.plane.reviews], ["task-8"])
+        self.assertEqual(report["pending_plane"], [])
+        skipped = {row["branch"]: row.get("skipped") for row in report["plane"]}
+        self.assertIn("task is already closed in Plane", skipped["task/megai-7-alpha"])
+        retired = {row["branch"]: row["removed"] for row in report["resources"]}
+        self.assertTrue(retired["task/megai-7-alpha"])
 
     def test_task_number_requires_the_project_prefix(self):
         self.assertEqual(delivery.task_number("task/megai-151-slug", {"megai"}), 151)

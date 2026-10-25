@@ -17,7 +17,8 @@ Invoking `/mdev` explicitly authorizes reviewed task delivery to `dev` and an or
 - Plane timeout, 5xx, dropped connection or malformed stream: the sweep retries transient transport failures and journals a hand-off it could not prove. Run `pi-workflow mdev resume` once connectivity returns; never replay a whole boundary blindly and never invent a state you did not read back.
 - Rows the report retains: Retain active, dirty, unknown or unmerged resources with the reported reason.
   The shared `dev` checkout is the operator's own directory: fresh writes or an open session there never blocked the
-  sweep, only a held lock or an in-progress Git operation does. uncertain ownership, a Git lock, an in-progress operation or an active writer on that exact checkout is not permission to force anything. An open session or a cwd inside a repository is not by itself a blocker; uncommitted work there is.
+  sweep, only a held lock or an in-progress Git operation does. Your own transcript never counts as another writer, and a
+  task Plane already closed needs no proof: merge, then retire its branch without editing the task. uncertain ownership, a Git lock, an in-progress operation or an active writer on that exact checkout is not permission to force anything. An open session or a cwd inside a repository is not by itself a blocker; uncommitted work there is.
 - A separate writer needs coordination: reserve the exact repository vector with `megai queue plan`, `enqueue` and `claim` under the existing Plane pair. The sweep's own lock (`megai-mdev.lock`) is exclusive only within one repository, and neither mechanism grants approval beyond this invocation.
 
 Report a ledger of merged, held and retained rows with their exact SHAs, the checks you ran and every Plane task identifier you moved to In Review. `/prdev` owns the `dev` -> `main` pull request; `/rwbrowser` stays user-invoked unless the task's acceptance already requires browser evidence.
