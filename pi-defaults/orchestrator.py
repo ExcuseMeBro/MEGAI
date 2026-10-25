@@ -238,9 +238,10 @@ class Runner:
                 continue
             try:
                 path = self.repo(project)
-                # A missing/broken runtime helper must fail BEFORE changing a task.
-                subprocess.run(["pi-workflow", "context", "--cwd", str(path)],
-                               check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                # context(path) above verifies repository identity. Check the actual
+                # Pi executable, not the retired pi-workflow launcher, before writes.
+                subprocess.run(["pi-bolt", "--help"], check=True,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                timeout=15)
             except (ValueError, OSError, subprocess.CalledProcessError,
                     subprocess.TimeoutExpired) as error:

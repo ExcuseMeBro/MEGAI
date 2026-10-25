@@ -210,6 +210,19 @@ class OrchestratorTests(unittest.TestCase):
             self.fake.runner()
         self.assertFalse(self.fake.writes)
 
+    def test_retired_launcher_does_not_block_healthy_pi_cli(self):
+        def pi_available(command, **kwargs):
+            if command[0] == "pi-workflow":
+                raise FileNotFoundError("retired pi-workflow")
+            self.assertEqual(command[:2], ["pi-bolt", "--help"])
+            return Mock(returncode=0)
+
+        with patch.object(orch.subprocess, "run", side_effect=pi_available):
+            result = self.fake.runner().step()
+        self.assertIn("waiting", result,
+                      "Retired pi-workflow must not block a healthy Pi CLI")
+        self.assertEqual(len(self.fake.runs), 1)
+
     def test_broken_runtime_helper_fails_before_plane_writes(self):
         with patch.object(orch.subprocess, "run", side_effect=FileNotFoundError("pi-workflow")):
             result = self.fake.runner().step()
