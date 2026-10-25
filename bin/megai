@@ -30,7 +30,7 @@ megai
   version | help
 
 Stack: tgrep, codedb, local Headroom, Plane-only task-flow, Ruff,
-       agent-worktree-lifecycle, ux-ui-agent-skills, Matt Pocock's skills.
+       agent-worktree-lifecycle, Matt Pocock's skills.
 Defaults: tgrep text (rg fallback), codedb structure.
 EOF
 }
@@ -86,7 +86,6 @@ cmd_doctor() {
   local tool
   for tool in python3 node jq git rg tgrep codedb ruff; do command -v "$tool" >/dev/null 2>&1 || die "$tool required"; done
   [ -x "$MEGAI_HOME/bin/megai-headroom" ] || die "Headroom CLI missing; run megai install"
-  [ -f "$MEGAI_HOME/ux-ui-agent-skills/package.json" ] && [ -f "$MEGAI_HOME/ux-ui-agent-skills/.megai-skills/a11y-audit/SKILL.md" ] || die "UX/UI kit is incomplete; run megai install"
   [ -d "$MEGAI_HOME/mattpocock-skills/skills" ] && find "$MEGAI_HOME/mattpocock-skills/skills" -type f -name SKILL.md -print -quit | grep -q . || die "Matt skill kit is incomplete; run megai install"
   local ruff_version; ruff_version="$(ruff --version)" || die "Ruff version check failed"
   [[ "$ruff_version" == ruff\ * ]] || die "Ruff returned invalid version output"

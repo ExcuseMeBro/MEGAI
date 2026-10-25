@@ -26,7 +26,8 @@ because they cannot run inside Pi.
 ## Install-time behaviour
 
 `install.py` copies `pi-defaults/skills` into `~/.pi/agent/skills` and
-`profile_settings()` adds `+skills/<name>/SKILL.md` for every entry in `UI_SKILLS`.
+`profile_settings()` adds `+skills/<name>/SKILL.md` for every shipped skill discovered
+by `shipped_skills()`, including the engineering skills.
 The explicit include is required: an operator settings file may contain `!**`,
 which otherwise hides every copied skill. `verify.mjs` lists the same names in
 `requiredSkills`, so a profile that loses one fails verification instead of
@@ -40,6 +41,6 @@ npx ui-skills get anthropics/frontend-design > /tmp/fd.md   # same slugs as the 
 
 Review the diff, then replace the matching `SKILL.md`, keep this table current and
 re-run `python3 -m unittest tests.pi_defaults`. Do not add a skill here without
-also adding it to `install.py:UI_SKILLS` and `verify.mjs:requiredSkills`.
+also adding it to `verify.mjs:requiredSkills` (`shipped_skills()` discovers it automatically).
 `frontend-design` keeps Anthropic's upstream licence reference; only `SKILL.md` is
 vendored.
