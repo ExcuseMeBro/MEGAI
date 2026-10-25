@@ -22,6 +22,10 @@ UUID = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\Z")
 SOURCE = "megai-orchestrator"
 
 
+class WorkflowUnavailable(ValueError):
+    """A project's state vocabulary is invalid, not an API/pagination failure."""
+
+
 def require(condition, message):
     if not condition:
         raise ValueError(message)
@@ -151,8 +155,14 @@ class Runner:
             pid = project["id"]
             require(bool(UUID.fullmatch(pid)) and isinstance(project.get("name"), str),
                     "Invalid Plane project identity")
-            workflow = states_for(self.list_pages, pid)
             rows = self.list_pages("workitem", project_id=pid, fields="id,name,project,state,sequence_id")
+            try:
+                workflow = states_for(self.list_pages, pid)
+            except WorkflowUnavailable as error:
+                # Preserve an explicit blocker; never hide an unsupported project
+                # or turn a failed Plane read into an apparently empty queue.
+                blocked.append((f"{pid}/workflow", str(error)))
+                workflow = None
             seen = set()
             for row in rows:
                 tid = row.get("id")
@@ -160,6 +170,8 @@ class Runner:
                         and row.get("project", pid) == pid and isinstance(row.get("state"), str),
                         "Invalid or duplicate Plane task")
                 seen.add(tid)
+                if workflow is None:
+                    continue
                 key = f"{pid}/{tid}"
                 state = row["state"]
                 if state == workflow["Todo"] or state == workflow.get("Needs You"):
@@ -336,10 +348,11 @@ def states_for(list_pages, pid):
     for name, group in (("Todo", "unstarted"), ("In Progress", "started"),
                         ("In Review", "started"), ("Needs You", "started")):
         matches = [s for s in rows if s.get("name") == name]
-        require(len(matches) == 1 or (name == "Needs You" and not matches),
-                f"Missing or ambiguous {name} state")
+        if len(matches) != 1 and not (name == "Needs You" and not matches):
+            raise WorkflowUnavailable(f"Missing or ambiguous {name} state")
         if matches:
-            require(matches[0].get("group") == group, f"Wrong {name} state group")
+            if matches[0].get("group") != group:
+                raise WorkflowUnavailable(f"Wrong {name} state group")
             result[name] = matches[0]["id"]
     return result
 

@@ -241,6 +241,46 @@ class OrchestratorTests(unittest.TestCase):
             runner.step()
         self.assertFalse(self.fake.writes)
 
+    def test_missing_project_workflow_blocks_only_that_project(self):
+        other = "e" * 8 + "-eeee-eeee-eeee-" + "e" * 12
+        unsupported = {"id": other, "name": "Another project"}
+        unsupported_task = {**self.fake.task, "id": "f" * 8 + "-ffff-ffff-ffff-" + "f" * 12,
+                            "project": other}
+        original_pages = self.fake.pages
+        scanned = []
+
+        def pages(name, **kwargs):
+            if name == "project":
+                return [unsupported, self.fake.project.copy()]
+            if name == "workitem":
+                scanned.append(kwargs["project_id"])
+                return [unsupported_task.copy()] if kwargs["project_id"] == other else original_pages(name, **kwargs)
+            if name == "state" and kwargs["project_id"] == other:
+                return [s.copy() for s in self.fake.states if s["name"] != "In Review"]
+            return original_pages(name, **kwargs)
+
+        runner = self.fake.runner()
+        runner.list_pages = pages
+        result = runner.step()
+        self.assertEqual(result["waiting"], f"{P}/{T}",
+                         "Unsupported project workflow must not stop independent Todo work")
+        self.assertEqual(scanned, [other, P], "Paginate even unsupported projects")
+        self.assertIn((f"{other}/workflow", "Missing or ambiguous In Review state"),
+                      result["blocked"])
+        self.assertEqual(len(self.fake.runs), 1)
+
+    def test_state_page_error_never_becomes_project_local_blocker(self):
+        def failed(name, **kwargs):
+            if name == "state":
+                raise ValueError("Incomplete Plane pagination")
+            return self.fake.pages(name, **kwargs)
+
+        runner = self.fake.runner()
+        runner.list_pages = failed
+        with self.assertRaisesRegex(ValueError, "Incomplete Plane pagination"):
+            runner.step()
+        self.assertFalse(self.fake.writes)
+
     def test_claim_without_actual_review_never_counts_as_delivery(self):
         self.fake.output = '{"orchestrator":"in_review"}'
         with self.assertRaisesRegex(ValueError, "claimed review"):

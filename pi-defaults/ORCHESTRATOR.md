@@ -1,6 +1,6 @@
 # Opt-in all-project Plane orchestrator
 
-`orchestrator.py` is a **separate, opt-in** runner, not `/factory` and not an installed background service. It inventories every accessible Plane project and each project's Todo/Needs You tasks using complete paginated reads. One task-owned Pi session per Plane project/task UUID is stored privately and reopened with the *same* session ID after a reply. It works on one task at a time and keeps going after a question. It never declares the queue empty when an unmapped, blocked, foreign In Progress, or waiting task remains.
+`orchestrator.py` is a **separate, opt-in** runner, not `/factory` and not an installed background service. It inventories every accessible Plane project and each project's Todo/Needs You tasks using complete paginated reads. One task-owned Pi session per Plane project/task UUID is stored privately and reopened with the *same* session ID after a reply. It works on one task at a time and keeps going after a question. It never declares the queue empty when an unmapped, blocked, foreign In Progress, or waiting task remains. A project with missing/ambiguous Todo, In Progress, or In Review states is reported as a **project-local workflow blocker** after its tasks are paginated; other valid projects remain eligible. Plane API failures or incomplete pagination still abort the entire snapshot before any write, and no missing state is silently created during inventory.
 
 ## Prerequisites and operator decisions
 
