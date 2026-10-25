@@ -173,6 +173,8 @@ non-force to `refs/heads/dev`, verifies the advertised and fetched heads agree, 
 receipt and evidence to the Plane task, moves it to In Review, and then retires only the
 branches and worktrees it proved merged. Each row fails soft: an active writer, a conflict,
 an unmerged or data-bearing checkout and an unreachable Plane are reported and retained,
+and the shared `dev` checkout itself only blocks while a real Git operation holds it, since
+fresh writes or an open session in the operator's own directory are not a competing writer,
 and the remaining repositories still complete. Transient Plane transport failures are
 retried with backoff inside `workflow.call`, and a hand-off that cannot be proven is
 journaled under `~/.megai/state/delivery` until `mdev resume` replays it. The sweep holds

@@ -607,14 +607,38 @@ def handoff(plane, identity, state, row, delivered, remote, check, report):
                                    "reason": f"Plane hand-off deferred: {message}"})
 
 
+def target_signals(path):
+    """Real Git mutation signals on the shared target; reads and open sessions are not.
+
+    The dev checkout is normally the operator's own directory, so a recent fetch, merge
+    or file read must never look like a competing writer. Locks and in-progress
+    operations still block, because they mean another process is mutating this target
+    right now.
+    """
+    directory = worktree_git_dir(path)
+    signals = []
+    for name in ("index.lock", "HEAD.lock"):
+        if (directory / name).exists():
+            signals.append(f"{name} present")
+    for name in GIT_OPERATIONS:
+        if (directory / name).exists():
+            signals.append(f"Git operation in progress ({name})")
+    for name in ("rebase-merge", "rebase-apply"):
+        if (directory / name).is_dir():
+            signals.append(f"Git operation in progress ({name})")
+    return signals
+
+
 def resolve_target(repo, opts, need):
     """Find (or create) the single checkout where dev can be advanced."""
     worktree = next((w for w in worktrees(repo) if w["branch"] == "refs/heads/dev"), None)
     if worktree:
         if dirty_entries(worktree["path"]):
             raise Blocked(f"dev checkout {worktree['path']} is dirty; never overwrite it")
-        if writer_activity(worktree["path"], opts["active_minutes"])["level"] != "idle":
-            raise Blocked(f"dev checkout {worktree['path']} has an active writer")
+        signals = target_signals(worktree["path"])
+        if signals:
+            raise Blocked(f"dev checkout {worktree['path']} is mid-operation: "
+                          + ", ".join(signals))
         return worktree["path"], None
     if not need:
         return Path(repo), None
@@ -700,7 +724,7 @@ def _sweep_repository(plane, identity, state, backups, repo, opts, prefixes, pro
                 report["retained"].append({"branch": row["branch"], "repository": str(repo),
                                            "reason": f"{row['dirty']} uncommitted change(s) left in place"})
                 continue
-            if row["worktree"] and row["activity"]["level"] != "idle":
+            if row["worktree"] and row["activity"]["level"] in ("busy", "unknown"):
                 report["retained"].append({"branch": row["branch"], "repository": str(repo),
                                            "reason": "active or unknown writer: "
                                                      + ", ".join(row["activity"]["reasons"])})
@@ -766,7 +790,7 @@ def _adopt_row(repo, row, backups, report):
         report["retained"].append({"branch": row["branch"], "repository": str(repo),
                                    "reason": "uncommitted work outside a registered worktree"})
         return
-    if row["activity"]["level"] != "idle":
+    if row["activity"]["level"] in ("busy", "unknown"):
         report["retained"].append({"branch": row["branch"], "repository": str(repo),
                                    "reason": "active or unknown writer: "
                                              + ", ".join(row["activity"]["reasons"])})

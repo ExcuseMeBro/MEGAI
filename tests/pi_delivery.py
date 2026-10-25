@@ -122,6 +122,7 @@ class SweepCase(unittest.TestCase):
 
     def patch_newest_write(self, value):
         original = delivery.newest_write
+        self.real_newest_write = original
         delivery.newest_write = (lambda root: value) if value is None else (lambda root: value)
         self.addCleanup(setattr, delivery, "newest_write", original)
 
@@ -220,6 +221,25 @@ class SweepCase(unittest.TestCase):
         self.assertEqual(dirty_row["activity"]["level"], "busy")
         self.assertIn("uncommitted work in a checkout referenced by an open session",
                       dirty_row["activity"]["reasons"][-1])
+
+    def test_fresh_writes_in_the_dev_checkout_are_not_a_target_blocker(self):
+        # The dev checkout is normally the operator's own directory: a fetch, a merge or an
+        # open session there must never look like a competing writer of the shared target.
+        delivery.newest_write = self.real_newest_write
+        (self.repo / "README.md").write_text("base\nlocal note\n")
+        self.assertEqual(delivery.writer_activity(self.repo, 15)["level"], "busy")
+        self.assertEqual(delivery.target_signals(self.repo), [])
+        (delivery.worktree_git_dir(self.repo) / "index.lock").write_text("")
+        self.assertIn("index.lock present", delivery.target_signals(self.repo))
+
+    def test_session_mention_does_not_retain_a_clean_row(self):
+        original = delivery.session_reference
+        delivery.session_reference = lambda path, window, session_dir=None: "session.jsonl"
+        self.addCleanup(setattr, delivery, "session_reference", original)
+        report = self.sweep()
+        self.assertIn("task/megai-7-alpha", {row["branch"] for row in report["merged"]})
+        reasons = " ".join(row["reason"] for row in report["retained"])
+        self.assertNotIn("task/megai-7-alpha", reasons)
 
     def test_task_number_requires_the_project_prefix(self):
         self.assertEqual(delivery.task_number("task/megai-151-slug", {"megai"}), 151)
