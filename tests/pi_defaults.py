@@ -315,7 +315,7 @@ class CredentialResilience(unittest.TestCase):
         self.addCleanup(credential.stop)
 
     def test_a_rejected_credential_rotates_to_the_next_candidate(self):
-        attempts = []
+        attempts, sleeps = [], []
 
         def fake(name, arguments, token):
             attempts.append(token)
@@ -327,11 +327,64 @@ class CredentialResilience(unittest.TestCase):
         with patch.object(w, "tokens", return_value=candidates), patch.object(
             w, "_call_once", fake
         ):
-            self.assertEqual(w.call("project", {"action": "list"}), {"results": []})
+            self.assertEqual(
+                w.call("project", {"action": "list"}, sleep=sleeps.append), {"results": []}
+            )
             self.assertEqual(w.CREDENTIAL["source"], "environment PLANE_API_TOKEN")
             attempts.clear()
-            w.call("project", {"action": "list"})
+            w.call("project", {"action": "list"}, sleep=sleeps.append)
+        # A single rejection proves nothing on a throttled endpoint: the stale credential
+        # is retried before rotation, and the accepted one is reused afterwards.
         self.assertEqual(attempts, ["fresh"])
+        self.assertEqual(sleeps, [5.0, 15.0])
+
+    def test_a_throttled_rejection_recovers_on_the_same_credential(self):
+        attempts, sleeps = [], []
+
+        def fake(name, arguments, token):
+            attempts.append(token)
+            if len(attempts) < 3:
+                raise w.PlaneError("Plane rejected the credential (401)", auth=True)
+            return {"results": []}
+
+        with patch.object(w, "tokens", return_value=[("credential file", "only")]), patch.object(
+            w, "_call_once", fake
+        ):
+            self.assertEqual(
+                w.call("project", {"action": "list"}, sleep=sleeps.append), {"results": []}
+            )
+        self.assertEqual(attempts, ["only", "only", "only"])
+        self.assertEqual(sleeps, [5.0, 15.0])
+        self.assertEqual(w.CREDENTIAL["source"], "credential file")
+
+    def test_probe_judges_a_credential_with_the_same_tolerance(self):
+        attempts, sleeps = [], []
+
+        def fake(name, arguments, token):
+            attempts.append(token)
+            if len(attempts) < 2:
+                raise w.PlaneError("Plane rejected the credential (401)", auth=True)
+            return {"results": []}
+
+        with patch.object(w, "_call_once", fake):
+            self.assertEqual(w.probe("only", sleep=sleeps.append), {"results": []})
+        self.assertEqual(attempts, ["only", "only"])
+        self.assertEqual(sleeps, [5.0])
+
+    def test_a_persistent_rejection_reports_throttling_as_the_likely_cause(self):
+        def fake(name, arguments, token):
+            raise w.PlaneError(
+                "Plane operation failed (Error calling tool 'project': HTTP 429: Too Many "
+                "Requests)", transient=True
+            )
+
+        with patch.object(w, "tokens", return_value=[("credential file", "only")]), patch.object(
+            w, "_call_once", fake
+        ):
+            with self.assertRaises(w.PlaneError) as caught:
+                w.call("project", {"action": "list"}, sleep=lambda _: None)
+        self.assertTrue(caught.exception.transient)
+        self.assertIn("Too Many Requests", str(caught.exception))
 
     def test_transient_failure_retries_without_rotating_credentials(self):
         attempts, sleeps = [], []
@@ -349,7 +402,23 @@ class CredentialResilience(unittest.TestCase):
                 w.call("project", {"action": "list"}, sleep=sleeps.append), {"results": []}
             )
         self.assertEqual(attempts, ["only", "only", "only"])
-        self.assertEqual(sleeps, [0.5, 1.0])
+        self.assertEqual(sleeps, [1.0, 2.0])
+
+    def test_a_server_retry_after_is_honoured_instead_of_the_local_backoff(self):
+        sleeps = []
+        seen = []
+
+        def fake(name, arguments, token):
+            seen.append(token)
+            if len(seen) < 2:
+                raise w.PlaneError("Plane unavailable (429)", transient=True, retry_after=7.0)
+            return {"results": []}
+
+        with patch.object(w, "tokens", return_value=[("credential file", "only")]), patch.object(
+            w, "_call_once", fake
+        ):
+            w.call("project", {"action": "list"}, sleep=sleeps.append)
+        self.assertEqual(sleeps, [7.0])
 
     def test_http_401_is_a_credential_failure_not_transport(self):
         rejection = urllib.error.HTTPError(
@@ -377,9 +446,10 @@ class CredentialResilience(unittest.TestCase):
             return {"results": []}
 
         candidates = [("credential file", "stale"), ("environment PLANE_API_TOKEN", "fresh")]
+        real_probe = w.probe
         with patch.object(w, "tokens", return_value=candidates), patch.object(
             w, "_call_once", fake
-        ):
+        ), patch.object(w, "probe", lambda token: real_probe(token, sleep=lambda _: None)):
             report = w.plane_check()
             self.assertEqual(
                 [entry["status"] for entry in report["candidates"]], ["rejected", "accepted"]
@@ -397,9 +467,10 @@ class CredentialResilience(unittest.TestCase):
         def fake(name, arguments, token):
             raise w.PlaneError("Plane rejected the credential (401)", auth=True)
 
+        real_probe = w.probe
         with patch.object(w, "tokens", return_value=[("credential file", "stale")]), patch.object(
             w, "_call_once", fake
-        ):
+        ), patch.object(w, "probe", lambda token: real_probe(token, sleep=lambda _: None)):
             report = w.plane_check(repair=True)
         self.assertIsNone(report["working"])
         self.assertIsNone(report["repaired"])

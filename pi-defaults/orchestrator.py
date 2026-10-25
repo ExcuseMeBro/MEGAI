@@ -14,6 +14,7 @@ import re
 import subprocess
 import sys
 import threading
+import time
 import uuid
 
 from workflow import PlaneError, call, context, pages
@@ -145,57 +146,89 @@ class Runner:
         self.ledger[key] = entry
         atomic_json(self.ledger_path, self.ledger)
 
-    def snapshot(self):
+    def snapshot(self, sleep=time.sleep):
+        """One complete inventory; a throttled Plane read is retried, never fatal.
+
+        The hosted endpoint answers `429` and even `401 invalid_token` for a valid key
+        while it is throttling, so a single failed inventory pass must not end the
+        operator's run or be reported as a missing queue.
+        """
+        try:
+            return self._snapshot()
+        except PlaneError as error:
+            if not (error.transient or error.auth):
+                raise
+            sleep(min(getattr(error, "retry_after", None) or 20.0, 45.0))
+            return self._snapshot()
+
+    def _snapshot(self):
         projects = self.list_pages("project")
         require(projects and len({p.get("id") for p in projects}) == len(projects)
                 and len({p.get("name") for p in projects}) == len(projects),
                 "Invalid or duplicate Plane projects")
         tasks, blocked = [], []
         for project in projects:
-            pid = project["id"]
-            require(bool(UUID.fullmatch(pid)) and isinstance(project.get("name"), str),
-                    "Invalid Plane project identity")
-            try:
-                rows = self.list_pages("workitem", project_id=pid,
-                                       fields="id,name,project,state,sequence_id")
-            except PlaneError as error:
-                # A rejected or unreachable credential blocks this project's rows only:
-                # the snapshot still reports the other projects instead of aborting the
-                # whole run and stopping the operator's task on a recoverable cause.
-                if not error.auth:
-                    raise
-                blocked.append((f"{pid}/credential", str(error)))
-                continue
-            try:
-                workflow = states_for(self.list_pages, pid)
-            except WorkflowUnavailable as error:
-                # Preserve an explicit blocker; never hide an unsupported project
-                # or turn a failed Plane read into an apparently empty queue.
-                blocked.append((f"{pid}/workflow", str(error)))
-                workflow = None
-            seen = set()
-            for row in rows:
-                tid = row.get("id")
-                require(isinstance(tid, str) and bool(UUID.fullmatch(tid)) and tid not in seen
-                        and row.get("project", pid) == pid and isinstance(row.get("state"), str),
-                        "Invalid or duplicate Plane task")
-                seen.add(tid)
-                if workflow is None:
-                    continue
-                key = f"{pid}/{tid}"
-                state = row["state"]
-                if state == workflow["Todo"] or state == workflow.get("Needs You"):
-                    if pid not in self.roots:
-                        blocked.append((key, "Missing explicit repository mapping"))
-                    else:
-                        tasks.append((project, row, workflow))
-                elif key in self.ledger and self.ledger[key].get("phase") not in ("review",):
-                    blocked.append((key, "Owned task changed state; manual reconciliation required"))
-                elif state == workflow["In Progress"]:
-                    blocked.append((key, "In Progress is not owned by this runner"))
+            self._project(project, tasks, blocked)
+        # A project inventory can still end in a throttled rejection after its own
+        # retry budget. That is a timing accident, not a property of the project, so
+        # re-read only the affected projects once before reporting them as blocked.
+        retry = [project for project in projects
+                 if any(key == f"{project['id']}/credential" for key, _ in blocked)]
+        if retry:
+            blocked = [(key, reason) for key, reason in blocked
+                       if not key.endswith("/credential")]
+            time.sleep(20.0)
+            for project in retry:
+                self._project(project, tasks, blocked)
         tasks.sort(key=lambda t: (t[1]["state"] != t[2].get("Needs You"),
                                   t[0]["id"], t[1].get("sequence_id") or 0))
         return tasks, blocked
+
+    def _project(self, project, tasks, blocked):
+        """Inventory one project into the shared task and blocker lists."""
+        pid = project["id"]
+        require(bool(UUID.fullmatch(pid)) and isinstance(project.get("name"), str),
+                "Invalid Plane project identity")
+        require(bool(UUID.fullmatch(pid)) and isinstance(project.get("name"), str),
+                "Invalid Plane project identity")
+        try:
+            rows = self.list_pages("workitem", project_id=pid,
+                                   fields="id,name,project,state,sequence_id")
+        except PlaneError as error:
+            # A rejected or unreachable credential blocks this project's rows only:
+            # the snapshot still reports the other projects instead of aborting the
+            # whole run and stopping the operator's task on a recoverable cause.
+            if not error.auth:
+                raise
+            blocked.append((f"{pid}/credential", str(error)))
+            return
+        try:
+            workflow = states_for(self.list_pages, pid)
+        except WorkflowUnavailable as error:
+            # Preserve an explicit blocker; never hide an unsupported project
+            # or turn a failed Plane read into an apparently empty queue.
+            blocked.append((f"{pid}/workflow", str(error)))
+            workflow = None
+        seen = set()
+        for row in rows:
+            tid = row.get("id")
+            require(isinstance(tid, str) and bool(UUID.fullmatch(tid)) and tid not in seen
+                    and row.get("project", pid) == pid and isinstance(row.get("state"), str),
+                    "Invalid or duplicate Plane task")
+            seen.add(tid)
+            if workflow is None:
+                return
+            key = f"{pid}/{tid}"
+            state = row["state"]
+            if state == workflow["Todo"] or state == workflow.get("Needs You"):
+                if pid not in self.roots:
+                    blocked.append((key, "Missing explicit repository mapping"))
+                else:
+                    tasks.append((project, row, workflow))
+            elif key in self.ledger and self.ledger[key].get("phase") not in ("review",):
+                blocked.append((key, "Owned task changed state; manual reconciliation required"))
+            elif state == workflow["In Progress"]:
+                blocked.append((key, "In Progress is not owned by this runner"))
 
     def repo(self, project):
         pid = project["id"]

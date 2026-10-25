@@ -28,7 +28,14 @@ from plane_mcp_headers import tokens  # noqa: E402
 # on the first timeout; every write in this module is an absolute-state update, so a
 # replay is idempotent and never duplicates work.
 REQUEST_TIMEOUT = float(os.environ.get("PI_PLANE_TIMEOUT", "30"))
-ATTEMPTS = max(1, int(os.environ.get("PI_PLANE_ATTEMPTS", "3")))
+ATTEMPTS = max(1, int(os.environ.get("PI_PLANE_ATTEMPTS", "5")))
+AUTH_ATTEMPTS = max(1, int(os.environ.get("PI_PLANE_AUTH_ATTEMPTS", "2")))
+RETRY_CAP = float(os.environ.get("PI_PLANE_RETRY_CAP", "15"))
+# A throttled endpoint answers `401 invalid_token` for a key that is still valid and only
+# recovers after the rate window: wait on this ladder before believing the key is dead.
+AUTH_WAITS = (5.0, 15.0, 30.0)
+PACE = float(os.environ.get("PI_PLANE_PACE", "0.25"))
+LAST_CALL = {"at": 0.0}
 TRANSIENT = re.compile(
     r"timeout|timed out|temporar|unavailable|try again|rate.?limit|too many requests|"
     r"connection|connect|reset by peer|broken pipe|handshake|network|EOF|"
@@ -38,12 +45,13 @@ TRANSIENT = re.compile(
 
 
 class PlaneError(ValueError):
-    """A Plane call failure, carrying whether a retry can help and whether it is auth."""
+    """A Plane call failure: whether a retry can help, whether it is auth, when to retry."""
 
-    def __init__(self, message, transient=False, auth=False):
+    def __init__(self, message, transient=False, auth=False, retry_after=None):
         super().__init__(message)
         self.transient = transient
         self.auth = auth
+        self.retry_after = retry_after
 
 ENDPOINT = "https://mcp.plane.so/http/api-key/mcp"
 MARKER = r"<pre>PI_DELIVERY_V1:(.*?):END_PI_DELIVERY_V1</pre>"
@@ -186,6 +194,12 @@ def error_detail(error):
 
 
 def _call_once(name, arguments, token):
+    # The hosted endpoint rates limits per client, so a burst of inventory reads must
+    # not overtake itself; pacing is cheaper than discovering the limit with a 429.
+    idle = PACE - (time.monotonic() - LAST_CALL["at"])
+    if idle > 0:
+        time.sleep(idle)
+    LAST_CALL["at"] = time.monotonic()
     payload = {
         "jsonrpc": "2.0",
         "id": 1,
@@ -213,11 +227,16 @@ def _call_once(name, arguments, token):
     except urllib.error.HTTPError as error:  # a subclass of URLError: classify it first
         detail = error_detail(error)
         suffix = f": {detail}" if detail else ""
+        retry_after = None
+        header = error.headers.get("Retry-After") if error.headers else None
+        if isinstance(header, str) and header.strip().isdigit():
+            retry_after = min(float(header.strip()), 45.0)
         if error.code in (401, 403):
             raise PlaneError(f"Plane rejected the credential ({error.code}){suffix}",
-                             auth=True) from error
+                             auth=True, retry_after=retry_after) from error
         if error.code == 429 or error.code >= 500:
-            raise PlaneError(f"Plane unavailable ({error.code}){suffix}", transient=True) from error
+            raise PlaneError(f"Plane unavailable ({error.code}){suffix}", transient=True,
+                             retry_after=retry_after) from error
         raise PlaneError(f"Plane request failed ({error.code}){suffix}") from error
     except (TimeoutError, urllib.error.URLError, ConnectionError, ssl.SSLError,
             http.client.HTTPException) as error:
@@ -254,18 +273,33 @@ def _call_once(name, arguments, token):
     return json.loads(next(c["text"] for c in result["content"] if c["type"] == "text"))
 
 
-def call(name, arguments, attempts=None, sleep=time.sleep):
-    """One logical Plane call: retry transient failures, rotate credentials on auth.
+def probe(token, attempts=None, sleep=time.sleep):
+    """One credential, judged with the same tolerance the real calls get."""
+    total = attempts or (1 + AUTH_ATTEMPTS)
+    for index in range(total):
+        try:
+            return _call_once("project", {"action": "list", "per_page": 1}, token)
+        except PlaneError as error:
+            if error.auth and index + 1 < total:
+                sleep(AUTH_WAITS[min(index, len(AUTH_WAITS) - 1)])
+                continue
+            raise
 
-    A rejected credential is not a reason to stop the agent's work: the next candidate is
-    tried, and the credential that worked is reused for the rest of the process. Only when
-    every candidate is rejected does this raise, and then with an actionable message.
+
+def call(name, arguments, attempts=None, sleep=time.sleep):
+    """One logical Plane call: survive throttling, then rotate a truly rejected credential.
+
+    The hosted endpoint throttles with `429 Too Many Requests` and then answers
+    `401 invalid_token` for a token that is still valid, so a single rejection proves
+    nothing and stopping an agent to ask for a new key is wrong. A rejection is therefore
+    retried on the same credential with backoff before another candidate is tried, and the
+    credential that worked is reused for the rest of the process.
     """
     total = attempts or ATTEMPTS
     last, tried = None, []
-    candidates = credentials()
-    for source, token in candidates:
-        for attempt in range(1, total + 1):
+    for source, token in credentials():
+        transient_left, rejections_left = total, AUTH_ATTEMPTS
+        while True:
             try:
                 result = _call_once(name, arguments, token)
                 CREDENTIAL.update(source=source, token=token)
@@ -273,12 +307,23 @@ def call(name, arguments, attempts=None, sleep=time.sleep):
             except PlaneError as error:
                 last = error
                 if error.auth:
-                    tried.append(source)
-                    break  # this credential is rejected; try the next candidate
-                if not error.transient or attempt == total:
+                    if rejections_left <= 0:
+                        tried.append(source)
+                        break  # every attempt rejected this credential
+                    rejections_left -= 1
+                    sleep(error.retry_after or AUTH_WAITS[min(
+                        AUTH_ATTEMPTS - rejections_left - 1, len(AUTH_WAITS) - 1)])
+                    continue
+                if not error.transient:
                     raise
-                sleep(min(0.5 * 2 ** (attempt - 1), 4.0))
-    raise PlaneError(f"{last} (rejected credentials: {', '.join(tried) or 'none'})",
+                transient_left -= 1
+                if transient_left <= 0:
+                    raise
+                sleep(error.retry_after or min(
+                    1.0 * 2 ** (total - transient_left - 1), RETRY_CAP))
+    throttled = "Too Many Requests" in str(last) or "429" in str(last)
+    suffix = " (throttled: retry shortly)" if throttled else ""
+    raise PlaneError(f"{last} (rejected credentials: {', '.join(tried) or 'none'}){suffix}",
                      auth=bool(last and last.auth))
 
 
@@ -499,7 +544,7 @@ def plane_check(repair=False):
     for source, token in tokens(TOKEN_FILE):
         entry = {"source": source, "canonical": source == "credential file"}
         try:
-            _call_once("project", {"action": "list", "per_page": 1}, token)
+            probe(token)
             entry["status"] = "accepted"
             working = working or (source, token)
         except PlaneError as error:
