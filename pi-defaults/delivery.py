@@ -567,15 +567,15 @@ def closed_states(plane, identity):
     cached = identity.get("closed")
     if cached is not None:
         return cached
-    closed = set()
+    closed = []
     try:
         rows = plane.pages("state", project_id=identity.get("project_id"))
-        closed = {row["id"] for row in rows
-                  if str(row.get("group") or "").lower() in ("completed", "cancelled")}
+        closed = sorted(row["id"] for row in rows
+                        if str(row.get("group") or "").lower() in ("completed", "cancelled"))
     except Exception:  # identity stays best effort; the boundary re-checks its own state
-        closed = set()
-    identity["closed"] = closed
-    return closed
+        closed = []
+    identity["closed"] = closed  # a list, because the sweep report is printed as JSON
+    return set(closed)
 
 
 def handoff(plane, identity, state, row, delivered, remote, check, report):

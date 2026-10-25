@@ -277,6 +277,7 @@ class SweepCase(unittest.TestCase):
         self.assertIn("task is already closed in Plane", skipped["task/megai-7-alpha"])
         retired = {row["branch"]: row["removed"] for row in report["resources"]}
         self.assertTrue(retired["task/megai-7-alpha"])
+        json.dumps(report)  # the sweep report is printed as JSON; no sets may leak in
 
     def test_task_number_requires_the_project_prefix(self):
         self.assertEqual(delivery.task_number("task/megai-151-slug", {"megai"}), 151)

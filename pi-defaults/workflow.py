@@ -646,7 +646,7 @@ def main():
 
 if __name__ == "__main__":
     try:
-        print(json.dumps(main(), indent=2))
+        print(json.dumps(main(), indent=2, default=str))
     except (
         ValueError,
         KeyError,
