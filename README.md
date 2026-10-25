@@ -158,6 +158,26 @@ dev push and opens or reuses the `dev` → `main` pull request without merging. 
 `megai queue`. Existing PRs are revalidated by repository and branch identity, not duplicated
 when their heads move. An already-integrated dev head is a completed no-op.
 
+Both prompts drive one installed sweep instead of a hand-built ledger:
+
+```bash
+pi-workflow mdev scan                 # read-only: branches, checkouts, writer signals, tasks
+pi-workflow mdev run --check "python3 -B tests/pi_defaults.py"
+pi-workflow mdev resume               # replay Plane hand-offs after an outage
+pi-workflow prdev                     # reuse or open the single dev -> main request
+```
+
+`mdev run` adopts an inactive dirty checkout after a private backup, merges each exact
+task SHA with `--no-overwrite-ignore`, restores `dev` when the focused check fails, pushes
+non-force to `refs/heads/dev`, verifies the advertised and fetched heads agree, writes the
+receipt and evidence to the Plane task, moves it to In Review, and then retires only the
+branches and worktrees it proved merged. Each row fails soft: an active writer, a conflict,
+an unmerged or data-bearing checkout and an unreachable Plane are reported and retained,
+and the remaining repositories still complete. Transient Plane transport failures are
+retried with backoff inside `workflow.call`, and a hand-off that cannot be proven is
+journaled under `~/.megai/state/delivery` until `mdev resume` replays it. The sweep holds
+`megai-mdev.lock` per repository, so two sessions never merge the same target at once.
+
 Both complete recoverable prerequisites instead of stopping: a local `dev` ahead of its remote,
 ignored or ignored-untracked files, a missing Plane identity, missing or stale evidence, a moved
 ref and an ordinary `dev`-vs-`main` difference are work to finish. Failed verification,
@@ -204,11 +224,12 @@ retained. Read `pi-workflow` for worktree creation and branch cleanup rules.
 
 ```bash
 python3 -B tests/pi_defaults.py
+python3 -B tests/pi_delivery.py
 python3 -B tests/pi_context_budget.py
 python3 -B tests/pi_usage_report.py
 python3 -B tests/handoff-cost.py
 python3 -B benchmark/handoff-cost/measure.py --days 14
-ruff check --no-fix --no-fix-only --force-exclude --no-cache -- pi-defaults/*.py lib/pi_context_budget.py lib/pi_usage_report.py tests/pi_defaults.py benchmark/handoff-cost/measure.py tests/handoff-cost.py
+ruff check --no-fix --no-fix-only --force-exclude --no-cache -- pi-defaults/*.py lib/pi_context_budget.py lib/pi_usage_report.py tests/pi_defaults.py tests/pi_delivery.py benchmark/handoff-cost/measure.py tests/handoff-cost.py
 bash -n bin/megai install.sh
 node pi-defaults/verify.mjs  # installed Pi; no model request
 megai doctor

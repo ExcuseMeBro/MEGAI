@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import http.client
 import json
 import os
 from pathlib import Path
@@ -12,11 +13,36 @@ import re
 import ssl
 import subprocess
 import sys
+import tempfile
+import shutil
+import time
 import urllib.error
 import urllib.request
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
 from plane_mcp_headers import read_token  # noqa: E402
+
+# Transport failures are routine against the hosted Plane MCP endpoint. Retrying with
+# backoff here is what makes /mdev and /prdev keep going instead of stopping the agent
+# on the first timeout; every write in this module is an absolute-state update, so a
+# replay is idempotent and never duplicates work.
+REQUEST_TIMEOUT = float(os.environ.get("PI_PLANE_TIMEOUT", "30"))
+ATTEMPTS = max(1, int(os.environ.get("PI_PLANE_ATTEMPTS", "3")))
+TRANSIENT = re.compile(
+    r"timeout|timed out|temporar|unavailable|try again|rate.?limit|too many requests|"
+    r"connection|connect|reset by peer|broken pipe|handshake|network|EOF|"
+    r"\b(?:500|502|503|504)\b|SSL",
+    re.I,
+)
+
+
+class PlaneError(ValueError):
+    """A Plane call failure, carrying whether a retry can help."""
+
+    def __init__(self, message, transient=False):
+        super().__init__(message)
+        self.transient = transient
 
 ENDPOINT = "https://mcp.plane.so/http/api-key/mcp"
 MARKER = r"<pre>PI_DELIVERY_V1:(.*?):END_PI_DELIVERY_V1</pre>"
@@ -127,7 +153,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         raise ValueError("Plane redirect refused")
 
 
-def call(name, arguments):
+def _call_once(name, arguments):
     token = read_token(str(Path.home() / ".config/megai/credentials/plane-api-token"))
     payload = {
         "jsonrpc": "2.0",
@@ -150,22 +176,57 @@ def call(name, arguments):
         NoRedirect(),
         urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=ca)),
     )
-    with opener.open(request, timeout=45) as response:
-        raw = response.read(8_000_001)
+    try:
+        with opener.open(request, timeout=REQUEST_TIMEOUT) as response:
+            raw = response.read(8_000_001)
+    except (TimeoutError, urllib.error.URLError, ConnectionError, ssl.SSLError,
+            http.client.HTTPException) as error:
+        raise PlaneError(f"Plane unreachable: {error}", transient=True) from error
     if len(raw) > 8_000_000:
-        raise ValueError("Plane response exceeded limit")
+        raise PlaneError("Plane response exceeded limit")
     text = raw.decode()
     if text.startswith("event:") or text.startswith("data:"):
-        text = next(line[6:] for line in text.splitlines() if line.startswith("data: "))
-    envelope = json.loads(text)
+        data = next((line[6:] for line in text.splitlines() if line.startswith("data: ")), None)
+        if data is None:
+            raise PlaneError("Plane returned an unreadable event stream", transient=True)
+        text = data
+    try:
+        envelope = json.loads(text)
+    except ValueError as error:
+        raise PlaneError(f"Plane returned unreadable JSON: {text[:200]}", transient=True) from error
     if "error" in envelope:
-        raise ValueError("Plane RPC failed; reconcile state before retrying a write")
+        detail = envelope["error"]
+        message = detail.get("message") if isinstance(detail, dict) else str(detail)
+        raise PlaneError(
+            f"Plane RPC failed ({message}); reconcile state before retrying a write",
+            transient=bool(TRANSIENT.search(str(message))),
+        )
     result = envelope["result"]
     if result.get("isError"):
-        raise ValueError(
-            "Plane operation failed; reconcile state before retrying a write"
+        message = " ".join(
+            str(part.get("text", "")) for part in result.get("content") or []
+            if isinstance(part, dict) and part.get("type") == "text"
+        ).strip() or "unspecified error"
+        raise PlaneError(
+            f"Plane operation failed ({message}); reconcile state before retrying a write",
+            transient=bool(TRANSIENT.search(message)),
         )
     return json.loads(next(c["text"] for c in result["content"] if c["type"] == "text"))
+
+
+def call(name, arguments, attempts=None, sleep=time.sleep):
+    """One logical Plane call: retry only transient failures, then surface the detail."""
+    total = attempts or ATTEMPTS
+    last = None
+    for attempt in range(1, total + 1):
+        try:
+            return _call_once(name, arguments)
+        except PlaneError as error:
+            last = error
+            if not error.transient or attempt == total:
+                raise
+            sleep(min(0.5 * 2 ** (attempt - 1), 4.0))
+    raise last
 
 
 def pages(name, **arguments):
@@ -321,6 +382,57 @@ def verify_main(receipt):
     return verified
 
 
+def delivery_command(command, argv):
+    """Delegate the delivery sweep; `prdev` is the dev-to-main request, never a merge."""
+    import delivery  # local import keeps the Plane-only commands free of its cost
+
+    if command == "prdev":
+        argv = ["pr", *argv]
+    elif not argv or argv[0] in {"-h", "--help"}:
+        argv = ["scan", "--help"]
+    return delivery.main(argv, plane_adapter())
+
+
+def plane_adapter():
+    """The narrow Plane surface the delivery sweep needs.
+
+    Read paths reuse this module's retrying calls directly; the review boundary is
+    delegated to the already-verified `review` command so there is exactly one
+    implementation of the receipt/evidence rules.
+    """
+
+    class Adapter:
+        pages = staticmethod(pages)
+        unique = staticmethod(unique)
+        states = staticmethod(states)
+        context = staticmethod(context)
+
+        @staticmethod
+        def review_boundary(project_id, task_id, receipt, evidence):
+            holder = Path(tempfile.mkdtemp(prefix="megai-boundary."))
+            try:
+                receipt_path = holder / "receipt.json"
+                evidence_path = holder / "evidence.md"
+                receipt_path.write_text(json.dumps(receipt))
+                evidence_path.write_text(evidence)
+                run = subprocess.run(
+                    [sys.executable, str(Path(__file__).resolve()), "review",
+                     "--project-id", project_id, "--task-id", task_id,
+                     "--receipt", str(receipt_path),
+                     "--evidence-file", str(evidence_path)],
+                    capture_output=True, text=True, timeout=300,
+                )
+                if run.returncode:
+                    detail = (run.stderr or run.stdout).strip() or f"exit {run.returncode}"
+                    raise PlaneError(f"Plane review boundary failed: {detail}",
+                                     transient=bool(TRANSIENT.search(detail)))
+                return json.loads(run.stdout)
+            finally:
+                shutil.rmtree(holder, ignore_errors=True)
+
+    return Adapter()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -347,7 +459,15 @@ def main():
             cmd.add_argument("--evidence-file", required=True)
     cmd = sub.add_parser("verify-main")
     cmd.add_argument("receipt")
-    args = parser.parse_args()
+    # /mdev and /prdev run their own multi-step sweep; their options are passed through
+    # unchanged so the workflow CLI stays the single installed entry point.
+    sub.add_parser("mdev")
+    sub.add_parser("prdev")
+    args, delivery_argv = parser.parse_known_args()
+    if args.command in ("mdev", "prdev"):
+        return delivery_command(args.command, delivery_argv)
+    if delivery_argv:
+        parser.error(f"unrecognized arguments: {' '.join(delivery_argv)}")
     if args.command == "context":
         return context(args.cwd)
     if args.command == "verify-main":

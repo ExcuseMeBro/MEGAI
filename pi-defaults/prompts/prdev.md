@@ -7,6 +7,13 @@ creating or reusing a `dev` -> `main` pull request. Do not ask again for those a
 merging or pushing `main`, never authorizes cleanup or branch deletion, and never touches
 another project.
 
+**Start from the automated pass, then finish what it retains**
+Run `pi-workflow context`, then `pi-workflow prdev` — it fetches fresh refs, captures the
+exact remote `main` base and `dev` heads, derives the forge, reuses one open `dev` -> `main`
+request, and reports per repository what it published or retained. Read that report and then
+complete the remaining steps below yourself for every retained row; a retained row is work,
+not a reason to stop.
+
 **Never stop for a recoverable prerequisite**
 Complete each of these and continue; report each per repository:
 - No forge in `.pi/project.json`: derive the host from the `origin` remote URL (`github.com` ->
