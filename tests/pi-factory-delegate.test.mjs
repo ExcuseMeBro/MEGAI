@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync, chmodSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { collectTasks, decodeTool, delegate, runWorker, selectTasks, workerPrompt } from '../pi-defaults/extensions/megai-factory/runner.mjs';
+import { collectTasks, decodeTool, delegate, preflightPaseo, runWorker, selectTasks, workerPrompt } from '../pi-defaults/extensions/megai-factory/runner.mjs';
 
 const ids = ['a'.repeat(32), 'b'.repeat(32), 'c'.repeat(32)];
 const task = (id, status = 'in_progress') => ({ id, status, title: `Task ${id[0]}`, file_path: `MEGAI/Task ${id[0]}.md`,
@@ -30,7 +30,7 @@ function fixture(rows = ids.slice(0, 2).map(id => task(id))) {
     throw Error(`Unexpected Git call ${key}`);
   };
   const deps = { cwd, root: store, folder: 'MEGAI', selection: 'all', concurrency: 2,
-    model: 'provider/model', thinking: 'high', git,
+    model: 'provider/model', thinking: 'high', git, preflight: async () => {},
     query: async args => reply({ items: rows, total: rows.length, truncated: false }),
     get: async ({ file_path }) => reply(rows.find(row => row.file_path === file_path)),
     start: async ({ file_path, status, if_file_modified }) => {
@@ -44,7 +44,7 @@ function fixture(rows = ids.slice(0, 2).map(id => task(id))) {
       launched.push({ item, tree });
       await new Promise(resolve => setTimeout(resolve, 10));
       concurrent--;
-      return { status: 'finished-unverified' };
+      return { status: 'launched-unverified', agentId: item.id, workspaceId: `wks_${item.id}`, terminalId: `term_${item.id}` };
     },
   };
   return { deps, calls, launched, store, cleanup: () => rmSync(root, { recursive: true, force: true }), max: () => maxConcurrent };
@@ -72,7 +72,7 @@ test('independent reservations, serial Git preparation, concurrent workers, unch
   const f = fixture([task(ids[0], 'open'), task(ids[1])]);
   try {
     const results = await delegate(f.deps);
-    assert.deepEqual(results.map(x => x.status), ['finished-unverified', 'finished-unverified']);
+    assert.deepEqual(results.map(x => x.status), ['launched-unverified', 'launched-unverified']);
     assert.equal(f.max(), 2);
     assert.equal(f.launched.length, 2);
     assert.notEqual(f.launched[0].tree, f.launched[1].tree);
@@ -91,9 +91,12 @@ test('five distinct tasks run concurrently; six workers are refused before mutat
   try {
     const results = await delegate(f.deps);
     assert.equal(results.length, 5);
-    assert(results.every(result => result.status === 'finished-unverified'));
+    assert(results.every(result => result.status === 'launched-unverified'));
     assert.equal(f.max(), 5);
     assert.equal(new Set(f.launched.map(worker => worker.tree)).size, 5);
+    assert.equal(new Set(results.map(result => result.agentId)).size, 5);
+    assert.equal(new Set(results.map(result => result.workspaceId)).size, 5);
+    assert.equal(new Set(results.map(result => result.terminalId)).size, 5);
     assert.equal(readdirSync(f.store).length, 5);
   } finally { f.cleanup(); }
 
@@ -139,36 +142,102 @@ test('Pellet drift after worktree preparation blocks worker and retains receipt'
   } finally { f.cleanup(); }
 });
 
-test('real launcher isolates Pi-Bolt argv, cwd, session ID and private log without invoking a model', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'factory-spawn-'));
-  const bin = join(root, 'bin'); const tree = join(root, 'tree');
-  mkdirSync(bin); mkdirSync(tree);
-  const path = join(bin, 'pi-bolt');
-  writeFileSync(path, '#!/bin/sh\nprintf "%s\\n" "$PWD" "$@"\n'); chmodSync(path, 0o700);
-  const old = process.env.PATH;
-  process.env.PATH = `${bin}:${old}`;
+test('Paseo preflight validates reachable native Pi and exact selected model/thinking before Git writes', async () => {
+  const calls = [];
+  const paseo = async (_cwd, args) => {
+    calls.push(args);
+    if (args.join(' ') === 'status --json') return JSON.stringify({ connectedDaemon: 'reachable', providers: [{ provider: 'pi', available: true }] });
+    if (args.join(' ') === 'provider models pi --json') return JSON.stringify([{ id: 'provider/model', thinkingOptionIds: ['high'] }]);
+    throw Error('unexpected CLI');
+  };
+  await preflightPaseo('provider/model', 'high', paseo);
+  await assert.rejects(preflightPaseo('provider/other', 'high', paseo), /not available/);
+  await assert.rejects(preflightPaseo('provider/model', 'low', paseo), /thinking/);
+  assert.equal(calls.length, 6);
+});
+
+test('real launcher creates a visible Paseo workspace, native Pi agent and terminal in its own worktree', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'factory-paseo-'));
+  const tree = join(root, 'task-tree');
+  const calls = [], agents = [], workspaces = [], terminals = [];
+  const terminalId = '12345678-1234-1234-1234-123456789abc';
+  const agentId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  const paseo = async (cwd, args) => {
+    calls.push({ cwd, args });
+    const key = args.slice(0, 2).join(' ');
+    if (key === 'workspace create') {
+      workspaces.push({ workspaceId: 'wks_task_1', cwd: tree, isolation: 'local', background: false });
+      return JSON.stringify({ workspaceId: 'wks_task_1' });
+    }
+    if (key === 'workspace ls') return JSON.stringify(workspaces);
+    if (key === 'agent run') {
+      agents.push({ Id: agentId, Cwd: tree, Provider: 'pi', Model: 'provider/model', Thinking: 'high', Status: 'running' });
+      return JSON.stringify({ agentId });
+    }
+    if (key === 'agent inspect') return JSON.stringify(agents[0]);
+    if (key === 'agent ls') return JSON.stringify([{ id: agentId, cwd: tree, status: 'running' }]);
+    if (key === 'terminal create') {
+      terminals.push({ id: terminalId, workspaceId: 'wks_task_1', cwd: tree });
+      return JSON.stringify({ terminalId });
+    }
+    if (key === 'terminal ls') return JSON.stringify(terminals);
+    throw Error(`Unexpected Paseo call ${key}`);
+  };
   try {
     const result = await runWorker({ task: task(ids[0]), tree, model: 'provider/model', thinking: 'high',
-      receipt: join(root, 'receipt.json') });
-    assert.equal(result.status, 'finished-unverified');
-    const log = readFileSync(result.log, 'utf8');
-    assert.match(log, new RegExp(tree));
-    assert.match(log, new RegExp(`factory-${ids[0]}`));
-    assert.match(log, /--no-mcp/);
-    assert.match(log, /provider\/model/);
-    assert.match(log, /Implement ONLY/);
+      receipt: join(root, 'receipt.json'), paseo });
+    assert.equal(result.status, 'launched-unverified');
+    assert.equal(result.agentId, agentId);
+    assert.equal(result.workspaceId, 'wks_task_1');
+    assert.equal(result.terminalId, terminalId);
+    const created = calls.find(x => x.args.slice(0, 2).join(' ') === 'workspace create');
+    assert.deepEqual(created.args.slice(0, 4), ['workspace', 'create', '--isolation', 'local']);
+    assert(created.args.includes('--no-background'));
+    assert.equal(created.args[created.args.indexOf('--path') + 1], tree);
+    const launched = calls.find(x => x.args.slice(0, 2).join(' ') === 'agent run');
+    assert(launched.args.includes('--no-wait'));
+    assert.equal(launched.args[launched.args.indexOf('--workspace') + 1], 'wks_task_1');
+    assert.equal(launched.args[launched.args.indexOf('--cwd') + 1], tree);
+    assert.equal(launched.args[launched.args.indexOf('--provider') + 1], 'pi');
+    assert.equal(launched.args[launched.args.indexOf('--model') + 1], 'provider/model');
+    assert.equal(launched.args[launched.args.indexOf('--thinking') + 1], 'high');
+    assert.match(launched.args.at(-1), /Implement ONLY/);
+    assert(!calls.some(x => x.args.includes('stop') || x.args.includes('archive') || x.args.includes('kill')));
     assert.equal(readdirSync(root).filter(x => x.endsWith('jsonl')).length, 1);
-  } finally { process.env.PATH = old; rmSync(root, { recursive: true, force: true }); }
+    const events = readFileSync(result.log, 'utf8');
+    assert.match(events, /wks_task_1/);
+    assert.match(events, new RegExp(agentId));
+    assert.match(events, new RegExp(terminalId));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('uncertain Paseo launch retains workspace evidence and never invents an agent or kills a session', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'factory-paseo-error-'));
+  const calls = [];
+  const paseo = async (_cwd, args) => {
+    calls.push(args);
+    if (args[0] === 'workspace' && args[1] === 'create') return JSON.stringify({ workspaceId: 'wks_task_1' });
+    if (args[0] === 'workspace' && args[1] === 'ls') return JSON.stringify([{ workspaceId: 'wks_task_1', cwd: root, isolation: 'local', background: false }]);
+    if (args[0] === 'agent' && args[1] === 'run') throw Error('connection lost after possible launch');
+    throw Error('must not retry or remove');
+  };
+  try {
+    await assert.rejects(runWorker({ task: task(ids[0]), tree: root, model: 'provider/model', thinking: 'high',
+      receipt: join(root, 'receipt.json'), paseo }), /connection lost/);
+    assert.equal(calls.filter(x => x[0] === 'agent' && x[1] === 'run').length, 1);
+    assert(!calls.some(x => ['stop', 'archive', 'kill', 'delete'].includes(x[1])));
+    assert.match(readFileSync(join(root, 'receipt-paseo.jsonl'), 'utf8'), /wks_task_1/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
 test('one worker failure retains its receipt without blocking independent work', async () => {
   const f = fixture();
-  f.deps.launch = async ({ task: item }) => { if (item.id === ids[0]) throw Error('worker launch failed'); return { status: 'finished-unverified' }; };
+  f.deps.launch = async ({ task: item }) => { if (item.id === ids[0]) throw Error('worker launch failed'); return { status: 'launched-unverified' }; };
   try {
     const results = await delegate(f.deps);
     assert.equal(results[0].status, 'blocked');
     assert.match(results[0].reason, /worker launch failed/);
-    assert.equal(results[1].status, 'finished-unverified');
+    assert.equal(results[1].status, 'launched-unverified');
     assert.equal(readdirSync(f.store).length, 2);
     assert.match(workerPrompt(task(ids[0])), /Do not deliver to dev, push, publish/);
   } finally { f.cleanup(); }

@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { closeSync, existsSync, lstatSync, mkdirSync, openSync, writeFileSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, lstatSync, mkdirSync, openSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -67,7 +67,7 @@ export function workerPrompt(task) {
 // This is an explicit opt-in, one-shot run, not a daemon. Every reservation is durable
 // before the first mutable Git operation. Uncertain runs are retained, never replayed.
 export async function delegate({ cwd, folder, selection, concurrency, model, thinking, query, get, start, git, launch,
-  progress = () => {}, root = join(homedir(), '.megai', 'factory-workers') }) {
+  preflight = preflightPaseo, progress = () => {}, root = join(homedir(), '.megai', 'factory-workers') }) {
   insist(Number.isInteger(concurrency) && concurrency >= 1 && concurrency <= 5, 'Concurrency must be 1–5');
   insist(typeof model === 'string' && model.includes('/') && typeof thinking === 'string' && thinking, 'Current provider/model/thinking required');
   const repo = await git(cwd, ['rev-parse', '--show-toplevel']);
@@ -90,6 +90,7 @@ export async function delegate({ cwd, folder, selection, concurrency, model, thi
   for (const row of rows) { const detail = decodeTool(await get({ file_path: row.file_path })); validateDetails(row, detail, folder); tasks.push(detail); }
   insist(tasks.every(task => !task.depends_on?.length),
     'Dependencies require parent verification; select only independent tasks after prerequisites are completed');
+  await preflight(model, thinking);
   mkdirSync(root, { recursive: true, mode: 0o700 });
   const directory = lstatSync(root);
   insist(directory.isDirectory() && !directory.isSymbolicLink() &&
@@ -141,7 +142,7 @@ export async function delegate({ cwd, folder, selection, concurrency, model, thi
         const fresh = decodeTool(await get({ file_path: task.file_path }));
         insist(fresh.id === task.id && fresh.status === 'in_progress' &&
           fresh.file_modified === task.file_modified, 'Pellet task drift before launch; retained for reconciliation');
-        progress({ task: task.file_path, status: 'running', worktree: tree, receipt: path });
+        progress({ task: task.file_path, status: 'launching', worktree: tree, receipt: path });
         results[i] = { task: task.file_path, ...(await launch({ task, tree, branch, model, thinking, receipt: path })) };
       } catch (error) {
         results[i] = { task: task.file_path, status: 'blocked', reason: String(error), receipt: path,
@@ -165,19 +166,83 @@ export function gitCommand(cwd, args) {
   });
 }
 
-export function runWorker({ task, tree, model, thinking, receipt }) {
+// This CLI process only submits/read-backs requests. Paseo owns the independent
+// Pi agent session; never signal, archive or stop it from the parent tool.
+export function paseoCommand(cwd, args) {
   return new Promise((done, reject) => {
-    const log = receipt.replace(/\.json$/, '-events.jsonl');
-    const fd = openSync(log, 'wx', 0o600);
-    // A separate Pi-Bolt process/session per task. Never signal or terminate a
-    // process on cancellation; retain the receipt and log for reconciliation.
-    const child = spawn('pi-bolt', ['--print', '--mode', 'json', '--session-id', `factory-${task.id}`,
-      '--model', model, '--thinking', thinking, '--no-mcp', workerPrompt(task)],
-      { cwd: tree, stdio: ['ignore', fd, fd] });
-    closeSync(fd);
+    const child = spawn('paseo', args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '', err = '';
+    child.stdout.on('data', b => { out += b; if (out.length > 1024 * 1024) child.stdout.destroy(); });
+    child.stderr.on('data', b => { err += b; if (err.length > 8192) child.stderr.destroy(); });
     child.once('error', reject);
-    child.once('close', code => done({ status: code === 0 ? 'finished-unverified' : 'blocked',
-      exitCode: code, log, receipt, worktree: tree,
-      message: 'Inspect worker session, log and full diff before any task status or delivery write.' }));
+    child.once('close', code => code === 0 ? done(out.trim()) : reject(new Error(`paseo ${args[0]} ${args[1] || ''} failed (${code}): ${err.slice(0, 500)}`)));
   });
+}
+
+function paseoJson(raw, operation) {
+  try { return JSON.parse(raw); } catch { throw new Error(`Unrecognized Paseo ${operation} JSON; retain resources for manual reconciliation`); }
+}
+const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
+const WORKSPACE = /^wks_[a-zA-Z0-9_-]+$/;
+
+export async function preflightPaseo(model, thinking, paseo = paseoCommand, cwd = process.cwd()) {
+  const state = paseoJson(await paseo(cwd, ['status', '--json']), 'status');
+  insist(state.connectedDaemon === 'reachable' &&
+    state.providers?.some(x => x.provider === 'pi' && x.available === true),
+    'Paseo native Pi provider/daemon unavailable; no worktree created');
+  const models = paseoJson(await paseo(cwd, ['provider', 'models', 'pi', '--json']), 'models');
+  insist(Array.isArray(models) && models.some(x => x.id === model),
+    `Selected model ${model} is not available in Paseo native Pi; no worktree created`);
+  insist(models.find(x => x.id === model)?.thinkingOptionIds?.includes(thinking),
+    `Selected thinking ${thinking} is not available for ${model} in Paseo; no worktree created`);
+}
+
+export async function runWorker({ task, tree, model, thinking, receipt, paseo = paseoCommand }) {
+  // A private, append-only operation record survives uncertain CLI responses.
+  // No automatic retry or cleanup: the agent may have started even if the CLI
+  // timed out, disconnected, or failed during a read-back.
+  const log = receipt.replace(/\.json$/, '-paseo.jsonl');
+  const fd = openSync(log, 'wx', 0o600);
+  closeSync(fd);
+  const record = (phase, ids = {}) => appendFileSync(log, JSON.stringify({ phase, ...ids, at: new Date().toISOString() }) + '\n');
+  const title = `Pellet ${task.id.slice(0, 8)}: ${task.title.replace(/[\x00-\x1f]/g, ' ').slice(0, 80)}`;
+  record('workspace-requested', { tree });
+  const created = paseoJson(await paseo(tree, ['workspace', 'create', '--isolation', 'local', '--path', tree,
+    '--title', title, '--no-background', '--json']), 'workspace create');
+  const workspaceId = created.workspaceId ?? created.id;
+  insist(typeof workspaceId === 'string' && WORKSPACE.test(workspaceId), 'Unrecognized Paseo workspace ID; retained for reconciliation');
+  record('workspace-created', { workspaceId, tree });
+  const workspaces = paseoJson(await paseo(tree, ['workspace', 'ls', '--json']), 'workspace ls');
+  insist(Array.isArray(workspaces) && workspaces.some(x => x.workspaceId === workspaceId &&
+    resolve(x.cwd) === resolve(tree) && x.isolation === 'local' && x.background === false),
+    'Paseo workspace path/visibility unverified; retained for reconciliation');
+
+  record('agent-requested', { workspaceId });
+  const started = paseoJson(await paseo(tree, ['agent', 'run', '--no-wait', '--workspace', workspaceId,
+    '--cwd', tree, '--provider', 'pi', '--model', model, '--thinking', thinking,
+    '--title', title, '--label', `pellet-task=${task.id}`, '--json', workerPrompt(task)]), 'agent run');
+  const agentId = started.agentId ?? started.id ?? started.agent?.id;
+  insist(typeof agentId === 'string' && UUID.test(agentId), 'Unrecognized Paseo agent ID; retained for reconciliation');
+  record('agent-created', { workspaceId, agentId });
+  const inspected = paseoJson(await paseo(tree, ['agent', 'inspect', agentId, '--json']), 'agent inspect');
+  insist(inspected.Id === agentId && resolve(inspected.Cwd) === resolve(tree) && inspected.Provider === 'pi' &&
+    inspected.Model === model && inspected.Thinking === thinking && inspected.Archived !== true,
+    'Paseo agent identity, cwd or model unverified; retained for reconciliation');
+  const agents = paseoJson(await paseo(tree, ['agent', 'ls', '--json']), 'agent ls');
+  insist(Array.isArray(agents) && agents.some(x => x.id === agentId && x.status !== 'archived'),
+    'Paseo agent not visible; retained for reconciliation');
+
+  record('terminal-requested', { workspaceId, agentId });
+  const terminal = paseoJson(await paseo(tree, ['terminal', 'create', '--workspace', workspaceId,
+    '--cwd', tree, '--name', `Pellet ${task.id.slice(0, 8)}`, '--json']), 'terminal create');
+  const terminalId = terminal.terminalId ?? terminal.id;
+  insist(typeof terminalId === 'string' && UUID.test(terminalId), 'Unrecognized Paseo terminal ID; retained for reconciliation');
+  record('terminal-created', { workspaceId, agentId, terminalId });
+  const terminals = paseoJson(await paseo(tree, ['terminal', 'ls', '--workspace', workspaceId, '--json']), 'terminal ls');
+  insist(Array.isArray(terminals) && terminals.some(x => (x.id === terminalId || x.terminalId === terminalId) &&
+    x.workspaceId === workspaceId && resolve(x.cwd) === resolve(tree)),
+    'Paseo terminal/worktree unverified; retained for reconciliation');
+  record('verified', { workspaceId, agentId, terminalId });
+  return { status: 'launched-unverified', agentId, workspaceId, terminalId, worktree: tree, receipt, log,
+    message: 'Paseo agent remains independent. Inspect its completed work, full diff and checks before any delivery or review write.' };
 }
