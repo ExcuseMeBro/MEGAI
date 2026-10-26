@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { collectTasks, decodeTool, delegate, pelletReach, preflightPaseo, requireFactoryConfirmation, runWorker, selectTasks, workerPrompt } from '../pi-defaults/extensions/megai-factory/runner.mjs';
@@ -120,6 +120,47 @@ test('independent reservations, serial Git preparation, concurrent workers, unch
     assert.equal(JSON.parse(readFileSync(join(f.store, `MEGAI-${ids[0]}.json`))).taskId, ids[0]);
     await assert.rejects(delegate(f.deps), /Previous\/uncertain delegated worker/);
     assert.equal(f.launched.length, 2, 'must never double-launch a task');
+  } finally { f.cleanup(); }
+});
+
+test('project config binds differently named checkout, Pellet folder and remote without weakening mismatches', async () => {
+  const row = { ...task(ids[0]), file_path: 'OneBrain/Task a.md' };
+  const f = fixture([row]);
+  f.deps.folder = 'OneBrain';
+  const original = f.deps.git;
+  let fetch = 'https://github.com/teamz88/onebrain-core.git';
+  let push = fetch;
+  f.deps.git = async (cwd, args) => {
+    const key = args.join(' ');
+    if (key === 'remote get-url origin') return fetch;
+    if (key === 'remote get-url --push origin') return push;
+    return original(cwd, args);
+  };
+  const configPath = join(f.deps.cwd, '.pi', 'project.json');
+  const assertNoMutation = async () => {
+    await assert.rejects(delegate(f.deps), /Ambiguous Pellet folder\/repository mapping|project config/);
+    assert.equal(f.launched.length, 0);
+    assert.equal(existsSync(f.store), false);
+  };
+  try {
+    await assertNoMutation(); // Names differ, and no explicit project binding exists.
+    mkdirSync(join(f.deps.cwd, '.pi'), { recursive: true });
+    writeFileSync(configPath, JSON.stringify({ plane: { project_identifier: 'ONEBRAIN' }, repository: fetch }));
+    f.deps.folder = 'AnotherProject';
+    await assertNoMutation();
+    f.deps.folder = 'OneBrain';
+    push = 'https://github.com/attacker/onebrain-core.git';
+    await assertNoMutation();
+    push = fetch;
+    fetch = 'https://github.com/attacker/onebrain-core.git';
+    await assertNoMutation();
+    fetch = 'https://github.com/teamz88/onebrain-core.git';
+    writeFileSync(configPath, '{ malformed');
+    await assertNoMutation();
+    writeFileSync(configPath, JSON.stringify({ plane: { project_identifier: 'ONEBRAIN' }, repository: fetch }));
+    const results = await delegate(f.deps);
+    assert.equal(results[0].status, 'launched-unverified');
+    assert.equal(f.launched.length, 1);
   } finally { f.cleanup(); }
 });
 

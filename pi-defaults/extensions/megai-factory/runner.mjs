@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { appendFileSync, closeSync, existsSync, lstatSync, mkdirSync, openSync, writeFileSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -101,9 +101,26 @@ export async function delegate({ cwd, folder, selection, concurrency, model, thi
   insist((await git(repo, ['status', '--porcelain=v1'])) === '', 'Primary dev checkout must be clean for worktree creation');
   const remote = await git(repo, ['remote', 'get-url', 'origin']);
   const pushRemote = await git(repo, ['remote', 'get-url', '--push', 'origin']);
-  insist(remote && pushRemote && basename(remote.replace(/\.git$/, '')) === folder &&
-    basename(pushRemote.replace(/\.git$/, '')) === folder && basename(repo) === folder,
-    'Ambiguous Pellet folder/repository mapping');
+  const projectFile = join(repo, '.pi', 'project.json');
+  // A declared repo/project identity binds folders even when the checkout and
+  // remote use different names (e.g. OneBrain / onebrain / onebrain-core).
+  // Never fall back to filename guesses when a config exists but is invalid.
+  const file = lstatSync(projectFile, { throwIfNoEntry: false });
+  if (file) {
+    insist(file.isFile() && !file.isSymbolicLink(), 'Ambiguous Pellet folder/repository mapping: invalid project config');
+    let config;
+    try { config = JSON.parse(readFileSync(projectFile, 'utf8')); }
+    catch { throw new Error('Ambiguous Pellet folder/repository mapping: invalid project config'); }
+    insist(typeof config?.repository === 'string' && config.repository &&
+      typeof config?.plane?.project_identifier === 'string' && config.plane.project_identifier &&
+      config.plane.project_identifier.toLowerCase() === folder.toLowerCase() &&
+      remote === config.repository && pushRemote === config.repository,
+      'Ambiguous Pellet folder/repository mapping: project config and remote disagree');
+  } else {
+    insist(remote && pushRemote && basename(remote.replace(/\.git$/, '')) === folder &&
+      basename(pushRemote.replace(/\.git$/, '')) === folder && basename(repo) === folder,
+      'Ambiguous Pellet folder/repository mapping');
+  }
   const worktrees = await git(repo, ['worktree', 'list', '--porcelain']);
   const base = await git(repo, ['rev-parse', 'dev']);
   insist(worktrees.includes(`worktree ${repo}\n`) && worktrees.includes('branch refs/heads/dev\n'), 'Cannot verify primary dev worktree');
