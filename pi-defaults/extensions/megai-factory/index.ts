@@ -7,11 +7,11 @@ import { delegate, gitCommand, runWorker } from './runner.mjs';
 // only for an explicit /delegate request, after user confirmation in the TUI.
 export default function (pi: ExtensionAPI) {
   pi.registerCommand('delegate', {
-    description: 'Opt-in Pellet task delegation: /delegate all or /delegate UUID,UUID [concurrency=1..4]',
+    description: 'Opt-in Pellet task delegation: /delegate all or /delegate UUID,UUID [concurrency=1..5]',
     handler: async (args, ctx) => {
-      const match = args.trim().match(/^(all|[a-f0-9]{32}(?:,[a-f0-9]{32})*)(?:\s+concurrency=([1-4]))?$/i);
+      const match = args.trim().match(/^(all|[a-f0-9]{32}(?:,[a-f0-9]{32})*)(?:\s+concurrency=([1-5]))?$/i);
       if (!match) {
-        ctx.ui.notify('Usage: /delegate all | UUID,UUID [concurrency=1..4]. No workers started.', 'warning');
+        ctx.ui.notify('Usage: /delegate all | UUID,UUID [concurrency=1..5]. No workers started.', 'warning');
         return;
       }
       const projectFolder = basename(ctx.cwd);
@@ -26,11 +26,11 @@ export default function (pi: ExtensionAPI) {
     exposure: 'model-only',
     reachesTools: () => 'mcp__pellet__query_tasks mcp__pellet__get_task mcp__pellet__update_task',
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
-    description: 'Explicit /delegate only: select current-project Pellet task UUIDs or all, create a fresh task-owned worktree/session per task, run up to 4 Pi-Bolt leaf workers concurrently, return retained receipts and results. Does NOT deliver, push, mark review or stop sessions. Requires UI confirmation.',
+    description: 'Explicit /delegate only: select current-project Pellet task UUIDs or all, create a fresh task-owned worktree/session per task, run up to 5 Pi-Bolt leaf workers concurrently, return retained receipts and results. Does NOT deliver, push, mark review or stop sessions. Requires UI confirmation.',
     parameters: Type.Object({
       projectFolder: Type.String({ description: 'Verified Pellet project folder matching the primary repository and its remote' }),
       selection: Type.String({ description: 'all or comma-separated Pellet task UUIDs (not titles/Plane identifiers)' }),
-      concurrency: Type.Integer({ minimum: 1, maximum: 4, description: 'Maximum simultaneous leaf workers' }),
+      concurrency: Type.Integer({ minimum: 1, maximum: 5, description: 'Maximum simultaneous leaf workers' }),
     }),
     async execute(_callId, params, _signal, onUpdate, ctx) {
       if (!ctx.hasUI || ctx.mode !== 'tui') throw new Error('Factory delegation requires explicit interactive confirmation; headless calls cannot launch workers');

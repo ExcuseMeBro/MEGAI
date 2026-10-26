@@ -1,7 +1,7 @@
 # Pellet delegation (opt-in)
 
 `/delegate all` or `/delegate <PELLET_UUID>,<PELLET_UUID> concurrency=2`
-starts independent existing MEGAI Pellet tasks (max 20 per request, 1–4 Pi-Bolt
+starts independent existing MEGAI Pellet tasks (max 20 per request, 1–5 Pi-Bolt
 workers concurrently). The command is registered by `megai-factory/index.ts`;
 legacy `/factory` remains the frozen Plane-only runner. Only `/splane` syncs.
 

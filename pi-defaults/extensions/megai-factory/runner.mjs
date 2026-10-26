@@ -68,7 +68,7 @@ export function workerPrompt(task) {
 // before the first mutable Git operation. Uncertain runs are retained, never replayed.
 export async function delegate({ cwd, folder, selection, concurrency, model, thinking, query, get, start, git, launch,
   progress = () => {}, root = join(homedir(), '.megai', 'factory-workers') }) {
-  insist(Number.isInteger(concurrency) && concurrency >= 1 && concurrency <= 4, 'Concurrency must be 1–4');
+  insist(Number.isInteger(concurrency) && concurrency >= 1 && concurrency <= 5, 'Concurrency must be 1–5');
   insist(typeof model === 'string' && model.includes('/') && typeof thinking === 'string' && thinking, 'Current provider/model/thinking required');
   const repo = await git(cwd, ['rev-parse', '--show-toplevel']);
   insist(resolve(cwd) === resolve(repo), 'Run /delegate from the primary project root, not a nested or task checkout');

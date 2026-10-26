@@ -84,6 +84,28 @@ test('independent reservations, serial Git preparation, concurrent workers, unch
   } finally { f.cleanup(); }
 });
 
+test('five distinct tasks run concurrently; six workers are refused before mutation', async () => {
+  const rows = Array.from({ length: 5 }, (_, i) => task(String(i + 1).repeat(32)));
+  const f = fixture(rows);
+  f.deps.concurrency = 5;
+  try {
+    const results = await delegate(f.deps);
+    assert.equal(results.length, 5);
+    assert(results.every(result => result.status === 'finished-unverified'));
+    assert.equal(f.max(), 5);
+    assert.equal(new Set(f.launched.map(worker => worker.tree)).size, 5);
+    assert.equal(readdirSync(f.store).length, 5);
+  } finally { f.cleanup(); }
+
+  const rejected = fixture(rows.map(row => ({ ...row })));
+  rejected.deps.concurrency = 6;
+  try {
+    await assert.rejects(delegate(rejected.deps), /Concurrency must be 1–5/);
+    assert.equal(rejected.launched.length, 0);
+    assert.equal(existsSync(rejected.store), false);
+  } finally { rejected.cleanup(); }
+});
+
 test('fail closed before mutation for foreign, stale, ambiguous and acceptance-free tasks', async () => {
   for (const change of [
     f => { f.deps.folder = 'OTHER'; },
