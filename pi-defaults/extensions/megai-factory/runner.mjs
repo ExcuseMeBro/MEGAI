@@ -71,7 +71,7 @@ export async function delegate({ cwd, folder, selection, concurrency, model, thi
   insist(Number.isInteger(concurrency) && concurrency >= 1 && concurrency <= 5, 'Concurrency must be 1–5');
   insist(typeof model === 'string' && model.includes('/') && typeof thinking === 'string' && thinking, 'Current provider/model/thinking required');
   const repo = await git(cwd, ['rev-parse', '--show-toplevel']);
-  insist(resolve(cwd) === resolve(repo), 'Run /delegate from the primary project root, not a nested or task checkout');
+  insist(resolve(cwd) === resolve(repo), 'Run /factory from the primary project root, not a nested or task checkout');
   insist((await git(repo, ['symbolic-ref', '--short', 'HEAD'])) === 'dev', 'Delegation must start from the primary dev checkout');
   insist((await git(repo, ['status', '--porcelain=v1'])) === '', 'Primary dev checkout must be clean for worktree creation');
   const remote = await git(repo, ['remote', 'get-url', 'origin']);

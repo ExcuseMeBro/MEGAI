@@ -49,6 +49,12 @@ const missing = [...requiredTools.filter(t => !tools.includes(t)), ...requiredSk
 for (const name of requiredPrompts) {
   if (!promptNames.includes(name) && !excludedPrompts.has(`-prompts/${name}.md`)) missing.push(`/${name}`);
 }
+if (!engineeringOnly && !tools.includes('factory_delegate')) missing.push('factory_delegate tool');
+if (commands.includes('delegate') || commands.includes('factory')) missing.push('retired factory/delegate extension command');
+if (!engineeringOnly && promptNames.filter(n => n === 'factory').length !== 1) missing.push('single /factory prompt');
+const configuredFactory = (selection.packages ?? []).filter(p =>
+  (typeof p === 'string' ? p : p?.source) === './pellet-factory');
+if (!engineeringOnly && configuredFactory.length !== 1) missing.push('single selected ./pellet-factory package');
 for (const name of ['ponytail', 'using-superpowers']) {
   if (skills.skills.some(s => s.name === name) || commands.includes(name)) missing.push(`retired resource: ${name}`);
 }
@@ -69,7 +75,10 @@ const identicalPromptCollision = diagnostic => {
       && readFileSync(c.winnerPath).equals(readFileSync(c.loserPath));
   } catch { return false; }
 };
-const diagnostics = [...skills.diagnostics, ...prompts.diagnostics].filter(d => !identicalPromptCollision(d));
+const diagnostics = [...skills.diagnostics, ...prompts.diagnostics].filter(d =>
+  d.type === 'collision' && d.collision?.resourceType === 'prompt'
+    && [d.collision.winnerPath, d.collision.loserPath].some(p => typeof p === 'string' && p.endsWith('/factory.md'))
+    ? true : !identicalPromptCollision(d));
 const report = { extensions: loaded.extensions.map(e => e.path), tools, skills: skills.skills.map(s => s.name), prompts: promptNames, errors: loaded.errors, diagnostics, missing };
 console.log(JSON.stringify(report, null, 2));
 process.exit(loaded.errors.length || diagnostics.length || missing.length ? 1 : 0);

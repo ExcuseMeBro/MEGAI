@@ -1,6 +1,7 @@
 """Observable repository and Plane delivery contracts; no live service calls."""
 
 import copy
+import hashlib
 import html
 import importlib.util
 import io
@@ -658,6 +659,31 @@ class Distribution(unittest.TestCase):
             install.HEADROOM_BRIDGE, literal.encode().decode("unicode_escape").encode()
         )
 
+    def test_retiring_old_factory_prompt_preserves_exact_owned_bytes_and_refuses_foreign(self):
+        with tempfile.TemporaryDirectory(prefix="megai-factory-retire-") as staging:
+            home = Path(staging)
+            agent = home / ".pi/agent"
+            installed = agent / "prompts/factory.md"
+            defaults = agent / "defaults/prompts/factory.md"
+            installed.parent.mkdir(parents=True)
+            defaults.parent.mkdir(parents=True)
+            old = b"legacy Plane factory prompt\n"
+            with patch.object(install, "LEGACY_FACTORY_DIGEST", hashlib.sha256(old).hexdigest()):
+                installed.write_bytes(old)
+                defaults.write_bytes(old + b"foreign change")
+                with self.assertRaisesRegex(SystemExit, "Unowned /factory prompt"):
+                    install.retire_legacy_factory_prompt(agent, home)
+                self.assertEqual(installed.read_bytes(), old)
+                self.assertEqual(defaults.read_bytes(), old + b"foreign change")
+                defaults.write_bytes(old)
+                backup = install.retire_legacy_factory_prompt(agent, home)
+                self.assertEqual((backup / "installed.md").read_bytes(), old)
+                self.assertEqual((backup / "defaults.md").read_bytes(), old)
+                self.assertFalse(installed.exists())
+                self.assertFalse(defaults.exists())
+                self.assertIsNone(install.retire_legacy_factory_prompt(agent, home))
+                self.assertEqual(backup.stat().st_mode & 0o077, 0)
+
     def test_the_clean_profile_keeps_one_headroom_adapter(self):
         """Both adapter names expose the same tools, and Pi refuses one of them."""
         with tempfile.TemporaryDirectory(prefix="megai-headroom-") as staging:
@@ -686,7 +712,11 @@ class Distribution(unittest.TestCase):
         self.assertIn("operator-configured native Pi subagents", routing)
         self.assertNotIn("do not reinstall it", routing.lower())
         names = sorted(p.stem for p in (DEFAULTS / "prompts").glob("*.md"))
-        self.assertEqual(names, ["factory", "mdev", "prdev", "rwbrowser"])
+        self.assertEqual(names, ["mdev", "prdev", "rwbrowser"])
+        self.assertFalse((DEFAULTS / "prompts/factory.md").exists(),
+                         "the retired Plane prompt must not shadow the Pellet package /factory")
+        self.assertEqual(json.loads((DEFAULTS / "pellet-factory/package.json").read_text())["pi"]["prompts"],
+                         ["./prompts/factory.md"])
         verify = (DEFAULTS / "verify.mjs").read_text()
         for name in names:
             front = (DEFAULTS / f"prompts/{name}.md").read_text().split("---")[1]
@@ -710,17 +740,69 @@ class Distribution(unittest.TestCase):
         self.assertIn("readFileSync(c.winnerPath).equals(readFileSync(c.loserPath))", verify)
         self.assertIn("diagnostics.length", verify)
 
-    def test_factory_prompt_drains_explicit_scope_and_fails_closed(self):
-        prompt = (DEFAULTS / "prompts/factory.md").read_text()
-        for clause in (
-            "${@:-}", "Todo", "In Progress", "comma-separated", "project identity",
-            "all pages", "pi-workflow factory-start", "Git", "In Review", "--no-overwrite-ignore",
-            "not a daemon", "no push", "no main", "no Done", "factory-plan",
-            "frozen selected UUIDs", "zero Todo", "only blocked/externally owned",
-        ):
-            with self.subTest(clause=clause):
-                self.assertIn(clause, prompt)
-        self.assertNotIn("pi-workflow start --title", prompt)
+    def test_factory_is_one_selected_pellet_prompt_and_guarded_internal_tool(self):
+        extension = (DEFAULTS / "extensions/megai-factory/index.ts").read_text()
+        runner = (DEFAULTS / "extensions/megai-factory/runner.mjs").read_text()
+        prompt = (DEFAULTS / "pellet-factory/prompts/factory.md").read_text()
+        verifier = (DEFAULTS / "verify.mjs").read_text()
+        self.assertNotIn("registerCommand('factory'", extension)
+        self.assertNotIn("registerCommand('delegate'", extension)
+        self.assertIn("name: 'factory_delegate'", extension)
+        self.assertIn("'./pellet-factory'", verifier)
+        self.assertIn("promptNames.filter(n => n === 'factory').length !== 1", verifier)
+        self.assertIn("commands.includes('delegate') || commands.includes('factory')", verifier)
+        self.assertIn("'factory', 'mdev'", verifier)
+        self.assertTrue(prompt.startswith("---\n"))
+        for guard in ("query_tasks", "get_task", "open", "in_progress", "every page",
+                      "nonempty queue", "at most five", "PENDING", "BLOCKED", "each remaining task ID",
+                      "factory_delegate", "/splane", "git merge --ff-only --no-overwrite-ignore"):
+            with self.subTest(guard=guard):
+                self.assertIn(guard, prompt)
+        for forbidden in ("factory-plan", "factory-start", "mcp__plane__", "plane-check"):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, extension + runner + prompt)
+        for guard in ("mcp__pellet__query_tasks", "mcp__pellet__get_task", "mcp__pellet__update_task",
+                      "ctx.ui.confirm", "ctx.hasUI", "ctx.model", "maximum: 5"):
+            with self.subTest(guard=guard):
+                self.assertIn(guard, extension)
+        for guard in ("collectTasks", "selectTasks", "in_progress", "open", "if_file_modified",
+                      "worktree", "receipt", "remote", "no worker", "concurrency <= 5"):
+            with self.subTest(guard=guard):
+                self.assertIn(guard, runner)
+        self.assertNotIn("queue is not empty", extension + runner + prompt)
+
+    def test_factory_package_install_requires_known_hash_and_private_backup(self):
+        with tempfile.TemporaryDirectory(prefix="factory-package-install-") as staging:
+            home = Path(staging)
+            agent = home / ".pi/agent"
+            package = agent / "pellet-factory/package.json"
+            prompt = agent / "pellet-factory/prompts/factory.md"
+            prompt.parent.mkdir(parents=True)
+            package.write_bytes((DEFAULTS / "pellet-factory/package.json").read_bytes())
+            old = b"known operator-owned /factory prompt\n"
+            prompt.write_bytes(old)
+            with patch.object(install, "PRIOR_PELLET_FACTORY_DIGEST", hashlib.sha256(old).hexdigest()):
+                backup = install.install_factory_package(agent, home)
+            self.assertIsNotNone(backup)
+            self.assertEqual((backup / "factory.md").read_bytes(), old)
+            self.assertEqual(json.loads((backup / "receipt.json").read_text())["factory.md"],
+                             hashlib.sha256(old).hexdigest())
+            self.assertEqual(prompt.read_bytes(), (DEFAULTS / "pellet-factory/prompts/factory.md").read_bytes())
+            self.assertEqual(prompt.stat().st_mode & 0o777, 0o600)
+            self.assertIsNone(install.install_factory_package(agent, home))
+            prompt.write_text("foreign prompt")
+            with self.assertRaisesRegex(SystemExit, "Unowned /factory package prompt"):
+                install.install_factory_package(agent, home)
+            self.assertEqual(prompt.read_text(), "foreign prompt")
+
+    def test_factory_package_selection_preserves_existing_operator_entry(self):
+        entry = {"source": "./pellet-factory", "prompts": ["prompts/factory.md"]}
+        existing = install.profile_settings({}, Path.home(), {"packages": [entry]})
+        self.assertEqual(existing["packages"], [entry])
+        fresh = install.profile_settings({}, Path.home(), {"packages": []})
+        self.assertEqual(fresh["packages"], [entry])
+        with self.assertRaisesRegex(ValueError, "Ambiguous or excluded"):
+            install.profile_settings({}, Path.home(), {"packages": [entry, entry]})
 
     def test_delivery_prompts_use_native_git_and_keep_fail_closed_boundaries(self):
         mdev = (DEFAULTS / "prompts/mdev.md").read_text()

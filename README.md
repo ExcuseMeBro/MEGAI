@@ -111,44 +111,33 @@ sessions, not a benchmark. For the handoff question specifically — how much wo
 agent repeats after another agent already read it — use
 `benchmark/handoff-cost/measure.py`.
 
-<a id="plane-and-branches"></a>
+<a id="pellet-and-branches"></a>
 
-## 🗂️ Plane and branches
+## 🗂️ Pellet and branches
 
-Workspace `brodev`: **Todo → In Progress → In Review → Done**. Plane is the only
-execution tracker. Technical designs and verification receipts are artifacts,
-not a second board. The existing private Plane token stays outside Pi and Git at
-`~/.config/megai/credentials/plane-api-token` (mode 600).
+Pellet owns execution tracking and acceptance: open → in_progress → in-review →
+completed. A task's project is its verified Pellet folder. Only an explicit
+`/splane` synchronizes task data with Plane; `/factory`, `/mdev` and normal coding
+work do not call Plane. Keep task-specific acceptance and delivery evidence in
+Pellet. Verify every delivered commit in local and freshly fetched/independently
+advertised remote `dev` before review. Main promotion and publication are separate
+user decisions; neither happens automatically.
 
-```bash
-pi-workflow context
-pi-workflow start --title "Exact task title"
-pi-workflow review --project-id UUID --task-id UUID \
-  --receipt delivery.json --evidence-file verification.txt
-# After explicitly approved main promotion in every affected repository:
-pi-workflow done --project-id UUID --task-id UUID
-```
-
-The review receipt lists **all affected repositories**, their delivered commit SHAs
-and remotes. `review` binds it to the Plane task and canonical project, stores primary
-checkout paths, pins remote URLs, and preserves previous delivery coverage.
-`done` fetches each remote main and checks commit ancestry before changing Plane.
-A missing merge or changed item leaves the task In Review. Plane lacks conditional
-updates: serialize task boundary edits; the command checks for concurrent changes
-immediately before its final write. There is no unattended watcher or automatic merge.
-
-The global `/factory all` prompt implements the current Plane project's Todo and
-In Progress tasks sequentially, refreshing after each verified In Review handoff
-until a complete lookup finds neither state remaining. `/factory 12,34,56` limits
-the run to those task numbers; qualified project IDs and UUIDs are also accepted.
-No `factory-ready` label is needed. Bare `/factory` shows usage without starting work.
-`pi-workflow factory-plan --selection all` performs read-only queue discovery;
-`factory-start` starts/resumes only the selected existing UUID. Independent tasks
-continue past task-local blockers; a queue with only blockers stops honestly with
-remaining IDs, without pretending it is empty. Existing worktree, tests/review,
-local dev delivery and approval rules apply; no push, main promotion or Done.
-Run `/reload` in an existing Pi session after installation. This is an agent prompt,
-not an unattended daemon, distributed lock or enforcement boundary.
+The single `/factory` **prompt** (package `./pellet-factory`) works existing
+Pellet tasks in the verified project folder: `/factory all` or `/factory UUID,UUID
+concurrency=1..5`. Bare `/factory` shows usage without starting work. The old
+Plane-only prompt and `/delegate` slash command are retired; Plane sync is only
+via explicit `/splane`. Its internal model-only `factory_delegate` tool asks for
+interactive confirmation, paginates the project queue, and launches independent
+Pi agents in task-owned worktrees. A nonempty open/in_progress queue is
+**not** a global blocker; resume released work safely or report a concrete
+per-task blocker. Launch is not task completion: the parent must verify checks,
+serial delivery to local and remote dev and eligible cleanup before Pellet
+`in-review`. No automatic main promotion, publishing, session termination or
+background daemon. Up to five workers launch concurrently; large queues are
+split into scoped UUID batches. See `pi-defaults/FACTORY.md` and
+`pi-defaults/pellet-factory/prompts/factory.md`. Reload an existing Pi session
+yourself to activate an updated prompt/tool.
 
 The `/mdev` and `/prdev` prompt templates are installed globally: `/mdev` is explicit
 authorization to reconcile, review, merge and push task work into `dev` (no repeated approval)
@@ -158,50 +147,16 @@ dev push and opens or reuses the `dev` → `main` pull request without merging. 
 `megai queue`. Existing PRs are revalidated by repository and branch identity, not duplicated
 when their heads move. An already-integrated dev head is a completed no-op.
 
-Both prompts drive one installed sweep instead of a hand-built ledger:
-
-```bash
-pi-workflow mdev scan                 # read-only: branches, checkouts, writer signals, tasks
-pi-workflow mdev run --check "python3 -B tests/pi_defaults.py"
-pi-workflow mdev resume               # replay Plane hand-offs after an outage
-pi-workflow prdev                     # reuse or open the single dev -> main request
-pi-workflow plane-check               # probe every credential source, print no secrets
-pi-workflow plane-check --repair      # install the accepted credential as the canonical file
-```
-
-`mdev run` adopts an inactive dirty checkout after a private backup, merges each exact
-task SHA with `--no-overwrite-ignore`, restores `dev` when the focused check fails, pushes
-non-force to `refs/heads/dev`, verifies the advertised and fetched heads agree, writes the
-receipt and evidence to the Plane task, moves it to In Review, and then retires only the
-branches and worktrees it proved merged. Each row fails soft: an active writer, a conflict,
-an unmerged or data-bearing checkout and an unreachable Plane are reported and retained,
-and the shared `dev` checkout itself only blocks while a real Git operation holds it, since
-fresh writes or an open session in the operator's own directory are not a competing writer,
-and the remaining repositories still complete. Transient Plane transport failures are
-retried with backoff inside `workflow.call`. A rejected credential (`401 Unauthorized`,
-`invalid_token`) is classified as a credential failure, not a transport flake, and
-`workflow.call` rotates to the next candidate instead of dying: `PLANE_API_TOKEN`,
-`PLANE_API_KEY`, the canonical token file and the token file the machine's `mcp.json`
-declares for its Plane server, in that order. `plane-check` probes each candidate without
-printing a token, and `plane-check --repair` copies the accepted one into
-`~/.config/megai/credentials/plane-api-token` with mode 600, keeping the previous file as
-`plane-api-token.backup`, so later sessions and the MCP bridge start healthy. The queue
-runner reports a rejected credential per project with a one-line remedy instead of aborting
-its snapshot. A hand-off that cannot be proven is
-journaled under `~/.megai/state/delivery` until `mdev resume` replays it, and a task that
-Plane already closed needs no proof, so its merged branch is retired without touching the
-task. The sweep ignores its own session transcript and holds `megai-mdev.lock` per
-repository, so two sessions never merge the same target at once.
-
-Both complete recoverable prerequisites instead of stopping: a local `dev` ahead of its remote,
-ignored or ignored-untracked files, a missing Plane identity, missing or stale evidence, a moved
-ref and an ordinary `dev`-vs-`main` difference are work to finish. Failed verification,
-unavailable evidence/authentication, ambiguous ownership/destinations, exhausted bounded recovery
-or actions outside authorization hold the affected row; independent rows still proceed.
-Uncommitted task work remains explicitly unfinished even if its pinned commits were delivered.
-Ignored files
-never block that decision, but the `dev` fast-forward uses `--no-overwrite-ignore` so a
-colliding ignored file is preserved and reported instead of silently overwritten.
+These prompts do not sync Plane. For every affected repository, audit the complete
+proposed commit range, fast-forward only the verified clean target with
+`git merge --ff-only --no-overwrite-ignore`, push only the accepted exact SHA to
+the verified `dev` remote, fetch again and independently check the advertised tip.
+Confirm ancestry of every delivered SHA locally and remotely. Attempt safe
+cleanup immediately after full delivery; preserve active, dirty, unknown or
+unmerged task worktrees. Record evidence and status in Pellet. Main promotion
+and publication require separate explicit approval. Historical `pi-workflow`
+Plane task commands are not the current execution workflow and must not be used
+for `/factory` or delivery; only `/splane` reconciles task data with Plane.
 
 The credentials-free [saved local Pi profile](pi-defaults/local-profile/README.md) records
 the current model, thinking, timeout, fallback and MCP preferences. It is an explicit

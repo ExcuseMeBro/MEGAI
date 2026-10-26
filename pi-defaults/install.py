@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -12,6 +13,7 @@ import shutil
 import shlex
 import subprocess
 import sys
+import tempfile
 
 # The clean profile always installs the newest Pi; the resolved version is recorded
 # in the defaults manifest instead of being pinned here.
@@ -68,6 +70,14 @@ def profile_settings(versions, home, current=None):
             packages.append(entry)
     packages.extend({"source": f"npm:{name}@{version}"}
                     for name, version in versions.items() if name not in selected)
+    factory = [entry for entry in packages if
+               (entry.get("source") if isinstance(entry, dict) else entry) == "./pellet-factory"]
+    if len(factory) > 1 or (factory and isinstance(factory[0], dict) and
+                           "prompts" in factory[0] and
+                           "prompts/factory.md" not in factory[0]["prompts"]):
+        raise ValueError("Ambiguous or excluded Pellet /factory package selection")
+    if not factory:
+        packages.append({"source": "./pellet-factory", "prompts": ["prompts/factory.md"]})
     # Update managed packages while retaining unrelated packages and resource filters.
     # The provider, model,
     # thinking, timeout and retry choices are the operator's and survive an update.
@@ -164,6 +174,119 @@ HEADROOM_BRIDGE = (
     b'exec env -i HOME="$HOME" MEGAI_HOME="$root" PATH="${PATH:-/usr/bin:/bin}"'
     b' "$root/venv/headroom/bin/python" -I -B "$root/pi-skill/headroom/bridge.py" "$@"\n'
 )
+
+
+LEGACY_FACTORY_DIGEST = "c8aa7a4d2e81e5c7558fc36e01f9a38de71379bb3d849428444dce14b703618f"
+
+
+def retire_legacy_factory_prompt(agent, home):
+    """Archive only our exact former Plane /factory prompt; never remove an override."""
+    candidates = (agent / "prompts/factory.md", agent / "defaults/prompts/factory.md")
+    existing = [p for p in candidates if p.exists() or p.is_symlink()]
+    for path in existing:
+        if (path.is_symlink() or not path.is_file() or
+                hashlib.sha256(path.read_bytes()).hexdigest() != LEGACY_FACTORY_DIGEST):
+            raise SystemExit(f"Unowned /factory prompt {path}; reconcile before install")
+    if not existing:
+        return None
+    root = home / ".megai/private-backups"
+    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if root.is_symlink() or root.stat().st_uid != os.getuid() or root.stat().st_mode & 0o077:
+        raise SystemExit(f"Factory backup directory must be private and user-owned: {root}")
+    backup = root / "factory-plane-prompt"
+    index = 0
+    while backup.exists() or backup.is_symlink():
+        index += 1
+        backup = root / f"factory-plane-prompt-{index}"
+    backup.mkdir(mode=0o700)
+    for path in existing:
+        target = backup / ("installed.md" if path.parent == agent / "prompts" else "defaults.md")
+        target.write_bytes(path.read_bytes())
+        target.chmod(0o600)
+        if hashlib.sha256(target.read_bytes()).hexdigest() != LEGACY_FACTORY_DIGEST:
+            raise SystemExit(f"Factory prompt backup not verified: {target}")
+    for path in existing:
+        if path.is_symlink() or not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != LEGACY_FACTORY_DIGEST:
+            raise SystemExit(f"/factory prompt changed after backup; retained: {path}")
+        path.unlink()
+    return backup
+
+
+FACTORY_PACKAGE_DIGEST = "ffd542aa607217dab54bee203c059aa31303a911f43f7a70af604217046c41b3"
+PRIOR_PELLET_FACTORY_DIGEST = "23e5a784d88643fae87c057cbee2a8e3a1a5ce02eb35e0a11e4ced658d297c17"
+
+
+def install_factory_package(agent, home):
+    """Upgrade only the known operator-approved Pellet prompt, with a private receipt.
+
+    Never silently overwrite a symlink, unknown prompt or unknown package metadata.
+    The old full profile installer is not a migration tool for other packages.
+    """
+    source = SOURCE / "pellet-factory"
+    package, prompt = agent / "pellet-factory/package.json", agent / "pellet-factory/prompts/factory.md"
+    target_root, prompt_dir = package.parent, prompt.parent
+    for directory in (target_root, prompt_dir):
+        if directory.is_symlink() or (directory.exists() and
+                (not directory.is_dir() or directory.stat().st_uid != os.getuid())):
+            raise SystemExit(f"Unowned /factory package directory: {directory}")
+    expected_package = (source / "package.json").read_bytes()
+    if hashlib.sha256(expected_package).hexdigest() != FACTORY_PACKAGE_DIGEST:
+        raise SystemExit("Factory package metadata changed; review ownership before install")
+    wanted = {package: expected_package, prompt: (source / "prompts/factory.md").read_bytes()}
+    for path, data in wanted.items():
+        if path.is_symlink() or (path.exists() and
+                (not path.is_file() or path.stat().st_uid != os.getuid())):
+            raise SystemExit(f"Unowned /factory package file: {path}")
+        if path == package and path.exists() and path.read_bytes() != data:
+            raise SystemExit(f"Unowned /factory package metadata: {path}")
+        if path == prompt and path.exists() and hashlib.sha256(path.read_bytes()).hexdigest() not in (
+                PRIOR_PELLET_FACTORY_DIGEST, hashlib.sha256(data).hexdigest()):
+            raise SystemExit(f"Unowned /factory package prompt: {path}")
+    changes = {path: data for path, data in wanted.items() if not path.exists() or path.read_bytes() != data}
+    if not changes:
+        return None
+    root = home / ".megai/private-backups"
+    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if root.is_symlink() or root.stat().st_uid != os.getuid() or root.stat().st_mode & 0o077:
+        raise SystemExit(f"Factory backup directory must be private and user-owned: {root}")
+    backup = root / "pellet-factory-package"
+    index = 0
+    while backup.exists() or backup.is_symlink():
+        index += 1
+        backup = root / f"pellet-factory-package-{index}"
+    backup.mkdir(mode=0o700)
+    receipt = {}
+    previous = {}
+    for path in changes:
+        old = path.read_bytes() if path.exists() else None
+        previous[path] = old
+        receipt[path.name] = hashlib.sha256(old).hexdigest() if old is not None else None
+        if old is not None:
+            saved = backup / path.name
+            saved.write_bytes(old)
+            saved.chmod(0o600)
+            if saved.read_bytes() != old:
+                raise SystemExit(f"Factory prompt backup failed verification: {saved}")
+    saved_receipt = backup / "receipt.json"
+    saved_receipt.write_text(json.dumps(receipt, sort_keys=True) + "\n")
+    saved_receipt.chmod(0o600)
+    for directory in (target_root, prompt_dir):
+        directory.mkdir(mode=0o700, exist_ok=True)
+    for path, data in changes.items():
+        fd, staged = tempfile.mkstemp(prefix=".factory-install-", dir=path.parent)
+        try:
+            with os.fdopen(fd, "wb") as file:
+                file.write(data)
+            os.chmod(staged, 0o600)
+            if Path(staged).read_bytes() != data:
+                raise SystemExit(f"Factory prompt staging failed verification: {staged}")
+            if path.is_symlink() or (path.read_bytes() if path.exists() else None) != previous[path]:
+                raise SystemExit(f"Factory prompt changed after backup; retained: {path}")
+            os.replace(staged, path)
+        finally:
+            if os.path.exists(staged):
+                os.unlink(staged)
+    return backup
 
 
 def retire_duplicate_headroom(agent, home):
@@ -324,6 +447,8 @@ def install(reset=False, remove_omp=False):
         dirs_exist_ok=True,
         ignore=shutil.ignore_patterns("node_modules", "__pycache__"),
     )
+    retire_legacy_factory_prompt(agent, home)
+    install_factory_package(agent, home)
     shutil.copy2(REPO / "lib/plane_mcp_headers.py", defaults / "plane_mcp_headers.py")
     npm_root = agent / "npm"
     npm_root.mkdir(exist_ok=True)

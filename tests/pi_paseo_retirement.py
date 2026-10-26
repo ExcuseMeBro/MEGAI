@@ -16,7 +16,7 @@ ACTIVE = (
     "README.md", "bin/megai", "lib/integration_queue.py", "lib/slim_wiring.py",
     "pi-defaults/AGENTS.md", "pi-defaults/install.py", "pi-defaults/workflow.py",
     "pi-defaults/skills/pi-workflow/SKILL.md", "pi-defaults/skills/code-review/SKILL.md",
-    "pi-defaults/prompts/factory.md", "pi-defaults/prompts/mdev.md",
+    "pi-defaults/prompts/mdev.md",
     "pi-defaults/projects/ADAM.md", "pi-skill/bootstrap.md",
     "pi-skill/delegation.md", "pi-skill/integration-queue.md",
     "pi-skill/workspace-guard/identity.mjs", "pi-skill/acceptance/reference.md",
@@ -25,7 +25,7 @@ ACTIVE = (
 )
 INSTALLED = (
     "AGENTS.md", "workflow.py", "verify.mjs", "skills/pi-workflow/SKILL.md",
-    "skills/code-review/SKILL.md", "prompts/factory.md", "prompts/mdev.md",
+    "skills/code-review/SKILL.md", "prompts/mdev.md",
     "projects/ADAM.md",
 )
 
