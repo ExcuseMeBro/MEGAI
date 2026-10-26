@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { collectTasks, decodeTool, delegate, preflightPaseo, runWorker, selectTasks, workerPrompt } from '../pi-defaults/extensions/megai-factory/runner.mjs';
+import { collectTasks, decodeTool, delegate, pelletReach, preflightPaseo, runWorker, selectTasks, workerPrompt } from '../pi-defaults/extensions/megai-factory/runner.mjs';
 
 const ids = ['a'.repeat(32), 'b'.repeat(32), 'c'.repeat(32)];
 const task = (id, status = 'in_progress') => ({ id, status, title: `Task ${id[0]}`, file_path: `MEGAI/Task ${id[0]}.md`,
@@ -66,6 +66,17 @@ test('complete Pellet pagination and explicit UUID selection; fail closed on cha
   await assert.rejects(collectTasks(async () => reply({ items: [task(ids[0])], total: 2, truncated: false }), 'MEGAI'), /count changed/);
   await assert.rejects(collectTasks(async () => reply({ items: [task(ids[0])], total: 2, truncated: true }), 'MEGAI'), /cursor/);
   assert.throws(() => decodeTool({ isError: true }), /query failed/);
+});
+
+test('Pi-Bolt reachesTools contract and nested Pellet result envelope fail closed', async () => {
+  assert.deepEqual(pelletReach({}), [
+    'mcp__pellet__query_tasks', 'mcp__pellet__get_task', 'mcp__pellet__update_task',
+  ]);
+  const page = reply({ items: [task(ids[0])], total: 1, truncated: false });
+  assert.deepEqual(decodeTool({ result: page, isError: false }), JSON.parse(page.content[0].text));
+  assert.deepEqual(decodeTool({ result: { structuredContent: { ok: true } }, isError: false }), { ok: true });
+  assert.throws(() => decodeTool({ result: page, isError: true }), /query failed/);
+  assert.throws(() => decodeTool({ isError: false }), /not structured JSON/);
 });
 
 test('independent reservations, serial Git preparation, concurrent workers, unchanged primary dev', async () => {

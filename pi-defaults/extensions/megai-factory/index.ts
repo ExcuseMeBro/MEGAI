@@ -1,6 +1,6 @@
 import { Type } from '@earendil-works/pi-ai';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import { delegate, gitCommand, preflightPaseo, runWorker } from './runner.mjs';
+import { delegate, gitCommand, pelletReach, preflightPaseo, runWorker } from './runner.mjs';
 
 // The sole /factory command is the explicitly selected Pellet prompt package.
 // No startup jobs, duplicate slash command or process shutdown handler.
@@ -9,7 +9,7 @@ export default function (pi: ExtensionAPI) {
     name: 'factory_delegate',
     label: 'Delegate Pellet tasks',
     exposure: 'model-only',
-    reachesTools: () => 'mcp__pellet__query_tasks mcp__pellet__get_task mcp__pellet__update_task',
+    reachesTools: pelletReach,
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     description: 'Explicit /factory only: select current-project Pellet task UUIDs or all, create a fresh task-owned worktree and visible Paseo workspace, native Pi agent tab and terminal per task; launch up to 5 independently. Return agent IDs and retained receipts; launch is NOT task completion. Does NOT deliver, push, mark review or stop sessions. Requires UI confirmation.',
     parameters: Type.Object({

@@ -8,8 +8,15 @@ const ID = /^[a-f0-9]{32}$/i;
 const PAGE_SIZE = 100;
 function insist(ok, why) { if (!ok) throw new Error(why); }
 
-export function decodeTool(result) {
-  insist(!result?.isError, 'Pellet query failed; no task was launched');
+// Pi-Bolt expects an array of reachable tool names, not a space-delimited string.
+export function pelletReach() {
+  return ['mcp__pellet__query_tasks', 'mcp__pellet__get_task', 'mcp__pellet__update_task'];
+}
+
+export function decodeTool(outcome) {
+  // ctx.executeTool returns { result, isError }; direct results are used by tests.
+  const result = outcome?.result ?? outcome;
+  insist(!outcome?.isError && !result?.isError, 'Pellet query failed; no task was launched');
   if (result?.structuredContent) return result.structuredContent;
   const text = result?.content?.filter(c => c.type === 'text').map(c => c.text).join('\n');
   try { return JSON.parse(text); } catch { throw new Error('Pellet response was not structured JSON; no task was launched'); }
