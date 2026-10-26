@@ -755,6 +755,8 @@ class Distribution(unittest.TestCase):
         self.assertTrue(prompt.startswith("---\n"))
         for guard in ("query_tasks", "get_task", "open", "in_progress", "every page",
                       "nonempty queue", "at most five", "PENDING", "BLOCKED", "each remaining task ID",
+                      "status_value: in-review", "UNASSESSED", "INCOMPLETE",
+                      "full records and actual resource ownership",
                       "factory_delegate", "/splane", "git merge --ff-only --no-overwrite-ignore"):
             with self.subTest(guard=guard):
                 self.assertIn(guard, prompt)
@@ -766,7 +768,8 @@ class Distribution(unittest.TestCase):
             with self.subTest(guard=guard):
                 self.assertIn(guard, extension)
         for guard in ("collectTasks", "selectTasks", "in_progress", "open", "if_file_modified",
-                      "worktree", "receipt", "remote", "no worker", "concurrency <= 5"):
+                      "worktree", "receipt", "remote", "no worker", "concurrency <= 5",
+                      "status_value", "eligible(detail)", "eligible(fresh)"):
             with self.subTest(guard=guard):
                 self.assertIn(guard, runner)
         self.assertNotIn("queue is not empty", extension + runner + prompt)

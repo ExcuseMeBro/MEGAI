@@ -61,6 +61,9 @@ test('complete Pellet pagination and explicit UUID selection; fail closed on cha
   }, 'MEGAI');
   assert.deepEqual(selectTasks(rows, `${ids[1]},${ids[0]}`).map(x => x.id), [ids[1], ids[0]]);
   assert.deepEqual(selectTasks(rows, 'all').map(x => x.id), [ids[0], ids[1]]);
+  const review = { ...task(ids[2]), status_value: 'in-review' }; // Pellet reports status: in_progress for this custom status.
+  assert.deepEqual(selectTasks([...rows, review], 'all').map(x => x.id), [ids[0], ids[1]]);
+  assert.throws(() => selectTasks([...rows, review], ids[2]), /not eligible/);
   assert.throws(() => selectTasks(rows, `${ids[0]},${ids[0]}`), /distinct/);
   assert.throws(() => selectTasks(rows, 'MEGAI-12'), /UUIDs/);
   await assert.rejects(collectTasks(async () => reply({ items: [task(ids[0])], total: 2, truncated: false }), 'MEGAI'), /count changed/);
@@ -125,6 +128,7 @@ test('fail closed before mutation for foreign, stale, ambiguous and acceptance-f
     f => { f.deps.folder = 'OTHER'; },
     f => { f.deps.get = async () => reply({ ...task(ids[0]), depends_on: [{ id: ids[1] }] }); },
     f => { f.deps.get = async () => reply({ ...task(ids[0]), description: '' }); },
+    f => { f.deps.get = async () => reply({ ...task(ids[0]), status_value: 'in-review' }); },
     f => { f.deps.query = async () => reply({ items: [{ ...task(ids[0]), file_path: 'OTHER/escape.md' }], total: 1, truncated: false }); },
     f => { const original = f.deps.git; f.deps.git = async (...args) => args[1].join(' ') === 'status --porcelain=v1' ? ' M foreign' : original(...args); },
   ]) {
@@ -134,6 +138,23 @@ test('fail closed before mutation for foreign, stale, ambiguous and acceptance-f
     try { await assert.rejects(delegate(f.deps)); assert.equal(f.launched.length, 0); assert.equal(existsSync(f.store), false); }
     finally { f.cleanup(); }
   }
+});
+
+test('review transition after preparation blocks launch and retains receipt', async () => {
+  const f = fixture([task(ids[0])]);
+  const original = f.deps.get;
+  let calls = 0;
+  f.deps.get = async (...args) => {
+    const result = await original(...args);
+    return ++calls === 2 ? reply({ ...JSON.parse(result.content[0].text), status_value: 'in-review' }) : result;
+  };
+  try {
+    const [result] = await delegate(f.deps);
+    assert.equal(result.status, 'blocked');
+    assert.match(result.reason, /task drift|not eligible/);
+    assert.equal(f.launched.length, 0);
+    assert.equal(readdirSync(f.store).length, 1);
+  } finally { f.cleanup(); }
 });
 
 test('Pellet drift after worktree preparation blocks worker and retains receipt', async () => {

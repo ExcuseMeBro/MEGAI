@@ -43,9 +43,15 @@ export async function collectTasks(query, folder) {
   }
 }
 
+// Pellet reports a custom In Review status as status: in_progress with
+// status_value: in-review. Only canonical open/in_progress are runnable.
+function eligible(row) {
+  return ['open', 'in_progress'].includes(row?.status) &&
+    (row.status_value == null || row.status_value === row.status);
+}
+
 export function selectTasks(rows, selection) {
   insist(typeof selection === 'string' && selection.trim(), 'Selection required: all or comma-separated Pellet task IDs');
-  const eligible = row => ['open', 'in_progress'].includes(row.status);
   if (selection === 'all') return rows.filter(eligible);
   const ids = selection.split(',').map(x => x.trim());
   insist(ids.every(id => ID.test(id)) && new Set(ids).size === ids.length, 'Use distinct Pellet task UUIDs; titles and Plane numbers are not selectors');
@@ -58,7 +64,7 @@ export function selectTasks(rows, selection) {
 
 export function validateDetails(row, detail, folder) {
   insist(detail?.id === row.id && detail.file_path === row.file_path && detail.title === row.title &&
-    detail.status === row.status &&
+    detail.status === row.status && eligible(detail) &&
     detail.file_path.startsWith(folder + '/') &&
     (detail.description?.trim() || detail.content?.trim()), 'Pellet task changed or has no written scope; no worker launched');
 }
@@ -130,7 +136,7 @@ export async function delegate({ cwd, folder, selection, concurrency, model, thi
       if (task.status === 'open') {
         const updated = decodeTool(await start({ file_path: task.file_path, status: 'in_progress',
           if_file_modified: task.file_modified }));
-        insist(updated.id === task.id && updated.status === 'in_progress', 'Task start not confirmed');
+        insist(updated.id === task.id && updated.status === 'in_progress' && eligible(updated), 'Task start not confirmed');
         task.status = updated.status;
         task.file_modified = updated.file_modified;
       }
@@ -147,7 +153,7 @@ export async function delegate({ cwd, folder, selection, concurrency, model, thi
       if (results[i]) continue;
       try {
         const fresh = decodeTool(await get({ file_path: task.file_path }));
-        insist(fresh.id === task.id && fresh.status === 'in_progress' &&
+        insist(fresh.id === task.id && fresh.status === 'in_progress' && eligible(fresh) &&
           fresh.file_modified === task.file_modified, 'Pellet task drift before launch; retained for reconciliation');
         progress({ task: task.file_path, status: 'launching', worktree: tree, receipt: path });
         results[i] = { task: task.file_path, ...(await launch({ task, tree, branch, model, thinking, receipt: path })) };
