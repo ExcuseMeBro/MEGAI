@@ -764,12 +764,13 @@ class Distribution(unittest.TestCase):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, extension + runner + prompt)
         for guard in ("mcp__pellet__query_tasks", "mcp__pellet__get_task", "mcp__pellet__update_task",
-                      "ctx.ui.confirm", "ctx.hasUI", "ctx.model", "maximum: 5"):
+                      "ctx.ui.confirm", "ctx.hasUI", "ctx.model", "maximum: 5", "requireFactoryConfirmation"):
             with self.subTest(guard=guard):
                 self.assertIn(guard, extension)
         for guard in ("collectTasks", "selectTasks", "in_progress", "open", "if_file_modified",
                       "worktree", "receipt", "remote", "no worker", "concurrency <= 5",
-                      "status_value", "eligible(detail)", "eligible(fresh)"):
+                      "status_value", "eligible(detail)", "eligible(fresh)",
+                      "mode === 'rpc'", "mode === 'tui'", "approved === true", "timeout: 60_000"):
             with self.subTest(guard=guard):
                 self.assertIn(guard, runner)
         self.assertNotIn("queue is not empty", extension + runner + prompt)

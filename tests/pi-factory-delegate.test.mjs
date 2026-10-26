@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { collectTasks, decodeTool, delegate, pelletReach, preflightPaseo, runWorker, selectTasks, workerPrompt } from '../pi-defaults/extensions/megai-factory/runner.mjs';
+import { collectTasks, decodeTool, delegate, pelletReach, preflightPaseo, requireFactoryConfirmation, runWorker, selectTasks, workerPrompt } from '../pi-defaults/extensions/megai-factory/runner.mjs';
 
 const ids = ['a'.repeat(32), 'b'.repeat(32), 'c'.repeat(32)];
 const task = (id, status = 'in_progress') => ({ id, status, title: `Task ${id[0]}`, file_path: `MEGAI/Task ${id[0]}.md`,
@@ -80,6 +80,31 @@ test('Pi-Bolt reachesTools contract and nested Pellet result envelope fail close
   assert.deepEqual(decodeTool({ result: { structuredContent: { ok: true } }, isError: false }), { ok: true });
   assert.throws(() => decodeTool({ result: page, isError: true }), /query failed/);
   assert.throws(() => decodeTool({ isError: false }), /not structured JSON/);
+});
+
+test('RPC and TUI require an explicit positive UI confirmation; unsupported, absent, cancelled or expired UI fails closed', async () => {
+  let requested = 0;
+  const input = { folder: 'MEGAI', selection: ids[0], concurrency: 2, model: 'provider/model', thinking: 'high' };
+  const approve = async (title, message, options) => {
+    requested++;
+    assert.match(title, /Launch/);
+    assert.match(message, /MEGAI/);
+    assert.match(message, /provider\/model/);
+    assert.equal(options.timeout, 60_000);
+    return true;
+  };
+  await requireFactoryConfirmation({ ...input, mode: 'rpc', hasUI: true, confirm: approve });
+  await requireFactoryConfirmation({ ...input, mode: 'tui', hasUI: true, confirm: approve });
+  assert.equal(requested, 2);
+  for (const [mode, hasUI] of [['print', true], ['rpc', false], ['tui', false]]) {
+    await assert.rejects(requireFactoryConfirmation({ ...input, mode, hasUI, confirm: approve }), /explicit interactive confirmation/);
+  }
+  assert.equal(requested, 2);
+  for (const result of [false, undefined, null, 'yes']) {
+    await assert.rejects(requireFactoryConfirmation({ ...input, mode: 'rpc', hasUI: true, confirm: async () => result }), /not approved/);
+  }
+  await assert.rejects(requireFactoryConfirmation({ ...input, mode: 'rpc', hasUI: true,
+    confirm: async () => { throw new Error('RPC client disconnected'); } }), /RPC client disconnected/);
 });
 
 test('independent reservations, serial Git preparation, concurrent workers, unchanged primary dev', async () => {

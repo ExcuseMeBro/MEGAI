@@ -17,7 +17,11 @@ with `all` for a 41-task queue. Tasks with existing owned worktrees may instead
 require verified serial resumption, never a second writer.
 
 The parent verifies the repository ↔ Pellet folder and task acceptance, then
-`factory_delegate` requests interactive confirmation. It queries every page,
+`factory_delegate` requests interactive confirmation through Pi-Bolt TUI or an
+RPC client that forwards extension UI requests and returns the user's explicit
+Yes. A headless client, No, missing response or 60-second timeout launches no
+workers; the user's written instruction is not a substitute for the dialog.
+It queries every page,
 reserves fresh private receipts, creates **new** task-owned worktrees from a
 pinned local `dev` SHA serially, then creates a visible, separate Paseo local
 workspace bound to each worktree and launches one native Pi **agent tab** and

@@ -1,6 +1,6 @@
 import { Type } from '@earendil-works/pi-ai';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import { delegate, gitCommand, pelletReach, preflightPaseo, runWorker } from './runner.mjs';
+import { delegate, gitCommand, pelletReach, preflightPaseo, requireFactoryConfirmation, runWorker } from './runner.mjs';
 
 // The sole /factory command is the explicitly selected Pellet prompt package.
 // No startup jobs, duplicate slash command or process shutdown handler.
@@ -18,14 +18,13 @@ export default function (pi: ExtensionAPI) {
       concurrency: Type.Integer({ minimum: 1, maximum: 5, description: 'Maximum simultaneous leaf workers' }),
     }),
     async execute(_callId, params, _signal, onUpdate, ctx) {
-      if (!ctx.hasUI || ctx.mode !== 'tui') throw new Error('Factory delegation requires explicit interactive confirmation; headless calls cannot launch workers');
       if (!ctx.model) throw new Error('No selected model; refusing to switch providers');
       const selected = `${ctx.model.provider}/${ctx.model.id}`;
       const thinking = pi.getThinkingLevel();
-      if (!(await ctx.ui.confirm('Launch independent Paseo Pi agents?',
-        `Project: ${params.projectFolder}\nTasks: ${params.selection}\nParallel Paseo agents: ${params.concurrency}\nModel: ${selected} (${thinking})\n` +
-        'Each selected task gets its own visible Paseo workspace, independent native Pi agent tab, terminal and fresh Git worktree. Agents keep working after this call returns; no shared delivery or session termination. Continue?')))
-        throw new Error('User declined factory delegation');
+      await requireFactoryConfirmation({ mode: ctx.mode, hasUI: ctx.hasUI,
+        confirm: (title: string, message: string, options: { timeout: number }) => ctx.ui.confirm(title, message, options),
+        folder: params.projectFolder, selection: params.selection, concurrency: params.concurrency,
+        model: selected, thinking });
       const call = (name: string, args: unknown) => ctx.executeTool(name, args);
       const results = await delegate({ cwd: ctx.cwd, folder: params.projectFolder, selection: params.selection,
         concurrency: params.concurrency, model: selected, thinking,

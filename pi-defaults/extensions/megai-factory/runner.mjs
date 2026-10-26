@@ -13,6 +13,18 @@ export function pelletReach() {
   return ['mcp__pellet__query_tasks', 'mcp__pellet__get_task', 'mcp__pellet__update_task'];
 }
 
+// Pi-Bolt RPC supports an extension UI confirmation handshake; a client must
+// forward it to a human. Both transports require an explicit yes before launch.
+export async function requireFactoryConfirmation({ mode, hasUI, confirm, folder, selection, concurrency, model, thinking }) {
+  insist(hasUI && (mode === 'tui' || mode === 'rpc'),
+    'Factory delegation requires explicit interactive confirmation (TUI or RPC UI); no worker launched');
+  const approved = await confirm('Launch independent Paseo Pi agents?',
+    `Project: ${folder}\nTasks: ${selection}\nParallel Paseo agents: ${concurrency}\nModel: ${model} (${thinking})\n` +
+    'Each selected task gets its own visible Paseo workspace, independent native Pi agent tab, terminal and fresh Git worktree. Agents keep working after this call returns; no shared delivery or session termination. Continue?',
+    { timeout: 60_000 });
+  insist(approved === true, 'Factory delegation was not approved (No, missing RPC UI response or timeout); no worker launched');
+}
+
 export function decodeTool(outcome) {
   // ctx.executeTool returns { result, isError }; direct results are used by tests.
   const result = outcome?.result ?? outcome;
