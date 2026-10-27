@@ -1,0 +1,1632 @@
+[
+  {
+    "name": "animate",
+    "files": [
+      {
+        "path": "animate/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "animate/RECIPES.md",
+        "sha256": "21ff63d84391db8d96ecdf9170095f55a42c836ccc36fd3269c4772bab031ba2"
+      },
+      {
+        "path": "animate/SKILL.md",
+        "sha256": "b8ede161270458e6ae2e45e8a1985373515d4c63de5568ddb0f9012d7634356c"
+      }
+    ]
+  },
+  {
+    "name": "animate-expo",
+    "files": [
+      {
+        "path": "animate-expo/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "animate-expo/RECIPES.md",
+        "sha256": "1193cb71334da2e2341778dd92bec9ac79d989cb07fd55d661f324ed5871e718"
+      },
+      {
+        "path": "animate-expo/SKILL.md",
+        "sha256": "9a01a91701e6563c67677dde6b66ab30f066a5341d42c21a90ba51d99679274a"
+      }
+    ]
+  },
+  {
+    "name": "animation-performance",
+    "files": [
+      {
+        "path": "animation-performance/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "animation-performance/SKILL.md",
+        "sha256": "ceb9dd3fe912615830f725a0120ccf8d012d15a6218001a5cd6c15d38e39a957"
+      }
+    ]
+  },
+  {
+    "name": "animation-vocabulary",
+    "files": [
+      {
+        "path": "animation-vocabulary/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "animation-vocabulary/SKILL.md",
+        "sha256": "40d2b27adfdfeb0570a9f20e7d0255109d9233c50603878bcd0dcd04c923fd94"
+      }
+    ]
+  },
+  {
+    "name": "api-design",
+    "files": [
+      {
+        "path": "api-design/SKILL.md",
+        "sha256": "55ac38ca9bbc50408adfc43f9270ff9ba88385d0f05e00c4f2acf1e417f2ac03"
+      },
+      {
+        "path": "api-design/references/deep-dive.md",
+        "sha256": "2269ee437880c4adb99e28ae11b6a113a3d9fca982ff8aa7838be10f6e594564"
+      },
+      {
+        "path": "api-design/references/providers/aws.md",
+        "sha256": "0f06075217053a56728df8f7740fc77e2dfce5235be8eca2ab1abcac4653eafb"
+      },
+      {
+        "path": "api-design/references/providers/azure.md",
+        "sha256": "fa1762a7e60a575d473ceadf17ded9aca51928b795c7d47381a129781231aad1"
+      },
+      {
+        "path": "api-design/references/providers/gcp.md",
+        "sha256": "5e252148999ff821854752d297c44e08d07614be966d01a596e37b4234ac5828"
+      },
+      {
+        "path": "api-design/references/providers/generic.md",
+        "sha256": "df2a58503afdb79067ac66f1a6912b9fca942e62e69839cf83b1878d27c74654"
+      }
+    ]
+  },
+  {
+    "name": "apple-design",
+    "files": [
+      {
+        "path": "apple-design/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "apple-design/SKILL.md",
+        "sha256": "77bb63b7043bb93aca2ff4ab040c249484eef35682bb6ff7163433c31d30adc7"
+      }
+    ]
+  },
+  {
+    "name": "appllama-app-design-skill",
+    "files": [
+      {
+        "path": "appllama-app-design-skill/LICENSE",
+        "sha256": "14cffee850f5c761273dfc49798cddc96786b4520c23f3ed1da727c334f07476"
+      },
+      {
+        "path": "appllama-app-design-skill/SKILL.md",
+        "sha256": "be47c957ad097be96916a088a803281c933513fd98a71aedca7cef25a967d7a5"
+      },
+      {
+        "path": "appllama-app-design-skill/references/image-assets.md",
+        "sha256": "0ad789823718da7410f42a5c4ed3ff14ad4e0af7014f18181e7d5da0349908b8"
+      },
+      {
+        "path": "appllama-app-design-skill/references/motion.md",
+        "sha256": "2b611d67fa3afdf3aa61c259bcb4a604ac099af285eb0057fa9959ca14ab8cc5"
+      },
+      {
+        "path": "appllama-app-design-skill/references/native-controls.md",
+        "sha256": "9d6fd934738e86aba29411511b8e5b20b0ff928d717e9b67245586c7ba2aa302"
+      },
+      {
+        "path": "appllama-app-design-skill/references/performance.md",
+        "sha256": "c6591482adb86e059742a595dafab0f2833da89c0f3e7e16d7ae1c17d16a784b"
+      },
+      {
+        "path": "appllama-app-design-skill/references/simulator-loop.md",
+        "sha256": "65962c40204c946924137c8c4c7cc41f519cccc333ac9413ea926a21750f8f9c"
+      }
+    ]
+  },
+  {
+    "name": "appllama-usage",
+    "files": [
+      {
+        "path": "appllama-usage/LICENSE",
+        "sha256": "14cffee850f5c761273dfc49798cddc96786b4520c23f3ed1da727c334f07476"
+      },
+      {
+        "path": "appllama-usage/SKILL.md",
+        "sha256": "2d0c706a5c43aba26a6f5e0b833f3aa45f5c0fe05a519e04065a7c0a0b1f492d"
+      },
+      {
+        "path": "appllama-usage/agents/openai.yaml",
+        "sha256": "58b6f6bb21d6f37d808fdaf1100ff6933eaa6e350dee160d11a511fcac688efa"
+      },
+      {
+        "path": "appllama-usage/references/build-from-scratch.md",
+        "sha256": "ec11a7112e1f7988e294a3b90a94820f55f98ee0ad396e0028bb74fd67227983"
+      },
+      {
+        "path": "appllama-usage/references/improve-a-screen.md",
+        "sha256": "51e2086b676541893f3a174ac7263f80ca92d1c77ae6b0b65f89e91f6e5f3707"
+      },
+      {
+        "path": "appllama-usage/references/research-methods.md",
+        "sha256": "a0c4abdce9502d9678b87ddb6f67153ef8e2bf23d73c342261cc7da18a7b54a3"
+      }
+    ]
+  },
+  {
+    "name": "architecture-diagram",
+    "files": [
+      {
+        "path": "architecture-diagram/SKILL.md",
+        "sha256": "3ed5a3e09cf343dd787cf37709ba73c0875737bdf54714bb1baaf085749cf547"
+      },
+      {
+        "path": "architecture-diagram/assets/template.html",
+        "sha256": "3c595d8a745c4d6285e36ebabc15822785b96c6628087b8b6f0cf444d2e8b90a"
+      },
+      {
+        "path": "architecture-diagram/references/design-system.md",
+        "sha256": "c27cf700f8a171e9773dbc4d925a42b39c58aedb75bd85f03c1be556fd22e148"
+      },
+      {
+        "path": "architecture-diagram/references/interactive.md",
+        "sha256": "f5f5f887e27b3cdfee2d51e65f753a45371e524a77f3fd1b7af37ebbc69e873f"
+      }
+    ]
+  },
+  {
+    "name": "ask-sonner",
+    "files": [
+      {
+        "path": "ask-sonner/API.md",
+        "sha256": "4bb06f482c5757529e3d7a672a30fbeed42d24919a63e2571384a9ce1549aa7f"
+      },
+      {
+        "path": "ask-sonner/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "ask-sonner/SKILL.md",
+        "sha256": "39f3ee185b3aa2cf70a689052ff078953ce7ba5915ed7a9391d232e9d4dcf57f"
+      }
+    ]
+  },
+  {
+    "name": "back-of-the-envelope",
+    "files": [
+      {
+        "path": "back-of-the-envelope/SKILL.md",
+        "sha256": "3617a2a7321db885509544de5a34bf69472c05bc2cb75091609117b6a86e0b66"
+      },
+      {
+        "path": "back-of-the-envelope/expected_outputs/twitter_scale.json",
+        "sha256": "2bd91fea7d5b66cb1a7743706ed0f48d2dee25b5e9883348c5d33734a93c1c36"
+      },
+      {
+        "path": "back-of-the-envelope/references/estimation-recipes.md",
+        "sha256": "5457c8260ff977dc7490c58bb5da311f70cae741957730f6bec128cece9a1c07"
+      },
+      {
+        "path": "back-of-the-envelope/references/numbers-to-remember.md",
+        "sha256": "bf0bb71dd06b18a98b2ce28b90325a7229ed6c60230559aab5bf309f1508d5ee"
+      },
+      {
+        "path": "back-of-the-envelope/scripts/botec.py",
+        "sha256": "ccf90710c88d82c7eb419777d4ae3d9da452e5f3bc2acdbd97890a76112d29a1"
+      },
+      {
+        "path": "back-of-the-envelope/scripts/test_botec.py",
+        "sha256": "4ea9a555c63546cb4f119da9557596c07890744426d84cba1aca53faa103b012"
+      }
+    ]
+  },
+  {
+    "name": "baseline-ui",
+    "files": [
+      {
+        "path": "baseline-ui/SKILL.md",
+        "sha256": "fea3322f36d58fdafafce2aef56e4556dd2ac7b20876b7dff7d8be7f25fa597f"
+      }
+    ]
+  },
+  {
+    "name": "blob-store",
+    "files": [
+      {
+        "path": "blob-store/SKILL.md",
+        "sha256": "ca0e6f4b8c8c079a78155834a4b7b33f33f310df669e9dc4d8b334569904f890"
+      },
+      {
+        "path": "blob-store/references/deep-dive.md",
+        "sha256": "fa0f128dd8721968fd94dc955e8c687feb99b73bd438fd9b89ee9366dfecb207"
+      },
+      {
+        "path": "blob-store/references/providers/aws.md",
+        "sha256": "f88dc8d3db311106ee8a8be79c65a149a2cf57a513255c2a12d8bb566396158e"
+      },
+      {
+        "path": "blob-store/references/providers/azure.md",
+        "sha256": "9bcfb15183f69bf7ff85bbec9c9b8652b3cfc7441497e9eac9edaa223fd0359e"
+      },
+      {
+        "path": "blob-store/references/providers/gcp.md",
+        "sha256": "b8340148c4f8b6e6ff464148fb1dbd914f30fa7746587b7caa37587154d81377"
+      },
+      {
+        "path": "blob-store/references/providers/generic.md",
+        "sha256": "eeffd5eb66cd72325b0f72620a5332a8f8bf5e31bf464f95bf60d2ec6036bf3c"
+      }
+    ]
+  },
+  {
+    "name": "break-ui",
+    "files": [
+      {
+        "path": "break-ui/CATALOG.md",
+        "sha256": "7358efcc6bb48e35187be1c064cf60022dcb18c72c18fab58b606dfc5f421f15"
+      },
+      {
+        "path": "break-ui/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "break-ui/SKILL.md",
+        "sha256": "e7eec1d70ac56a04255e9c0dbe98084ea3d544cc04aaad34f32c95d6fa9dff5e"
+      }
+    ]
+  },
+  {
+    "name": "caching",
+    "files": [
+      {
+        "path": "caching/SKILL.md",
+        "sha256": "53ea2724ebd059bbae89396cd4dbfe9c01232e4f7a328d76289ea77a8189a29c"
+      },
+      {
+        "path": "caching/references/deep-dive.md",
+        "sha256": "41e36bf922ca96bf75fa077b182bb51d9cbd8c8990472e2692c37d4f6f3f8539"
+      },
+      {
+        "path": "caching/references/providers/aws.md",
+        "sha256": "979e86a6b2235a025eb4d30e721cea313e1bda79bec16dd7e2c90b6acd1959f4"
+      },
+      {
+        "path": "caching/references/providers/azure.md",
+        "sha256": "f32155353556ca855d67cdcc8f41d172acaaee357f695d9650c7c84d98ba0289"
+      },
+      {
+        "path": "caching/references/providers/gcp.md",
+        "sha256": "300794579afcf1c51e3e2f5851e4f43efb2433d61105639058ac621a127f8343"
+      },
+      {
+        "path": "caching/references/providers/generic.md",
+        "sha256": "d20888e4213848f20bb6422b79a7675bd996d9eddf2fc26d96793bf010c7ed54"
+      }
+    ]
+  },
+  {
+    "name": "consistency-coordination",
+    "files": [
+      {
+        "path": "consistency-coordination/SKILL.md",
+        "sha256": "7c14a5bd57c4ef931de77a6e929693f2531b8bd9d32922225db1dfd815ef71c8"
+      },
+      {
+        "path": "consistency-coordination/references/deep-dive.md",
+        "sha256": "2ab1d317a1d4d28a3db5c4fcfa9b8d470c2141ed70aa4a63836f352edc3cf7d7"
+      },
+      {
+        "path": "consistency-coordination/references/providers/aws.md",
+        "sha256": "c9829d4b47269a4be6f4054801cfbb11c14809531984b41305c62c319040c9bd"
+      },
+      {
+        "path": "consistency-coordination/references/providers/gcp.md",
+        "sha256": "eb6cef99f396834e81d0fcf454fef8cbc037310e0ac5037c98e2f7d5ef84035f"
+      },
+      {
+        "path": "consistency-coordination/references/providers/generic.md",
+        "sha256": "ca2d301d1fc9730b7b4d1322ff2e2f43606e57c62a1d4db7ccccfc1dc5917622"
+      }
+    ]
+  },
+  {
+    "name": "content-delivery",
+    "files": [
+      {
+        "path": "content-delivery/SKILL.md",
+        "sha256": "6b5ff6c7a3d03c2ac1d739e29f00825ff70ab7cb8234940175f6e15b518b73f6"
+      },
+      {
+        "path": "content-delivery/references/deep-dive.md",
+        "sha256": "1296684800026b0f034f8fbc906baa7d7d6d177d7b28f9f4205f93a8f8525ad8"
+      },
+      {
+        "path": "content-delivery/references/providers/aws.md",
+        "sha256": "e5d0a0c8fcd588217d7a919efb7b61a48f8d4fb50d98127707a6cd8a46d1e844"
+      },
+      {
+        "path": "content-delivery/references/providers/azure.md",
+        "sha256": "a13a5cf6bb0fc308682bdb59990839f80c989b14e8d4a6d1499efb196a4bef9b"
+      },
+      {
+        "path": "content-delivery/references/providers/gcp.md",
+        "sha256": "dd878f8b6a382194d2d41bd3be13998567508b5438d3b63ff273fff06e9bc22c"
+      },
+      {
+        "path": "content-delivery/references/providers/generic.md",
+        "sha256": "d772ed9ee449e6e51686a50a75dad42f1ef70159b095f45db6d31e5ca778a1b7"
+      }
+    ]
+  },
+  {
+    "name": "data-storage",
+    "files": [
+      {
+        "path": "data-storage/SKILL.md",
+        "sha256": "a495de903594b783b8fbfcd59efad9b7c6167dc82cd42904773f02e65f95bec9"
+      },
+      {
+        "path": "data-storage/references/deep-dive.md",
+        "sha256": "b511191b742fa5c8edbdceda899020794877b53b9e1926a526f299c1c52fce58"
+      },
+      {
+        "path": "data-storage/references/providers/aws.md",
+        "sha256": "58d13dedfc0c21e67436341261028fe997386f551758c68e307b976b969a30c7"
+      },
+      {
+        "path": "data-storage/references/providers/azure.md",
+        "sha256": "3e54fb6f49949a321e6c5c4c2482d732e2452400642cc6536a43212ccd739347"
+      },
+      {
+        "path": "data-storage/references/providers/gcp.md",
+        "sha256": "6a4b61f894606882fe2df1e8eef9cfdd23ab41c6111e75aa9dfef2df2725246e"
+      },
+      {
+        "path": "data-storage/references/providers/generic.md",
+        "sha256": "b00e42ea28fb9147be1bf5c91ae5de311ea77a75e3cdbf5adfe4961bb1cb0e0c"
+      }
+    ]
+  },
+  {
+    "name": "distributed-logging",
+    "files": [
+      {
+        "path": "distributed-logging/SKILL.md",
+        "sha256": "2f7b1dbe17c405e60093d86bceba7fe2611ad3a28d41c3476527d555aa38ed0e"
+      },
+      {
+        "path": "distributed-logging/references/deep-dive.md",
+        "sha256": "0cf2587c7b0aedc7b4a3eef84802b83cbeae6d614c77e1ef2df1af73929f2b11"
+      },
+      {
+        "path": "distributed-logging/references/providers/aws.md",
+        "sha256": "14c0b25b54ba71575de3b3e5a2d39727f81f63e750c915ebbdb63961ab8cc990"
+      },
+      {
+        "path": "distributed-logging/references/providers/azure.md",
+        "sha256": "d9defe2e2fc34dd45db0caf6b3c8d265d4375a327aa489f6458e25ef25d9b4cc"
+      },
+      {
+        "path": "distributed-logging/references/providers/gcp.md",
+        "sha256": "2e3578d12bef3395aac09223a416fbca4c10ca11dc0b00bacdbb3783b173fca0"
+      },
+      {
+        "path": "distributed-logging/references/providers/generic.md",
+        "sha256": "d808c9795b9f2d328beb11ff8feb1a86142378cf2489880ab2eb0ee09b02be1f"
+      }
+    ]
+  },
+  {
+    "name": "distributed-search",
+    "files": [
+      {
+        "path": "distributed-search/SKILL.md",
+        "sha256": "780210f20ed1d81c1b3955417a059f9c98dac01f301caba712941483e866916d"
+      },
+      {
+        "path": "distributed-search/references/deep-dive.md",
+        "sha256": "56045d8b95bfdf4b6c7de87f2f82ec97c153e247ef73766e3d928c9a3bf22d76"
+      },
+      {
+        "path": "distributed-search/references/providers/aws.md",
+        "sha256": "0444842e3e207fe1b881109f2ee724a3ce9a797132f8ce7072fed32829daf8f8"
+      },
+      {
+        "path": "distributed-search/references/providers/azure.md",
+        "sha256": "99eb142886f84564fa8df6440e7712e2c30683897135bc9e322c6cdf566a8bad"
+      },
+      {
+        "path": "distributed-search/references/providers/gcp.md",
+        "sha256": "f3a49bcf158ad07ea289caa840dfc8ee48beff54068d37c8f0652b277e700234"
+      },
+      {
+        "path": "distributed-search/references/providers/generic.md",
+        "sha256": "d19d9cb573f4feb8ee7b1c23edc9e96d606d6738d0a820a8140d4e5b6f3124de"
+      }
+    ]
+  },
+  {
+    "name": "dns",
+    "files": [
+      {
+        "path": "dns/SKILL.md",
+        "sha256": "2425ed8f1f6dab1b5239a87cd2643bce216c1d86a98d69bf51d0108a9e831202"
+      },
+      {
+        "path": "dns/references/deep-dive.md",
+        "sha256": "33c5869a1814504b7afcaabc3fe3d69a572bd40ea13dfd481abfd8f2cdeaa102"
+      },
+      {
+        "path": "dns/references/providers/aws.md",
+        "sha256": "0204b44781d58aeac2eaa566b23e587dc5fdb60b20d5dee50f97c13e070a244f"
+      },
+      {
+        "path": "dns/references/providers/azure.md",
+        "sha256": "28a1f08c85b0e248512061980fef21be52d4a7aed9daf3435615b740e4158c2e"
+      },
+      {
+        "path": "dns/references/providers/gcp.md",
+        "sha256": "ba312c37719dcd2969b487cb58594809c469ea95cf041cd3f6fd40a739d90763"
+      },
+      {
+        "path": "dns/references/providers/generic.md",
+        "sha256": "e1e885df9edba0019489396c309f5ac9799b72164f840bbeb03cf31e948a7d33"
+      }
+    ]
+  },
+  {
+    "name": "eas-app-stores",
+    "files": [
+      {
+        "path": "eas-app-stores/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "eas-app-stores/SKILL.md",
+        "sha256": "67c36a52fa846115ede220d0cf499e136b3a26c7dcaaa35c62837a4f5d1c7dd2"
+      },
+      {
+        "path": "eas-app-stores/agents/openai.yaml",
+        "sha256": "8dbb55d5571607b73dbe33710d5881c6fde148de3d743451cd22dcf4ab79507a"
+      },
+      {
+        "path": "eas-app-stores/references/app-store-metadata.md",
+        "sha256": "6fddf7b8b78bfd90fdcaed5ae0b16db7788a884aee46d1f42e01e4b7b8ad7bfa"
+      },
+      {
+        "path": "eas-app-stores/references/ios-app-store.md",
+        "sha256": "6fe111228c65c0868a162af600973e88b716491420e49908fc54d87d2335a40a"
+      },
+      {
+        "path": "eas-app-stores/references/native-ios.md",
+        "sha256": "89683621bba8ec94cb7eaf69f536844084a2d9af93fead4bbee314253ebae22d"
+      },
+      {
+        "path": "eas-app-stores/references/play-store.md",
+        "sha256": "d8ed6dba46e2849a37ab8c20aae33a3dcad0cb00578ce6581bb9abdbb61fc92e"
+      },
+      {
+        "path": "eas-app-stores/references/testflight.md",
+        "sha256": "aa869407dc0131061f96452f968c4818bda56337c1ed361b6061445149287e57"
+      },
+      {
+        "path": "eas-app-stores/references/workflows.md",
+        "sha256": "2ac6639b3dded64f6b544ed8eb7313c2361c5f7032c716ca1e024c14797e2394"
+      }
+    ]
+  },
+  {
+    "name": "eas-hosting",
+    "files": [
+      {
+        "path": "eas-hosting/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "eas-hosting/SKILL.md",
+        "sha256": "1e1df1d72b6914337724c5bf142f77aef2142f80c8f915cf9997478374e897cb"
+      },
+      {
+        "path": "eas-hosting/agents/openai.yaml",
+        "sha256": "93069ed4886338c218109e130aee5982a23a172807d4f1ed64e40e40cc2a9221"
+      }
+    ]
+  },
+  {
+    "name": "eas-observe",
+    "files": [
+      {
+        "path": "eas-observe/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "eas-observe/SKILL.md",
+        "sha256": "05d4641e52b905aca336b13cb08c03b71be8228583bfdcf09659f09b76f8ca45"
+      },
+      {
+        "path": "eas-observe/agents/openai.yaml",
+        "sha256": "5cdb328bb5f0823e25958598dbd48593e8b162adf520ffbb68fc5f08de0eaab8"
+      },
+      {
+        "path": "eas-observe/references/library-integrations.md",
+        "sha256": "388d9da1282eef5d4def338b2cc849d91a34e207fc7c0143597e3132c4859921"
+      },
+      {
+        "path": "eas-observe/references/metrics.md",
+        "sha256": "a9520d68dc62ccf804f40ce87176084b2d911299acb8b18800406ff1a0907e3f"
+      },
+      {
+        "path": "eas-observe/references/queries.md",
+        "sha256": "4b7657e20670c541c259bc60fc120bc5cfff4076d9e0d39c112d911e33f015d2"
+      },
+      {
+        "path": "eas-observe/references/setup.md",
+        "sha256": "9e75ea9b475cec1906e62a3c94f6778e6834fa503c8a471c3b4a59e650a27b2f"
+      },
+      {
+        "path": "eas-observe/references/third-party.md",
+        "sha256": "aab3d4f4290189efdee87148f0566ceb411062549e87cf5b5582eb7166fcdc05"
+      }
+    ]
+  },
+  {
+    "name": "eas-simulator",
+    "files": [
+      {
+        "path": "eas-simulator/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "eas-simulator/SKILL.md",
+        "sha256": "6d76d0016e5beaeb4fda6a087e7a5fb81f6128d3ba72c9837c1b8c9b6197eb9d"
+      },
+      {
+        "path": "eas-simulator/agents/openai.yaml",
+        "sha256": "24c72affc603f7ab1b4bad6268f130d3ac1203a739f34bd8b1a41484da787f35"
+      },
+      {
+        "path": "eas-simulator/references/controllers.md",
+        "sha256": "d5a5da315f3b0da611452c3e0f1cff1ccdb2c17adf1d7ca302e0bd6623fac3c9"
+      },
+      {
+        "path": "eas-simulator/references/logs-and-crashes.md",
+        "sha256": "cc3efe32ecd6a0fbe12333395c4f4ef8e605ff59cef1c3ac0db8113ae60c196c"
+      },
+      {
+        "path": "eas-simulator/references/run-your-app.md",
+        "sha256": "c6e277de135d3c2f9217a1d95d207523d8efec5a7773251595a598a69ba43dfd"
+      },
+      {
+        "path": "eas-simulator/references/troubleshooting.md",
+        "sha256": "6aea9ebca95177608293caa451bdc3a93bb48f4225d322464bb093c16383fb16"
+      }
+    ]
+  },
+  {
+    "name": "eas-update",
+    "files": [
+      {
+        "path": "eas-update/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "eas-update/SKILL.md",
+        "sha256": "d8f59ca79c0925be3825520ca2ad7826a97f23fe26eca24a05221d28852eaf75"
+      },
+      {
+        "path": "eas-update/agents/openai.yaml",
+        "sha256": "48f0ee3e4944d2ce2fa29ddfb574671772c8db14d039f478e7c95b98949e82fb"
+      }
+    ]
+  },
+  {
+    "name": "eas-update-insights",
+    "files": [
+      {
+        "path": "eas-update-insights/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "eas-update-insights/SKILL.md",
+        "sha256": "b19399f39393749eb504a18bff54bac4c18af796a5c9cce2339c7bef197f2e2e"
+      },
+      {
+        "path": "eas-update-insights/agents/openai.yaml",
+        "sha256": "79c7386592851ec16194ff9a540230ea712f7f1ce145a4b87c99d2d02fafc604"
+      },
+      {
+        "path": "eas-update-insights/references/channel-insights-schema.md",
+        "sha256": "4e11651a81f616017f04d99e1efbe014cde01db43d40c31a550665516f3442f0"
+      },
+      {
+        "path": "eas-update-insights/references/update-insights-schema.md",
+        "sha256": "a90bcfcd76717b282f7a690dd5fd6e143a9b529a2acb728f03a8bd59739b3348"
+      }
+    ]
+  },
+  {
+    "name": "eas-workflows",
+    "files": [
+      {
+        "path": "eas-workflows/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "eas-workflows/SKILL.md",
+        "sha256": "708c7847d84d2aada8674ac5340007973a600f09f41418db97ae49aacb3ec39c"
+      },
+      {
+        "path": "eas-workflows/agents/openai.yaml",
+        "sha256": "a52ee10c638c270771b8a87f4208ec3ceaee984fea64b70cfd51c72a59a70dea"
+      },
+      {
+        "path": "eas-workflows/scripts/fetch.js",
+        "sha256": "6e00c6fa7277c429c18ae211d1b6515caf2fdf500136cf297921c05d27447483"
+      },
+      {
+        "path": "eas-workflows/scripts/package.json",
+        "sha256": "4445d509a3dcd6a57ce4da9bfc99589659235c1354e4559c62957cb54fd6260c"
+      }
+    ]
+  },
+  {
+    "name": "emil-design-eng",
+    "files": [
+      {
+        "path": "emil-design-eng/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "emil-design-eng/SKILL.md",
+        "sha256": "ffbe68e6007fb42cb8149f089b400a1ca007d59ba23e8948e2be4476f3175939"
+      }
+    ]
+  },
+  {
+    "name": "expo-animation",
+    "files": [
+      {
+        "path": "expo-animation/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "expo-animation/LICENSE-EXPO",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-animation/RECIPES.md",
+        "sha256": "4db141cb346d49231c94a95aaa50844b85a71c47ec543e9f9f5a1f453abc9883"
+      },
+      {
+        "path": "expo-animation/SKILL.md",
+        "sha256": "6dff46215f667f2470334c238779893fce71f6c08b60a89e626d46535e4a187b"
+      },
+      {
+        "path": "expo-animation/agents/openai.yaml",
+        "sha256": "7667e1a159300ee640ffb6ed4f81281dfdc0e3a789d4f3e5179c32ab3565795a"
+      }
+    ]
+  },
+  {
+    "name": "expo-app-clip",
+    "files": [
+      {
+        "path": "expo-app-clip/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-app-clip/SKILL.md",
+        "sha256": "255408614f6ea3f295ec4cc7ea88e181b9744da8ff7ae7a453deea56ba631d3f"
+      },
+      {
+        "path": "expo-app-clip/agents/openai.yaml",
+        "sha256": "81917b1829b124110741985fa32168637efcd026de504d98382ba28c582489b1"
+      },
+      {
+        "path": "expo-app-clip/references/native-module.md",
+        "sha256": "d7c9514529016e63bba6c860d3035fcdaa16a47ec16ef94bf16ba0c691bb8f98"
+      }
+    ]
+  },
+  {
+    "name": "expo-brownfield",
+    "files": [
+      {
+        "path": "expo-brownfield/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-brownfield/SKILL.md",
+        "sha256": "5aa41e452cd7783df1c49ff901d2ab10a642c16be523641ecc0e93cdc024ace8"
+      },
+      {
+        "path": "expo-brownfield/agents/openai.yaml",
+        "sha256": "1c3eb46ac47c96765f3894ac93df62eddbe73cd2afd7abcdc010b90be9d619c1"
+      },
+      {
+        "path": "expo-brownfield/references/brownfield-integrated.md",
+        "sha256": "5399ab0e61b121e8d6074bc3c7435137183a0a777055f7dd1a9b4e58f5c76ac7"
+      },
+      {
+        "path": "expo-brownfield/references/brownfield-isolated.md",
+        "sha256": "8f31a566c6c72d5ec1d231baa1d15488d3bdfaae8cd747fd62a42267d4cafbba"
+      },
+      {
+        "path": "expo-brownfield/references/comparison.md",
+        "sha256": "4ae5556acdc7339eea48da52fa323669ec9ebcc47d8307e417c1e7ccad825aaf"
+      },
+      {
+        "path": "expo-brownfield/references/feature-integration.md",
+        "sha256": "6ad9257835778f7fe51b9a2d9c451ddb60bfcf6a5acbc5b1bbbdec1fc2c21c30"
+      },
+      {
+        "path": "expo-brownfield/references/troubleshooting.md",
+        "sha256": "672dcd740bdcfb251e67623817a2c4b71d90c605379c511dcd10119e0a34add1"
+      },
+      {
+        "path": "expo-brownfield/references/version-compatibility.md",
+        "sha256": "768c5472da08dac1e14676691efbcc288adc6df4062cf0ec6cfe5f7bf697118d"
+      }
+    ]
+  },
+  {
+    "name": "expo-data-fetching",
+    "files": [
+      {
+        "path": "expo-data-fetching/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-data-fetching/SKILL.md",
+        "sha256": "d6521c2cd9c759599bce36ba5bf5bb4856b5563134a05afcc6f0622f14fc2ae1"
+      },
+      {
+        "path": "expo-data-fetching/agents/openai.yaml",
+        "sha256": "50254d420a1db8e631ee24aaf8463708a525049059ac391b0d219dce8ce82e0a"
+      },
+      {
+        "path": "expo-data-fetching/references/expo-router-loaders.md",
+        "sha256": "f842c86483a15380c44a4b49db27bf3d41e17b48b1f44b9a2bbacc563a9dcbe6"
+      },
+      {
+        "path": "expo-data-fetching/references/offline-and-cancellation.md",
+        "sha256": "750f7f25acc4e6143a6ff4daacffbcd5daf64370540a75e7b3a4f3b4b1aa462c"
+      }
+    ]
+  },
+  {
+    "name": "expo-design-system",
+    "files": [
+      {
+        "path": "expo-design-system/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-design-system/SKILL.md",
+        "sha256": "71b3c9e7136e1af174ce59094376abcc0667e02b5c0bda31e52cc548333a9988"
+      },
+      {
+        "path": "expo-design-system/agents/openai.yaml",
+        "sha256": "16d7f7f1bb47bc02fa2a816280403bfaccd24e436672cd1503670fcc2a42fd26"
+      },
+      {
+        "path": "expo-design-system/references/audit.md",
+        "sha256": "a0ead76ab904c119a1353d8d91b9138144a97da43fdff683f291f2d45d868915"
+      },
+      {
+        "path": "expo-design-system/references/native-slop.md",
+        "sha256": "5662bd04ac2d6367fc4ca3ae355ec1b970752dcd8693a099a5e0792227eb09c1"
+      }
+    ]
+  },
+  {
+    "name": "expo-dev-client",
+    "files": [
+      {
+        "path": "expo-dev-client/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-dev-client/SKILL.md",
+        "sha256": "c133538ecb0ee2659bf2f1074889adf35faa2425b590d4f1011688a793894947"
+      },
+      {
+        "path": "expo-dev-client/agents/openai.yaml",
+        "sha256": "5264dcf91147638731286e38421b65de4bd60858bba93707ab6b4f1f1ad854aa"
+      }
+    ]
+  },
+  {
+    "name": "expo-dom",
+    "files": [
+      {
+        "path": "expo-dom/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-dom/SKILL.md",
+        "sha256": "8deeb961146de4ad9a4e0bade34fd8ca5e8b497d4d92e0a6a5f5676dc7e60517"
+      },
+      {
+        "path": "expo-dom/agents/openai.yaml",
+        "sha256": "33cfd1779613514afc93a8eab23e1f5648499b20c8205e0e8aa524b5d761e06f"
+      }
+    ]
+  },
+  {
+    "name": "expo-examples",
+    "files": [
+      {
+        "path": "expo-examples/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-examples/SKILL.md",
+        "sha256": "5bedb7c94af78ade21410e36101d37e896af89f5a3bd9c8690d4777fb6e8d53f"
+      },
+      {
+        "path": "expo-examples/agents/openai.yaml",
+        "sha256": "efdcc54de3f666d0d3f5515ee38e0c07ecc2d302a3c9e9acd742ce8f2f42f52d"
+      },
+      {
+        "path": "expo-examples/references/catalog.md",
+        "sha256": "024aa05d82dffcc2a5e3b29e87ec4e800122bc39825c36e2e389f7b7e090d4fc"
+      }
+    ]
+  },
+  {
+    "name": "expo-migrate-module",
+    "files": [
+      {
+        "path": "expo-migrate-module/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-migrate-module/SKILL.md",
+        "sha256": "27a79ed0aa817cb7ce3995527adc83b8c12bcf2e27810a4dafe51eb7524a747c"
+      },
+      {
+        "path": "expo-migrate-module/agents/openai.yaml",
+        "sha256": "493a9937bd67eccbbcac3e2f25c6ced97645cb50ef417dd3ea89ee0b575fb8af"
+      },
+      {
+        "path": "expo-migrate-module/references/compatibility.md",
+        "sha256": "53e13f767294d67e68d4af11b43a883645093d06c5c8f1b2236261c5d1267547"
+      },
+      {
+        "path": "expo-migrate-module/references/example.md",
+        "sha256": "899bb5cba52de4e586e7253e0347d6a1fc5241f4d4b3cd14cd221e16bd0c911f"
+      },
+      {
+        "path": "expo-migrate-module/references/migration-map.md",
+        "sha256": "526331506929d83fe878c5b6e8a34b14e66ddd87649892e9ac82f7fd9f3ab88d"
+      }
+    ]
+  },
+  {
+    "name": "expo-module",
+    "files": [
+      {
+        "path": "expo-module/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-module/SKILL.md",
+        "sha256": "0204e36b447a6fb4868bfaf1c0dc2c9f6320039379665f1d8d40401fc983cefc"
+      },
+      {
+        "path": "expo-module/agents/openai.yaml",
+        "sha256": "cb7a56ee8e8a36e5ed35c49dba249e70056a17c195163ba2cb9cf369e4be6d84"
+      },
+      {
+        "path": "expo-module/references/config-plugin.md",
+        "sha256": "f1e0d7e421e41037368afbc3ddd31a466843398600579364239b63c574445246"
+      },
+      {
+        "path": "expo-module/references/create-expo-module.md",
+        "sha256": "d292f0cd51238c2f6e1b660e16cb6a87c1fac22864759aa5fc44d298084a5bfe"
+      },
+      {
+        "path": "expo-module/references/lifecycle.md",
+        "sha256": "b54a9c6e3d2e78f5535aba936efa92cb59dc25a525e8b3b4f821d441432166bf"
+      },
+      {
+        "path": "expo-module/references/module-config.md",
+        "sha256": "de6eba495e200dc38053bfeabd8cddab2cfc3c5e88bda1a0ec6a078ec9925156"
+      },
+      {
+        "path": "expo-module/references/native-module.md",
+        "sha256": "69c7cb2cc0044f15c11a594f495aef108c227ce24134aef5f57f59712ccdffe1"
+      },
+      {
+        "path": "expo-module/references/native-view.md",
+        "sha256": "cde788f4dfad2b56be9395d76939527b43e35216fc2ed970adb24b4000a7a9f4"
+      }
+    ]
+  },
+  {
+    "name": "expo-native-ui",
+    "files": [
+      {
+        "path": "expo-native-ui/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-native-ui/SKILL.md",
+        "sha256": "b767395c5043a3cbefaa992a7909921393aa34159c2e3b4bc9456851262e6d70"
+      },
+      {
+        "path": "expo-native-ui/agents/openai.yaml",
+        "sha256": "90bf5d66b1038913fea37bd6d57292eb6ecd0e0ee3b2bc3e283facc033f4b2b0"
+      },
+      {
+        "path": "expo-native-ui/references/controls.md",
+        "sha256": "6ec427731a65ffd66b745733665bb2c00992750c7d3710893d1bbf70b427d541"
+      },
+      {
+        "path": "expo-native-ui/references/gradients.md",
+        "sha256": "63ced0392f67c41bf90e726613d139a389db609799bfcb91124e6e69b9a66e70"
+      },
+      {
+        "path": "expo-native-ui/references/icons.md",
+        "sha256": "2c0622d8a3f61626a72fa7829d3044f3391cbd8ca91806f4752926cf4e66be59"
+      },
+      {
+        "path": "expo-native-ui/references/media.md",
+        "sha256": "c964182dfbcaa5eef00b947e0425f5a39ee2cfc1b2a4e251ba51fc823e87b0dc"
+      },
+      {
+        "path": "expo-native-ui/references/storage.md",
+        "sha256": "265e8bc21adcd698062f18fa442e0e07e99e67868576f18aac2112e5381ffbf1"
+      },
+      {
+        "path": "expo-native-ui/references/visual-effects.md",
+        "sha256": "dcdcaa5e0bf5c20341455e39d91312ca5f3034391908f77eb2e577044283adcc"
+      },
+      {
+        "path": "expo-native-ui/references/webgpu-three.md",
+        "sha256": "3a247a7740e4bab4aea5dec8b81c7782a5918bb221838a05f6a94c669f145679"
+      }
+    ]
+  },
+  {
+    "name": "expo-overview",
+    "files": [
+      {
+        "path": "expo-overview/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-overview/SKILL.md",
+        "sha256": "bddf7abb458aaba8d015e855ecb899d074b35ee1e56ca75a95d45a5efa137f88"
+      },
+      {
+        "path": "expo-overview/agents/openai.yaml",
+        "sha256": "a488fa6e5659f702b5e27d4bcc1ab601cc64c0fc001404d64fcdef1627f81494"
+      },
+      {
+        "path": "expo-overview/references/launch-without-dev-menu.md",
+        "sha256": "d0cdc82285d136f9264fb28d8ce21690d2d12ba83591104109c9cdcb9989af26"
+      }
+    ]
+  },
+  {
+    "name": "expo-project-structure",
+    "files": [
+      {
+        "path": "expo-project-structure/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-project-structure/SKILL.md",
+        "sha256": "319aff8bfa4728e94d9ee3fb93db73535397f45cb71718cd4412b6d9bda6135e"
+      },
+      {
+        "path": "expo-project-structure/agents/openai.yaml",
+        "sha256": "cd7a9387766af254f9d8f691c332606e71273b8dd1c99c949f0934ed693878e0"
+      }
+    ]
+  },
+  {
+    "name": "expo-router",
+    "files": [
+      {
+        "path": "expo-router/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-router/SKILL.md",
+        "sha256": "bc24528189efa1cbd50d7bb1480f145b1b90c7652b3332ea01b12c046bf5a6ed"
+      },
+      {
+        "path": "expo-router/agents/openai.yaml",
+        "sha256": "7b76d9331a33e06e61504db9af069bccc8ab4a02e2f8be92727e8e0f9ad7941d"
+      },
+      {
+        "path": "expo-router/references/form-sheet.md",
+        "sha256": "947de9cf35a15aacf3f02e96e45942b5e4826e536e529570886e5ddbb7ec8591"
+      },
+      {
+        "path": "expo-router/references/route-structure.md",
+        "sha256": "4c3d70edeb7e36d965c4d96fa150f23ee57e01be5f6c57dd3e34c6309aab7e87"
+      },
+      {
+        "path": "expo-router/references/search.md",
+        "sha256": "bb4785df4757d84f1aff09d34cdb84043e7099684b9731a24a1d79cc3c0df172"
+      },
+      {
+        "path": "expo-router/references/tabs.md",
+        "sha256": "c49081529a200bfc62c95d41229e5dd7368f2e35cd5775ccaaab3289ed1fd7eb"
+      },
+      {
+        "path": "expo-router/references/toolbar-and-headers.md",
+        "sha256": "14d9a71dd949bd2b28a5bd531f6b9c1b4f3fa847a86db8c5218fee67b5295769"
+      },
+      {
+        "path": "expo-router/references/zoom-transitions.md",
+        "sha256": "cacc1665e9f3044762765d2cd55fd1ead9627f06478f12dfa2280c6f9ae88ede"
+      }
+    ]
+  },
+  {
+    "name": "expo-ui",
+    "files": [
+      {
+        "path": "expo-ui/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-ui/SKILL.md",
+        "sha256": "1ad63b23fef57fb23d60dde75fa22bcc0ebefc19c03c351930998c5246976805"
+      },
+      {
+        "path": "expo-ui/agents/openai.yaml",
+        "sha256": "abe551630c5975e13cd06a55a698a880b0663b63436966abdd50053fcccafe5a"
+      },
+      {
+        "path": "expo-ui/references/drop-in-replacements.md",
+        "sha256": "0929fb52954dd0a359a2925a23c392f650d0976f25d93bca190e5b9ff200373f"
+      },
+      {
+        "path": "expo-ui/references/jetpack-compose.md",
+        "sha256": "7322bb663fa260b3521c092f425e5d27589bd87e6a6a653e8864bd6f5f9ad749"
+      },
+      {
+        "path": "expo-ui/references/swift-ui.md",
+        "sha256": "9b2727190bd49dd5ddd495ce702745f9490bd7ed9a42d9bd9c7cb75219084f8e"
+      },
+      {
+        "path": "expo-ui/references/universal.md",
+        "sha256": "9b015890560b41c535f44cf65528acee6bd1a98485e43e240aa4cd89da714d59"
+      },
+      {
+        "path": "expo-ui/scripts/list-components.js",
+        "sha256": "cbc16cdbb2b924a3d73898e1baa3f9c5c634f513383d1a531b2d9ff6f2171f4c"
+      }
+    ]
+  },
+  {
+    "name": "expo-upgrade",
+    "files": [
+      {
+        "path": "expo-upgrade/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-upgrade/SKILL.md",
+        "sha256": "876e20e77a42f4f5333f7a6a86c672f3c4b45cb4c37113d4695c0752e2e39e1f"
+      },
+      {
+        "path": "expo-upgrade/agents/openai.yaml",
+        "sha256": "c0695e6a721f721e4d27c44df7b5adbf7602bf798862c6674ee3002c993edc20"
+      },
+      {
+        "path": "expo-upgrade/references/expo-av-to-audio.md",
+        "sha256": "b66df7e8722339e2b0ae5e22da225e313794744eb0648303ad6cfc43632cc6a1"
+      },
+      {
+        "path": "expo-upgrade/references/expo-av-to-video.md",
+        "sha256": "e222bf0e767baee721f7e42ce68d2c26a8b844d723e830d81cdfecac805564a2"
+      },
+      {
+        "path": "expo-upgrade/references/native-tabs.md",
+        "sha256": "bf945b38a970a556769d1c406f8089d8ece34b5f204fe32a0e10fbedc24fff83"
+      },
+      {
+        "path": "expo-upgrade/references/new-architecture.md",
+        "sha256": "32479e9be069c5e4931dfdf3e475119ddc7a879bac8a475e259e5193bcf32cff"
+      },
+      {
+        "path": "expo-upgrade/references/react-19.md",
+        "sha256": "bf600571e38dd7d114b58e0f6ace5a560792624dcfdc49c421134cd1669a0d77"
+      },
+      {
+        "path": "expo-upgrade/references/react-compiler.md",
+        "sha256": "ad485033650cff963abdfd8a98d5bbe5f0825a853ffebd6cfe11a4c80b3c63db"
+      },
+      {
+        "path": "expo-upgrade/references/react-navigation-to-expo-router.md",
+        "sha256": "083fb891adb87a1ab02aff92b1f322014ecb2427014e20194ff9e05f5d321ca9"
+      }
+    ]
+  },
+  {
+    "name": "expo-web-to-native",
+    "files": [
+      {
+        "path": "expo-web-to-native/LICENSE",
+        "sha256": "49c5f9c7097c9a940ff663a54c27a4c60e379df6cc2b3052df0d37a09a85df93"
+      },
+      {
+        "path": "expo-web-to-native/SKILL.md",
+        "sha256": "07b8fd24924ca41166f17929b63885af7a487004e8788bc9d76b2eb0c34ff89f"
+      },
+      {
+        "path": "expo-web-to-native/agents/openai.yaml",
+        "sha256": "94f4c4510b2f5655046887b4a31dcee99c453519c4caee82864630d5982083bd"
+      },
+      {
+        "path": "expo-web-to-native/references/false-friends.md",
+        "sha256": "a6e526bee7e26651ac505e515f3be0aa87a9f71b1f8fb4ccba770fd708d1829a"
+      },
+      {
+        "path": "expo-web-to-native/references/native-patterns.md",
+        "sha256": "ca222d56944858c7608b941a4b4623ab537abfd4f6a3b9473fd15e8e96bf80a3"
+      },
+      {
+        "path": "expo-web-to-native/references/run-as-goal.md",
+        "sha256": "f565f2fd5ca10573990b42acaf0379202c6bc79fb574930d6bc4be5d24d6a944"
+      },
+      {
+        "path": "expo-web-to-native/references/verify-on-device.md",
+        "sha256": "a883bc66356c11ec08ba2428f158db1d1f9b228d7b6ed5cc2ff84e2afc951fcb"
+      }
+    ]
+  },
+  {
+    "name": "find-animation-opportunities",
+    "files": [
+      {
+        "path": "find-animation-opportunities/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "find-animation-opportunities/SKILL.md",
+        "sha256": "d52a377819b84a71930f0c822cfe2849f40301605a2d5c7eccbfa3b257700df2"
+      }
+    ]
+  },
+  {
+    "name": "fixing-accessibility",
+    "files": [
+      {
+        "path": "fixing-accessibility/SKILL.md",
+        "sha256": "549261e8a53b53a1a20c0ddbf736821e5fc0876ad82eee76e0efab8e9ee9dadf"
+      }
+    ]
+  },
+  {
+    "name": "frontend-design",
+    "files": [
+      {
+        "path": "frontend-design/SKILL.md",
+        "sha256": "d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3"
+      }
+    ]
+  },
+  {
+    "name": "improve-animations",
+    "files": [
+      {
+        "path": "improve-animations/AUDIT.md",
+        "sha256": "551c8473e20e5f4774680bc24d45e1c68e50992582720905c6b077756b7b5a55"
+      },
+      {
+        "path": "improve-animations/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "improve-animations/PLAN-TEMPLATE.md",
+        "sha256": "0a08ac8e23fd2082d7ffb86aeed7b789de77328c3cf874b16f1a755f2ef0a6ad"
+      },
+      {
+        "path": "improve-animations/SKILL.md",
+        "sha256": "73962447464433476343e2c12cd08ab39cc99a9e5f3c118c5fb54ed897574ef6"
+      }
+    ]
+  },
+  {
+    "name": "load-balancing",
+    "files": [
+      {
+        "path": "load-balancing/SKILL.md",
+        "sha256": "a059ed4b31a0006f0dc33c8bed55332e445be0343ce4bc96e309de2f11f0a217"
+      },
+      {
+        "path": "load-balancing/references/deep-dive.md",
+        "sha256": "d45eb37f270b1f4a24bfacf1cd7541c79b43fd8536d6de9de1265a26e67b377d"
+      },
+      {
+        "path": "load-balancing/references/providers/aws.md",
+        "sha256": "b3ef57f0dedeac64326e1e2ca27422c61b78b92fbed51227909ba93b22fa2aa1"
+      },
+      {
+        "path": "load-balancing/references/providers/azure.md",
+        "sha256": "3208b76f528c58e42b0313897c8b4f950a897011bca83f725c13b01c1be117e8"
+      },
+      {
+        "path": "load-balancing/references/providers/gcp.md",
+        "sha256": "29e88790927e31d68171eeed58acd192c92b46024b98e0e8d99416dd9bb7abd8"
+      },
+      {
+        "path": "load-balancing/references/providers/generic.md",
+        "sha256": "cf2f683e242ebea3347174e9a9503b34de940a9e568da6d2f8886eda78920fca"
+      }
+    ]
+  },
+  {
+    "name": "messaging-streaming",
+    "files": [
+      {
+        "path": "messaging-streaming/SKILL.md",
+        "sha256": "dc24e777c544accb6bcbe94821d75e56dc88b334f164770d3dda76630dc2e15f"
+      },
+      {
+        "path": "messaging-streaming/references/deep-dive.md",
+        "sha256": "a92e1d9c277dcbbb623ce45addd698c80aefe07c0d981349933e72576c0f29a5"
+      },
+      {
+        "path": "messaging-streaming/references/providers/aws.md",
+        "sha256": "94e10cee72bc95a29b2b5187db4b754caecc35c82da88bcc7e24a167efec5ef3"
+      },
+      {
+        "path": "messaging-streaming/references/providers/azure.md",
+        "sha256": "151e28b00a631839f7be7906ebe28ac6502f263147419a8d5621af1fa724a36e"
+      },
+      {
+        "path": "messaging-streaming/references/providers/gcp.md",
+        "sha256": "0aa9a71204fcee89cfacbf6fae60a9828188ce06530401d868564ee87703389e"
+      },
+      {
+        "path": "messaging-streaming/references/providers/generic.md",
+        "sha256": "586a0c8e8cc7e7eb85b0aecfb5886aa66e6244f356d52a8f5ebc2c8edf25e23f"
+      },
+      {
+        "path": "messaging-streaming/references/providers/temporal.md",
+        "sha256": "1abda7914e8bbc9b9338fb9f9205b1540cf7dbd71bfa24975c065bd7092d104e"
+      }
+    ]
+  },
+  {
+    "name": "mobile-native",
+    "files": [
+      {
+        "path": "mobile-native/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "mobile-native/SKILL.md",
+        "sha256": "888b7651d66d66dbac4e72b7c554638eb19bd971d686d6cbdf030a5ef3788f55"
+      }
+    ]
+  },
+  {
+    "name": "observability",
+    "files": [
+      {
+        "path": "observability/SKILL.md",
+        "sha256": "2ec892a031793c727e9728fa29490d1bec2a0c3fa89e5699ba5fcbec020ba4fb"
+      },
+      {
+        "path": "observability/references/deep-dive.md",
+        "sha256": "b31d58a153d63c4a9cfe4f52f0c6b0e72b9cd426ac935384f271ce72f38548b3"
+      },
+      {
+        "path": "observability/references/providers/aws.md",
+        "sha256": "c918a16c6f6090188d3d1b757a4a257b532bab6b5a5c7b7117c9ceadc1cefae9"
+      },
+      {
+        "path": "observability/references/providers/azure.md",
+        "sha256": "5d56af973ae5625961238ccb2b80fc7bba8f62cced291348c07d26d5cbd67eca"
+      },
+      {
+        "path": "observability/references/providers/gcp.md",
+        "sha256": "42fde7f3232aa6ea9b781fdf95b708e47838f1de8e8bfa3f0abbe8890b820110"
+      },
+      {
+        "path": "observability/references/providers/generic.md",
+        "sha256": "efff07b469aca325a8be4b1d5098f05277af8b1b2a3da6be8ca5eb2b02d783bb"
+      }
+    ]
+  },
+  {
+    "name": "pick-ui-library",
+    "files": [
+      {
+        "path": "pick-ui-library/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "pick-ui-library/SKILL.md",
+        "sha256": "675fdce308683256ed617351a9b74d23457a5fbd0a562d9831b9c764b8c5e682"
+      }
+    ]
+  },
+  {
+    "name": "prototype",
+    "files": [
+      {
+        "path": "prototype/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "prototype/PICKER.md",
+        "sha256": "31a55eec94715cc79942e91e172e539e3031dcd5e2e5ee7c1446cf2caee960a6"
+      },
+      {
+        "path": "prototype/SKILL.md",
+        "sha256": "bba39c955eb1871c5a02733976ceec5d0324198e0812e667604756489c89f7b9"
+      }
+    ]
+  },
+  {
+    "name": "requirements-scoping",
+    "files": [
+      {
+        "path": "requirements-scoping/SKILL.md",
+        "sha256": "3858ef3f1d5d609fdfa15f6fa380451fe4800061012d1bfeaf39787f287fb930"
+      },
+      {
+        "path": "requirements-scoping/references/clarifying-question-catalog.md",
+        "sha256": "9d5264355a7dcf156f47efcea11c33391330380e6362174fc02eac06dda4e879"
+      }
+    ]
+  },
+  {
+    "name": "resilience-failure",
+    "files": [
+      {
+        "path": "resilience-failure/SKILL.md",
+        "sha256": "fc9691ebed337b3785a905fe4de6c5391173b1014eaf927b9cef5bc887bc3a63"
+      },
+      {
+        "path": "resilience-failure/references/deep-dive.md",
+        "sha256": "c3f543e79f8d05e506f392f6196a4d617e2e4ea379340fea99927cdc14a8b6af"
+      },
+      {
+        "path": "resilience-failure/references/providers/aws.md",
+        "sha256": "d06cefde01c1371b14d70fc93b9564bfd940708b41d6c3736ef416ac3a7ecfaa"
+      },
+      {
+        "path": "resilience-failure/references/providers/azure.md",
+        "sha256": "882e18b7b99bf6d5174a7cbf00c3433534d973edf6366317edf4aae2ff326389"
+      },
+      {
+        "path": "resilience-failure/references/providers/gcp.md",
+        "sha256": "fa7b21e7d7b92b4e66f831f64110edc8be85f361a7fe89a0e8e770a1695f90ef"
+      },
+      {
+        "path": "resilience-failure/references/providers/generic.md",
+        "sha256": "96effe89666183fd16301b8586963111c67c87136d46c601129360b651d54566"
+      },
+      {
+        "path": "resilience-failure/references/providers/temporal.md",
+        "sha256": "a2fd126978e581765e292a03f0f91d79611a5995409b75adaab9fb387f9dfb32"
+      }
+    ]
+  },
+  {
+    "name": "review-animations",
+    "files": [
+      {
+        "path": "review-animations/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "review-animations/SKILL.md",
+        "sha256": "6ff590d29e436766135aa3d137be1fac2a867165c7257fc315b189361f1873af"
+      },
+      {
+        "path": "review-animations/STANDARDS.md",
+        "sha256": "e7d3605034acda54ca13e43aec9e64d65b53de20f75b11b8d694e373012fbe07"
+      }
+    ]
+  },
+  {
+    "name": "scaling-evolution",
+    "files": [
+      {
+        "path": "scaling-evolution/SKILL.md",
+        "sha256": "892ad181e375905760ee04a83ee9c84a8249dd9e543387c816c0cb290228289e"
+      },
+      {
+        "path": "scaling-evolution/references/scaling-ladder.md",
+        "sha256": "df13b3ee9c21291613353dd02b501e4920671d1c902bf218788c7590f6690709"
+      }
+    ]
+  },
+  {
+    "name": "sequencer",
+    "files": [
+      {
+        "path": "sequencer/SKILL.md",
+        "sha256": "fecd8d1486ede30b7be402f6a0d480c824fc073595418cd8d23b37e0e1dd7bb2"
+      },
+      {
+        "path": "sequencer/references/deep-dive.md",
+        "sha256": "8c3efccc813e9c33b2b625218a728747c722ee4f9c1ca643809467605b379ec8"
+      },
+      {
+        "path": "sequencer/references/providers/aws.md",
+        "sha256": "346167aca537707e1b8b2874f448dd62dbbd13b8654bd0b80181711dfd3e8bc9"
+      },
+      {
+        "path": "sequencer/references/providers/gcp.md",
+        "sha256": "f1d05ce34520a241d900e7a987198cc27af852534d775d56eae414f7badfc626"
+      },
+      {
+        "path": "sequencer/references/providers/generic.md",
+        "sha256": "dd34f2b295b438e0fb92c046055471555e7e87c1e389599b20d08e6a49132e30"
+      }
+    ]
+  },
+  {
+    "name": "service-decomposition",
+    "files": [
+      {
+        "path": "service-decomposition/SKILL.md",
+        "sha256": "710525824f7d48c5a16eeb58121aa76460e910e672dfb620306293aa7f17d0ad"
+      },
+      {
+        "path": "service-decomposition/references/deep-dive.md",
+        "sha256": "c4092323cc4e4a64e3ebeeb6fb36973d83ed85b16fb94047588056b3cce8d9b4"
+      },
+      {
+        "path": "service-decomposition/references/providers/aws.md",
+        "sha256": "0a4b1d7b6efec47c3be4952c1f5025e5d0be0c3d99ea274bb100b73e64f7eec9"
+      },
+      {
+        "path": "service-decomposition/references/providers/azure.md",
+        "sha256": "05964bd486c6802c8c4e64751bf12d6e3ef0050f7b2534b97823cdfde721c00b"
+      },
+      {
+        "path": "service-decomposition/references/providers/gcp.md",
+        "sha256": "4645d1601301adae8b239ecd93e42df4e36e31d4d897eb8615c3fc8ce7048662"
+      },
+      {
+        "path": "service-decomposition/references/providers/generic.md",
+        "sha256": "6bda316534602c08d1815dd5f2db53b221a2ef16cc705d295c3c6acf652174c5"
+      }
+    ]
+  },
+  {
+    "name": "sharded-counters",
+    "files": [
+      {
+        "path": "sharded-counters/SKILL.md",
+        "sha256": "6b30dc9cebd9afd1a412f9fdb572a6dc9111f45637bd5c587fde8a8403898ef5"
+      },
+      {
+        "path": "sharded-counters/references/deep-dive.md",
+        "sha256": "d80940397045443fd3b91365ef00cc350d619d257b83e81f44b04f1dfeb6ee6d"
+      },
+      {
+        "path": "sharded-counters/references/providers/aws.md",
+        "sha256": "a2c1483e98e286c62628f5b9eaeb5f5cd4f46021ed6e4c7b7f7b3458aa890925"
+      },
+      {
+        "path": "sharded-counters/references/providers/azure.md",
+        "sha256": "4c102db05dc16da48f3f73b299af75cacb3afcca6afbb2d1ebbce3fff16bda8e"
+      },
+      {
+        "path": "sharded-counters/references/providers/gcp.md",
+        "sha256": "1c99ab1c8e3e81cf8559f84fd7e9e64dd2ecab9c749d396844a102d65c867e1a"
+      },
+      {
+        "path": "sharded-counters/references/providers/generic.md",
+        "sha256": "c84f744db7dbb6736d3b42a37b96f821e1d34abb53d6cfa6f9ed87dbeb81cfd7"
+      }
+    ]
+  },
+  {
+    "name": "system-design",
+    "files": [
+      {
+        "path": "system-design/SKILL.md",
+        "sha256": "308f3ff9cf3d8a09c13835ff6a0e0dec3f7b13e9833660030fafbe2c9fdd6019"
+      },
+      {
+        "path": "system-design/assets/design-doc-template.md",
+        "sha256": "dd3ee3205d818a87c9a10595c240b64ce47f0d9a45779d904b46a16b56ba9de0"
+      },
+      {
+        "path": "system-design/assets/requirements-template.md",
+        "sha256": "461e9e85e1c85d316e29ae84f5c937662ce9d59b01af9947bb8cb921837f0e21"
+      },
+      {
+        "path": "system-design/references/building-blocks-index.md",
+        "sha256": "324e89aefed812e37a0d518b1a18d24fbc88cb7a391d6781014e6fe09b414fe5"
+      },
+      {
+        "path": "system-design/references/collaboration-playbook.md",
+        "sha256": "b1b9dad40e096b5d45103341ae9ac50e40ff82a9c6d03485f1b1797ce8edce85"
+      },
+      {
+        "path": "system-design/references/diagramming.md",
+        "sha256": "849218df79924238e90edbb52cc67a646e8fc418491cba15e8c2659642d53854"
+      },
+      {
+        "path": "system-design/references/failure-modes.md",
+        "sha256": "fb39592e7fe09c0b2f4aaaab213def0372b04b9f095eb3221ff3571214452ca0"
+      },
+      {
+        "path": "system-design/references/reasoning-loop.md",
+        "sha256": "435a82b88bb8d52118866e21fc866a1f1b8aa2a09ba920f2e9a9d85d8d676084"
+      },
+      {
+        "path": "system-design/references/tradeoff-framework.md",
+        "sha256": "50af340a16b7f74a1eca27fa2511028e6e9c182423351fcd625ac9ef4fc7a3e4"
+      },
+      {
+        "path": "system-design/references/worked-example-news-feed.md",
+        "sha256": "baba4b1f2b1555095bb736140cd7529d288561c1699bdc40c0bb522e0219ed48"
+      }
+    ]
+  },
+  {
+    "name": "task-scheduling",
+    "files": [
+      {
+        "path": "task-scheduling/SKILL.md",
+        "sha256": "43077161f3b9cd819f12d49c3c78447fbdc9a59569e97d01fdb1d6169db91825"
+      },
+      {
+        "path": "task-scheduling/references/deep-dive.md",
+        "sha256": "44d2b1ffe9ff8c1befd46ebf06fb8b844980519f65959f8cfefe6d26ce9c35fb"
+      },
+      {
+        "path": "task-scheduling/references/providers/aws.md",
+        "sha256": "e7ab4f1ed46d38306d29c9ef61c9cea5f24acd33d6f733bd3ef4f04cff6760b9"
+      },
+      {
+        "path": "task-scheduling/references/providers/azure.md",
+        "sha256": "3ca2ec2757427993602359de45061320d473a85a8735efe637dea05a15d3de7f"
+      },
+      {
+        "path": "task-scheduling/references/providers/gcp.md",
+        "sha256": "5586eb969b0ff32308a1a929f66ee48d37836ef02fa27369d54e0cc239fee99b"
+      },
+      {
+        "path": "task-scheduling/references/providers/generic.md",
+        "sha256": "a0e234b8bdf4f6c0ea1ac5a1b3ac812497d52595a5f7dfdd37bc962d9812774e"
+      },
+      {
+        "path": "task-scheduling/references/providers/temporal.md",
+        "sha256": "dadee1b9fb93305ce47c939d1cc4123e6003b5b37530f5d6fe2406786b3d1822"
+      }
+    ]
+  },
+  {
+    "name": "write-swift",
+    "files": [
+      {
+        "path": "write-swift/LICENSE",
+        "sha256": "4ff5bdb7887ec1435c9cab0e8d1a7caee704d894d65c2a008ccc68b1cc2f260b"
+      },
+      {
+        "path": "write-swift/SKILL.md",
+        "sha256": "16a4b6adb74e338e55e704ce5753ad54d825438b8a63930eeaede9f3c04c9447"
+      }
+    ]
+  }
+]

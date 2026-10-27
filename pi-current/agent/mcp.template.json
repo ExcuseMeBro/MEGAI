@@ -1,0 +1,37 @@
+{
+  "mcpServers": {
+    "pellet": {
+      "url": "http://127.0.0.1:27124/mcp",
+      "headers": {
+        "Authorization": "<SET_LOCALLY>"
+      },
+      "enabled": true,
+      "exposure": "deferred",
+      "toolExposure": {
+        "query_tasks": "direct",
+        "get_task": "direct",
+        "create_task": "direct",
+        "update_task": "direct",
+        "list_groups": "direct",
+        "list_subtasks": "direct"
+      },
+      "description": "Pellet local task vault: the execution tracker for MEGAI. query_tasks/get_task/create_task/update_task are always loaded; notes, kanban, calendar and canvas tools load on demand."
+    },
+    "open-pencil": {
+      "command": "$HOME/.local/share/openpencil/node_modules/.bin/openpencil-mcp",
+      "exposure": "deferred",
+      "description": "OpenPencil local design editor: inspect, edit and export canvas layers. Requires the OpenPencil desktop app and local MCP server running."
+    },
+    "agentmemory": {
+      "command": "/usr/local/bin/node",
+      "args": [
+        "$HOME/.npm-global/lib/node_modules/@agentmemory/agentmemory/dist/standalone.mjs"
+      ],
+      "env": {
+        "AGENTMEMORY_TOOLS": "all",
+        "AGENTMEMORY_FORCE_PROXY": "1"
+      },
+      "exposure": "deferred"
+    }
+  }
+}

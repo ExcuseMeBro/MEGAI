@@ -1,0 +1,10 @@
+{
+  "name": "pi-extensions",
+  "private": true,
+  "dependencies": {
+    "billion-context": "^0.1.194",
+    "pi-antigravity": "^0.11.0",
+    "pi-web-access": "^0.38.0",
+    "skill-diet": "^0.1.0"
+  }
+}
