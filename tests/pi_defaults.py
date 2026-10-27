@@ -714,9 +714,9 @@ class Distribution(unittest.TestCase):
         names = sorted(p.stem for p in (DEFAULTS / "prompts").glob("*.md"))
         self.assertEqual(names, ["mdev", "prdev", "rwbrowser"])
         self.assertFalse((DEFAULTS / "prompts/factory.md").exists(),
-                         "the retired Plane prompt must not shadow the Pellet package /factory")
-        self.assertEqual(json.loads((DEFAULTS / "pellet-factory/package.json").read_text())["pi"]["prompts"],
-                         ["./prompts/factory.md"])
+                         "retired Plane /factory must not be distributed")
+        self.assertFalse((DEFAULTS / "pellet-factory").exists())
+        self.assertFalse((DEFAULTS / "extensions/megai-factory").exists())
         verify = (DEFAULTS / "verify.mjs").read_text()
         for name in names:
             front = (DEFAULTS / f"prompts/{name}.md").read_text().split("---")[1]
@@ -740,73 +740,91 @@ class Distribution(unittest.TestCase):
         self.assertIn("readFileSync(c.winnerPath).equals(readFileSync(c.loserPath))", verify)
         self.assertIn("diagnostics.length", verify)
 
-    def test_factory_is_one_selected_pellet_prompt_and_guarded_internal_tool(self):
-        extension = (DEFAULTS / "extensions/megai-factory/index.ts").read_text()
-        runner = (DEFAULTS / "extensions/megai-factory/runner.mjs").read_text()
-        prompt = (DEFAULTS / "pellet-factory/prompts/factory.md").read_text()
+    def test_factory_entry_points_retired_but_other_workflows_intact(self):
         verifier = (DEFAULTS / "verify.mjs").read_text()
-        self.assertNotIn("registerCommand('factory'", extension)
-        self.assertNotIn("registerCommand('delegate'", extension)
-        self.assertIn("name: 'factory_delegate'", extension)
-        self.assertIn("'./pellet-factory'", verifier)
-        self.assertIn("promptNames.filter(n => n === 'factory').length !== 1", verifier)
-        self.assertIn("commands.includes('delegate') || commands.includes('factory')", verifier)
-        self.assertIn("'factory', 'mdev'", verifier)
-        self.assertTrue(prompt.startswith("---\n"))
-        for guard in ("query_tasks", "get_task", "open", "in_progress", "every page",
-                      "nonempty queue", "at most five", "PENDING", "BLOCKED", "each remaining task ID",
-                      "status_value: in-review", "UNASSESSED", "INCOMPLETE",
-                      "full records and actual resource ownership",
-                      "factory_delegate", "/splane", "git merge --ff-only --no-overwrite-ignore"):
-            with self.subTest(guard=guard):
-                self.assertIn(guard, prompt)
-        for forbidden in ("factory-plan", "factory-start", "mcp__plane__", "plane-check"):
-            with self.subTest(forbidden=forbidden):
-                self.assertNotIn(forbidden, extension + runner + prompt)
-        for guard in ("mcp__pellet__query_tasks", "mcp__pellet__get_task", "mcp__pellet__update_task",
-                      "ctx.ui.confirm", "ctx.hasUI", "ctx.model", "maximum: 5", "requireFactoryConfirmation"):
-            with self.subTest(guard=guard):
-                self.assertIn(guard, extension)
-        for guard in ("collectTasks", "selectTasks", "in_progress", "open", "if_file_modified",
-                      "worktree", "receipt", "remote", "no worker", "concurrency <= 5",
-                      "status_value", "eligible(detail)", "eligible(fresh)",
-                      "mode === 'rpc'", "mode === 'tui'", "approved === true", "timeout: 60_000"):
-            with self.subTest(guard=guard):
-                self.assertIn(guard, runner)
-        self.assertNotIn("queue is not empty", extension + runner + prompt)
+        workflow = (DEFAULTS / "workflow.py").read_text()
+        installer = (DEFAULTS / "install.py").read_text()
+        self.assertNotIn("factory-plan", workflow)
+        self.assertNotIn("factory-start", workflow)
+        self.assertIn('sub.add_parser("start")', workflow)
+        for guard in ("tools.includes('factory_delegate')", "commands.includes('delegate')",
+                      "commands.includes('factory')", "promptNames.includes('factory')",
+                      "configuredFactory.length"):
+            self.assertIn(guard, verifier)
+        self.assertIn("retire_factory_assets(agent, home)", installer)
+        self.assertNotIn("install_factory_package", installer)
+        self.assertNotIn("'factory', 'mdev'", verifier)
+        self.assertIn("The retired `/factory`", (DEFAULTS.parent / "README.md").read_text())
 
-    def test_factory_package_install_requires_known_hash_and_private_backup(self):
-        with tempfile.TemporaryDirectory(prefix="factory-package-install-") as staging:
+    def test_factory_retirement_requires_exact_hash_private_backup_and_preserves_foreign(self):
+        with tempfile.TemporaryDirectory(prefix="factory-retirement-test-") as staging:
             home = Path(staging)
             agent = home / ".pi/agent"
             package = agent / "pellet-factory/package.json"
             prompt = agent / "pellet-factory/prompts/factory.md"
-            prompt.parent.mkdir(parents=True)
-            package.write_bytes((DEFAULTS / "pellet-factory/package.json").read_bytes())
-            old = b"known operator-owned /factory prompt\n"
-            prompt.write_bytes(old)
-            with patch.object(install, "PRIOR_PELLET_FACTORY_DIGEST", hashlib.sha256(old).hexdigest()):
-                backup = install.install_factory_package(agent, home)
-            self.assertIsNotNone(backup)
-            self.assertEqual((backup / "factory.md").read_bytes(), old)
-            self.assertEqual(json.loads((backup / "receipt.json").read_text())["factory.md"],
-                             hashlib.sha256(old).hexdigest())
-            self.assertEqual(prompt.read_bytes(), (DEFAULTS / "pellet-factory/prompts/factory.md").read_bytes())
-            self.assertEqual(prompt.stat().st_mode & 0o777, 0o600)
-            self.assertIsNone(install.install_factory_package(agent, home))
-            prompt.write_text("foreign prompt")
-            with self.assertRaisesRegex(SystemExit, "Unowned /factory package prompt"):
-                install.install_factory_package(agent, home)
-            self.assertEqual(prompt.read_text(), "foreign prompt")
+            extension = agent / "extensions/megai-factory/index.ts"
+            cache = agent / "cache/jiti/megai-factory-index.12345678.mjs"
+            for path in (package, prompt, extension, cache):
+                path.parent.mkdir(parents=True, exist_ok=True)
+            package.write_bytes(b"owned package")
+            prompt.write_bytes(b"owned prompt")
+            extension.write_bytes(b"owned extension")
+            cache.write_bytes(b"factory_delegate compiled cache")
+            foreign = agent / "extensions/other/index.ts"
+            foreign.parent.mkdir(parents=True)
+            foreign.write_text("keep")
+            digests = {"pellet-factory/package.json": hashlib.sha256(package.read_bytes()).hexdigest(),
+                       "pellet-factory/prompts/factory.md": hashlib.sha256(prompt.read_bytes()).hexdigest(),
+                       "extensions/megai-factory/index.ts": hashlib.sha256(extension.read_bytes()).hexdigest()}
+            with patch.dict(install.FACTORY_ASSETS, digests):
+                prompt.write_text("foreign prompt")
+                with self.assertRaisesRegex(SystemExit, "Changed factory asset"):
+                    install.retire_factory_assets(agent, home)
+                self.assertTrue(extension.exists())
+                prompt.write_bytes(b"owned prompt")
+                extra = agent / "pellet-factory/prompts/operator-note.md"
+                extra.write_text("keep foreign data")
+                with self.assertRaisesRegex(SystemExit, "Unknown factory directory entry"):
+                    install.retire_factory_assets(agent, home)
+                self.assertTrue(package.exists())
+                extra.unlink()
+                receipt = install.retire_factory_assets(agent, home)
+                self.assertEqual((receipt / "pellet-factory/prompts/factory.md").read_bytes(), b"owned prompt")
+                self.assertEqual((receipt / "cache/jiti/megai-factory-index.12345678.mjs").read_bytes(), b"factory_delegate compiled cache")
+                self.assertEqual(json.loads((receipt / "receipt.json").read_text())["extensions/megai-factory/index.ts"], digests["extensions/megai-factory/index.ts"])
+                self.assertFalse(package.exists())
+                self.assertFalse(prompt.exists())
+                self.assertFalse(extension.exists())
+                self.assertFalse(cache.exists())
+                self.assertEqual(foreign.read_text(), "keep")
+                self.assertIsNone(install.retire_factory_assets(agent, home))
 
-    def test_factory_package_selection_preserves_existing_operator_entry(self):
+    def test_factory_cache_is_retired_only_with_known_identity(self):
+        with tempfile.TemporaryDirectory(prefix="factory-cache-guard-") as staging:
+            home = Path(staging)
+            agent = home / ".pi/agent"
+            cache = agent / "cache/jiti/megai-factory-index.abcdef12.mjs"
+            cache.parent.mkdir(parents=True)
+            cache.write_text("unrelated compiled module")
+            with self.assertRaisesRegex(SystemExit, "Unknown factory cache"):
+                install.retire_factory_assets(agent, home)
+            self.assertTrue(cache.exists())
+            cache.unlink()
+            source = home / "source.txt"
+            source.write_text("foreign")
+            cache.symlink_to(source)
+            with self.assertRaisesRegex(SystemExit, "Unowned factory asset"):
+                install.retire_factory_assets(agent, home)
+            self.assertEqual(source.read_text(), "foreign")
+
+    def test_factory_package_selection_removed_without_touching_other_packages(self):
         entry = {"source": "./pellet-factory", "prompts": ["prompts/factory.md"]}
-        existing = install.profile_settings({}, Path.home(), {"packages": [entry]})
-        self.assertEqual(existing["packages"], [entry])
-        fresh = install.profile_settings({}, Path.home(), {"packages": []})
-        self.assertEqual(fresh["packages"], [entry])
-        with self.assertRaisesRegex(ValueError, "Ambiguous or excluded"):
-            install.profile_settings({}, Path.home(), {"packages": [entry, entry]})
+        other = {"source": "npm:independent-package"}
+        settings = {"packages": [other, entry, entry], "theme": "custom"}
+        result = install.profile_settings({}, Path.home(), settings)
+        self.assertEqual(result["packages"], [other])
+        self.assertEqual(result["theme"], "custom")
+        self.assertEqual(install.profile_settings({}, Path.home(), result)["packages"], [other])
 
     def test_delivery_prompts_use_native_git_and_keep_fail_closed_boundaries(self):
         mdev = (DEFAULTS / "prompts/mdev.md").read_text()
