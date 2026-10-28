@@ -102,68 +102,6 @@
     ]
   },
   {
-    "name": "appllama-app-design-skill",
-    "files": [
-      {
-        "path": "appllama-app-design-skill/LICENSE",
-        "sha256": "14cffee850f5c761273dfc49798cddc96786b4520c23f3ed1da727c334f07476"
-      },
-      {
-        "path": "appllama-app-design-skill/SKILL.md",
-        "sha256": "be47c957ad097be96916a088a803281c933513fd98a71aedca7cef25a967d7a5"
-      },
-      {
-        "path": "appllama-app-design-skill/references/image-assets.md",
-        "sha256": "0ad789823718da7410f42a5c4ed3ff14ad4e0af7014f18181e7d5da0349908b8"
-      },
-      {
-        "path": "appllama-app-design-skill/references/motion.md",
-        "sha256": "2b611d67fa3afdf3aa61c259bcb4a604ac099af285eb0057fa9959ca14ab8cc5"
-      },
-      {
-        "path": "appllama-app-design-skill/references/native-controls.md",
-        "sha256": "9d6fd934738e86aba29411511b8e5b20b0ff928d717e9b67245586c7ba2aa302"
-      },
-      {
-        "path": "appllama-app-design-skill/references/performance.md",
-        "sha256": "c6591482adb86e059742a595dafab0f2833da89c0f3e7e16d7ae1c17d16a784b"
-      },
-      {
-        "path": "appllama-app-design-skill/references/simulator-loop.md",
-        "sha256": "65962c40204c946924137c8c4c7cc41f519cccc333ac9413ea926a21750f8f9c"
-      }
-    ]
-  },
-  {
-    "name": "appllama-usage",
-    "files": [
-      {
-        "path": "appllama-usage/LICENSE",
-        "sha256": "14cffee850f5c761273dfc49798cddc96786b4520c23f3ed1da727c334f07476"
-      },
-      {
-        "path": "appllama-usage/SKILL.md",
-        "sha256": "2d0c706a5c43aba26a6f5e0b833f3aa45f5c0fe05a519e04065a7c0a0b1f492d"
-      },
-      {
-        "path": "appllama-usage/agents/openai.yaml",
-        "sha256": "58b6f6bb21d6f37d808fdaf1100ff6933eaa6e350dee160d11a511fcac688efa"
-      },
-      {
-        "path": "appllama-usage/references/build-from-scratch.md",
-        "sha256": "ec11a7112e1f7988e294a3b90a94820f55f98ee0ad396e0028bb74fd67227983"
-      },
-      {
-        "path": "appllama-usage/references/improve-a-screen.md",
-        "sha256": "51e2086b676541893f3a174ac7263f80ca92d1c77ae6b0b65f89e91f6e5f3707"
-      },
-      {
-        "path": "appllama-usage/references/research-methods.md",
-        "sha256": "a0c4abdce9502d9678b87ddb6f67153ef8e2bf23d73c342261cc7da18a7b54a3"
-      }
-    ]
-  },
-  {
     "name": "architecture-diagram",
     "files": [
       {
@@ -1221,6 +1159,723 @@
       {
         "path": "frontend-design/SKILL.md",
         "sha256": "d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3"
+      }
+    ]
+  },
+  {
+    "name": "hallmark",
+    "files": [
+      {
+        "path": "hallmark/LICENSE",
+        "sha256": "06088a8b94598626f27612dea42300154bf7be967c85d9d3eee4490cb056af7d"
+      },
+      {
+        "path": "hallmark/SKILL.md",
+        "sha256": "42e3075c5263d9b530414927d6c335a5909379918e37a844e7e60e41adea9f9a"
+      },
+      {
+        "path": "hallmark/agents/openai.yaml",
+        "sha256": "0bc6fa7d573c926e8d3fe04a5afc8191096e5aa7287598a59b6c7e6321b53298"
+      },
+      {
+        "path": "hallmark/references/anatomy.md",
+        "sha256": "70f570279d42ac0bef4af809c80b522e550c6dacaaa0a93349a0fff0d5b93500"
+      },
+      {
+        "path": "hallmark/references/brand-truth.md",
+        "sha256": "01c17c45d3b213f80ef28c93548d1b99aa2afad75ed8b236811ba56169c3f068"
+      },
+      {
+        "path": "hallmark/references/comp.md",
+        "sha256": "597f16de607e136f93ea5829c9d82663223a1c1c0423d581b55fa0b51c08f37f"
+      },
+      {
+        "path": "hallmark/references/craft.md",
+        "sha256": "1b7b40f81f0fe1c04dce133696182ca1229d16162f8f3203603f24a0f585c41c"
+      },
+      {
+        "path": "hallmark/references/dark-mode.md",
+        "sha256": "99e86439eed1caa9e898a31baa05e65c856c53918faf6fdcb5d71a8e0f1ef131"
+      },
+      {
+        "path": "hallmark/references/data-viz.md",
+        "sha256": "1a26f9e8e16ca065d7412d2db57200698459cdbda498e08e8eaf0ea7a82097dc"
+      },
+      {
+        "path": "hallmark/references/design-md.md",
+        "sha256": "839d4cd8d5b07007854e9c6de95491691725f2968a0922f9b8fcfdbe42e2784c"
+      },
+      {
+        "path": "hallmark/references/direction.md",
+        "sha256": "19e00099e95be52df2ae893881e29a23cd7a5ee5dc8434a87588376818851642"
+      },
+      {
+        "path": "hallmark/references/export-formats.md",
+        "sha256": "3078bcb08e6324904ee156b6871dc0f47aa170e5d4baf09d43a5c48c46ca7c6b"
+      },
+      {
+        "path": "hallmark/references/flow.md",
+        "sha256": "45565a78e3c7fdc33791c5074c8640199e2f711e62131cd4ef1cb337010b6e85"
+      },
+      {
+        "path": "hallmark/references/fonts.md",
+        "sha256": "cb61b732e4ad6a4ca27ee37aab96c0845a148cb797fd10c3c92e6c032dd36229"
+      },
+      {
+        "path": "hallmark/references/gates.md",
+        "sha256": "63ad234a1acab5e081dfe8ecf2331518a43cbf42760dc5c6ababfb24d7b3e50c"
+      },
+      {
+        "path": "hallmark/references/genres/atmospheric.md",
+        "sha256": "39c2ba5b282fcc934742aeb410d1bb4d6c65f1da1514b0f18a9600aa8f13f289"
+      },
+      {
+        "path": "hallmark/references/genres/editorial.md",
+        "sha256": "1d47311bfd4d3e4c02f88f25e4852d920d168eb838370fee77b917bcc6e3592c"
+      },
+      {
+        "path": "hallmark/references/genres/modern-minimal.md",
+        "sha256": "5f84b3c056be101707c6f2d7ac929e879f5ab7b009ac8426156c11054193cd9b"
+      },
+      {
+        "path": "hallmark/references/genres/playful.md",
+        "sha256": "974e13a9ada8b49e2cfcc05efb8235be60103acef02e390d8f819cd8e2abd3a9"
+      },
+      {
+        "path": "hallmark/references/imagery.md",
+        "sha256": "b5a4abaa3fd949ac2e2890c9aa37b2953587ed419fdd1b4ff343a4fc04838e7e"
+      },
+      {
+        "path": "hallmark/references/interaction-and-states.md",
+        "sha256": "08e232008734fce86b1ec6085db72342e90d2f855351eb84f20ea3799fe0808a"
+      },
+      {
+        "path": "hallmark/references/layout.md",
+        "sha256": "2724768fe7249ab3e941923f2c42bc2ff2ff529eeb672cfa30e00c72f627a0e4"
+      },
+      {
+        "path": "hallmark/references/macrostructures/01-bento-grid.md",
+        "sha256": "1efd7da3e1857d22da50307af0effa92200198b59c26f0e429b8ffcaa9cd96ae"
+      },
+      {
+        "path": "hallmark/references/macrostructures/02-long-document.md",
+        "sha256": "4d7524c16b764daef6fd8bc5e6757dcc4d886addf33f324b32f024c64bcbc573"
+      },
+      {
+        "path": "hallmark/references/macrostructures/03-marquee-hero.md",
+        "sha256": "cb379a2eb56d8503265ab541ef9711e59bb2d51dadedfe3e47ccb697b3948e79"
+      },
+      {
+        "path": "hallmark/references/macrostructures/04-stat-led.md",
+        "sha256": "2a065807340244d188de455fdb21c7ff8906bb95240873d0993f734c85c8f4a1"
+      },
+      {
+        "path": "hallmark/references/macrostructures/05-workbench.md",
+        "sha256": "6bc0ccd0604afef8c749706189cf91b35078bcc52738eb29603840db0db151c6"
+      },
+      {
+        "path": "hallmark/references/macrostructures/06-conversational-faq.md",
+        "sha256": "000a182731d543eaa9e2fda2be50fd4032ff25ed83a6befbbb0cd03567dbe15b"
+      },
+      {
+        "path": "hallmark/references/macrostructures/07-manifesto.md",
+        "sha256": "3ac47d67fa8e0ee8db2fba2fd329c5ffcbf981a0b760e482748935f6e3411c46"
+      },
+      {
+        "path": "hallmark/references/macrostructures/08-photographic.md",
+        "sha256": "d07d2508845277b68cb8cacc8f82d8fac84b69063277ec277d19a7f59fe43992"
+      },
+      {
+        "path": "hallmark/references/macrostructures/09-quote-led.md",
+        "sha256": "1609ddc34d842c730e4d18bacc010b1b43cfa59892043c523b51bdffead0fb56"
+      },
+      {
+        "path": "hallmark/references/macrostructures/10-specimen.md",
+        "sha256": "18313a17c6512afda417c8c19f4e0bea1549ecd5fc43e87ba89fb4e526b56eea"
+      },
+      {
+        "path": "hallmark/references/macrostructures/11-catalogue.md",
+        "sha256": "20708e7e61ed610506971f48d36eec88512423b77855f78cc8c65b75ba90e0ae"
+      },
+      {
+        "path": "hallmark/references/macrostructures/12-letter.md",
+        "sha256": "0d6779b5da3e3a44b573b3665daefe489fbd4857c1124ca4b8ff0fe6fc17a34f"
+      },
+      {
+        "path": "hallmark/references/macrostructures/13-index-first.md",
+        "sha256": "ba7b085f91a8c2eb0baf376b88e4307b38250a2d4dd707fb22f2e5faeb32a7e2"
+      },
+      {
+        "path": "hallmark/references/macrostructures/14-narrative-workflow.md",
+        "sha256": "4e120a5cb04a54aa172a5d2b5e727c27603ccddf37a2f8c9a15756993a9337fc"
+      },
+      {
+        "path": "hallmark/references/macrostructures/15-split-studio.md",
+        "sha256": "49c758082ce6d4a6e541bb8706412fe4eb92ffd9dd772208b6a21142aa4bf3c6"
+      },
+      {
+        "path": "hallmark/references/macrostructures/16-feature-stack.md",
+        "sha256": "df26d2d4094b3059c0a35db94389524b0ba76f8fe64e89d4e6ba3def7eed1ece"
+      },
+      {
+        "path": "hallmark/references/macrostructures/17-type-specimen.md",
+        "sha256": "4ff06c001a10f973b9c70b1a0fa21ea1ce54ac0e3727cf8b5ec2e0a1b6bf568d"
+      },
+      {
+        "path": "hallmark/references/macrostructures/18-portfolio-grid.md",
+        "sha256": "d035dee299e329efeea7dd3b4b897b11f0547f03ac4c2f0c62a3fd422d30f618"
+      },
+      {
+        "path": "hallmark/references/macrostructures/19-map-diagram.md",
+        "sha256": "b8c0021c01fb8a970907caefa74a8c462cb573a2666fc4b223082812f9b19399"
+      },
+      {
+        "path": "hallmark/references/macrostructures/20-ecosystem-index.md",
+        "sha256": "27b1909d028f553efbc112ecd5a8c843e191e97a286bf2bd258daad86bfa64c4"
+      },
+      {
+        "path": "hallmark/references/macrostructures/21-component-playground.md",
+        "sha256": "830b52f62bdb722f3bd954f4f9ce60fc8c6e521ba2cc1f173e6c0fc3b5611413"
+      },
+      {
+        "path": "hallmark/references/macrostructures.md",
+        "sha256": "3389dbc0434bd9a6161896a19b4ec6664859d49f1b0329cd0e8fae6f045e1c43"
+      },
+      {
+        "path": "hallmark/references/microinteractions.md",
+        "sha256": "e7ec31f08e58edcdb8986fc57d276466c1f7b08445756f3a7cf6f46e8b5a8c8e"
+      },
+      {
+        "path": "hallmark/references/patterns.md",
+        "sha256": "bb15954cb04083c9a3b796dda5df5c33c9c05dddf2341d7befe2571e715f613b"
+      },
+      {
+        "path": "hallmark/references/redesign.md",
+        "sha256": "cd3fc1dd10af22bb0374b41340fbab8f2b3be997ea5b63716da3d44ba0bb0552"
+      },
+      {
+        "path": "hallmark/references/responsive.md",
+        "sha256": "7ed0cd54fda3351be9e7b5514ebf4a5306a837cf3d893b31e96c7fd490b348ea"
+      },
+      {
+        "path": "hallmark/references/review-finish.md",
+        "sha256": "9d00de59e71ee2516212140b0512d6d2e90a120d4a328eeba9cb12396ff38d64"
+      },
+      {
+        "path": "hallmark/references/review-hero.md",
+        "sha256": "e84702982bcad34fc8ef4aaf032a5482356912992ce72d84b12e05cd4a519fb2"
+      },
+      {
+        "path": "hallmark/references/scroll-choreography.md",
+        "sha256": "809c0fc84011412766db10e3e14def2b3ce02f0452d7fb2e60adecfa85991393"
+      },
+      {
+        "path": "hallmark/references/texture.md",
+        "sha256": "b5749c008fef0511188d491aec0c5556b19f6731b13539934ecc1cb584a2e756"
+      },
+      {
+        "path": "hallmark/references/themes/README.md",
+        "sha256": "aece9d5f273ef6a4eb3e59833bc428c17232ad4ade1247637355636087d5264d"
+      },
+      {
+        "path": "hallmark/references/themes/almanac.jpg",
+        "sha256": "a78b5a78a662ebd6a54be31b581bfd7447d391cff549c503025f0f762f4bddb5"
+      },
+      {
+        "path": "hallmark/references/themes/almanac.md",
+        "sha256": "b5c85e7c96cda4f13af81dd42c020c7eae7c4f63b4530b7e9fcef09340d96efc"
+      },
+      {
+        "path": "hallmark/references/themes/arcade.jpg",
+        "sha256": "dad3bbcf4cc25bf8e97e03d034ceed2f2bf0f8a9ea308afe60b559f04bb40f04"
+      },
+      {
+        "path": "hallmark/references/themes/arcade.md",
+        "sha256": "a6e6d644412e9cbe0172fa784bc05a69767c792a642ab860e6da1af33ef861f9"
+      },
+      {
+        "path": "hallmark/references/themes/atelier.jpg",
+        "sha256": "1f7d16373c8ab9d949084599c87777060c24b298fec9fd382fe7cc0066d6ec03"
+      },
+      {
+        "path": "hallmark/references/themes/atelier.md",
+        "sha256": "8cffffd26a857adab803fd0e1c5eb49ade86cd486a8dc3c576728032a84a5ccf"
+      },
+      {
+        "path": "hallmark/references/themes/bloom.jpg",
+        "sha256": "6dcda211f142627c455ec800442038475341cfcbdae83c529753283427066081"
+      },
+      {
+        "path": "hallmark/references/themes/bloom.md",
+        "sha256": "a2130aa950bfcf4333cc8dbc46ae79e0facf576241b235b1e94ae30f977a0ffb"
+      },
+      {
+        "path": "hallmark/references/themes/blueprint.jpg",
+        "sha256": "dec761657594b854635572f498e6d7428068b132e314df782b07d31e7e06d777"
+      },
+      {
+        "path": "hallmark/references/themes/blueprint.md",
+        "sha256": "9de09c493df045f8b3f720638248d21f857b076be264e7ee0262e9877a5040d6"
+      },
+      {
+        "path": "hallmark/references/themes/broadside.jpg",
+        "sha256": "86e56076fb37223a448c354ea1148890167e85036b3189c51296a176c97bc978"
+      },
+      {
+        "path": "hallmark/references/themes/broadside.md",
+        "sha256": "9a4ebceef5ca462a0b7ade98250a07ad33cfa40f97f6e78434e638fa9e626222"
+      },
+      {
+        "path": "hallmark/references/themes/brutal.jpg",
+        "sha256": "cafd8a53eb83fe09efb0250f2006fd517c3218959afc337024bfe775e4bc7bbf"
+      },
+      {
+        "path": "hallmark/references/themes/brutal.md",
+        "sha256": "4e087f62f815635cbf9c1a7f2a58db77c610ae97f31bef70acd777871859aa97"
+      },
+      {
+        "path": "hallmark/references/themes/carnival.jpg",
+        "sha256": "9a0a139afb7f1ca0ac65d55157432c5ed91e23371b7b6116e3e6937b675712a5"
+      },
+      {
+        "path": "hallmark/references/themes/carnival.md",
+        "sha256": "fc8e876e5a1c23bda103719b61a7440e203ff91ff050ebded53f732108c43b82"
+      },
+      {
+        "path": "hallmark/references/themes/cobalt.jpg",
+        "sha256": "695cf419c3cc734c8fa9e6d23e0692385990bcd55349bb689300431392d0e3cd"
+      },
+      {
+        "path": "hallmark/references/themes/cobalt.md",
+        "sha256": "d24a5609f0c42e6ff6a1976d5f7f0651ec40eed69db5d6c4680c1385a65f2007"
+      },
+      {
+        "path": "hallmark/references/themes/console.jpg",
+        "sha256": "665f07532303613d55c3832ac7141c2b007cb3a34bb245882bef3ab74e6e1cf1"
+      },
+      {
+        "path": "hallmark/references/themes/console.md",
+        "sha256": "d52eda46d5480ab0123f78ab83ea1187813f4b26ddb02d0f4e61e2b511ae6309"
+      },
+      {
+        "path": "hallmark/references/themes/coral.jpg",
+        "sha256": "dbb7596586c0563122935ab602e627cc621fe6939013619b6a1c552d5f25a03e"
+      },
+      {
+        "path": "hallmark/references/themes/coral.md",
+        "sha256": "f8444921b5e751b3b9be94d448aaee502e509729aa89411ff887087777bb1c28"
+      },
+      {
+        "path": "hallmark/references/themes/darkroom.jpg",
+        "sha256": "d8a7136d01223a7b6d2193d30c0c2e549e2967da65fb69fd33eee55df9f149c1"
+      },
+      {
+        "path": "hallmark/references/themes/darkroom.md",
+        "sha256": "946e2233f310dde0304f970070408a7ff6581e3b442faaa14da80f39e31e9499"
+      },
+      {
+        "path": "hallmark/references/themes/dose.jpg",
+        "sha256": "7bdf523555d21e8c89b04ab77af15a816a3c7bf84055c7c780b77d891cd4c735"
+      },
+      {
+        "path": "hallmark/references/themes/dose.md",
+        "sha256": "780a5e57a813b3008ac6a8c7287affc5516a68e51310d77df890286f6d6369f5"
+      },
+      {
+        "path": "hallmark/references/themes/dusk.jpg",
+        "sha256": "f38be2c20d3d2183dfdb127fc2a9df71e3f16e413b8fda56146567a05e5a9514"
+      },
+      {
+        "path": "hallmark/references/themes/dusk.md",
+        "sha256": "47cf0ede99ba90b88cec14eb2ec80d5fd9e003e9ed3878708275553e2c52d4bf"
+      },
+      {
+        "path": "hallmark/references/themes/editorial.jpg",
+        "sha256": "a5f3ecdbe561cfbe06374706beac154bc47a77b12ac964c742b412eec6a3e0df"
+      },
+      {
+        "path": "hallmark/references/themes/editorial.md",
+        "sha256": "cafd967f2ac736c9927a749de1b8f4216183e3fa3adce95e638d124b2de5876f"
+      },
+      {
+        "path": "hallmark/references/themes/formwork.jpg",
+        "sha256": "dc52b44d0dd300d54d0fad5f18b032e7b29f0288da546fbfa4dd73baa0d4e255"
+      },
+      {
+        "path": "hallmark/references/themes/formwork.md",
+        "sha256": "e2c0f88b2a83eec6ac076be536cd71cfd883bb21a234c268bba0ccd12e773416"
+      },
+      {
+        "path": "hallmark/references/themes/furrow.jpg",
+        "sha256": "2f6decb95504070eaf484c051da77a4ec0713d2b2cc55eabdc7d99ce740acc99"
+      },
+      {
+        "path": "hallmark/references/themes/furrow.md",
+        "sha256": "16f9ffc0fe9588754d25a96a32d6ca25e4b5a918623e90a1ee0dc5006953fc89"
+      },
+      {
+        "path": "hallmark/references/themes/garden.jpg",
+        "sha256": "a0d649ed96f7462dbef00047685151a3ca3e8a72e9672f240b21a82d798a9740"
+      },
+      {
+        "path": "hallmark/references/themes/garden.md",
+        "sha256": "2f2197da95ef795a10eeef1c60f9ae98e62ca110c34260035b9789c1f3486185"
+      },
+      {
+        "path": "hallmark/references/themes/grid.jpg",
+        "sha256": "511ed8d58f8abb1fe86d53166c3966c4046c1000ccc7075d6c312ba3efc67f70"
+      },
+      {
+        "path": "hallmark/references/themes/grid.md",
+        "sha256": "0f81c1efa45ec32ae3bd24b15eb96144edff8e018eec7a3d6a6a8bb25e42f520"
+      },
+      {
+        "path": "hallmark/references/themes/halftone.jpg",
+        "sha256": "a84cb1876366b5e1070ce1a70b22f263a7a963372587ff92076c0492c7f2d9db"
+      },
+      {
+        "path": "hallmark/references/themes/halftone.md",
+        "sha256": "a19da44930e5c475cf9c285f939d959ab590da17faea21426387332a5d8ca682"
+      },
+      {
+        "path": "hallmark/references/themes/hedgerow.jpg",
+        "sha256": "ac564eb0f3c8553cd5a077b8f5da38a1bb1d2c7a78e4e8ebb8aafe91ee448f95"
+      },
+      {
+        "path": "hallmark/references/themes/hedgerow.md",
+        "sha256": "23371c7894032ccc4f51236539d535d9c47b201b3007a40949db234c19b84ddd"
+      },
+      {
+        "path": "hallmark/references/themes/hum.jpg",
+        "sha256": "22c73e8bdb16fd96165cc4d003a82cf321e1d274f6c3c538015e0d3ae823802e"
+      },
+      {
+        "path": "hallmark/references/themes/hum.md",
+        "sha256": "180ef874894a544230f4e3a867a7120da3a79d5994d15737e806e0373e4cc5c7"
+      },
+      {
+        "path": "hallmark/references/themes/index.json",
+        "sha256": "718ba3e1813530011e7671e2c1b96bf6387a31f0677c093058b366074eb7a252"
+      },
+      {
+        "path": "hallmark/references/themes/ink.jpg",
+        "sha256": "18802cca6d7428c50a0e9d3051f7aa321f0f4749e14dd941107b30266346c62e"
+      },
+      {
+        "path": "hallmark/references/themes/ink.md",
+        "sha256": "7dd419ccec59a33461c86d894856085edaeddd6139f8eb9eff22f22e45fbdf9f"
+      },
+      {
+        "path": "hallmark/references/themes/kiln.jpg",
+        "sha256": "2ef6da1860464f7d189d6e0e371b97b1e17b4ee107e1e68b7555aafc96685123"
+      },
+      {
+        "path": "hallmark/references/themes/kiln.md",
+        "sha256": "94909cf878a89b88ba96d3a69dfccb64ce32968a3a4544a920a9c927d5a56fd4"
+      },
+      {
+        "path": "hallmark/references/themes/loom.jpg",
+        "sha256": "a71f16f59ec0c9710d5f6cd4f3eec0fbe3536e31b194b1e25dbb924618765f64"
+      },
+      {
+        "path": "hallmark/references/themes/loom.md",
+        "sha256": "835789caae2ef444b1db967411856f79ddcf844c8a988f75a62f3f5d4b53d819"
+      },
+      {
+        "path": "hallmark/references/themes/lumen.jpg",
+        "sha256": "d7f66625e11d7d495c89748c6f43db49b5542040d1c091a109802a7098d1cc84"
+      },
+      {
+        "path": "hallmark/references/themes/lumen.md",
+        "sha256": "8a202bde1d9eb9b4615b0f0e2279adeb5c95a82dedd003fdba1613c70b715450"
+      },
+      {
+        "path": "hallmark/references/themes/manifesto.jpg",
+        "sha256": "c900e70ac48d01d133acdcbda0310d9c0fd53a0474d7a1b1344291a70b3c89bd"
+      },
+      {
+        "path": "hallmark/references/themes/manifesto.md",
+        "sha256": "326c63f732128ed5cda8ff3187793ffe9bcb56936387367cc932b5a3e216b862"
+      },
+      {
+        "path": "hallmark/references/themes/midnight.jpg",
+        "sha256": "6f49568b885ba74035faa5a2608c51a079cd7a2eebe7e1967fa0225958b0c82e"
+      },
+      {
+        "path": "hallmark/references/themes/midnight.md",
+        "sha256": "cb29035685b63a56762c291dc4246c6a66c6ec6d8bc4559d6823ee2d2a80e40d"
+      },
+      {
+        "path": "hallmark/references/themes/newsprint.jpg",
+        "sha256": "fdac566be09a8ea6891f79ccb70f1f2c47abe12a3fb476c3874031eece6e0fe6"
+      },
+      {
+        "path": "hallmark/references/themes/newsprint.md",
+        "sha256": "2fd477d10f9dde600993486a7dab5ff5f643c8821833cb3837f176005eafb5e0"
+      },
+      {
+        "path": "hallmark/references/themes/overprint.jpg",
+        "sha256": "415342811cfecc22d267d93afb07c12dfa12d8823a2e2c5852c9a587d9f462de"
+      },
+      {
+        "path": "hallmark/references/themes/overprint.md",
+        "sha256": "79010c27e619fad842da18559658c83cec86172266b00bb5933871b3f7bf852b"
+      },
+      {
+        "path": "hallmark/references/themes/pasteup.jpg",
+        "sha256": "664423a43e4906e63ab9610b8c327af1baddb611a14109b453a7ed04505ba0c2"
+      },
+      {
+        "path": "hallmark/references/themes/pasteup.md",
+        "sha256": "7e8d5013bda81e945f27b401f967f08e41bbc7d10ddc14d1ef7dd91c25f95c3d"
+      },
+      {
+        "path": "hallmark/references/themes/piste.jpg",
+        "sha256": "39c73cb56040dc5ab13b6bb7927d0dfdacfc7802ef1d22d9c1c13f39faf1500b"
+      },
+      {
+        "path": "hallmark/references/themes/piste.md",
+        "sha256": "79c1b4b7297467d9a0d057ad790d475f4b88a41af1867172dfd77b951cda803a"
+      },
+      {
+        "path": "hallmark/references/themes/ribbon.jpg",
+        "sha256": "a5848452f358eb7e8f7fae3b1592fe04b9f1fb09c92551c372def878529512d0"
+      },
+      {
+        "path": "hallmark/references/themes/ribbon.md",
+        "sha256": "0bcc8708d3ceec0cb246fa134a4fcf8e019fa8012af1f87646737cc1c8b324a1"
+      },
+      {
+        "path": "hallmark/references/themes/rim.jpg",
+        "sha256": "bbc6f916316da6f6d03b01dfc798efd0c8f8b94d80155049f0a1a497a3560811"
+      },
+      {
+        "path": "hallmark/references/themes/rim.md",
+        "sha256": "ac134e8ccbda501b660f4cd83ace56059f2b254b187f574a612460c7c796e49f"
+      },
+      {
+        "path": "hallmark/references/themes/riso.jpg",
+        "sha256": "b02f0c68760cab70cf971cacc2669fe32472f1f3eb2998f8c7706c4fafb678ca"
+      },
+      {
+        "path": "hallmark/references/themes/riso.md",
+        "sha256": "333577e736f793c94161994dd8087c583ab53dd5af50a5dc63c3bfc5f4bf28ad"
+      },
+      {
+        "path": "hallmark/references/themes/solstice.jpg",
+        "sha256": "5d6bcf025a79c4b117ccc2ede5cc69f5334bfc65ed8107b1068a9689cfff7abf"
+      },
+      {
+        "path": "hallmark/references/themes/solstice.md",
+        "sha256": "6813e8556faa9e34637ce52a2cefadbf74795e7956503f14cf1c672c3f92c5d1"
+      },
+      {
+        "path": "hallmark/references/themes/specimen.jpg",
+        "sha256": "9735716ddda7bba0f62d1d35743256ad1b718038fbd6924e341bceb3dfa62150"
+      },
+      {
+        "path": "hallmark/references/themes/specimen.md",
+        "sha256": "f9ed583e2adfe885eced94374fed3f697ff932705eee029a9c226d4db39667ed"
+      },
+      {
+        "path": "hallmark/references/themes/spore.jpg",
+        "sha256": "b2493347715fb49d6d30040ae3ea85885571709bd588f2222722a1af317a704a"
+      },
+      {
+        "path": "hallmark/references/themes/spore.md",
+        "sha256": "2b4f30287f6779404104a98bddd2f2876f000abad2533228c9aa105b3c30ca7d"
+      },
+      {
+        "path": "hallmark/references/themes/sport.jpg",
+        "sha256": "51a51694055ef122de7e6be01f5d881fec696d86df5192557aefd90d12bb1b84"
+      },
+      {
+        "path": "hallmark/references/themes/sport.md",
+        "sha256": "5714651df7c46925357d33876e498ac4ecaa3c8b3d50bee5ead3bf7ce54d863a"
+      },
+      {
+        "path": "hallmark/references/themes/squeeze.jpg",
+        "sha256": "570529d5d842ca14a60d9689d3c4997eac31e463c5a9df3d386d39f36091224b"
+      },
+      {
+        "path": "hallmark/references/themes/squeeze.md",
+        "sha256": "d007f2f09a6d8da5cf53a9fe98bc9cb3ead7f013d71569b605e65e7f295b2cb5"
+      },
+      {
+        "path": "hallmark/references/themes/sticker.jpg",
+        "sha256": "ccbf946b230eae35f8ba35b7ceb362bd082b0c6240e1ff3695a07f9e948d6320"
+      },
+      {
+        "path": "hallmark/references/themes/sticker.md",
+        "sha256": "5c266f131f506d7ba2e51e12015141e8d1ac394523ce537504a6b21336f0f953"
+      },
+      {
+        "path": "hallmark/references/themes/studio.jpg",
+        "sha256": "d4b8670539d50ebc17c64ad5f13fbd01dbf6bf47cc3421baf688a496112d6daf"
+      },
+      {
+        "path": "hallmark/references/themes/studio.md",
+        "sha256": "7e0352a5de3485bbc61043c412258490aa7750eab03a5534a422a717f44db194"
+      },
+      {
+        "path": "hallmark/references/themes/terminal.jpg",
+        "sha256": "0843a7120876a7e4f89acbd122fe7f6d4dab72caad99746c5a574eb8f5a8552e"
+      },
+      {
+        "path": "hallmark/references/themes/terminal.md",
+        "sha256": "cb5104b31d31e2ece13cc736a2ee5819d9b80a3272ff5a905e0f772c2865f19e"
+      },
+      {
+        "path": "hallmark/references/themes/terrazzo.jpg",
+        "sha256": "8f22ce7fac3fed6479bac56a0061477491c9055398b5bc7d7d856d66188f357d"
+      },
+      {
+        "path": "hallmark/references/themes/terrazzo.md",
+        "sha256": "9f2a03aa0670fe7caef3789e077eb917483034a38c756b45977ea9f27ee1dc02"
+      },
+      {
+        "path": "hallmark/references/themes/ultraviolet.jpg",
+        "sha256": "66cb4ad24a61fb16f5cf0e97f4d81be67993e3d237d4af0b67e71e4f0e6961db"
+      },
+      {
+        "path": "hallmark/references/themes/ultraviolet.md",
+        "sha256": "b706384370d51ad849faaa87f80c2beeff9d14ca2f253385d20e28ac09bc9569"
+      },
+      {
+        "path": "hallmark/references/themes/vellum.jpg",
+        "sha256": "4b4116033ad5ea3a65e0ec720f43e0e9cd1c7494e4ae95c09610782240b9a48d"
+      },
+      {
+        "path": "hallmark/references/themes/vellum.md",
+        "sha256": "4914d9e6ca704d55b57fe6630ca2edc1ed49dea0fdd0912c97d437939fd3e893"
+      },
+      {
+        "path": "hallmark/references/themes/wayfind.jpg",
+        "sha256": "3fc6e32cd77b7455a10237ba7424048bd2fb94bdc955bdd5395da173d9b3b574"
+      },
+      {
+        "path": "hallmark/references/themes/wayfind.md",
+        "sha256": "7849521b843f82a3956727e0d06a595d6ecec5f501f4c31f577bf4bd1bae9e2c"
+      },
+      {
+        "path": "hallmark/references/themes/werkstatt.jpg",
+        "sha256": "5cd183720988973306ff568fa7f21a7c7cb345621dfa1d288a33d22f785aac20"
+      },
+      {
+        "path": "hallmark/references/themes/werkstatt.md",
+        "sha256": "b3a31e2acb8a15ca46bbb194f23b9555ef19d9c70ceb1cf67d9fde3b55b7e08a"
+      },
+      {
+        "path": "hallmark/scripts/capture.mjs",
+        "sha256": "17c36f7400c2633ac37d87b236894385f6e72c3026ab916deed27b5e17e1cc2a"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/exemplars/atmospheric.html",
+        "sha256": "10a6bc8f44a8ad3e3874dddaf2444888d95efb4b3e72c6d403cd258259202f8d"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/exemplars/editorial.html",
+        "sha256": "51c9177037da9ec810d81ce809df358c48b33c19c88dbda5192c2d1508ee5c50"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/exemplars/modern-minimal.html",
+        "sha256": "48ac41ca0235a29b613a736e989864e845497d348fc2183156e0790785adac6a"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/exemplars/playful.html",
+        "sha256": "810cddd441d619cfceb6815177c60412d7f91a1e30971141830f77f29a1c6615"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/eyebrow-fail/index.html",
+        "sha256": "777a97f5c636bdd32623ab92f53b003a48e21b0ccda33166a0ddcedad41074b8"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/eyebrow-pass/index.html",
+        "sha256": "e79cc0979f3d47295812d1f373f4ea8e95c94f2a18624ae2c064e3fdbc4476f8"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/kept/after.html",
+        "sha256": "3943056c96c322c2bd55fbd19170de48f01815981d0430a094538737dae1a204"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/kept/before.html",
+        "sha256": "6e9ad44ebca1d553b0f6a0096f613e3bd9800dbb222b42c4996a247dee08b72f"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/slopped.html",
+        "sha256": "f324387e624f20e10bea32fd4c29d53865c3b4c261e723dc7965ef48ea39466e"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/tailwind-fail/Feature.vue",
+        "sha256": "a0b1f3810f0b3621459d52921795a6c99f0dba53a9b0445cbf53e8529b801cf2"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/tailwind-fail/Hero.tsx",
+        "sha256": "4b0a2d0996d44173178d3f3ad4313836a3464993658798a491e92e4adbe9a576"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/tailwind-fail/index.html",
+        "sha256": "668e6026f6517b456d8b10d07f21e33f32476cbedef86e90bdf6bcc3785c120c"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/tailwind-fail/style.css",
+        "sha256": "520dac1bf1b9ac4c3c4e05506a91a804849413172ec500f9e21a01c94542c5fc"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/tailwind-pass/Hero.tsx",
+        "sha256": "c81aed17aaba4936fc51fcbc07b642481c7dad6cbbd87ac8dd56384290b6edf3"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/tailwind-pass/index.html",
+        "sha256": "7d7fb9c531b872458c049fc9bbed93edf8bf506f5f2fbff8d4a66ffc1f7e6cc2"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/tailwind-pass/style.css",
+        "sha256": "b3d42d5cd53476942b34253a2dcad284548302ce551bef56fb1af6f9d4c8ebbb"
+      },
+      {
+        "path": "hallmark/scripts/fixtures/waiver/index.html",
+        "sha256": "9ac592d4ea4fef4f33551b678ed9ce03570d8c3c8afaa23717446d41dbc106bc"
+      },
+      {
+        "path": "hallmark/scripts/imagegen.mjs",
+        "sha256": "0e9e2dde64a0b1a7d45085b3d9ec51f49f2927e544400bfa33207fb2c9b579cc"
+      },
+      {
+        "path": "hallmark/scripts/install-hook.mjs",
+        "sha256": "f0ce8b6e834652bcc560438952701ef467f4b29ee5d577e917632cb7d92ddc76"
+      },
+      {
+        "path": "hallmark/scripts/install.mjs",
+        "sha256": "f4d6959d35f5e01efb94f2f88b43f10e8d296e9bd2ff06e5c002c7f87aeeb488"
+      },
+      {
+        "path": "hallmark/scripts/lint-hook.mjs",
+        "sha256": "04fd40ab9dfaffb049da6b8b69811e306a5dee8c9acfc4d6817987d8a4671738"
+      },
+      {
+        "path": "hallmark/scripts/photos.json",
+        "sha256": "1ee6836583e8048400876351c0605bc3f08515fecfe68aca3712b9e75498bc65"
+      },
+      {
+        "path": "hallmark/scripts/picture.mjs",
+        "sha256": "21db01db66d393d58d2dd799e7614a6033d1a56891d9d9d8cae0c42ed42592c1"
+      },
+      {
+        "path": "hallmark/scripts/refcheck.mjs",
+        "sha256": "8b48c542f114e7da5e1ff9434075527f911f31c4c106cc09fd01df599fb5465d"
+      },
+      {
+        "path": "hallmark/scripts/sloplint-render.mjs",
+        "sha256": "3af79afa100a9804f248ade24d5128cea4fde1ef6d1a279f1dd935bfe6dc41cd"
+      },
+      {
+        "path": "hallmark/scripts/sloplint.mjs",
+        "sha256": "f8ada364c68a9db4b3dd5784bd416a7c412125e887aeae87d627e072d3848289"
+      },
+      {
+        "path": "hallmark/scripts/theme.mjs",
+        "sha256": "802b0121b570d908533c35d6feded556fed9937b9200baa4cf16f3d575de6017"
       }
     ]
   },

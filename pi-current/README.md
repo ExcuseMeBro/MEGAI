@@ -1,6 +1,6 @@
 # Current Pi configuration — `for-ustama`
 
-Point-in-time, shareable snapshot of the **user-level Pi-Bolt** setup on 2026-10-27. This directory is not an automatic installer. It does not change the active Pi runtime. The previous MEGAI repository source tree, including its old project-level `.pi/` files and OMP artifacts, is not part of this clean-history branch because it is not the current user-level Pi installation. The separate `/Users/bro/PROJECTS/.pi/project.json` belongs to a multi-repository workspace, not the current user-level Pi configuration.
+Point-in-time, shareable snapshot of the **user-level Pi-Bolt** setup on 2026-10-28. This directory is not an automatic installer. It does not change the active Pi runtime. The previous MEGAI repository source tree, including its old project-level `.pi/` files and OMP artifacts, is not part of this clean-history branch because it is not the current user-level Pi installation. The separate `/Users/bro/PROJECTS/.pi/project.json` belongs to a multi-repository workspace, not the current user-level Pi configuration.
 
 ## Included
 
