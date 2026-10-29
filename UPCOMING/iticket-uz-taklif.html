@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Chipta platformasi — dastlabki taklif</title>
+  <title>Chipta platformasi — 25-noyabrgacha topshirish rejasi</title>
   <style>
     :root { --ink:#182535; --muted:#536171; --blue:#165d9d; --pale:#eaf3f9; --line:#d7e2e9; --paper:#fff; }
     * { box-sizing:border-box; }
@@ -31,7 +31,8 @@
     th { color:var(--muted); text-align:left; font-weight:700; }
     th,td { padding:9px 7px; border-bottom:1px solid var(--line); vertical-align:top; }
     th:last-child,td:last-child { text-align:right; white-space:nowrap; }
-    tr.total td { font-weight:800; color:var(--blue); border-bottom:2px solid var(--blue); }
+    .timeline th:last-child,.timeline td:last-child { text-align:left; white-space:normal; }
+    .timeline tr:last-child td { font-weight:800; color:var(--blue); border-bottom:2px solid var(--blue); }
     .step { display:grid; grid-template-columns:80px 1fr; gap:15px; padding:10px 0; border-bottom:1px solid var(--line); }
     .step b { color:var(--blue); }
     .footer { margin-top:30px; padding-top:12px; border-top:1px solid var(--line); }
@@ -57,76 +58,62 @@
 <body>
   <button class="no-print" type="button" onclick="window.print()">PDF sifatida saqlash</button>
   <main class="sheet">
-    <header class="topline"><span class="brand">CHIPTA PLATFORMASI</span><span>Mahalliy jamoa · O‘zbekiston bozori</span></header>
-    <span class="tag" style="margin-top:28px">Konsept va ishlab chiqish taklifi</span>
+    <header class="topline"><span class="brand">CHIPTA PLATFORMASI</span><span>O‘zbekiston · topshirish rejasi</span></header>
+    <span class="tag" style="margin-top:28px">Birinchi reliz bo‘yicha ish jadvali</span>
     <h1>O‘zbekiston uchun<br>onlayn chipta platformasi</h1>
-    <p class="lead">iTicket.uz yo‘nalishidagi mahsulotning mahalliy, bosqichma-bosqich varianti: tadbirlar, WLCM orqali to‘lov, elektron chipta va kirishda QR tekshiruvi. Birinchi reliz to‘liq iTicket nusxasi emas.</p>
+    <p class="lead">iTicket.uz yo‘nalishidagi mahalliy web mahsulot: tadbirlar, WLCM orqali to‘lov, elektron chipta va kirishda QR tekshiruvi. 25-noyabrda topshiriladigan birinchi reliz to‘liq iTicket nusxasi emas.</p>
     <div class="metric-row">
-      <div class="metric"><strong>10–14 hafta</strong><span>Mahalliy web MVP</span></div>
-      <div class="metric"><strong>95–170 mln so‘m</strong><span>MVP budjeti, taxminiy</span></div>
-      <div class="metric"><strong>5–7 oy</strong><span>Kengaytirilgan web mahsulot</span></div>
+      <div class="metric"><strong>30-oktabr</strong><span>Ish boshlanishi · 2026</span></div>
+      <div class="metric"><strong>19 ish kuni</strong><span>5 ta aniq bosqich</span></div>
+      <div class="metric"><strong>25-noyabr</strong><span>Pilot relizni topshirish · 2026</span></div>
     </div>
-    <div class="note"><strong>Qisqa javob:</strong> joysiz/zonali chiptalar bilan ishga tushadigan web MVP <b>95–170 mln so‘m, 10–14 hafta</b>. O‘rindiq xaritasi, kengaytirilgan tashkilotchi vositalari va yuklama himoyasi qo‘shilgan web mahsulot <b>jami 240–430 mln so‘m, 5–7 oy</b>. Bu mahalliy kichik jamoa modeli; katta agentlik yoki to‘liq iTicket funksional tengligi emas.</div>
+    <div class="note"><strong>Topshiriladigan natija:</strong> bitta tashkilotchining joysiz/zonali chiptalari uchun mobilga mos o‘zbekcha web-sayt, admin panel, WLCM to‘lovi va bir martalik QR tekshiruvi. Muddat <b>2026-yil 30-oktabrda boshlash</b> hamda zarur kirishlar o‘z vaqtida berilishiga bog‘liq.</div>
     <h2>MVP tarkibi</h2>
     <div class="split">
       <section><h3>Xaridor tomoni</h3><ul>
         <li>O‘zbekcha (lotin) mobilga mos katalog va qidiruv</li>
-        <li>Tadbir sahifasi, sana, manzil, narx va zona</li>
+        <li>Tadbir sahifasi, sana, manzil va chipta zonasi</li>
         <li>+998 telefon, buyurtma va WLCM orqali to‘lov</li>
         <li>Elektron chipta, QR va email xabarnoma</li>
       </ul></section>
       <section><h3>Boshqaruv tomoni</h3><ul>
-        <li>Tadbir, kvota va narxlarni boshqarish</li>
+        <li>Tadbir, chipta turi va kvotani boshqarish</li>
         <li>Bitta tashkilotchi uchun oddiy kabinet</li>
         <li>Admin panel, savdo ro‘yxati va operator roli</li>
         <li>Bir martalik QR skan va to‘lov holatlari</li>
       </ul></section>
     </div>
-    <h2>MVP budjeti nimadan iborat?</h2>
-    <table><thead><tr><th>Ish bloki</th><th>Taxminiy budjet</th></tr></thead><tbody>
-      <tr><td>Talablar, UX va mobilga mos dizayn</td><td>12–20 mln</td></tr>
-      <tr><td>Xaridor web qismi va server tizimi</td><td>35–60 mln</td></tr>
-      <tr><td>Tashkilotchi kabineti va admin panel</td><td>20–35 mln</td></tr>
-      <tr><td>WLCM, buyurtma va QR nazorati</td><td>12–20 mln</td></tr>
-      <tr><td>Test, tuzatish va ishga tushirish</td><td>16–35 mln</td></tr>
-      <tr class="total"><td>Jami MVP</td><td>95–170 mln so‘m</td></tr>
+    <h2>Topshirish sanalari</h2>
+    <table class="timeline"><thead><tr><th>Bosqich</th><th>Sana</th><th>Topshiriladigan natija</th></tr></thead><tbody>
+      <tr><td>1. Tayyorlov</td><td>30-okt. – 3-noy.</td><td>Talablar, ekranlar, WLCM va fiskal chek bo‘yicha mas’ul tomon aniqlanadi.</td></tr>
+      <tr><td>2. Asosiy tizim</td><td>4–10-noy.</td><td>Katalog, tadbir sahifasi, buyurtma, kabinet va admin ishlaydi.</td></tr>
+      <tr><td>3. To‘lov va QR</td><td>11–17-noy.</td><td>WLCM test muhiti, to‘lov holati, elektron chipta va QR skan tayyor.</td></tr>
+      <tr><td>4. Sinov va reliz</td><td>18–23-noy.</td><td>Sinov, xatolarni tuzatish, jonli muhitga chiqarish va pilot tadbir.</td></tr>
+      <tr><td>5. Qabul</td><td>24–25-noy.</td><td>Yakuniy tekshiruv, hujjatlar va ishlaydigan relizni topshirish.</td></tr>
     </tbody></table>
-    <footer class="footer"><span>1 / 2 · Rejalashtirish bahosi, qat’iy oferta emas</span><span>Summalar so‘mda</span></footer>
+    <footer class="footer"><span>1 / 2 · Jadval: 30-oktabr – 25-noyabr 2026</span><span>Barcha sanalar 2026-yil</span></footer>
   </main>
   <section class="sheet">
     <header class="topline"><span class="brand">ISH REJASI</span><span>Hajm · integratsiya · shartlar</span></header>
-    <h2>10–14 haftalik MVP yo‘l xaritasi</h2>
-    <div class="step"><b>1–2 hafta</b><span>Talablar, rol va savdo oqimi, dizayn hamda WLCM shartlarini aniqlash.</span></div>
-    <div class="step"><b>3–5 hafta</b><span>Katalog, buyurtma, tadbir boshqaruvi va admin panel asoslari.</span></div>
-    <div class="step"><b>6–9 hafta</b><span>WLCM test muhiti, to‘lov holatlari, QR chiptalar va kirish skaneri.</span></div>
-    <div class="step"><b>10–14 hafta</b><span>Test, xavfsizlik tekshiruvlari, bitta pilot tadbir va reliz.</span></div>
-    <p class="small" style="margin-top:12px">Model: 2 dasturchi, dizayner va QA qisman band; ishlar parallel ketadi. Muddat merchant kirishlari va kontent tayyorligiga bog‘liq.</p>
+    <h2>Bosqichlar bo‘yicha nazorat nuqtalari</h2>
+    <div class="step"><b>3-noy.</b><span>Tadbir kontenti, WLCM merchant kirishlari va fiskal chek mas’uliyati tasdiqlanadi.</span></div>
+    <div class="step"><b>10-noy.</b><span>Buyurtma va tadbirni boshqarish oqimi ko‘rib chiqiladi.</span></div>
+    <div class="step"><b>17-noy.</b><span>WLCM test to‘lovi va QR chiptaning sinov namoyishi o‘tkaziladi.</span></div>
+    <div class="step"><b>23-noy.</b><span>Jonli muhitdagi pilot va xatolar ro‘yxati yopiladi.</span></div>
+    <div class="step"><b>25-noy.</b><span>Ishlaydigan birinchi reliz hamda foydalanish yo‘riqnomasi topshiriladi.</span></div>
     <h2>WLCM.uz to‘lov ulanishi</h2>
     <div class="note">Buyurtma serverda yaratiladi → WLCM to‘lov jarayoni boshlanadi → server tasdiqni tekshiradi → chipta <b>faqat tasdiqlangan to‘lovdan keyin</b> chiqariladi. Takroriy xabarlar ikki marta chipta yaratmasligi, to‘lov muvaffaqiyatsiz bo‘lsa bron bo‘shatilishi kerak.</div>
-    <p class="small" style="margin-top:11px">WLCM API tafsilotlari ochiq manbada tasdiqlanmadi: merchant shartnomasi, test muhiti, callback, komissiya va qaytarim tartibi oldindan olinadi. Fiskal chekni kim berishi (platforma, tashkilotchi yoki provayder) bu taklifdan oldin shartnoma va soliq maslahatchisi bilan aniqlanadi; fiskal kassa integratsiyasi narxga kirmaydi.</p>
-    <h2>Kengaytirilgan versiya</h2>
-    <div class="split">
-      <section><h3>Qo‘shimcha imkoniyatlar</h3><ul>
-        <li>O‘rindiq xaritasi va vaqtinchalik bron</li>
-        <li>Ko‘p tashkilotchi, promokod va hisobotlar</li>
-        <li>Ruscha interfeys, qaytarim va kassa oqimi</li>
-        <li>Ommabop sotuvlar uchun yuklama himoyasi</li>
-      </ul></section>
-      <section><h3>Qo‘shimcha baho</h3>
-        <p><b>+145–260 mln so‘m</b><br><span class="small">MVP ustiga, taxminan yana 10–16 hafta.</span></p>
-        <p><b>Umumiy: 240–430 mln so‘m</b><br><span class="small">Web mahsulot uchun jami 5–7 oy.</span></p>
-      </section>
-    </div>
-    <h2>Baho shartlari va chegaralari</h2>
+    <p class="small" style="margin-top:11px">WLCM hujjati, merchant kirishlari va test muhiti 3-noyabrgacha taqdim etilishi shart. Fiskal chekni kim berishi (platforma, tashkilotchi yoki provayder) shu sanagacha shartnoma va soliq maslahatchisi bilan aniqlanadi. Integratsiya tasdiqlanmasa, 25-noyabrda to‘lovsiz demo topshirilishi mumkin; jonli to‘lov sanasi qayta kelishiladi.</p>
+    <h2>25-noyabrdagi reliz chegarasi</h2>
     <ul>
-      <li>MVP: bitta tashkilotchi, o‘zbekcha (lotin), web va mobil brauzer; native ilova hamda o‘rindiq xaritasi kirmaydi.</li>
-      <li>Hosting, SMS/email, WLCM komissiyasi, fiskal kassa va yuridik xarajatlar alohida.</li>
-      <li>Tadbir kontenti va shartnomalarni buyurtmachi beradi; ko‘p tillilik va ko‘p tashkilotchi keyingi bosqichda.</li>
-      <li>Yakuniy narx trafik, joy sxemasi, to‘lov hujjatlari va fiskal chek modeli aniqlangach kelishiladi.</li>
-      <li>Sinov mezoni: to‘lov → bitta chipta; takroriy tasdiq → dublikat yo‘q; QR → faqat birinchi kirish haqiqiy.</li>
+      <li>Bitta tashkilotchi, o‘zbekcha (lotin), mobilga mos web-sayt va admin panel.</li>
+      <li>Joysiz/zonali chipta, to‘lovdan so‘ng elektron chipta, bir martalik QR kirish.</li>
+      <li>O‘rindiq xaritasi, native ilova, ko‘p tashkilotchi, ruscha interfeys, kassa va avtomatik qaytarim bu sanaga kirmaydi.</li>
+      <li>Sinov mezoni: tasdiqlangan to‘lov → bitta chipta; takroriy tasdiq → dublikat yo‘q; QR → faqat birinchi kirish haqiqiy.</li>
+      <li>Buyurtmachi tadbir ma’lumotlari, hosting, domen va merchant kirishlarini belgilangan muddatda taqdim etadi.</li>
     </ul>
-    <p class="small" style="margin-top:17px">Manbalar: <a href="https://iticket.uz/en/page/faq">iTicket FAQ</a> · <a href="https://wlcm.uz/">WLCM</a> · <a href="https://softone.uz/en/services/web-application-development">mahalliy web-loyiha muddati va boshlang‘ich narxi</a> · <a href="https://hh.uz/article/34221">hh.uz IT ish haqi (2025)</a>. 95–170 mln — 2 dasturchi + qisman dizayn/QA bilan 10–14 haftalik ish hajmiga asoslangan <b>bizning taxmin</b>; manbalardagi tayyor iTicket narxi emas.</p>
-    <footer class="footer"><span>2 / 2 · Aniqlashtirish uchun: texnik topshiriq + WLCM hujjatlari</span><span>PDF uchun tayyor</span></footer>
+    <p class="small" style="margin-top:17px">Mahsulot yo‘nalishi: <a href="https://iticket.uz/en/page/faq">iTicket FAQ</a>. To‘lov platformasi: <a href="https://wlcm.uz/">WLCM</a>. Hujjat — bajarish rejasi, to‘liq iTicket funksional tengligini va tashqi xizmatlarning tayyorligini kafolatlamaydi.</p>
+    <footer class="footer"><span>2 / 2 · Topshirish muddati: 25-noyabr 2026</span><span>PDF uchun tayyor</span></footer>
   </section>
 </body>
 </html>
