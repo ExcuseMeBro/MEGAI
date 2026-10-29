@@ -116,17 +116,18 @@ agent repeats after another agent already read it — use
 ## 🗂️ Pellet and branches
 
 Pellet owns execution tracking and acceptance: open → in_progress → in-review →
-completed. A task's project is its verified Pellet folder. Only an explicit
-`/splane` synchronizes task data with Plane; `/mdev` and normal coding
-work do not call Plane. Keep task-specific acceptance and delivery evidence in
-Pellet. Verify every delivered commit in local and freshly fetched/independently
-advertised remote `dev` before review. Main promotion and publication are separate
+completed. A task's project is its verified Pellet folder. Pi no longer installs
+or runs task synchronization with Plane. `/mdev`, `/prdev` and normal coding
+work do not call Plane; a separately authorized acceptance-only Plane issue
+may satisfy a pre-existing formal gate without syncing task data. Keep task-specific
+acceptance and delivery evidence in Pellet. Verify every delivered commit in
+local and freshly fetched/independently advertised remote `dev` before review. Main promotion and publication are separate
 user decisions; neither happens automatically.
 
 The retired `/factory` prompt, its delegation tool and the former Plane
 `factory-plan`/`factory-start` helpers are not installed. Work existing Pellet
-tasks directly in separate verified task-owned worktrees; `/splane` remains the
-only explicit task-data sync to Plane. Do not delete existing task receipts or
+tasks directly in separate verified task-owned worktrees; the retired sync is
+not an implicit part of this flow. Do not delete existing task receipts or
 foreign worktrees as part of the factory retirement. An already-running Pi
 session may retain its loaded command until its owner chooses to reload it.
 
@@ -147,7 +148,7 @@ cleanup immediately after full delivery; preserve active, dirty, unknown or
 unmerged task worktrees. Record evidence and status in Pellet. Main promotion
 and publication require separate explicit approval. Historical `pi-workflow`
 Plane task commands are not the current execution workflow and must not be used
-for delivery; only `/splane` reconciles task data with Plane.
+for delivery. No command in the current Pi harness reconciles task data with Plane.
 
 The credentials-free [saved local Pi profile](pi-defaults/local-profile/README.md) records
 the current model, thinking, timeout, fallback and MCP preferences. It is an explicit
