@@ -14,8 +14,28 @@ const DANGEROUS_SHELL = [
 const PELLET_DESTRUCTIVE = /^mcp__pellet__(?:delete_task|delete_note|delete_attachment|delete_canvas_nodes|rename_note|rename_tag|set_archived|restore_from_trash)$/;
 const CANONICAL_DEV_PUSH = /^git push origin [a-f0-9]{40}:refs\/heads\/dev$/;
 
+// A rename within the same vault folder changes neither its project binding nor
+// the note's contents. Reject ambiguous spellings before comparing parents.
+function notePathParts(value) {
+  if (typeof value !== 'string' || value.length > 512 || /[\\\x00-\x1f\x7f]/.test(value)) return null;
+  const parts = value.split('/');
+  if (parts.length < 2 || parts.some((part) => !part || part === '.' || part === '..' || part.trim() !== part)) return null;
+  const name = parts.at(-1);
+  if (name.length <= 3 || !name.endsWith('.md')) return null;
+  return parts;
+}
+
+function isSameFolderNoteRename(input) {
+  const source = notePathParts(input?.path);
+  const target = notePathParts(input?.new_path);
+  return source !== null && target !== null && source.join('/') !== target.join('/')
+    && source.slice(0, -1).join('/') === target.slice(0, -1).join('/');
+}
+
 export function classify(event) {
   const name = event?.toolName;
+  if (name === 'mcp__pellet__rename_note' && isSameFolderNoteRename(event?.input))
+    return { risk: 'normal', category: 'pellet-rename-same-folder' };
   if (PELLET_DESTRUCTIVE.test(name)) return { risk: 'approval', category: 'pellet-destructive' };
   if (name !== 'bash') return { risk: 'normal', category: 'unclassified' };
   const command = event?.input?.command;

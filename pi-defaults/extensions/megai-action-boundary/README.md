@@ -11,6 +11,11 @@ Nothing here authorizes a push by itself or relaxes main/publishing approvals.
 
 Recognized categories: recursive destructive file and Git cleanup, push/tag/release,
 remote script piping, privilege escalation, and Pellet delete/rename/archive/restore.
+A **same-folder `.md` note rename** with structurally valid source/destination
+paths proceeds without an approval prompt: it does not change the note's project
+folder. Cross-folder moves, root/ambiguous paths and malformed names remain
+approval-gated, as do deletes, bulk tag renames and archives. This validates only
+the tool arguments; it is not permission to rename arbitrary source files.
 Pi/Paseo process/session stop is blocked, not offered a one-click blanket approval;
 ask the owner for fresh explicit permission naming the exact resource and action.
 UI confirmation displays the bounded exact

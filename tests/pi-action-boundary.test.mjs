@@ -23,6 +23,33 @@ test('destructive, publish, session-stop and explicit MCP destructive calls cann
   }
 });
 
+test('routine same-folder Markdown note rename needs no approval, including without UI', async () => {
+  const event = { toolName: 'mcp__pellet__rename_note', input: {
+    path: 'MEGAI/Community App premium staff detail UI.md',
+    new_path: 'MEGAI/Community App staff UI.md',
+  }, toolCallId: 'routine-rename' };
+  assert.deepEqual(classify(event), { risk: 'normal', category: 'pellet-rename-same-folder' });
+  const boundary = createBoundary({ traceDir: null });
+  let prompts = 0;
+  assert.equal(await boundary.onToolCall(event, { hasUI: false, ui: { confirm: async () => { prompts++; return true; } } }), undefined);
+  assert.equal(prompts, 0);
+});
+
+test('moves, malformed paths and other Pellet destructive actions remain gated', () => {
+  const rename = (path, new_path) => classify({ toolName: 'mcp__pellet__rename_note', input: { path, new_path } }).risk;
+  for (const [source, target] of [
+    ['MEGAI/A.md', 'OTHER/B.md'], ['Inbox/A.md', 'MEGAI/B.md'],
+    ['MEGAI/A.md', 'MEGAI/nested/B.md'], ['MEGAI/A.md', 'MEGAI/../OTHER/B.md'],
+    ['MEGAI/A.md', 'MEGAI//B.md'], ['MEGAI/A.md', '/MEGAI/B.md'],
+    ['MEGAI/A.md', 'MEGAI/\\\\B.md'], ['MEGAI/A.md', 'MEGAI/B.txt'],
+    ['A.md', 'B.md'], ['MEGAI/A.md', 'MEGAI/A.md'],
+    ['MEGAI/A.md', undefined], [undefined, 'MEGAI/B.md'],
+  ]) assert.equal(rename(source, target), 'approval', `${source} -> ${target}`);
+  for (const name of ['mcp__pellet__delete_task', 'mcp__pellet__delete_note', 'mcp__pellet__rename_tag', 'mcp__pellet__set_archived']) {
+    assert.equal(classify({ toolName: name, input: { path: 'MEGAI/A.md' } }).risk, 'approval');
+  }
+});
+
 test('risky calls fail closed without interactive approval or on approval error; failures stay explicit', async () => {
   const boundary = createBoundary({ traceDir: null });
   const event = { ...bash('rm -rf /tmp/x'), toolCallId: 'call-one' };
