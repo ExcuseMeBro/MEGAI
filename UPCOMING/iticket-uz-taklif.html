@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chipta platformasi — dastlabki taklif</title>
+  <style>
+    :root { --ink:#182535; --muted:#536171; --blue:#165d9d; --pale:#eaf3f9; --line:#d7e2e9; --paper:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#edf1f3; color:var(--ink); font:15px/1.5 Arial,Helvetica,sans-serif; }
+    .sheet { width:min(100%,210mm); min-height:297mm; margin:18px auto; padding:18mm; background:var(--paper); box-shadow:0 12px 40px #18253518; }
+    .topline,.footer,.split,.metric-row { display:flex; justify-content:space-between; gap:20px; }
+    .topline,.footer { font-size:12px; color:var(--muted); }
+    .topline { padding-bottom:16px; border-bottom:2px solid var(--ink); }
+    .brand { color:var(--blue); font-weight:800; letter-spacing:.02em; }
+    h1 { font-size:35px; line-height:1.12; letter-spacing:-.04em; margin:28px 0 12px; }
+    h2 { font-size:19px; letter-spacing:-.025em; margin:29px 0 12px; }
+    h3 { font-size:15px; margin:0 0 8px; }
+    p { margin:0 0 12px; }
+    .lead { max-width:67ch; color:var(--muted); font-size:16px; }
+    .tag { display:inline-block; padding:5px 10px; border-radius:6px; background:var(--pale); color:var(--blue); font-size:12px; font-weight:700; }
+    .metric-row { margin:27px 0; }
+    .metric { flex:1; padding:16px; border:1px solid var(--line); border-radius:12px; }
+    .metric strong { display:block; font-size:21px; letter-spacing:-.025em; }
+    .metric span,.small { font-size:12px; color:var(--muted); }
+    .note { padding:15px 18px; background:var(--pale); border-left:3px solid var(--blue); border-radius:0 9px 9px 0; }
+    .split > * { flex:1; }
+    ul { margin:8px 0 0; padding-left:19px; }
+    li { margin:5px 0; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { color:var(--muted); text-align:left; font-weight:700; }
+    th,td { padding:9px 7px; border-bottom:1px solid var(--line); vertical-align:top; }
+    th:last-child,td:last-child { text-align:right; white-space:nowrap; }
+    tr.total td { font-weight:800; color:var(--blue); border-bottom:2px solid var(--blue); }
+    .step { display:grid; grid-template-columns:80px 1fr; gap:15px; padding:10px 0; border-bottom:1px solid var(--line); }
+    .step b { color:var(--blue); }
+    .footer { margin-top:30px; padding-top:12px; border-top:1px solid var(--line); }
+    a { color:var(--blue); text-decoration:none; }
+    .no-print { position:fixed; top:18px; right:18px; padding:10px 16px; background:var(--blue); color:#fff; border:0; border-radius:8px; cursor:pointer; font-weight:700; }
+    .no-print:focus-visible { outline:3px solid var(--ink); outline-offset:3px; }
+    @media (max-width:650px) {
+      .sheet { min-height:auto; margin:0; padding:25px 19px; }
+      h1 { font-size:29px; }
+      .metric-row,.split { flex-direction:column; gap:10px; }
+      .no-print { position:static; display:block; margin:15px auto; }
+    }
+    @page { size:A4; margin:0; }
+    @media print {
+      body { background:#fff; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+      .sheet { width:210mm; min-height:297mm; margin:0; padding:17mm 18mm; box-shadow:none; break-after:page; }
+      .sheet:last-of-type { break-after:auto; }
+      .no-print { display:none; }
+      h2,h3,.metric,.note,.step,tr { break-inside:avoid; }
+    }
+  </style>
+</head>
+<body>
+  <button class="no-print" type="button" onclick="window.print()">PDF sifatida saqlash</button>
+  <main class="sheet">
+    <header class="topline"><span class="brand">CHIPTA PLATFORMASI</span><span>Dastlabki baho · O‘zbekiston bozori</span></header>
+    <span class="tag" style="margin-top:28px">Konsept va ishlab chiqish taklifi</span>
+    <h1>iTicket.uz darajasidagi<br>chipta savdosi platformasi</h1>
+    <p class="lead">Tadbirlarni topish, chipta xarid qilish, tashkilotchilar boshqaruvi va kirishda QR tekshiruvi. To‘lovlar WLCM.uz orqali ulanadi. Bu iTicket brendi yoki kodini ko‘chirish emas — o‘z mahsulotingizni yaratish bahosi.</p>
+    <div class="metric-row">
+      <div class="metric"><strong>12–16 hafta</strong><span>Web MVP ishga tushishi</span></div>
+      <div class="metric"><strong>390–650 mln so‘m</strong><span>MVP uchun taxminiy budjet</span></div>
+      <div class="metric"><strong>6–9 oy</strong><span>Kengaytirilgan platforma</span></div>
+    </div>
+    <div class="note"><strong>Qisqa javob:</strong> oddiy joysiz/zonali chiptalar bilan ishlaydigan birinchi versiya taxminan <b>3–4 oy va 390–650 mln so‘m</b>. Aniq o‘rindiq xaritasi, kengaytirilgan operatsiyalar va yuqori yuklamali to‘liq web platforma uchun umumiy baho <b>850 mln – 1,5 mlrd so‘m, 6–9 oy</b>. Mobil ilovalar alohida baholanadi.</div>
+    <h2>MVP tarkibi</h2>
+    <div class="split">
+      <section><h3>Xaridor tomoni</h3><ul>
+        <li>Tadbirlar katalogi, qidiruv va filtrlar</li>
+        <li>Tadbir sahifasi, sana, joy, narx va zonalar</li>
+        <li>Savat, buyurtma, WLCM orqali to‘lov</li>
+        <li>Elektron chipta, QR va email xabarnoma</li>
+      </ul></section>
+      <section><h3>Boshqaruv tomoni</h3><ul>
+        <li>Tadbir, kvota va narxlarni boshqarish</li>
+        <li>Tashkilotchi kabineti va sodda hisobotlar</li>
+        <li>Administrator paneli va operator rollari</li>
+        <li>Bir martalik QR skan, buyurtma holatlari</li>
+      </ul></section>
+    </div>
+    <h2>MVP budjeti nimadan iborat?</h2>
+    <table><thead><tr><th>Ish bloki</th><th>Taxminiy budjet</th></tr></thead><tbody>
+      <tr><td>Talablar, UX va interfeys dizayni</td><td>35–55 mln</td></tr>
+      <tr><td>Xaridor web qismi va server tizimi</td><td>140–230 mln</td></tr>
+      <tr><td>Tashkilotchi kabineti va admin panel</td><td>85–135 mln</td></tr>
+      <tr><td>WLCM, buyurtma va QR nazorati</td><td>60–95 mln</td></tr>
+      <tr><td>Test, xavfsizlik tekshiruvlari va ishga tushirish</td><td>70–135 mln</td></tr>
+      <tr class="total"><td>Jami MVP</td><td>390–650 mln so‘m</td></tr>
+    </tbody></table>
+    <footer class="footer"><span>1 / 2 · Rejalashtirish bahosi, qat’iy oferta emas</span><span>Summalar so‘mda</span></footer>
+  </main>
+  <section class="sheet">
+    <header class="topline"><span class="brand">ISH REJASI</span><span>Hajm · integratsiya · shartlar</span></header>
+    <h2>12–16 haftalik MVP yo‘l xaritasi</h2>
+    <div class="step"><b>1–2 hafta</b><span>Talablar, foydalanuvchi oqimlari, texnik topshiriq va dizayn yo‘nalishi.</span></div>
+    <div class="step"><b>3–6 hafta</b><span>Katalog, tadbir sahifalari, buyurtma modeli, kabinet va admin asoslari.</span></div>
+    <div class="step"><b>7–10 hafta</b><span>WLCM sandbox integratsiyasi, to‘lov holatlari, QR chiptalar va skaner.</span></div>
+    <div class="step"><b>11–16 hafta</b><span>Sinovlar, xatolarni tuzatish, yuklama tekshiruvi, pilot tadbir va reliz.</span></div>
+    <p class="small" style="margin-top:12px">Bosqichlar qisman parallel ketadi; muddat WLCM kirishlari va kontent o‘z vaqtida berilishiga bog‘liq.</p>
+    <h2>WLCM.uz to‘lov ulanishi</h2>
+    <div class="note">Buyurtma serverda yaratiladi → WLCM to‘lov jarayoni boshlanadi → server tasdiqni tekshiradi → chipta <b>faqat tasdiqlangan to‘lovdan keyin</b> chiqariladi. Takroriy xabarlar ikki marta chipta yaratmasligi, to‘lov muvaffaqiyatsiz bo‘lsa bron bo‘shatilishi kerak.</div>
+    <p class="small" style="margin-top:11px">WLCM saytida yagona to‘lov platformasi ko‘rsatilgan, ammo ochiq API tafsilotlari bu bahoda tasdiqlanmagan. Ishni boshlashdan oldin merchant shartnomasi, sandbox, API hujjati, callback/xabarlar, qaytarim tartibi va komissiyalar olinadi. Avtomatik refund imkoniyati hujjat bilan tasdiqlanmasa, u qo‘shimcha ish sifatida baholanadi.</p>
+    <h2>Kengaytirilgan versiya</h2>
+    <div class="split">
+      <section><h3>Qo‘shimcha imkoniyatlar</h3><ul>
+        <li>O‘rindiq xaritasi va vaqtinchalik bron</li>
+        <li>Promokod, qaytarim va ko‘chirish oqimlari</li>
+        <li>Kassalar, agentlar va kengaytirilgan hisobot</li>
+        <li>Yuqori talab paytida navbat va yuklama himoyasi</li>
+      </ul></section>
+      <section><h3>Qo‘shimcha baho</h3>
+        <p><b>+460–850 mln so‘m</b><br><span class="small">MVP ustiga, taxminan yana 12–20 hafta.</span></p>
+        <p><b>Umumiy: 850 mln – 1,5 mlrd so‘m</b><br><span class="small">Veb-platforma uchun jami 6–9 oy.</span></p>
+      </section>
+    </div>
+    <h2>Baho shartlari va chegaralari</h2>
+    <ul>
+      <li>Budjetga responsive web-platforma kiradi; iOS/Android ilovalari kirmaydi.</li>
+      <li>Hosting, SMS/email tarifi, WLCM komissiyasi, fiskalizatsiya va yuridik xarajatlar alohida.</li>
+      <li>Tadbir kontenti, tashkilotchi shartnomalari va joy sxemalari buyurtmachi tomonidan beriladi.</li>
+      <li>Yakuniy narx o‘rindiqlar sxemasi, trafik, tillar va integratsiya hujjatlari asosida belgilanadi.</li>
+      <li>Qabul mezonlari: test to‘lovi → bitta chipta; takroriy tasdiq → dublikat yo‘q; QR → faqat birinchi kirish haqiqiy.</li>
+    </ul>
+    <p class="small" style="margin-top:23px">Funksional asos: <a href="https://iticket.uz/en/page/faq">iTicket FAQ</a> · <a href="https://www.iticket.uz/en/page/about">iTicket haqida</a> · <a href="https://wlcm.uz/">WLCM</a>. Mahalliy dasturchilar stavkalari uchun kontekst: <a href="https://www.uzitpark.com/en/bpo-kpo/rates">IT Park Uzbekistan</a>. Bu raqamlar manbalardagi tayyor narxlar emas, yuqoridagi hajm bo‘yicha tuzilgan dastlabki loyiha bahosidir.</p>
+    <footer class="footer"><span>2 / 2 · Aniqlashtirish uchun: texnik topshiriq + WLCM hujjatlari</span><span>PDF uchun tayyor</span></footer>
+  </section>
+</body>
+</html>
