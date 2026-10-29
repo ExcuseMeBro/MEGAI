@@ -178,6 +178,43 @@
     ]
   },
   {
+    "name": "better-ui",
+    "files": [
+      {
+        "path": "better-ui/SKILL.md",
+        "sha256": "2d5f9fa4f3bbf045da914349b6e5fde559c947e5323968350b65bb2cdc6b3e4f"
+      },
+      {
+        "path": "better-ui/agents/openai.yaml",
+        "sha256": "799e0b58bded32edf5c217f97e08c364660ec24234978b2e3f7dee1868bea871"
+      },
+      {
+        "path": "better-ui/animations.md",
+        "sha256": "0e9ee790191d0761a6adf27fdf1e4279d79ecbe5d0d916fc331a28a8c86f39b3"
+      },
+      {
+        "path": "better-ui/enter-exit.md",
+        "sha256": "de087d3bc69461343409c275dea7d94bca6c1158558b887b7909ce505cdfa70a"
+      },
+      {
+        "path": "better-ui/icon-transitions.md",
+        "sha256": "676b344e7b22c37692a520c7ea2ab8fad3b3c8943a833f8133e51042297e9f06"
+      },
+      {
+        "path": "better-ui/icons.md",
+        "sha256": "eac6195bb5d5ba77efd6d9d7751295a7b0d4dadf6a68146639091b02f1e3dbbd"
+      },
+      {
+        "path": "better-ui/performance.md",
+        "sha256": "db59db84ab371903b7ebdb69f1e92bdc0f2e041331d9dd65d312e4d1b5d449d6"
+      },
+      {
+        "path": "better-ui/surfaces.md",
+        "sha256": "35a76b7c4e6da0fc933559e73ca8712fb7b804c383c6f69c25be3b9616ff2721"
+      }
+    ]
+  },
+  {
     "name": "blob-store",
     "files": [
       {

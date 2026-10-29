@@ -1,11 +1,11 @@
 # Current Pi configuration — `for-ustama`
 
-Point-in-time, shareable snapshot of the **user-level Pi-Bolt** setup on 2026-10-28. This directory is not an automatic installer. It does not change the active Pi runtime. The previous MEGAI repository source tree, including its old project-level `.pi/` files and OMP artifacts, is not part of this clean-history branch because it is not the current user-level Pi installation. The separate `/Users/bro/PROJECTS/.pi/project.json` belongs to a multi-repository workspace, not the current user-level Pi configuration.
+Point-in-time, shareable snapshot of the **user-level Pi-Bolt** setup on 2026-10-29. This directory is not an automatic installer. It does not change the active Pi runtime. The previous MEGAI repository source tree, including its old project-level `.pi/` files and OMP artifacts, is not part of this clean-history branch because it is not the current user-level Pi installation. The separate `/Users/bro/PROJECTS/.pi/project.json` belongs to a multi-repository workspace, not the current user-level Pi configuration.
 
 ## Included
 
 - `agent/AGENTS.md`: current global agent instructions (the repository's older `pi-defaults/` may differ).
-- `agent/settings.json`, `agent/models.json`: selected provider/model/thinking, package, prompt and skill selectors, theme, explicit model definitions. `models.json` currently has an empty providers map.
+- `agent/settings.json`, `agent/models.json`: selected provider/model/thinking, package, prompt and skill selectors, theme, explicit model definitions. Built-in `+codemode` is enabled alongside the default read/bash/edit/write tools for bounded independent tool batches; shared writes and Git delivery remain serial. `models.json` currently has an empty providers map.
 - `agent/mcp.template.json`: currently configured MCP servers/exposure/tool selectors, **with Authorization headers replaced by `<SET_LOCALLY>` and home paths marked `$HOME`**. This is a template, not a directly runnable credential file; substitute paths and configure private credentials locally.
 - `agent/prompts/`: current command prompts, including `/splane`. `agent/extensions/tgrep/index.ts`: local extension source.
 - `agent/npm/package.json` and `agent/npm/package-lock.json`: installed Pi package declarations and npm resolution; the local AgentMemory checkout is a separate path in `settings.json`, not a published package snapshot.

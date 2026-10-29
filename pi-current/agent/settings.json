@@ -2,6 +2,7 @@
   "defaultModel": "gpt-6-sol",
   "defaultProvider": "openai-codex",
   "defaultThinkingLevel": "high",
+  "defaultTools": ["+codemode"],
   "lastChangelogVersion": "1.4.0",
   "modelThinkingLevels": {
     "deepseek/deepseek-flash": "high",
@@ -30,6 +31,7 @@
   ],
   "skills": [
     "!**",
+    "+skills/better-ui/SKILL.md",
     "+skills/frontend-design/SKILL.md",
     "+skills/baseline-ui/SKILL.md",
     "+skills/fixing-accessibility/SKILL.md",
