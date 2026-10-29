@@ -705,7 +705,8 @@ class Distribution(unittest.TestCase):
     def test_native_policy_and_prompts_are_distributed_and_verified(self):
         policy = (DEFAULTS / "AGENTS.md").read_text()
         self.assertIn("verified task-owned worktree", policy)
-        self.assertNotIn("pa" + "seo", policy.lower())
+        self.assertNotIn("mandatory " + "paseo integration", policy.lower())
+        self.assertIn("Pi/Paseo session", policy)
         self.assertIn("pi-subagents", policy.lower())
         self.assertNotIn("do not reinstall it", policy.lower())
         routing = (DEFAULTS.parent / "skills/model-composition/routing.md").read_text()
@@ -722,8 +723,14 @@ class Distribution(unittest.TestCase):
             front = (DEFAULTS / f"prompts/{name}.md").read_text().split("---")[1]
             self.assertIn("description:", front)
             self.assertIn(f"'{name}'", verify)
-        self.assertIn('SOURCE / "prompts"', (DEFAULTS / "install.py").read_text())
-        self.assertIn("Main promotion and pushes require separate explicit approval", policy)
+        installer = (DEFAULTS / "install.py").read_text()
+        self.assertIn('SOURCE / "prompts"', installer)
+        self.assertLess(installer.index('run("node", SOURCE / "policy-contract.mjs"'),
+                        installer.index('if reset:\n        remove(home / ".pi")'))
+        self.assertIn("policyProblems(policy)", verify)
+        self.assertIn("Main promotion and publishing require separate explicit approval", policy)
+        self.assertIn("Accepted task-owned dev pushes need no repeated approval", policy)
+        self.assertIn("only `/splane` reconciles task data", policy)
         self.assertIn("No separate reviewer is required", policy)
         self.assertNotIn("Explicit independent-review requests are honored", policy)
         browser = (DEFAULTS / "prompts/rwbrowser.md").read_text()
@@ -862,11 +869,12 @@ class Distribution(unittest.TestCase):
             "one writer per worktree", "verified task-owned worktree",
             "never edit, stage or commit task source in the dev/main checkout",
             "Never idle over a decision", "at most five minutes",
-            "Reserved user decisions", "Main/push/publishing still need separate explicit approval",
-            "Cleanup only clean, released, proven-merged task-owned resources",
+            "Reserved user decisions", "Main promotion and publishing require separate explicit approval",
+            "git push <VERIFIED_REMOTE> <FULL_SHA>:refs/heads/dev", "git ls-remote",
+            "remove only clean, released, proven-merged task-owned resources",
         ):
             self.assertIn(required, policy)
-        self.assertNotIn("pa" + "seo", policy.lower())
+        self.assertNotIn("mandatory " + "paseo integration", policy.lower())
 
 
 class InstallerPreflight(unittest.TestCase):

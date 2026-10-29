@@ -3,6 +3,7 @@ import { realpathSync, existsSync, readFileSync, lstatSync, accessSync, constant
 import { dirname, join, delimiter } from 'node:path';
 import { homedir } from 'node:os';
 import { pathToFileURL } from 'node:url';
+import { policyProblems } from './policy-contract.mjs';
 
 const command = process.env.PATH.split(delimiter).map(p => join(p, 'pi')).find(p => { try { accessSync(p, constants.X_OK); return true; } catch { return false; } });
 if (!command) throw new Error('Pi CLI missing');
@@ -62,7 +63,8 @@ for (const name of requiredSkills) {
   if (skills.skills.filter(s => s.name === name).length > 1) missing.push(`duplicate skill: ${name}`);
 }
 if (skills.skills.some(s => s.name.startsWith('openspec-')) || promptNames.some(n => n.startsWith('opsx-'))) missing.push('retired OpenSpec resources');
-if (!policy.includes('verified task-owned worktree') || new RegExp('pa' + 'seo', 'i').test(policy)) missing.push('AGENTS.md: native Git worktree policy');
+missing.push(...policyProblems(policy).map(problem => `AGENTS.md: ${problem}`));
+if (/mandatory Paseo integration|Paseo is required/i.test(policy)) missing.push('AGENTS.md: retired mandatory integration');
 // The same prompt can be installed globally and in a project's tracked policy.
 // Accept only byte-identical regular files; a differing override remains a diagnostic.
 const identicalPromptCollision = diagnostic => {

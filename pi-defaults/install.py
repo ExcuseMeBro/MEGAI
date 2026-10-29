@@ -394,9 +394,13 @@ def install(reset=False, remove_omp=False):
         "-e",
         "const [major,minor]=process.versions.node.split('.').map(Number); if(major<22 || (major===22 && minor<22)) {console.error('Node 22.22+ required'); process.exit(1)}",
     )
-    for relative in ("package.json", "package-lock.json", "workflow.py", "verify.mjs"):
+    for relative in ("package.json", "package-lock.json", "workflow.py", "verify.mjs",
+                     "AGENTS.md", "policy-contract.mjs"):
         if not (SOURCE / relative).is_file():
             raise SystemExit(f"Incomplete profile source: {relative}")
+    # Check the source before --reset or any package/config mutation: a stale
+    # template must not replace the current Pellet/delivery instructions.
+    run("node", SOURCE / "policy-contract.mjs", SOURCE / "AGENTS.md")
     if not reset:
         run(sys.executable, REPO / "lib/pi_engineering.py", env={
             **os.environ, "MEGAI_HOME": str(shared), "MEGAI_SOURCE": str(REPO),
