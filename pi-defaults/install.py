@@ -93,7 +93,7 @@ def profile_settings(versions, home, current=None):
 
 
 def profile_mcp(defaults, home, current=None):
-    """Brokan replaces Pellet; preserve operator servers and disable Plane by default."""
+    """Brokan replaces retired task servers; preserve unrelated operator servers."""
     mcp = dict(current or {})
     servers = mcp.get("mcpServers")
     if servers is None:
@@ -102,6 +102,7 @@ def profile_mcp(defaults, home, current=None):
         raise SystemExit("Existing mcp.json has a non-object mcpServers; reconcile it before install")
     servers = dict(servers)
     servers.pop("pellet", None)
+    servers.pop("plane", None)
     brokan = servers.get("brokan", {})
     if not isinstance(brokan, dict):
         raise SystemExit("Existing Brokan MCP entry is not an object; reconcile it before install")
@@ -110,10 +111,6 @@ def profile_mcp(defaults, home, current=None):
     brokan.setdefault("args", ["mcp"])
     brokan["enabled"] = True
     servers["brokan"] = brokan
-    if "plane" in servers:
-        if not isinstance(servers["plane"], dict):
-            raise SystemExit("Existing Plane MCP entry is not an object; reconcile it before install")
-        servers["plane"] = {**servers["plane"], "enabled": False}
     mcp["mcpServers"] = servers
     settings = mcp.get("settings")
     if settings is None:
@@ -384,7 +381,7 @@ def install(reset=False, remove_omp=False):
         "-e",
         "const [major,minor]=process.versions.node.split('.').map(Number); if(major<22 || (major===22 && minor<22)) {console.error('Node 22.22+ required'); process.exit(1)}",
     )
-    for relative in ("package.json", "package-lock.json", "workflow.py", "verify.mjs",
+    for relative in ("package.json", "package-lock.json", "verify.mjs",
                      "AGENTS.md", "policy-contract.mjs"):
         if not (SOURCE / relative).is_file():
             raise SystemExit(f"Incomplete profile source: {relative}")
@@ -444,11 +441,12 @@ def install(reset=False, remove_omp=False):
         SOURCE,
         defaults,
         dirs_exist_ok=True,
-        ignore=shutil.ignore_patterns("node_modules", "__pycache__"),
+        ignore=shutil.ignore_patterns(
+            "node_modules", "__pycache__", "workflow.py", "orchestrator.py",
+            "delivery.py", "ORCHESTRATOR.md", "projects"),
     )
     retire_legacy_factory_prompt(agent, home)
     retire_factory_assets(agent, home)
-    shutil.copy2(REPO / "lib/plane_mcp_headers.py", defaults / "plane_mcp_headers.py")
     npm_root = agent / "npm"
     npm_root.mkdir(exist_ok=True)
     for name in ("package.json", "package-lock.json"):
@@ -486,7 +484,9 @@ def install(reset=False, remove_omp=False):
     (shared / "bin").mkdir(exist_ok=True)
     shutil.copy2(REPO / "bin/megai", shared / "bin/megai")
     (shared / "bin/megai").chmod(0o755)
-    shutil.copytree(SOURCE / "extensions", agent / "extensions", dirs_exist_ok=True)
+    shutil.copytree(SOURCE / "extensions", agent / "extensions", dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns("megai-durable-workflow", "megai-command-receipts",
+                                                  "megai-local-worker", "project-rules.ts"))
     headroom = agent / "extensions/megai-headroom"
     headroom.mkdir(parents=True, exist_ok=True)
     shutil.copy2(REPO / "pi-skill/headroom/index.ts", headroom / "index.ts")
@@ -534,10 +534,11 @@ def install(reset=False, remove_omp=False):
     bridge.write_bytes(HEADROOM_BRIDGE)
     bridge.chmod(0o755)
     launcher = local_bin / "pi-workflow"
-    launcher.write_text(
-        '#!/bin/sh\nexec python3 "$HOME/.pi/agent/defaults/workflow.py" "$@"\n'
-    )
-    launcher.chmod(0o755)
+    legacy_launcher = b'#!/bin/sh\nexec python3 "$HOME/.pi/agent/defaults/workflow.py" "$@"\n'
+    if launcher.is_file() and not launcher.is_symlink():
+        if launcher.read_bytes() != legacy_launcher:
+            raise SystemExit("Unrecognized pi-workflow launcher; preserve it and reconcile manually")
+        launcher.unlink()
     shell_file = (
         home / ".zshrc"
         if os.environ.get("SHELL", "").endswith("zsh")

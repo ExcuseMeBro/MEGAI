@@ -7,14 +7,14 @@ const docs = readFileSync(new URL('../docs/pi-audit-remediation.md', import.meta
 
 test('compact runtime policy keeps safety/delivery/authority boundaries', () => {
   assert.ok(Buffer.byteLength(policy) < 8000, 'keep the runtime profile bounded');
-  for (const fragment of ['Plane', 'brodev', 'Todo', 'In Progress', 'In Review',
+  for (const fragment of ['Brokan is the sole execution tracker', 'todo then doing', 'Brokan `review`',
     'EVERY delivered commit in remote main', 'task-owned worktree', 'one writer',
-    'shared queue home', 'fetch/push URLs', 'COMPLETE proposed remote commit range',
+    'Coordinate\none writer per shared delivery target', 'fetch/push URLs', 'COMPLETE proposed remote commit range',
     'ff-only --no-overwrite-ignore', 'merge-base --is-ancestor', 'git ls-remote',
-    'No In Review on partial Git delivery', 'Explicit persistent-branch',
-    'private pre-change receipt/backup', 'HUMAN confirmation', 'Guarded safety/acceptance/installer',
-    'provider, model and thinking', 'repositoryPath', 'report unsupported once',
-    'Never blindly retry uncertain Plane writes', 'Do not\nre-enable Headroom', '/rwbrowser']) {
+    'No `review` on partial Git delivery', 'Explicit persistent-branch',
+    'private pre-change receipt/backup', 'Guarded safety/acceptance/installer',
+    'provider, model and thinking', 'revalidate Brokan task',
+    'Reconcile uncertain\nBrokan writes', 'Do not\nre-enable Headroom', '/rwbrowser']) {
     assert.ok(policy.includes(fragment), `missing boundary: ${fragment}`);
   }
   assert.match(policy, /Reuse verified IDs, paths and results/);

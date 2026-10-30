@@ -15,8 +15,8 @@ validation requirements. Harmless prose edits and installation of already-review
 policy bytes do not trigger this gate by filename alone; classify their actual
 risk with `megai`.
 
-Parent owns the contract and Plane identity; leaves inherit both, never delegate,
-mutate Plane or integrate. Load this workflow once per task; reuse it at handoff.
+Parent owns the contract and Brokan task identity; leaves inherit both, never mutate
+approval or integrate. Load this workflow once per task; reuse it at handoff.
 Read [reference.md](reference.md) when preparing contracts, recording a regression,
 collecting evidence or checking acceptance. This gate is not a sandbox or tracker.
 
@@ -28,9 +28,10 @@ scoped local-workspace/backup/one-writer procedure in `agent-worktree-lifecycle`
 Contracts, evidence and backups stay outside that source root. Git absence alone
 is not BLOCKED; unreadable/unsupported source or missing tests still are.
 
-Start/reuse the linked Plane item. Name observable outcomes, error cases and
+Start/reuse the selected Brokan task. Name observable outcomes, error cases and
 regression boundaries; bind each to a bounded command that asserts the outcome.
-Use schema 3 for new tasks: classify `bugfix`, `change` or `docs`. Product behavior requires a
+Use schema 4 and `brokan.task_id` for new tasks: classify `bugfix`, `change` or `docs`.
+Previously frozen Plane schema-1/2/3 contracts remain readable without mutation. Product behavior requires a
 real CLI/API/browser check; static-only work needs an explicit runtime rationale.
 Live tests require user-approved local/staging targets and isolated identities.
 Missing prerequisites mean BLOCKED; production mutations, real payments/messages
@@ -41,7 +42,8 @@ command with `run --test-file`. Inspect its actual assertion failure, not a miss
 dependency, timeout or unrelated error. Bind that red receipt, exact expected exit
 and failure signature into a regression criterion. The same test files and command
 must pass after the fix. Freeze the parent-approved contract bytes outside source;
-record SHA256 and criteria in the same Plane item before implementation. Changes
+record SHA256 as `Frozen acceptance SHA256: HASH` on its own line in the same Brokan task
+before implementation; read back the task identity, status and exact hash. Changes
 to criteria/tests require parent reconciliation and fresh red evidence, not a waiver.
 
 ## 2. Fix and collect
@@ -57,7 +59,8 @@ finish writes and freeze the directory fingerprint before final capture. Keep ar
 outside the source root.
 
 Run `megai acceptance collect` with the frozen contract and hash retrieved from
-Plane. It captures commands once, in order, into a new private directory; a failure
+Brokan. The CLI reads back the approved hash from the local board for schema 4
+and captures commands once, in order, into a new private directory; a failure
 or source change stops later commands. The generated evidence is a **BLOCKED draft**,
 not acceptance. Inspect raw logs and fill each observation with the actual outcome.
 For runtime checks, bind the running build/environment to the candidate and verify
@@ -75,9 +78,9 @@ change invalidates the prior snapshot: final capture must match the delivered
 candidate. Historical frozen schema-1/2 contracts keep their original review
 requirement; never rewrite approved bytes to evade it.
 
-Run `megai acceptance check` with the Plane-approved hash. Only a source-current PASS
-permits agreed delivery (Git branch or non-Git configuration files) and Plane
-**In Review**, never Done or unapproved main promotion.
+Run `megai acceptance check` with the Brokan-approved hash. Only a source-current PASS
+permits agreed delivery (Git branch or non-Git configuration files) and Brokan
+`review`, never `done` or unapproved main promotion.
 Report criterion → command/action → observed result → artifact. FAIL needs a fix;
 BLOCKED needs the named evidence/prerequisite. Stop at acceptance. Keep user
 resource exclusions and native provider settings intact.

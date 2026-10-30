@@ -8,8 +8,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 - **Standards**: does the code conform to this repo's documented coding standards?
 - **Spec**: does the code faithfully implement the originating issue / spec?
 
-Use the existing Plane task and acceptance as the spec. Pi workflow owns task identity,
-worktrees and delivery. The parent reviews both axes separately by default; a required
+Use the existing Brokan task and its acceptance criteria as the spec. Brokan owns task identity and acceptance; native Git owns worktree delivery. The parent reviews both axes separately by default; a required
 independent review follows the active project's policy and native Git worktree ownership rules.
 Do not create another tracker, require a setup wizard or launch browser checks. Browser
 review is explicit via `/rwbrowser`, except evidence already required by acceptance.
@@ -31,7 +30,7 @@ is not an empty WIP review. Only report no changes after checking every included
 
 Look for the originating spec, in this order:
 
-1. The active Plane item and its acceptance; otherwise issue references in the commit messages (`#123`, `Closes #45`, GitLab `!67`, etc.), fetched via the workflow in `docs/agents/issue-tracker.md`.
+1. The selected Brokan task and its acceptance criteria; otherwise issue references in commit messages (`#123`, `Closes #45`, GitLab `!67`, etc.) only when explicitly authorized and relevant.
 2. A path the user passed as an argument.
 3. A spec file under `docs/`, `specs/`, or `.scratch/` matching the branch name or feature.
 4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** axis will skip and report "no spec available".

@@ -54,7 +54,7 @@ const policy = existsSync(join(agentDir, 'AGENTS.md')) ? readFileSync(join(agent
 const missing = [...requiredTools.filter(t => !tools.includes(t)), ...requiredSkills.filter(s => !skills.skills.some(v => v.name === s))];
 if ('pellet' in mcpServers) missing.push('retired Pellet MCP entry still configured');
 if (!mcpServers.brokan || mcpServers.brokan.enabled === false) missing.push('Brokan MCP not enabled');
-if (mcpServers.plane?.enabled !== false && mcpServers.plane !== undefined) missing.push('Plane MCP not disabled by default');
+if ('plane' in mcpServers) missing.push('retired Plane MCP entry still configured');
 for (const name of requiredPrompts) {
   if (!promptNames.includes(name) && !excludedPrompts.has(`-prompts/${name}.md`)) missing.push(`/${name}`);
 }

@@ -1,9 +1,8 @@
 {
-  "schema": 3,
+  "schema": 4,
   "task_type": "change",
-  "plane": {
-    "project_id": "00000000-0000-4000-8000-000000000001",
-    "work_item_id": "00000000-0000-4000-8000-000000000002"
+  "brokan": {
+    "task_id": "example#1"
   },
   "implementer_session_id": "replace-with-real-implementer-session",
   "runtime": {

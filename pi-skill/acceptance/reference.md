@@ -9,6 +9,7 @@ verification does not call this CLI or claim its PASS; the CLI semantics are unc
 `megai acceptance` uses Python's standard library and Git discovery; it supports
 Git roots and bounded non-Git configuration directories. It does not launch an
 agent, install a browser, call Plane, start a server, or grant new permissions.
+Schema-4 approval does make a bounded read-only call to the local Brokan board.
 Pi's installed workflow selects existing project commands. Only a trusted parent
 or CI job should assemble final contracts/evidence. Observations are attestations:
 the checker validates consistency, not the authenticity of external outcomes.
@@ -16,7 +17,8 @@ the checker validates consistency, not the authenticity of external outcomes.
 The checker is not an adversarial security boundary. Anyone able to replace the
 runner, approved CLI hash or all local evidence can forge a local PASS. Protect
 contracts, evaluator and evidence from participant writers; fetch the approved
-hash independently from Plane. A repository can require this command in CI and
+hash independently from Brokan for new schema-4 tasks (historical schema-1/2/3
+contracts keep their original Plane approval). A repository can require this command in CI and
 protect that CI check, but this package does not modify branch protection or
 intercept arbitrary Git pushes. Do not equate a prompt with enforced merge policy.
 
@@ -61,10 +63,10 @@ megai acceptance run --root /path/to/repo --out /private/evidence/red \
   --test-file tests/test_reported_bug.py -- python3 -m unittest tests.test_reported_bug
 megai acceptance collect --root /path/to/repo \
   --contract /private/evidence/contract.json \
-  --contract-sha256 HASH_RETRIEVED_FROM_PLANE --out /private/evidence/candidate
+  --contract-sha256 HASH_RETRIEVED_FROM_BROKAN --out /private/evidence/candidate
 megai acceptance check --root /path/to/repo \
   --contract /private/evidence/contract.json \
-  --contract-sha256 HASH_RETRIEVED_FROM_PLANE \
+  --contract-sha256 HASH_RETRIEVED_FROM_BROKAN \
   --evidence /private/evidence/candidate/evidence.json
 ```
 
@@ -81,7 +83,7 @@ anything. It runs the frozen argv lists once in criterion order, using numbered
 subdirectories (criterion IDs never become filesystem paths). It stops at the
 first failure, missing executable or source change; remaining criteria stay BLOCKED.
 The new private `evidence.json` contains receipt paths and the candidate/hash.
-Schema-1/2 drafts retain their legacy review template; schema-3 drafts have no
+Schema-1/2 drafts retain their legacy review template; schema-3/4 drafts have no
 review field. Fill observations only after inspecting raw results. No contract is
 auto-approved, no failed command is auto-retried, and no observation is invented.
 A completed collection returns **BLOCKED/2** until observations (and legacy review,
@@ -107,17 +109,17 @@ BLOCKED; reconcile their outcome before retrying.
 its receipt. A runner PASS proves command completion/source stability, not full
 task acceptance: always perform final `check` with source-current evidence.
 
-## Contract (schema 3 for new tasks; schemas 1/2 remain readable)
+## Contract (schema 4 for new tasks; frozen schemas 1/2/3 remain readable)
 
 Start from [contract.example.json](contract.example.json); it is only an example,
-not a pre-approved task or live-testing authorization. New tasks use schema 3.
-Schemas 1/2 remain supported for frozen contracts; schema 1 cannot represent a
+not a pre-approved task or live-testing authorization. New tasks use schema 4.
+Schemas 1/2/3 remain supported for frozen contracts; schema 1 cannot represent a
 mandatory bugfix regression. Never downgrade a bugfix to bypass the new gate.
 Required fields:
 
-- `schema`: `3`; `task_type`: `bugfix`, `change` or `docs`. A `bugfix` requires at
+- `schema`: `4`; `task_type`: `bugfix`, `change` or `docs`. A `bugfix` requires at
   least one criterion with `regression`. The parent validates classification;
-  the CLI cannot infer whether a diff actually fixes a bug. Schema 3 forbids
+  the CLI cannot infer whether a diff actually fixes a bug. Schemas 3/4 forbid
   `reviewer` in the contract and `review` in evidence.
 
 - `reviewer` (legacy schema 2 only): freezes the exact independent reviewer policy as
@@ -128,7 +130,8 @@ Required fields:
   with the reviewer model checked for `provider/model` syntax only. A partial, extra or
   malformed `reviewer` object, and a schema-1 contract carrying one, are BLOCKED.
 
-- `plane`: `project_id` and `work_item_id` UUIDs of the existing task.
+- `brokan`: `task_id` in canonical `project#number` form for the selected task.
+  Frozen schemas 1/2/3 retain their original `plane` UUIDs; do not rewrite them.
 - `implementer_session_id`: the real implementer's session identity.
 - `runtime`: `required`, `authorized`, `environment` (`local`, `staging`, `none`),
   `targets` and `reason`. Required runtime checks need explicit authorization,
@@ -144,7 +147,12 @@ test accounts/data. Backend outcomes and browser state must be actually observed
 commands that return zero without asserting the requirement are inadequate.
 
 Freeze the raw contract bytes: whitespace changes also change SHA256. Store the
-approved hash with the task's acceptance in Plane before edits. Do not calculate
+approved hash on its own `Frozen acceptance SHA256: HASH` line in the selected
+Brokan task description before edits; read it back. `collect` and `check` for schema 4
+read the local `127.0.0.1:1317` Brokan task and fail closed unless its ID, project,
+`doing`/`review` status and approved hash match. The port can be overridden only for
+isolated local tests via `MEGAI_BROKAN_TEST_PORT`. For old frozen contracts use the
+original approved Plane hash without calling Plane. Do not calculate
 a fresh replacement hash at handoff merely to make a changed contract pass.
 
 ### Bugfix red → green
@@ -196,7 +204,7 @@ Top-level fields:
 - `contract_sha256`: externally approved hash.
 - `snapshot`: current candidate source fingerprint.
 - `checks`: exactly one entry per criterion, no extras or duplicates.
-- `review`: required only for frozen schema-1/2 contracts; forbidden for schema 3.
+- `review`: required only for frozen schema-1/2 contracts; forbidden for schemas 3/4.
 
 Each check contains `id`, `status` (`PASS`, `FAIL`, `BLOCKED`), a nonempty
 `observation`, `receipt` (path to the actual runner receipt), and `artifacts`

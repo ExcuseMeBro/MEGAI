@@ -18,10 +18,13 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import stat
 import subprocess
 import time
 import uuid
+import urllib.error
+import urllib.request
 
 SHA256_LENGTH = 64
 DIRECTORY_MAX_ENTRIES = 10_000
@@ -352,16 +355,17 @@ def _artifact(base: Path, value: object) -> None:
 
 
 def _contract(value: object) -> dict[str, object]:
-    keys = {"schema", "plane", "implementer_session_id", "runtime", "criteria"}
     if not isinstance(value, dict) or not _is_int(value.get("schema")):
         raise GateError("Unsupported contract schema")
     version = value["schema"]
-    if version in {2, 3}:
+    keys = {"schema", "implementer_session_id", "runtime", "criteria"}
+    keys.add("brokan" if version == 4 else "plane")
+    if version in {2, 3, 4}:
         keys.add("task_type")
     allowed = keys | ({"reviewer"} if version == 2 else set())
-    if version not in {1, 2, 3} or not keys <= set(value) or set(value) - allowed:
+    if version not in {1, 2, 3, 4} or not keys <= set(value) or set(value) - allowed:
         raise GateError("Unsupported contract schema")
-    if version in {2, 3} and value["task_type"] not in ("bugfix", "change", "docs"):
+    if version in {2, 3, 4} and value["task_type"] not in ("bugfix", "change", "docs"):
         raise GateError("Invalid task type")
     if "reviewer" in value:
         reviewer = value["reviewer"]
@@ -374,16 +378,23 @@ def _contract(value: object) -> dict[str, object]:
             or reviewer["thinking"] not in ("low", "medium", "high")
         ):
             raise GateError("Invalid reviewer policy")
-    plane = value["plane"]
-    if not isinstance(plane, dict) or set(plane) != {"project_id", "work_item_id"}:
-        raise GateError("Malformed contract plane")
-    for name in ("project_id", "work_item_id"):
-        try:
-            if not isinstance(plane[name], str):
-                raise ValueError
-            uuid.UUID(plane[name])
-        except (ValueError, AttributeError):
-            raise GateError("Invalid contract UUID") from None
+    if version == 4:
+        brokan = value["brokan"]
+        if (not isinstance(brokan, dict) or set(brokan) != {"task_id"}
+                or not isinstance(brokan["task_id"], str)
+                or not re.fullmatch(r"[a-z][a-z0-9-]*#[1-9][0-9]*", brokan["task_id"])):
+            raise GateError("Invalid Brokan task identity")
+    else:
+        plane = value["plane"]
+        if not isinstance(plane, dict) or set(plane) != {"project_id", "work_item_id"}:
+            raise GateError("Malformed contract plane")
+        for name in ("project_id", "work_item_id"):
+            try:
+                if not isinstance(plane[name], str):
+                    raise ValueError
+                uuid.UUID(plane[name])
+            except (ValueError, AttributeError):
+                raise GateError("Invalid contract UUID") from None
     if (
         not isinstance(value["implementer_session_id"], str)
         or not value["implementer_session_id"].strip()
@@ -417,7 +428,7 @@ def _contract(value: object) -> dict[str, object]:
     regression_count = 0
     for criterion in criteria:
         allowed = {"id", "kind", "expected", "command", "target"}
-        if version in {2, 3}:
+        if version in {2, 3, 4}:
             allowed.add("regression")
         required = {"id", "kind", "expected", "command"}
         if (
@@ -462,9 +473,34 @@ def _contract(value: object) -> dict[str, object]:
             raise GateError("Test criterion target forbidden")
     if bool(runtime_count) != runtime["required"]:
         raise GateError("Runtime criteria mismatch")
-    if version in {2, 3} and value["task_type"] == "bugfix" and not regression_count:
+    if version in {2, 3, 4} and value["task_type"] == "bugfix" and not regression_count:
         raise GateError("Bugfix requires a regression criterion")
     return value
+
+
+def _brokan_approval(task_id: str, approved: str) -> None:
+    """Read back the exact frozen digest from the selected local Brokan task."""
+    number = task_id.rsplit("#", 1)[1]
+    port = os.environ.get("MEGAI_BROKAN_TEST_PORT", "1317")
+    if not port.isascii() or not port.isdecimal() or not 1 <= int(port) <= 65535:
+        raise GateError("Invalid local Brokan port")
+    url = f"http://127.0.0.1:{port}/api/tasks/{number}"
+    try:
+        with urllib.request.urlopen(url, timeout=4) as response:
+            if response.status != 200 or int(response.headers.get("Content-Length", "0")) > 1024 * 1024:
+                raise GateError("Brokan approval response unavailable or oversized")
+            raw = response.read(1024 * 1024 + 1)
+        if len(raw) > 1024 * 1024:
+            raise GateError("Brokan approval response oversized")
+        task = json.loads(raw)["task"]
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise GateError("Brokan approval readback unavailable") from exc
+    if (not isinstance(task, dict) or task.get("id") != int(number)
+            or task.get("status") not in {"doing", "review"}
+            or task.get("project") != task_id.split("#")[0]
+            or not isinstance(task.get("description"), str)
+            or f"Frozen acceptance SHA256: {approved}" not in task["description"].splitlines()):
+        raise GateError("Brokan task identity, state or approved hash mismatch")
 
 
 def _receipt(value: object, command: object, snapshot_value: str, root: Path) -> int:
@@ -547,9 +583,11 @@ def check(
         if not _is_hash(approved) or _file_sha256(contract_path)[0] != approved:
             raise GateError("Contract hash mismatch")
         contract = _contract(_json_file(contract_path))
+        if contract["schema"] == 4:
+            _brokan_approval(contract["brokan"]["task_id"], approved)
         evidence = _json_file(evidence_path)
         evidence_keys = {"schema", "contract_sha256", "snapshot", "checks"}
-        if contract["schema"] != 3:
+        if contract["schema"] not in {3, 4}:
             evidence_keys.add("review")
         if (
             not isinstance(evidence, dict)
@@ -606,7 +644,7 @@ def check(
                 result = "FAIL"
         if seen != set(criteria):
             raise GateError("Missing criterion evidence")
-        if contract["schema"] == 3:
+        if contract["schema"] in {3, 4}:
             return result, []
         review = evidence["review"]
         review_keys = {
@@ -779,6 +817,8 @@ def collect(root_arg: Path, contract_file: Path, approved: str, output: Path) ->
     if not _is_hash(approved) or _file_sha256(contract_path)[0] != approved:
         raise GateError("Contract hash mismatch")
     contract = _contract(_json_file(contract_path))
+    if contract["schema"] == 4:
+        _brokan_approval(contract["brokan"]["task_id"], approved)
     candidate = snapshot(root)
     for criterion in contract["criteria"]:
         if "regression" in criterion:
@@ -794,7 +834,7 @@ def collect(root_arg: Path, contract_file: Path, approved: str, output: Path) ->
         "schema": 1, "contract_sha256": approved, "snapshot": candidate,
         "checks": checks,
     }
-    if contract["schema"] != 3:
+    if contract["schema"] not in {3, 4}:
         reviewer = contract.get("reviewer")
         review = (
             {"harness": "pi", "model": "", "thinking": "high"}
@@ -809,7 +849,7 @@ def collect(root_arg: Path, contract_file: Path, approved: str, output: Path) ->
                            "artifact": {"path": "", "sha256": ""}}
     result = "BLOCKED"
     reasons = ["Draft only: actual observations are required"]
-    if contract["schema"] != 3:
+    if contract["schema"] not in {3, 4}:
         reasons[0] = "Draft only: actual observations and independent review are required"
     try:
         for index, criterion in enumerate(contract["criteria"]):

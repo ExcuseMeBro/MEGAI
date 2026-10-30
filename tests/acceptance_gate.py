@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import hashlib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 
 GATE = Path(__file__).resolve().parents[1] / "lib/acceptance_gate.py"
@@ -47,6 +49,7 @@ class AcceptanceGateTest(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=20,
+            env={**os.environ, **getattr(self, "test_environment", {})},
         )
         self.assertNotIn("Traceback", result.stderr, result.stderr)
         return result
@@ -192,6 +195,56 @@ class AcceptanceGateTest(unittest.TestCase):
         contract["reviewer"] = {"harness": "pi", "model": "local/reviewer", "thinking": "high"}
         save(directory / "contract.json", contract)
         self.check(directory, 2, "Unsupported contract schema")
+
+    def test_brokan_schema_four_requires_matching_local_task_and_frozen_hash(self):
+        directory, contract, evidence = self.fixture()
+        contract.update(schema=4, task_type="change")
+        contract.pop("plane")
+        contract["brokan"] = {"task_id": "megai#582"}
+        evidence.pop("review")
+        save(directory / "contract.json", contract)
+        digest = sha256(directory / "contract.json")
+        evidence["contract_sha256"] = digest
+        save(directory / "evidence.json", evidence)
+        task = {"id": 582, "project": "megai", "status": "doing",
+                "description": f"Accepted criterion\nFrozen acceptance SHA256: {digest}\n"}
+        class Board(BaseHTTPRequestHandler):
+            def do_GET(self):
+                if self.path != "/api/tasks/582":
+                    self.send_error(404)
+                    return
+                payload = json.dumps({"task": task}).encode()
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+            def log_message(self, *args):
+                pass
+
+        board = ThreadingHTTPServer(("127.0.0.1", 0), Board)
+        thread = threading.Thread(target=board.serve_forever, daemon=True)
+        thread.start()
+        self.test_environment = {"MEGAI_BROKAN_TEST_PORT": str(board.server_port)}
+        try:
+            self.check(directory)
+            task["description"] = f"Frozen acceptance SHA256: {'0' * 64}"
+            self.check(directory, 2, "approved hash mismatch")
+            task["description"] = f"Frozen acceptance SHA256: {digest}"
+            task["status"] = "todo"
+            self.check(directory, 2, "state or approved hash mismatch")
+            task["status"] = "doing"
+            task["project"] = "other"
+            self.check(directory, 2, "identity, state")
+            task["project"] = "megai"
+            contract["brokan"] = {"task_id": "other#582"}
+            save(directory / "contract.json", contract)
+            self.check(directory, 2, "identity, state or approved hash mismatch")
+        finally:
+            board.shutdown()
+            board.server_close()
+            thread.join(timeout=2)
+            del self.test_environment
 
     def test_review_free_collect_emits_no_review_and_blocks_incomplete_observation(self):
         directory, contract, _ = self.fixture()
