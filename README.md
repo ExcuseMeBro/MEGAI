@@ -111,21 +111,22 @@ sessions, not a benchmark. For the handoff question specifically — how much wo
 agent repeats after another agent already read it — use
 `benchmark/handoff-cost/measure.py`.
 
-<a id="pellet-and-branches"></a>
+<a id="brokan-and-branches"></a>
 
-## 🗂️ Pellet and branches
+## 🗂️ Brokan and branches
 
-Pellet owns execution tracking and acceptance: open → in_progress → in-review →
-completed. A task's project is its verified Pellet folder. Pi no longer installs
-or runs task synchronization with Plane. `/mdev`, `/prdev` and normal coding
-work do not call Plane; a separately authorized acceptance-only Plane issue
-may satisfy a pre-existing formal gate without syncing task data. Keep task-specific
-acceptance and delivery evidence in Pellet. Verify every delivered commit in
-local and freshly fetched/independently advertised remote `dev` before review. Main promotion and publication are separate
-user decisions; neither happens automatically.
+Brokan owns execution tracking and acceptance: todo → doing → review → done.
+Bind a task to its verified Brokan project; check the board for duplicates before
+creating one. Pi no longer installs or runs task synchronization with Plane.
+`/mdev`, `/prdev` and normal coding work do not call Plane; a separately
+authorized acceptance-only Plane issue may satisfy a pre-existing formal gate
+without syncing task data. Keep task-specific acceptance and delivery evidence
+in Brokan. Verify every delivered commit in local and freshly fetched,
+independently advertised remote `dev` before review. Main promotion and
+publication are separate user decisions; neither happens automatically.
 
 The retired `/factory` prompt, its delegation tool and the former Plane
-`factory-plan`/`factory-start` helpers are not installed. Work existing Pellet
+`factory-plan`/`factory-start` helpers are not installed. Work existing Brokan
 tasks directly in separate verified task-owned worktrees; the retired sync is
 not an implicit part of this flow. Do not delete existing task receipts or
 foreign worktrees as part of the factory retirement. An already-running Pi
@@ -145,7 +146,7 @@ proposed commit range, fast-forward only the verified clean target with
 the verified `dev` remote, fetch again and independently check the advertised tip.
 Confirm ancestry of every delivered SHA locally and remotely. Attempt safe
 cleanup immediately after full delivery; preserve active, dirty, unknown or
-unmerged task worktrees. Record evidence and status in Pellet. Main promotion
+unmerged task worktrees. Record evidence and status in Brokan. Main promotion
 and publication require separate explicit approval. Historical `pi-workflow`
 Plane task commands are not the current execution workflow and must not be used
 for delivery. No command in the current Pi harness reconciles task data with Plane.

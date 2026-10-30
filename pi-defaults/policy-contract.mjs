@@ -8,10 +8,10 @@ import { pathToFileURL } from 'node:url';
 export function policyProblems(policy) {
   if (typeof policy !== 'string') return ['missing Pi policy'];
   const required = [
-    ['Pellet task authority', /Pellet(?: \([^)]*\))? is the sole execution tracker and\s+acceptance authority/],
-    ['no task synchronization', /Do not synchronize Pellet tasks with Plane/],
+    ['Brokan task authority', /Brokan(?: \([^)]*\))? is the sole execution tracker and\s+acceptance authority/],
+    ['no task synchronization', /Do not synchronize Brokan tasks with Plane/],
     ['formal gate preservation', /Guarded safety\/installer\/acceptance changes retain their formal gate and frozen criteria/],
-    ['review status', /`in-review`/],
+    ['review status', /Brokan status `review`/],
     ['isolated implementation', /verified task-owned worktree/],
     ['source-current checks', /source-current/],
     ['verified local integration', /git merge --ff-only --no-overwrite-ignore <FULL_TASK_SHA>/],
@@ -22,6 +22,7 @@ export function policyProblems(policy) {
   const obsolete = [
     ['Plane-only task authority', /Plane \(`brodev`\) is the only task tracker|Plane \(workspace brodev\) alone owns execution tracking/],
     ['retired task sync guidance', /\/splane|only\s+Plane\s+sync\s+boundary|syncs?\s+(?:task\s+data\s+with\s+)?Plane/i],
+    ['retired Pellet authority', /Pellet(?: \([^)]*\))? is the sole execution tracker and\s+acceptance authority/],
     ['retired workflow launcher', /Before project changes load `pi-workflow`/],
     ['retired discovery as default', /Use task-owned Codedb first/],
   ];

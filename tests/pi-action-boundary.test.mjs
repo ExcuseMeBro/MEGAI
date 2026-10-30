@@ -18,8 +18,8 @@ test('destructive, publish, session-stop and explicit MCP destructive calls cann
     assert.equal(classify(bash(command)).risk, 'approval', command);
   }
   for (const command of ['pkill -f pi', 'killall pi', 'kill 12345']) assert.equal(classify(bash(command)).risk, 'block');
-  for (const toolName of ['mcp__pellet__delete_task', 'mcp__pellet__delete_canvas_nodes', 'mcp__pellet__rename_tag']) {
-    assert.equal(classify({ toolName, input: { file_path: 'Tasks/a.md' } }).risk, 'approval');
+  for (const toolName of ['mcp__brokan__delete_task', 'mcp__brokan__delete_project']) {
+    assert.equal(classify({ toolName, input: { id: 'megai#1' } }).risk, 'approval');
   }
 });
 

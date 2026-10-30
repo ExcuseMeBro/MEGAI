@@ -509,6 +509,14 @@ class Distribution(unittest.TestCase):
     def setUp(self):
         self.package = json.loads((DEFAULTS / "package.json").read_text())
 
+    def test_delivery_prompts_do_not_restore_pellet_authority(self):
+        for name in ("mdev.md", "prdev.md"):
+            prompt = (DEFAULTS / "prompts" / name).read_text()
+            self.assertIn("Brokan", prompt)
+            self.assertNotIn("Pellet", prompt)
+            self.assertNotIn("query_tasks", prompt)
+            self.assertNotIn("pi-workflow mdev run", prompt)
+
     def test_blanket_filter_keeps_engineering_skills_invocable(self):
         settings = install.profile_settings(
             self.package["dependencies"], Path("/Users/example"), {"skills": ["!**"]}
@@ -579,10 +587,16 @@ class Distribution(unittest.TestCase):
         mcp = install.profile_mcp(
             Path("/tmp/defaults"),
             Path("/Users/example"),
-            {"mcpServers": {"pencil": {"url": "https://example.invalid"}},
+            {"mcpServers": {"pencil": {"url": "https://example.invalid"},
+                            "pellet": {"url": "http://127.0.0.1:27124/mcp"},
+                            "plane": {"url": "https://example.invalid/mcp"}},
              "settings": {"directTools": True}},
         )
-        self.assertIn("plane", mcp["mcpServers"])
+        self.assertNotIn("pellet", mcp["mcpServers"])
+        self.assertEqual(mcp["mcpServers"]["brokan"]["command"], "brokan")
+        self.assertEqual(mcp["mcpServers"]["brokan"]["args"], ["mcp"])
+        self.assertIs(mcp["mcpServers"]["brokan"]["enabled"], True)
+        self.assertIs(mcp["mcpServers"]["plane"]["enabled"], False)
         self.assertIn("pencil", mcp["mcpServers"])
         self.assertIs(mcp["settings"]["directTools"], True)
         self.assertEqual(mcp["settings"]["mcpFooterStatus"], "compact")
@@ -730,8 +744,8 @@ class Distribution(unittest.TestCase):
         self.assertIn("policyProblems(policy)", verify)
         self.assertIn("Main promotion and publishing require separate explicit approval", policy)
         self.assertIn("Accepted task-owned dev pushes need no repeated approval", policy)
-        self.assertIn("Pellet is the sole execution tracker and acceptance authority", policy)
-        self.assertIn("Do not synchronize Pellet tasks with Plane", policy)
+        self.assertIn("Brokan is the sole execution tracker and acceptance authority", policy)
+        self.assertIn("Do not synchronize Brokan tasks with Plane", policy)
         self.assertNotIn("/splane", policy)
         self.assertFalse((DEFAULTS / "prompts/splane.md").exists())
         self.assertIn("No separate reviewer is required", policy)
@@ -839,10 +853,10 @@ class Distribution(unittest.TestCase):
     def test_delivery_prompts_use_native_git_and_keep_fail_closed_boundaries(self):
         mdev = (DEFAULTS / "prompts/mdev.md").read_text()
         for clause in ("git worktree list --porcelain", "--no-overwrite-ignore",
-                       "megai queue plan", "source-current formal PASS", "non-force push",
-                       "In Review", "uncertain ownership"):
+                       "list_tasks", "source-current formal PASS", "non-force push",
+                       "status to `review`", "uncertain ownership"):
             self.assertIn(clause, mdev)
-        for obsolete in ("pi-workflow status", "pi-workflow cleanup", "pa" + "seo"):
+        for obsolete in ("pi-workflow status", "pi-workflow cleanup", "megai queue plan", "pa" + "seo"):
             self.assertNotIn(obsolete, mdev.lower() if obsolete == "pa" + "seo" else mdev)
         prdev = (DEFAULTS / "prompts/prdev.md").read_text()
         for clause in ("github.com", "Missing evidence for the captured `dev` SHA",

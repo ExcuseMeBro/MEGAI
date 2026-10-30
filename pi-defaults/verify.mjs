@@ -41,12 +41,20 @@ const requiredSkills = ['pi-workflow', 'codebase-design', 'diagnosing-bugs', 'td
   'frontend-design', 'interface-design', 'baseline-ui', 'make-interfaces-feel-better', 'fixing-accessibility'];
 const requiredPrompts = engineeringOnly ? [] : ['mdev', 'prdev', 'rwbrowser'];
 const selection = JSON.parse(readFileSync(join(agentDir, 'settings.json'), 'utf8'));
+const mcpPath = join(agentDir, 'mcp.json');
+const mcpServers = existsSync(mcpPath) ? JSON.parse(readFileSync(mcpPath, 'utf8')).mcpServers : {};
+if (!mcpServers || typeof mcpServers !== 'object' || Array.isArray(mcpServers)) {
+  throw new Error('Invalid Pi MCP configuration');
+}
 if (selection.prompts !== undefined && (!Array.isArray(selection.prompts) || selection.prompts.some(value => typeof value !== 'string'))) {
   throw new Error('Invalid Pi prompt selection');
 }
 const excludedPrompts = new Set((selection.prompts ?? []).filter(value => value.startsWith('-prompts/')));
 const policy = existsSync(join(agentDir, 'AGENTS.md')) ? readFileSync(join(agentDir, 'AGENTS.md'), 'utf8') : '';
 const missing = [...requiredTools.filter(t => !tools.includes(t)), ...requiredSkills.filter(s => !skills.skills.some(v => v.name === s))];
+if ('pellet' in mcpServers) missing.push('retired Pellet MCP entry still configured');
+if (!mcpServers.brokan || mcpServers.brokan.enabled === false) missing.push('Brokan MCP not enabled');
+if (mcpServers.plane?.enabled !== false && mcpServers.plane !== undefined) missing.push('Plane MCP not disabled by default');
 for (const name of requiredPrompts) {
   if (!promptNames.includes(name) && !excludedPrompts.has(`-prompts/${name}.md`)) missing.push(`/${name}`);
 }

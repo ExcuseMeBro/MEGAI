@@ -11,12 +11,12 @@ const DANGEROUS_SHELL = [
   ['remote-script', /\b(?:curl|wget)\b[^\n;]{0,500}\|\s*(?:sh|bash|zsh)\b/i],
   ['privilege', /\b(?:sudo|chmod\s+-R\s+777)\b/i],
 ];
-const PELLET_DESTRUCTIVE = /^mcp__pellet__(?:delete_task|delete_note|delete_attachment|delete_canvas_nodes|rename_note|rename_tag|set_archived|restore_from_trash)$/;
+const BROKAN_DESTRUCTIVE = /^mcp__brokan__(?:delete_task|delete_project)$/;
 const CANONICAL_DEV_PUSH = /^git push origin [a-f0-9]{40}:refs\/heads\/dev$/;
 
 export function classify(event) {
   const name = event?.toolName;
-  if (PELLET_DESTRUCTIVE.test(name)) return { risk: 'approval', category: 'pellet-destructive' };
+  if (BROKAN_DESTRUCTIVE.test(name)) return { risk: 'approval', category: 'brokan-destructive' };
   if (name !== 'bash') return { risk: 'normal', category: 'unclassified' };
   const command = event?.input?.command;
   if (typeof command !== 'string' || !command.trim()) return { risk: 'approval', category: 'uninspectable-shell' };
@@ -31,7 +31,7 @@ export function classify(event) {
 // name containing credentials. No paths, prompts, arguments, call IDs or results.
 export function safeTelemetry(name) {
   if (['bash', 'read', 'write', 'edit', 'tool_search', 'web_search', 'fetch_content'].includes(name)) return name;
-  if (typeof name === 'string' && name.startsWith('mcp__pellet__')) return 'pellet';
+  if (typeof name === 'string' && name.startsWith('mcp__brokan__')) return 'brokan';
   return 'other';
 }
 

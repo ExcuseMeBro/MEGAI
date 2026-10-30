@@ -10,11 +10,11 @@ MEGAI's ownership, accepted-SHA, remote URL and ancestry rules still apply.
 Nothing here authorizes a push by itself or relaxes main/publishing approvals.
 
 Recognized categories: recursive destructive file and Git cleanup, push/tag/release,
-remote script piping, privilege escalation, and Pellet delete/rename/archive/restore.
+remote script piping, privilege escalation, and Brokan task/project deletion.
 Pi/Paseo process/session stop is blocked, not offered a one-click blanket approval;
 ask the owner for fresh explicit permission naming the exact resource and action.
 UI confirmation displays the bounded exact
-shell command or Pellet target **locally**, never writes it to telemetry. If it
+shell command or Brokan target **locally**, never writes it to telemetry. If it
 cannot display the subject safely it denies. Ordinary calls and unknown names
 remain unaffected to preserve existing coding, web, image, memory and task tools.
 This is an *advisory* layer: shell indirection, aliases, files/scripts invoked by

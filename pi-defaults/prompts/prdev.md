@@ -1,89 +1,12 @@
 ---
-description: Open or reuse the dev-to-main pull request for the current project (no merge)
+description: Open or reuse a verified dev-to-main pull request for the current project (no merge)
 ---
 
-Invoking `/prdev` explicitly authorizes a necessary non-force push of verified `dev` and
-creating or reusing a `dev` -> `main` pull request. Do not ask again for those actions. It never authorizes
-merging or pushing `main`, never authorizes cleanup or branch deletion, and never touches
-another project.
+`/prdev` authorizes a necessary normal push of **verified** `dev` to its verified remote and creating or reusing a `dev` → `main` pull request. It does not authorize merging or pushing `main`, deleting unrelated resources, other projects or Plane synchronization. Any `dev` delivery still requires the task-owned cleanup boundary before review; this command does not waive it. Brokan is the only execution tracker: no `pi-workflow`, Plane MCP/REST, Plane evidence writes or task-data synchronization here.
 
-**Start from the automated pass, then finish what it retains**
-Run `pi-workflow context`, then `pi-workflow prdev` — it fetches fresh refs, captures the
-exact remote `main` base and `dev` heads, derives the forge, reuses one open `dev` -> `main`
-request, and reports per repository what it published or retained. Read that report and then
-complete the remaining steps below yourself for every retained row; a retained row is work,
-not a reason to stop.
+Use a task-local **evidence graph**, not a background agent: project-bound Brokan task and frozen acceptance → source-current checks and complete `main..dev` diff → exact accepted `dev` SHA → freshly fetched and independently advertised refs → verified PR base/head and body claims. Recheck the links before publication and after any ref movement; a broken link vetoes the dependent push or PR until its actual evidence is refreshed. Never tune acceptance, tests or safety to make a metric green. Pair *measured* speed/cost with quality failures, regressions or rework when reporting; unknown is not a speedup. No autonomous monitoring, extra reviewer or implicit main approval.
 
-**Never stop for a recoverable prerequisite**
-Complete each of these and continue; report each per repository:
-- No forge in `.pi/project.json`: derive the host from the `origin` remote URL (`github.com` ->
-  `gh`, `gitlab.com` -> `glab`) and use the installed authenticated CLI for that host.
-- Several remotes or a fork: honor explicit project forge/destination policy first, then the
-  verified branch push remote, then `origin`. Resolve head and base repository identities;
-  a fork must never silently redirect a push or PR to another project.
-- Missing evidence for the captured `dev` SHA: produce it (focused checks plus parent
-  self-review of that exact SHA) and store it on the existing Plane task identity with
-  `pi-workflow review` before the pull-request write. Absent evidence is work, not a blocker.
-- Moved refs: re-fetch and revalidate, at most three passes, then publish the now-stable SHA.
-- `dev` identical to `main`: report "no pull request needed" as a completed result.
-- Rejected Plane credential or unreachable Plane: run `pi-workflow plane-check` and then
-  `pi-workflow plane-check --repair` once, retry the boundary, and keep the pull request
-  as the last step. A credential problem never cancels the delivery and never becomes a
-  question for the operator mid-task.
-Unusable authentication, an unsupported host, ambiguous destination, missing required evidence,
-failed checks, missing branches or exhausted ref retries hold that repository with a concrete
-reason, without abandoning independent repositories. Continue prerequisites only while safe;
-never publish unverified work because the prompt says to recover.
-Never invent success: evidence must cover the exact published SHA.
-
-**Resolve**
-1. Load `pi-workflow` and run `pi-workflow context` at the invocation cwd. Cover every
-   configured repository. Take the forge and remote from that context and local config
-   (`.pi/project.json`), falling back to the derivation above when the config is silent.
-2. Use the installed, authenticated forge CLI matching the host (`gh` for GitHub, `glab` for
-   GitLab). Inspect its help once when the exact syntax is unknown, then reuse that result.
-
-**Verify before any write**
-3. Fetch and inspect fresh remote refs, then capture the exact proposed `dev` SHA and the exact
-   remote `main` base SHA for each repository. Preserve any dirty or busy checkout: no
-   automatic commit, stash, reset, or rebase. Use another clean checkout of the same SHA when
-   the current one is unavailable, instead of stopping.
-   Use the fetched remote `dev` when local `dev` is absent or behind it. Use local `dev` when
-   it is ahead and its exact SHA passes verification. Diverged histories need `/mdev` or
-   separately authorized reconciliation; this command never silently rewrites either side.
-   If remote `main` is missing, report that fact; do not create it.
-   Compare the captured heads before creating Plane work or collecting new evidence:
-   `git rev-list --count <main-sha>..<dev-sha>` equal to zero is a completed no-op.
-4. Require delivery, test, and parent self-review evidence that covers that `dev` SHA and the `dev`-versus-
-   `main` diff, attached to the existing Plane task identity, captured before any push or PR
-   write. Create the identity and that evidence when they are missing; never invent success.
-5. Compare the captured `dev` SHA with that `main` base. No commits in that diff means no PR;
-   report that as a completed result rather than creating an empty one.
-
-**Publish**
-6. Recheck both refs immediately before publication. If either moved, revalidate the evidence
-   against the new heads and retry, at most three passes, rather than publishing a PR that no
-   longer matches its proof.
-7. If `dev` genuinely must be pushed, reserve the exact target with `megai queue` under the
-   existing Plane identity (`--remote-dev` for origin), using its documented lease and recovery
-   rules. Another remote requires a queue mode supporting that explicit destination; otherwise
-   hold the push. Push only `<validated-sha>:refs/heads/dev` with an ordinary
-   non-force push and then verify remote `dev` is exactly that SHA. A ref that keeps moving
-   after the revalidation passes stops and reports; never force, reset, or rewrite.
-   Finish the reservation after remote verification; uncertain results use hold/reconcile.
-8. Look up an **OPEN** PR by exact base repository + `main`, head repository + `dev`.
-   Reuse its URL after verifying its current head SHA and base SHA against captured evidence.
-   A stale head/base is a revalidation case, never a reason to create a duplicate PR. If more
-   than one exact match exists, report the ambiguity. Create only after a successful complete
-   lookup proves no open match. After an uncertain create, look up that same identity before
-   retrying. Closed/merged PRs do not count as open matches.
-   Use the explicit correct remote/project and branch direction, a concise diff-based summary,
-   and actual test results. Pass multiline bodies through a structured API or `--body-file`.
-   Read back the returned PR's URL, state, repositories, branch direction and head/base SHAs.
-   Ref drift triggers the same three-pass revalidation budget, not an unqualified success.
-9. Return the PR URL per repository, or the concrete reason and its remediation per repository.
-   Keep private repository text and credentials out of the PR body; no broad public search.
-
-**Boundaries**
-10. A pull request is not main delivery: retain the existing Plane task identities in
-    **In Review** and do not mark them Done, do not merge, and do not delete branches.
+1. Resolve the project from `.pi/project.json` or verified repository identity and cover every configured repository. Determine the intended forge/destination from explicit project policy, then verified remote identity and both fetch/push URLs; do not silently redirect a fork. Derive a missing forge from the verified host (`github.com` → `gh`, `gitlab.com` → `glab`); use the authenticated matching CLI. Preserve dirty/busy checkouts without committing, stashing, resetting or rebasing foreign work. Fetch remote refs and capture exact `main` base and `dev` head SHAs. Missing `main` is a blocker, not permission to create it. If `git rev-list --count <main-sha>..<dev-sha>` is zero, report no PR needed without creating a task or pushing. No commits in that diff means no PR.
+2. Inspect relevant project-bound Brokan tasks with `list_tasks`, inspect selected full tasks with `get_task`, and attach evidence to the existing task(s) whose accepted commits cover the complete `dev`-versus-`main` diff. Never fabricate evidence or infer a task from a matching title. If no applicable task exists, first inspect all relevant project and human tasks for duplicates and create a project-bound Brokan task through `create_task`, todo → doing, with scope, plan and acceptance; this task must not substitute for missing evidence or authorize unrelated commits. Confirm delivery, source-current checks and self-review for the **exact** proposed `dev` SHA and complete diff before any push or PR write; run missing focused/required checks and record real results on the task. Missing evidence for the captured `dev` SHA must be produced, never assumed; a frozen formal gate still requires its source-current PASS. Preserve existing task fields. Unknown/unrelated ahead commits, divergence, missing evidence or uncertain task ownership block publication.
+3. Re-fetch/revalidate pinned heads and evidence immediately before publication; moved refs require fresh evidence and affected checks, not an unqualified retry. When a push is necessary, exclusively own the exact clean/idle target; push only `git push <VERIFIED_REMOTE> <FULL_SHA>:refs/heads/dev` (no force), then fetch and independently `git ls-remote` to confirm the advertised and fetched remote `dev` both equal the accepted SHA. Verify ancestry of every delivered SHA in local and remote `dev`. If this push completes a task's delivery, immediately attempt its safe task-owned worktree/branch cleanup per project rules before review or PR creation; retain active, uncertain or data-bearing resources with a recorded reason. On uncertain push or remote verification, retain resources, reconcile actual state, keep the task `doing`, and do not write a PR.
+4. Look up **open** PRs for the exact base repository/`main` and head repository/`dev`. Verify an existing PR's base/head SHAs; never create a duplicate on stale or uncertain lookup. If no match after complete lookup, create a PR using a structured body or `--body-file`. Lead with the user's verified problem and the resulting behavior, then summarize only the accepted diff and actual test results (including material gaps); do not claim an unmeasured improvement. If the accepted diff incorporates inherited work, credit its original contributors using only verified public handles or source PR links; preserve existing Git authorship and never invent co-author identities. Check title, body and attachments for secrets/private details before submission. Read back URL, state, repositories, direction and head/base SHAs; revalidate if refs moved. Do not post a follow-up PR comment by default. Only when the user explicitly requests a comment, verify its content, prefix it with `🤖 Agent-written on behalf of the user.`, and verify the returned comment URL. Never pass off an agent comment as the user's own words. A PR is not main delivery: leave the existing Brokan tasks `review`, not `done`; record verified PR URL/SHAs and timestamp on them. Revalidate Brokan state and read back uncertain writes. Report each repository's PR URL or precise blocker. Browser review is only `/rwbrowser` unless existing acceptance requires it.

@@ -47,18 +47,20 @@ test('source policy has current task and delivery contract', () => {
 });
 
 test('installer rejects retired task sync without weakening safety or acceptance', () => {
-  assert.ok(policyProblems(source.replace('Do not synchronize Pellet tasks with Plane',
+  assert.ok(policyProblems(source.replace('Do not synchronize Brokan tasks with Plane',
     'Only `/splane` reconciles tasks with Plane')).includes('obsolete: retired task sync guidance'));
-  assert.ok(policyProblems(source.replace('Do not synchronize Pellet tasks with Plane',
+  assert.ok(policyProblems(source.replace('Do not synchronize Brokan tasks with Plane',
     'Permit task synchronization')).includes('missing: no task synchronization'));
-  assert.deepEqual(policyProblems(source.replace('Pellet is the sole execution tracker',
-    'Pellet (local task vault, MCP server `pellet`) is the sole execution tracker')), []);
+  assert.deepEqual(policyProblems(source.replace('Brokan is the sole execution tracker',
+    'Brokan (local kanban, MCP server `brokan`) is the sole execution tracker')), []);
+  assert.ok(policyProblems(source.replace('Brokan is the sole execution tracker',
+    'Pellet is the sole execution tracker')).includes('missing: Brokan task authority'));
   assert.ok(policyProblems(source.replace('Guarded safety/installer/acceptance changes retain their formal gate and frozen criteria',
     'Safety changes need no gate')).includes('missing: formal gate preservation'));
 });
 
 test('missing or stale safety evidence is diagnosed while intact policy passes', () => {
-  assert.ok(policyProblems('').includes('missing: Pellet task authority'));
+  assert.ok(policyProblems('').includes('missing: Brokan task authority'));
   assert.ok(policyProblems(source.replace('git ls-remote', 'git remote -v'))
     .includes('missing: independent remote verification'));
   assert.ok(policyProblems(source.replace('Never terminate, signal, archive, restart or close', 'May terminate'))

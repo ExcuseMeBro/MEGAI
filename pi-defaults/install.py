@@ -93,37 +93,27 @@ def profile_settings(versions, home, current=None):
 
 
 def profile_mcp(defaults, home, current=None):
-    """The profile owns the plane entry; other servers and settings are the operator's."""
+    """Brokan replaces Pellet; preserve operator servers and disable Plane by default."""
     mcp = dict(current or {})
     servers = mcp.get("mcpServers")
     if servers is None:
         servers = {}
     if not isinstance(servers, dict):
         raise SystemExit("Existing mcp.json has a non-object mcpServers; reconcile it before install")
-    servers["plane"] = {
-        "url": "https://mcp.plane.so/http/api-key/mcp",
-        "auth": False,
-        "lifecycle": "lazy",
-        "includeTools": [
-            "workitem*",
-            "project",
-            "state",
-            "label",
-            "member",
-            "workspace",
-            "get_pql_reference",
-        ],
-        "requestHeadersCommand": {
-            "command": "python3",
-            "args": [
-                str(defaults / "plane_mcp_headers.py"),
-                "--token-file",
-                str(home / ".config/megai/credentials/plane-api-token"),
-                "--workspace",
-                "brodev",
-            ],
-        },
-    }
+    servers = dict(servers)
+    servers.pop("pellet", None)
+    brokan = servers.get("brokan", {})
+    if not isinstance(brokan, dict):
+        raise SystemExit("Existing Brokan MCP entry is not an object; reconcile it before install")
+    brokan = dict(brokan)
+    brokan.setdefault("command", "brokan")
+    brokan.setdefault("args", ["mcp"])
+    brokan["enabled"] = True
+    servers["brokan"] = brokan
+    if "plane" in servers:
+        if not isinstance(servers["plane"], dict):
+            raise SystemExit("Existing Plane MCP entry is not an object; reconcile it before install")
+        servers["plane"] = {**servers["plane"], "enabled": False}
     mcp["mcpServers"] = servers
     settings = mcp.get("settings")
     if settings is None:
@@ -399,7 +389,7 @@ def install(reset=False, remove_omp=False):
         if not (SOURCE / relative).is_file():
             raise SystemExit(f"Incomplete profile source: {relative}")
     # Check the source before --reset or any package/config mutation: a stale
-    # template must not replace the current Pellet/delivery instructions.
+    # template must not replace the current Brokan/delivery instructions.
     run("node", SOURCE / "policy-contract.mjs", SOURCE / "AGENTS.md")
     if not reset:
         run(sys.executable, REPO / "lib/pi_engineering.py", env={
