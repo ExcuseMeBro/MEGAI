@@ -525,6 +525,21 @@ class Distribution(unittest.TestCase):
             self.assertIn(f"+skills/{name}/SKILL.md", settings["skills"],
                           "blanket filter hides shipped engineering skills")
 
+    def test_global_project_size_extension_is_shipped_and_verified(self):
+        extension = DEFAULTS / "extensions/megai-project-size"
+        self.assertEqual({p.name for p in extension.iterdir()}, {"index.ts", "measure.mjs"})
+        index = (extension / "index.ts").read_text()
+        for text in ("session_start", "agent_settled", "session_shutdown", "project-size"):
+            self.assertIn(text, index)
+        self.assertIn('shutil.copytree(SOURCE / "extensions", agent / "extensions"',
+                      (DEFAULTS / "install.py").read_text())
+        self.assertIn("global project-size disk alert extension",
+                      (DEFAULTS / "verify.mjs").read_text())
+        current = {"defaultProvider": "deepseek", "defaultModel": "chat", "defaultThinkingLevel": "high"}
+        merged = install.profile_settings(self.package["dependencies"], Path("/Users/example"), current)
+        for key, value in current.items():
+            self.assertEqual(merged[key], value)
+
     def test_pi_subagents_is_optional_and_not_rejected(self):
         self.assertNotIn("pi-subagents", self.package["dependencies"])
         current = {

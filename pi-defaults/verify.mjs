@@ -52,6 +52,8 @@ if (selection.prompts !== undefined && (!Array.isArray(selection.prompts) || sel
 const excludedPrompts = new Set((selection.prompts ?? []).filter(value => value.startsWith('-prompts/')));
 const policy = existsSync(join(agentDir, 'AGENTS.md')) ? readFileSync(join(agentDir, 'AGENTS.md'), 'utf8') : '';
 const missing = [...requiredTools.filter(t => !tools.includes(t)), ...requiredSkills.filter(s => !skills.skills.some(v => v.name === s))];
+if (!loaded.extensions.some(e => e.path === join(agentDir, 'extensions/megai-project-size/index.ts')))
+  missing.push('global project-size disk alert extension');
 if ('pellet' in mcpServers) missing.push('retired Pellet MCP entry still configured');
 if (!mcpServers.brokan || mcpServers.brokan.enabled === false) missing.push('Brokan MCP not enabled');
 if ('plane' in mcpServers) missing.push('retired Plane MCP entry still configured');
