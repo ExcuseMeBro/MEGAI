@@ -37,7 +37,7 @@ const prompts = loader.getPrompts();
 const promptNames = prompts.prompts.map(p => p.name);
 const engineeringOnly = process.argv.includes('--engineering-only');
 const requiredTools = engineeringOnly ? [] : ['mcp', 'web_search', 'fetch_content', 'headroom_retrieve', 'headroom_memory'];
-const requiredSkills = ['pi-workflow', 'codebase-design', 'diagnosing-bugs', 'tdd', 'code-review',
+const requiredSkills = ['pi-workflow', 'security-audit', 'codebase-design', 'diagnosing-bugs', 'tdd', 'code-review',
   'frontend-design', 'interface-design', 'baseline-ui', 'make-interfaces-feel-better', 'fixing-accessibility'];
 const requiredPrompts = engineeringOnly ? [] : ['mdev', 'prdev', 'rwbrowser'];
 const selection = JSON.parse(readFileSync(join(agentDir, 'settings.json'), 'utf8'));

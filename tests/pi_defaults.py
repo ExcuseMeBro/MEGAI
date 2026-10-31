@@ -521,7 +521,7 @@ class Distribution(unittest.TestCase):
         settings = install.profile_settings(
             self.package["dependencies"], Path("/Users/example"), {"skills": ["!**"]}
         )
-        for name in ("pi-workflow", "code-review", "codebase-design", "diagnosing-bugs", "tdd"):
+        for name in ("pi-workflow", "security-audit", "code-review", "codebase-design", "diagnosing-bugs", "tdd"):
             self.assertIn(f"+skills/{name}/SKILL.md", settings["skills"],
                           "blanket filter hides shipped engineering skills")
 
@@ -649,6 +649,31 @@ class Distribution(unittest.TestCase):
             self.assertGreaterEqual(len(description.strip()), 20, name)
             self.assertNotIn("disable-model-invocation", header.group(1))
             self.assertIn(f"'{name}'", required)
+
+    def test_security_audit_is_vendored_and_required_for_code_changes(self):
+        skill = DEFAULTS / "skills/security-audit"
+        upstream_files = {
+            "SKILL.md", "AI-AND-LLM.md", "ATTACK-CLASSES.md", "CLIENT-SIDE.md",
+            "CLOUD-AND-DEPLOYMENT.md", "DATA-ISOLATION-AND-LIFECYCLE.md",
+            "DESKTOP-MOBILE-AND-LOCAL-IPC.md", "HUNTING.md",
+            "MEMORY-SAFETY-AND-BINARY.md", "PROTOCOLS-RPC-AND-MESSAGING.md",
+            "RECONNAISSANCE.md", "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md",
+            "SUPPLY-CHAIN-AND-RELEASE.md", "VALIDATION-AND-REPORTING.md",
+            "WEB-PROTOCOL-AND-AUTH.md", "report-schema.json",
+            "validate-coverage-ledger.cjs", "validate-coverage-ledger.test.cjs",
+            "validate-findings.cjs", "validate-findings.test.cjs", "LICENSE.md",
+        }
+        self.assertEqual({p.name for p in skill.iterdir()}, upstream_files)
+        self.assertIn("Copyright (c) 2025-2026 Cloudflare", (skill / "LICENSE.md").read_text())
+        self.assertIn("c1c8a8c1471069fb0e188eeaff69b8e8db6564a8",
+                      (DEFAULTS / "SECURITY-AUDIT-PROVENANCE.md").read_text())
+        self.assertIn("name: security-audit", (skill / "SKILL.md").read_text())
+        self.assertIn("'security-audit'", (DEFAULTS / "verify.mjs").read_text())
+        policy = (DEFAULTS / "AGENTS.md").read_text()
+        for text in ("every agent-authored code change", "security-audit", "guidance mode",
+                     "complete changed-code diff", "blocking findings", "explicit codebase audit"):
+            self.assertIn(text, policy)
+        self.assertIn("security-audit", install.shipped_skills())
 
     def test_an_update_keeps_the_injected_policy_blocks(self):
         """Other wirings own the blocks marked inside AGENTS.md; the document is ours."""
