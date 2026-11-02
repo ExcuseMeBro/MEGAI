@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Attendance · PeopleOS reference demo</title>
+  <style>
+    :root { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: #263243; background: #d3d7dc; font-synthesis: none; --orange: #ff5627; --line: #e1e5ea; --muted: #7f8a9d; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 83px 24px; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid #f4511e; outline-offset: 2px; }
+    svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+    .shell { width: min(1650px, 100%); min-height: 1334px; margin: auto; display: grid; grid-template-columns: 302px minmax(0, 1fr); background: #fff; box-shadow: 0 22px 65px rgba(37, 47, 61, .08); }
+    .sidebar { border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 0 17px 24px 18px; min-width: 0; }
+    .brand { height: 92px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--line); }
+    .brand-mark { width: 44px; height: 44px; border-radius: 12px; background: #f4511e; display: grid; place-items: center; color: #fff; flex: none; }
+    .brand-mark svg { width: 29px; height: 29px; stroke-width: 2.8; fill: white; }
+    .brand-name { font-size: 23px; font-weight: 650; color: #182538; letter-spacing: -.8px; }
+    .collapse { margin-left: auto; width: 30px; height: 32px; }
+    .icon-button, .outline-button { background: #fff; border: 1px solid var(--line); border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; color: #526075; }
+    .icon-button:hover, .outline-button:hover { background: #f6f7f8; }
+    .collapse svg { width: 15px; }
+    .nav { padding-top: 23px; }
+    .nav-heading { color: #21252a; font-size: 14px; font-weight: 600; margin: 17px 0 11px; }
+    .nav-item { height: 54px; display: flex; align-items: center; gap: 14px; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; color: #8995a7; font-size: 16px; text-decoration: none; }
+    .nav-item svg { width: 22px; height: 22px; }
+    .nav-item.active { color: #f04416; background: #fff2ee; border-color: #ffd0c3; }
+    .nav-item:hover:not(.active) { background: #f7f8f9; color: #39475a; }
+    .logout { margin-top: auto; color: #f04416; padding-left: 10px; height: 40px; display: flex; align-items: center; gap: 13px; background: none; border: 0; font-size: 16px; }
+    .logout svg { width: 22px; height: 22px; }
+    .workspace { min-width: 0; background: #f4f5f7; }
+    .topbar { height: 92px; background: #fff; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 14px; padding: 0 28px; }
+    .topbar h1 { margin: 0; font-size: 23px; color: #17191d; font-weight: 650; letter-spacing: -.5px; }
+    .topbar-spacer { flex: 1; }
+    .search { height: 55px; border: 1px solid var(--line); box-shadow: 0 0 0 1px #f8f9fa inset; border-radius: 9px; display: flex; align-items: center; gap: 10px; color: #536174; padding: 0 12px; background: #fff; }
+    .search input { border: 0; outline: 0; background: transparent; color: #263243; min-width: 0; width: 100%; }
+    .search input::placeholder { color: #6b7688; opacity: 1; }
+    .global-search { width: 376px; }
+    .topbar .icon-button { height: 55px; width: 55px; }
+    .avatar { width: 55px; height: 55px; border-radius: 50%; background: #dae8e3; display: grid; place-items: center; color: #3c6b5d; overflow: hidden; }
+    .avatar svg { width: 35px; height: 35px; stroke-width: 1.5; }
+    .mobile-menu { display: none; }
+    main { padding: 38px 28px 26px; }
+    .overview { display: grid; grid-template-columns: minmax(0, 522px) minmax(0, 1fr); gap: 19px; }
+    .card, .table-panel { border: 1px solid #dfe4e9; border-radius: 13px; background: #fff; }
+    .attendance { height: 349px; padding: 18px; }
+    .card-title { display: flex; align-items: center; gap: 14px; font-size: 18px; font-weight: 550; min-width: 0; }
+    .mini-icon { width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 9px; display: grid; place-items: center; color: #f44b1c; background: #fbfcfc; flex: none; }
+    .mini-icon svg { width: 20px; height: 20px; }
+    .date { margin-left: auto; font-size: 15px; color: #6e788b; font-weight: 400; white-space: nowrap; }
+    .attendance-body { display: flex; align-items: center; gap: 27px; padding-top: 28px; }
+    .donut { width: 194px; height: 194px; flex: none; position: relative; border-radius: 50%; background: conic-gradient(#ff5021 0 76.8%, #ff805c 76.8% 84.1%, #ff9d82 84.1% 89.6%, #ffc8b7 89.6% 100%); transform: rotate(0deg); }
+    .donut::after { content: ""; position: absolute; inset: 22px; border-radius: 50%; background: #fff; }
+    .donut-label { position: absolute; z-index: 1; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 5px; }
+    .donut-label strong { color: #16181c; font-size: 32px; font-weight: 600; line-height: 1; }
+    .donut-label small { font-size: 13px; color: #788394; white-space: nowrap; }
+    .legend { flex: 1; min-width: 0; display: grid; gap: 18px; }
+    .legend-row { display: grid; grid-template-columns: 13px minmax(0, 1fr) 34px 38px; gap: 11px; align-items: center; font-size: 15px; white-space: nowrap; }
+    .dot { width: 13px; height: 13px; border-radius: 50%; background: var(--dot); }
+    .legend-row b { font-size: 14px; font-weight: 550; text-align: right; color: #222b36; }
+    .legend-row em { font-style: normal; text-align: right; color: #99a4b3; font-size: 13px; }
+    .footnote { color: #98a4b4; font-size: 13px; margin: 30px 0 0; }
+    .stats { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(2, 165px); gap: 19px; }
+    .stat { padding: 18px; }
+    .stat .card-title { font-size: 17px; }
+    .stat-value { margin: 19px 0 10px; font-size: 29px; line-height: 1; font-weight: 600; color: #17191d; font-variant-numeric: tabular-nums; }
+    .stat-note { margin: 0; color: #6d788b; font-size: 15px; white-space: nowrap; }
+    .table-panel { margin-top: 28px; padding: 18px; }
+    .toolbar { display: flex; align-items: center; gap: 13px; margin-bottom: 22px; }
+    .table-search { width: 376px; height: 42px; }
+    .toolbar .outline-button { height: 42px; padding: 0 15px; gap: 9px; font-size: 14px; }
+    .toolbar .outline-button svg { width: 20px; height: 20px; }
+    .toolbar-spacer { flex: 1; }
+    .primary { background: #ff6a3c; border: 1px solid #ff6a3c; color: #fff; height: 42px; padding: 0 18px; border-radius: 8px; display: inline-flex; align-items: center; gap: 12px; white-space: nowrap; font-size: 14px; }
+    .primary:hover { background: #ef5427; }
+    .primary svg { width: 17px; height: 17px; }
+    .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; }
+    table { border-collapse: collapse; width: 100%; min-width: 1150px; table-layout: fixed; font-size: 15px; color: #4f5d70; }
+    th, td { height: 58px; border-bottom: 1px solid #edf0f2; text-align: left; padding: 0 10px; white-space: nowrap; }
+    th { height: 47px; background: #fafbfc; color: #263243; font-size: 14px; font-weight: 550; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #fcfcfd; }
+    th:first-child, td:first-child { width: 52px; padding-left: 14px; }
+    th:nth-child(2) { width: 17%; } th:nth-child(3) { width: 15%; } th:nth-child(4) { width: 11%; } th:nth-child(5), th:nth-child(6) { width: 8.5%; } th:nth-child(7) { width: 9.5%; } th:nth-child(8) { width: 9%; } th:nth-child(9) { width: 12%; } th:last-child { width: 6%; text-align: center; }
+    td:last-child { text-align: center; }
+    .check { appearance: none; width: 23px; height: 23px; border: 1px solid var(--line); border-radius: 5px; margin: 0; vertical-align: middle; cursor: pointer; }
+    .check:checked { border-color: var(--orange); background: var(--orange); box-shadow: inset 0 0 0 5px #fff; }
+    .department { border: 1px solid #dfe4e9; border-radius: 6px; padding: 5px 8px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #344055; }
+    .department i { width: 7px; height: 7px; border-radius: 50%; background: var(--dept); }
+    .status { display: inline-flex; align-items: center; height: 39px; padding: 0 12px; border-radius: 8px; border: 1px solid; font-size: 13px; }
+    .on-time { color: #078756; border-color: #9bdfbd; background: #e3f8ec; }
+    .late { color: #bd2024; border-color: #ffb5b5; background: #ffebeb; }
+    .on-leave { color: #ab16b9; border-color: #edabf5; background: #fcedff; }
+    .not-checked-in { color: #4b5667; border-color: #e2e7eb; background: #f7f8f9; }
+    .row-action { width: 30px; height: 30px; border: 0; background: none; color: #7c8799; border-radius: 6px; font-size: 23px; line-height: 0; }
+    .row-action:hover { background: #f1f2f4; }
+    .pagination { display: flex; align-items: center; gap: 18px; margin-top: 22px; font-size: 15px; color: #68758a; }
+    .pagination select { height: 44px; min-width: 81px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: #263243; padding: 0 15px; }
+    .pages { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+    .pages button { height: 43px; min-width: 43px; border: 0; border-radius: 8px; background: transparent; color: #657184; }
+    .pages button.current { background: #ff6a3c; color: #fff; }
+    .pages button.edge { border: 1px solid var(--line); background: #fff; font-size: 26px; font-weight: 300; line-height: 1; }
+    .pages button:disabled { color: #d3d9df; cursor: default; }
+    dialog { border: 1px solid var(--line); border-radius: 14px; padding: 26px; width: min(420px, calc(100% - 24px)); box-shadow: 0 18px 50px #23304133; }
+    dialog::backdrop { background: #15202b77; }
+    dialog h2 { margin: 0 0 18px; font-size: 20px; }
+    dialog label { display: grid; gap: 6px; margin: 12px 0; font-size: 14px; }
+    dialog input, dialog select { padding: 10px; border-radius: 7px; border: 1px solid #cbd2dc; width: 100%; }
+    dialog .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 1450px) { body { padding: 36px 16px; } .shell { grid-template-columns: 250px minmax(0,1fr); min-height: 0; } .nav-item { height: 48px; } .overview { grid-template-columns: minmax(0, 1fr); } .attendance { height: auto; } .attendance-body { justify-content: flex-start; } .stats { grid-template-rows: repeat(2, 155px); } .stat-note { white-space: normal; } }
+    @media (max-width: 850px) { body { padding: 0; } .shell { display: block; width: 100%; } .sidebar { display: none; } .sidebar.open { display: flex; position: absolute; z-index: 4; background: white; top: 70px; left: 0; width: 270px; min-height: calc(100vh - 70px); box-shadow: 12px 20px 30px #15202b33; } .topbar { height: 70px; padding: 0 18px; } .topbar h1 { font-size: 19px; } .mobile-menu { display: inline-flex; width: 40px!important; height: 40px!important; } .global-search { max-width: 210px; height: 40px; } .topbar .icon-button { height: 40px; width: 40px; } .avatar { height: 40px; width: 40px; } main { padding: 24px 18px; } }
+    @media (max-width: 600px) { .topbar { gap: 10px; } .global-search, .topbar .notification { display: none; } .topbar-spacer { flex: 1; } .attendance-body { flex-wrap: wrap; } .attendance .footnote { margin-top: 24px; } .stats { grid-template-columns: 1fr; grid-template-rows: none; } .stat { min-height: 150px; } .toolbar { flex-wrap: wrap; } .table-search { width: 100%; } .toolbar-spacer { display: none; } .primary { margin-left: auto; } .pagination { gap: 8px; flex-wrap: wrap; } .pages { width: 100%; justify-content: flex-end; } }
+  </style>
+</head>
+<body>
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m17 17 5 5"/></symbol>
+  <symbol id="bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></symbol>
+  <symbol id="home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10H3zM9 20v-6h6v6"/></symbol>
+  <symbol id="calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18M8 14h1m5 0h1m-7 4h1"/></symbol>
+  <symbol id="tasks" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="3"/><path d="M8 8h1m3 0h4M8 13h8M8 18h8"/></symbol>
+  <symbol id="person" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><circle cx="12" cy="10" r="2.5"/><path d="M8 18c0-3 8-3 8 0"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="m7 12 3 3 7-7"/></symbol>
+  <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 3"/></symbol>
+  <symbol id="users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21v-3c0-5 14-5 14 0v3M17 5a4 4 0 0 1 0 8m1 2c3 0 4 2 4 4v2"/></symbol>
+  <symbol id="message" viewBox="0 0 24 24"><path d="M3 6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3H9l-4 3v-3a3 3 0 0 1-2-3zM8 10v2m4-2v2m4-2v2"/></symbol>
+  <symbol id="target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+  <symbol id="receipt" viewBox="0 0 24 24"><path d="M5 2h14v20l-3-2-4 2-4-2-3 2zM8 8h8M8 12h8"/></symbol>
+  <symbol id="benefits" viewBox="0 0 24 24"><path d="M3 9h18v12H3zM6 9V6l6-4 6 4v3M3 14h18"/></symbol>
+  <symbol id="logout" viewBox="0 0 24 24"><path d="M10 3H4v18h6M14 7l5 5-5 5m5-5H9"/></symbol>
+  <symbol id="signin" viewBox="0 0 24 24"><path d="M11 3h9v18h-9M4 12h12m-4-4 4 4-4 4"/></symbol>
+  <symbol id="hourglass" viewBox="0 0 24 24"><path d="M5 2h14M5 22h14M7 2v4l5 6-5 6v4m10-20v4l-5 6 5 6v4"/></symbol>
+  <symbol id="chart" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7 16v2m5-7v7m5-11v11m-11-5 4-4 4 1 4-4"/></symbol>
+  <symbol id="icon-filter" viewBox="0 0 24 24"><path d="M3 4h18l-7 8v6l-4 3v-9z"/></symbol>
+  <symbol id="icon-sort" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12m-9 6h6"/></symbol>
+  <symbol id="download" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></symbol>
+  <symbol id="menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
+</svg>
+<div class="shell">
+  <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 5h15l-7 6h6L4 20l5-8H4z" stroke="none"/></svg></span><span class="brand-name">PeopleOS</span><button class="icon-button collapse" type="button" aria-label="Close navigation" id="close-nav">←</button></div>
+    <nav class="nav" aria-label="Workspace">
+      <p class="nav-heading">Workspace</p>
+      <a class="nav-item" href="#dashboard"><svg><use href="#home"/></svg>Dashboard</a>
+      <a class="nav-item" href="#calendar"><svg><use href="#calendar"/></svg>Calendar</a>
+      <a class="nav-item" href="#tasks"><svg><use href="#tasks"/></svg>Tasks</a>
+      <p class="nav-heading">People</p>
+      <a class="nav-item" href="#employees"><svg><use href="#person"/></svg>Employees</a>
+      <a class="nav-item active" href="#attendance" aria-current="page"><svg><use href="#check"/></svg>Attendance</a>
+      <a class="nav-item" href="#time-off"><svg><use href="#clock"/></svg>Time off</a>
+      <p class="nav-heading">Talent</p>
+      <a class="nav-item" href="#recruitment"><svg><use href="#users"/></svg>Recruitment</a>
+      <a class="nav-item" href="#performance"><svg><use href="#message"/></svg>Performance</a>
+      <a class="nav-item" href="#goals"><svg><use href="#target"/></svg>Goals</a>
+      <p class="nav-heading">Compensation</p>
+      <a class="nav-item" href="#payroll"><svg><use href="#receipt"/></svg>Payroll</a>
+      <a class="nav-item" href="#benefits"><svg><use href="#benefits"/></svg>Benefits</a>
+    </nav>
+    <button class="logout" type="button" title="Demo only — no account is connected"><svg><use href="#logout"/></svg>Log out</button>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><button class="icon-button mobile-menu" type="button" id="open-nav" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><svg><use href="#menu"/></svg></button><h1>Recruitment</h1><span class="topbar-spacer"></span><label class="search global-search"><svg><use href="#search"/></svg><span class="visually-hidden">Search employees</span><input type="search" placeholder="Search" data-search></label><button class="icon-button notification" type="button" aria-label="Notifications" title="Demo only — no notifications are connected"><svg><use href="#bell"/></svg></button><span class="avatar" aria-label="Profile placeholder — reference photo not included" role="img"><svg viewBox="0 0 40 40"><circle cx="20" cy="13" r="7"/><path d="M5 38c0-12 30-12 30 0"/></svg></span></header>
+    <main id="attendance">
+      <section class="overview" aria-label="Attendance summary">
+        <article class="card attendance"><div class="card-title"><span class="mini-icon"><svg><use href="#calendar"/></svg></span>Today’s attendance <span class="date">Thu, 8 Oct 2026</span></div><div class="attendance-body"><div class="donut" role="img" aria-label="84 percent present, 138 of 164 employees"><div class="donut-label"><strong>84%</strong><small>138 of 164 present</small></div></div><div class="legend"><div class="legend-row"><span class="dot" style="--dot:#ff5021"></span><span>On time</span><b>126</b><em>77%</em></div><div class="legend-row"><span class="dot" style="--dot:#ff7149"></span><span>Late check-ins</span><b>12</b><em>7%</em></div><div class="legend-row"><span class="dot" style="--dot:#ff9d82"></span><span>On leave</span><b>9</b><em>5%</em></div><div class="legend-row"><span class="dot" style="--dot:#ffc8b7"></span><span>Not checked in</span><b>17</b><em>10%</em></div></div></div><p class="footnote">Shift 09:00–18:00 · last sync 18:30</p></article>
+        <div class="stats"><article class="card stat"><div class="card-title"><span class="mini-icon"><svg><use href="#signin"/></svg></span>Avg. check-in</div><p class="stat-value">08:52</p><p class="stat-note">Shift starts at 09:00</p></article><article class="card stat"><div class="card-title"><span class="mini-icon"><svg><use href="#clock"/></svg></span>Avg. work hours</div><p class="stat-value">8h 46m</p><p class="stat-note">Last 7 working days</p></article><article class="card stat"><div class="card-title"><span class="mini-icon"><svg><use href="#hourglass"/></svg></span>Overtime this week</div><p class="stat-value">46h</p><p class="stat-note">Logged by 18 employees</p></article><article class="card stat"><div class="card-title"><span class="mini-icon"><svg><use href="#chart"/></svg></span>Month-to-date rate</div><p class="stat-value">94%</p><p class="stat-note">October average · September was 95%</p></article></div>
+      </section>
+      <section class="table-panel" aria-label="Attendance records"><div class="toolbar"><label class="search table-search"><svg><use href="#search"/></svg><span class="visually-hidden">Search records</span><input id="record-search" type="search" placeholder="Search"></label><button id="filter" class="outline-button" type="button" aria-label="Filter by status: all"><svg><use href="#icon-filter"/></svg><span>Filter</span></button><button id="sort" class="outline-button" type="button" aria-label="Sort by name: original order"><svg><use href="#icon-sort"/></svg><span>Sort</span></button><span class="toolbar-spacer"></span><button id="export" class="outline-button" type="button">Export <svg><use href="#download"/></svg></button><button id="add" class="primary" type="button">Add manual record <svg><use href="#plus"/></svg></button></div><div class="table-scroll"><table><thead><tr><th><input class="check" type="checkbox" id="select-all" aria-label="Select all visible records"></th><th>Employee</th><th>Department</th><th>Shift</th><th>Clock in</th><th>Clock out</th><th>Work hours</th><th>Work mode</th><th>Status</th><th>Action</th></tr></thead><tbody id="records"></tbody></table></div><div class="pagination"><span>Show</span><label><span class="visually-hidden">Records per page</span><select id="page-size"><option>10</option><option>20</option><option>50</option></select></label><span id="total">from 83 data</span><nav class="pages" aria-label="Records pages" id="pages"></nav></div></section>
+    </main>
+  </div>
+</div>
+<dialog id="record-dialog" aria-labelledby="dialog-title"><form method="dialog" id="record-form"><h2 id="dialog-title">Add manual record</h2><label>Employee name<input name="employee" required maxlength="80" autocomplete="off"></label><label>Department<select name="department"><option>Engineering</option><option>Product</option><option>Marketing</option><option>Finance</option><option>Human Resources</option></select></label><label>Status<select name="status"><option>On time</option><option>Late</option><option>On leave</option><option>Not checked in</option></select></label><div class="actions"><button class="outline-button" value="cancel" type="button" id="cancel" style="padding: 0 14px">Cancel</button><button class="primary" value="save" type="submit">Add record</button></div></form></dialog>
+<script>
+  const initial = [
+    ['Kenji Takahashi','Engineering','09:00–18:00','08:47','18:05','9h 18m','Onsite','On time'],
+    ['Samuel Adebayo','Engineering','09:00–18:00','08:58','17:59','9h 01m','Remote','On time'],
+    ['Mei-Ling Zhou','Product','09:00–18:00','08:54','17:58','9h 04m','Onsite','On time'],
+    ['Ava Wilson','Marketing','09:00–18:00','09:16','18:10','8h 54m','Onsite','Late'],
+    ["Liam O’Connor",'Finance','09:00–18:00','08:41','17:45','9h 04m','Onsite','On time'],
+    ['Hannah Schmidt','Human Resources','13:00–18:00','—','—','—','—','On leave'],
+    ['James Anderson','Engineering','09:00–18:00','09:22','18:31','9h 09m','Onsite','Late'],
+    ['Elena Rostova','Marketing','13:00–18:00','12:56','18:02','5h 06m','Remote','On time'],
+    ['Mason Harris','Product','09:00–18:00','—','—','—','—','Not checked in'],
+    ['Alexander Wright','Human Resources','09:00–18:00','08:55','18:00','9h 05m','Onsite','On time']
+  ];
+  // Remaining entries stand in for reference pagination; they are demo data, not employee records.
+  const records = Array.from({length: 83}, (_, i) => [...initial[i % initial.length]]);
+  const colors = {Engineering:'#ff825f', Product:'#233cea', Marketing:'#19b3bd', Finance:'#28c885', 'Human Resources':'#ef23b5'};
+  const statusClass = {'On time':'on-time', Late:'late', 'On leave':'on-leave', 'Not checked in':'not-checked-in'};
+  let page = 1, filter = 'All', sort = false;
+  const tbody = document.getElementById('records');
+  const pages = document.getElementById('pages');
+  const pageSize = document.getElementById('page-size');
+  const search = document.getElementById('record-search');
+  const globalSearch = document.querySelector('[data-search]');
+  function cell(row, text) { const td = row.insertCell(); td.textContent = text; return td; }
+  function visibleRecords() {
+    let rows = records.filter(r => (filter === 'All' || r[7] === filter) && r.join(' ').toLocaleLowerCase('en').includes(search.value.toLocaleLowerCase('en')));
+    if (sort) rows = [...rows].sort((a,b) => a[0].localeCompare(b[0], 'en'));
+    return rows;
+  }
+  function pageButton(text, number, disabled = false, edge = false) {
+    const button = document.createElement('button'); button.type = 'button'; button.textContent = text;
+    button.disabled = disabled; if (edge) button.className = 'edge';
+    if (number === page && !edge) { button.className = 'current'; button.setAttribute('aria-current','page'); }
+    button.setAttribute('aria-label', edge ? (text === '‹' ? 'Previous page' : 'Next page') : `Page ${number}`);
+    button.addEventListener('click', () => { page = number; render(); }); pages.append(button);
+  }
+  function render() {
+    const rows = visibleRecords(); const size = Number(pageSize.value); const count = Math.max(1, Math.ceil(rows.length / size));
+    page = Math.min(page, count); tbody.replaceChildren(); pages.replaceChildren();
+    for (const [index, data] of rows.slice((page-1)*size, page*size).entries()) {
+      const tr = tbody.insertRow(); const check = document.createElement('input'); check.type = 'checkbox'; check.className = 'check'; check.setAttribute('aria-label', `Select ${data[0]}`); tr.insertCell().append(check);
+      cell(tr, data[0]); const dept = document.createElement('span'); dept.className = 'department'; dept.style.setProperty('--dept', colors[data[1]] || '#8693a4'); const dot = document.createElement('i'); dot.setAttribute('aria-hidden','true'); dept.append(dot, document.createTextNode(data[1])); tr.insertCell().append(dept);
+      data.slice(2,7).forEach(value => cell(tr,value));
+      const status = document.createElement('span'); status.className = `status ${statusClass[data[7]]}`; status.textContent = data[7]; tr.insertCell().append(status);
+      const action = document.createElement('button'); action.type = 'button'; action.className = 'row-action'; action.textContent = '⋯'; action.setAttribute('aria-label', `Options for ${data[0]}`); action.title = 'Demo only'; tr.insertCell().append(action);
+    }
+    if (!tbody.rows.length) { const tr = tbody.insertRow(); const td = tr.insertCell(); td.colSpan = 10; td.textContent = 'No matching records'; td.style.textAlign = 'center'; }
+    const original = !search.value && filter === 'All' && records.length === 83;
+    document.getElementById('total').textContent = original ? 'from 83 data' : `of ${rows.length} records`;
+    pageButton('‹', page-1, page === 1, true);
+    const numbers = count <= 5 ? Array.from({length:count},(_,i)=>i+1) : [...new Set([1,2,3,Math.max(4,page),count])].sort((a,b)=>a-b);
+    for (const [i,n] of numbers.entries()) { if (i && n-numbers[i-1]>1) { const ellipsis = document.createElement('span'); ellipsis.textContent='…'; ellipsis.style.padding='0 12px'; pages.append(ellipsis); } pageButton(String(n),n); }
+    pageButton('›', page+1, page === count, true);
+    document.getElementById('select-all').checked = false;
+  }
+  search.addEventListener('input', () => { page=1; render(); });
+  globalSearch.addEventListener('input', () => { search.value = globalSearch.value; page=1; render(); });
+  pageSize.addEventListener('change', () => { page=1; render(); });
+  document.getElementById('filter').addEventListener('click', e => { const options = ['All','On time','Late','On leave','Not checked in']; filter = options[(options.indexOf(filter)+1)%options.length]; e.currentTarget.querySelector('span').textContent = filter === 'All' ? 'Filter' : filter; e.currentTarget.setAttribute('aria-label', `Filter by status: ${filter}`); page=1; render(); });
+  document.getElementById('sort').addEventListener('click', e => { sort = !sort; e.currentTarget.setAttribute('aria-label', `Sort by name: ${sort ? 'alphabetical' : 'original order'}`); e.currentTarget.setAttribute('aria-pressed', String(sort)); page=1; render(); });
+  document.getElementById('select-all').addEventListener('change', e => tbody.querySelectorAll('input[type=checkbox]').forEach(box => { box.checked = e.target.checked; }));
+  document.getElementById('export').addEventListener('click', () => { const rows = [['Employee','Department','Shift','Clock in','Clock out','Work hours','Work mode','Status'], ...visibleRecords()]; const csv = rows.map(row=>row.map(value=>{ const text = String(value); const safe = /^[\s\u0000-\u001f]*[=+\-@]/u.test(text) ? `'${text}` : text; return `"${safe.replaceAll('"','""')}"`; }).join(',')).join('\r\n'); const url = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'})); const link = document.createElement('a'); link.href = url; link.download = 'attendance-demo.csv'; link.click(); setTimeout(()=>URL.revokeObjectURL(url), 1000); });
+  const dialog = document.getElementById('record-dialog');
+  document.getElementById('add').addEventListener('click', () => dialog.showModal());
+  document.getElementById('cancel').addEventListener('click', () => dialog.close());
+  document.getElementById('record-form').addEventListener('submit', e => { e.preventDefault(); const form = e.currentTarget; if (!form.reportValidity()) return; const values = new FormData(form); const employee = String(values.get('employee')).trim(); if (!employee) { const input = form.elements.namedItem('employee'); input.setCustomValidity('Enter an employee name'); input.reportValidity(); input.addEventListener('input', () => input.setCustomValidity(''), {once:true}); return; } records.unshift([employee, String(values.get('department')), '09:00–18:00','—','—','—','—',String(values.get('status'))]); form.reset(); dialog.close(); page=1; render(); });
+  // This standalone preview has no routes beyond Attendance.
+  document.querySelectorAll('.nav-item:not(.active)').forEach(link => { link.setAttribute('aria-disabled', 'true'); link.title = 'Demo preview — this page is not available'; link.addEventListener('click', e => e.preventDefault()); });
+  const sidebar = document.getElementById('sidebar'); const open = document.getElementById('open-nav');
+  function closeNav() { sidebar.classList.remove('open'); open.setAttribute('aria-expanded','false'); open.focus(); }
+  open.addEventListener('click', () => { const expanded = sidebar.classList.toggle('open'); open.setAttribute('aria-expanded',String(expanded)); if (expanded) document.getElementById('close-nav').focus(); });
+  document.getElementById('close-nav').addEventListener('click', closeNav);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && sidebar.classList.contains('open')) closeNav(); });
+  render();
+</script>
+</body>
+</html>
