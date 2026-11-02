@@ -12,19 +12,40 @@ spec.loader.exec_module(runner)
 
 
 class GoldenPilotTests(unittest.TestCase):
-    def test_seeds_pass_frozen_and_fail_held_out_golden(self):
-        for case in runner.CASES:
+    def test_seeds_and_clean_controls_have_expected_held_out_status(self):
+        for case in (*runner.COHORTS["pilot"], *runner.COHORTS["validation"]):
             with self.subTest(case=case), tempfile.TemporaryDirectory() as tmp:
-                module = HERE / "fixtures" / f"{case}.py"
+                module = runner.seed(case)
                 normal = runner.check(module, runner.frozen(case), Path(tmp) / "frozen")
-                hidden = runner.check(module, (HERE / "golden" / f"{case}.py").read_bytes(),
-                                      Path(tmp) / "golden")
+                hidden = runner.check(module, runner.golden(case), Path(tmp) / "golden")
                 self.assertTrue(normal["passed"])
-                self.assertFalse(hidden["passed"])
+                self.assertEqual(hidden["passed"], runner.clean(case))
                 self.assertEqual(hidden["tests"], 2)
                 self.assertEqual(hidden["output_sha256"],
                                  runner.sha((Path(tmp) / "golden" / "output.txt").read_bytes()))
                 self.assertNotEqual(normal["test_sha256"], hidden["test_sha256"])
+                self.assertEqual(runner.source_hashes(case)["seed"], runner.sha(module.read_bytes()))
+
+    def test_validation_contract_does_not_rewrite_pilot_contract(self):
+        self.assertEqual(tuple(runner.CASES), runner.COHORTS["pilot"])
+        self.assertNotEqual(runner.contract("query"), runner.contract("intervals"))
+        self.assertEqual(runner.frozen("intervals"), runner.frozen("intervals-clean"))
+        self.assertEqual(runner.golden("batching"), runner.golden("batching-clean"))
+
+    def test_validation_summary_separates_repairs_from_clean_controls(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            rows = []
+            for arm in runner.ARMS:
+                for case in runner.COHORTS["validation"]:
+                    rows.append({"case": case, "arm": arm, "kind": "clean" if runner.clean(case) else "defect",
+                                 "changed": not runner.clean(case), "pass_trial": True,
+                                 "frozen": {"passed": True}, "golden": {"passed": True},
+                                 "pipeline_seconds": 1, "usage": {"total": 2, "cost_usd": 0.01}})
+            runner.summarize(Path(tmp), rows, 1, "validation")
+            report = (Path(tmp) / "summary.md").read_text()
+            self.assertIn("Clean unchanged", report)
+            self.assertIn("1/1 | 2/2 | 0 | 3/3", report)
+            self.assertIn("not a production TNR", report)
 
     def test_event_usage_requires_assistant_usage_and_actual_stop(self):
         event = {"type": "message_end", "message": {"role": "assistant", "provider": "openai-codex",

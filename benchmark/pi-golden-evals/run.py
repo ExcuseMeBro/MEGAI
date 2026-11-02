@@ -24,9 +24,34 @@ REPO = HERE.parents[1]
 FIXTURE_COMMIT = "095a664e7fb8519a69e0bff9f0b1d452c26e4cf1"
 MODEL = "openai-codex/gpt-6-sol"
 THINKING = "high"
-CASES = {"intervals": "bugfix", "batching": "feature"}
+CASES = {"intervals": "bugfix", "batching": "feature"}  # frozen pilot contract
+COHORTS = {"pilot": tuple(CASES),
+           "validation": ("query", "intervals-clean", "batching-clean")}
 ARMS = ("baseline", "golden-feedback")
 TIMEOUT = 180
+
+
+def clean(case: str) -> bool:
+    return case.endswith("-clean")
+
+
+def module_name(case: str) -> str:
+    return f"{case.removesuffix('-clean')}.py"
+
+
+def seed(case: str) -> Path:
+    return HERE / ("fixtures-clean" if clean(case) else "fixtures") / module_name(case)
+
+
+def golden(case: str) -> bytes:
+    return (HERE / "golden" / module_name(case)).read_bytes()
+
+
+def contract(case: str) -> bytes:
+    if case in ("query", "intervals-clean", "batching-clean"):
+        return (HERE / "contracts" / ("clean.md" if clean(case) else "query.md")).read_bytes()
+    return subprocess.run(["git", "-C", str(REPO), "show", f"{FIXTURE_COMMIT}:capy/benchmark/tasks.md"],
+                          capture_output=True, check=True).stdout
 
 
 def sha(data: bytes) -> str:
@@ -38,7 +63,9 @@ def save(path: Path, value: object) -> None:
 
 
 def frozen(case: str) -> bytes:
-    path = f"capy/benchmark/cases/{CASES[case]}/test_acceptance.py"
+    if case == "query":
+        return (HERE / "acceptance" / "query.py").read_bytes()
+    path = f"capy/benchmark/cases/{CASES[case.removesuffix('-clean')]}/test_acceptance.py"
     return subprocess.run(["git", "-C", str(REPO), "show", f"{FIXTURE_COMMIT}:{path}"],
                           capture_output=True, check=True).stdout
 
@@ -167,16 +194,16 @@ def trial(root: Path, case: str, arm: str, repetition: int, spec: str) -> dict:
     directory.mkdir()
     candidate = directory / "candidate"
     candidate.mkdir()
-    module = candidate / f"{case}.py"
-    initial = (HERE / "fixtures" / module.name).read_bytes()
+    module = candidate / module_name(case)
+    initial = seed(case).read_bytes()
     module.write_bytes(initial)
     test = frozen(case)
-    golden = (HERE / "golden" / module.name).read_bytes()
+    held_out = golden(case)
     started = time.monotonic()
     feedback = ""
     preflight = None
     if arm == "golden-feedback":
-        preflight = check(module, golden, directory / "preflight")
+        preflight = check(module, held_out, directory / "preflight")
         feedback = (directory / "preflight" / "output.txt").read_text()[-6000:]
     sessions = directory / "sessions"
     sessions.mkdir()
@@ -190,19 +217,23 @@ def trial(root: Path, case: str, arm: str, repetition: int, spec: str) -> dict:
             f"Only modify {module.name}; do not edit tests. The public contract follows. "
             "Find and fix any defects, add no dependencies. Final response: changed file and actual checks "
             "(never claim a check you did not run).\n\n" + spec + "\n\n"
-            + ("Independent golden evaluator failure on THIS starting candidate (fix the cause, "
-               "not the test):\n" + feedback if arm == "golden-feedback" else
+            + (("Independent golden evaluator on THIS starting candidate: "
+                + ("PASS (all held-out checks pass). Do not change correct code without evidence."
+                   if preflight["passed"] else "FAIL (fix the source, not the test):\n" + feedback))
+               if arm == "golden-feedback" else
                "No additional evaluator feedback is available. Recheck the contract independently.")
         )
         work = invoke(candidate, directory / "work", sessions, prompt, True, True)
     if module.is_symlink() or not module.is_file():
         raise RuntimeError("candidate module missing or symlinked; retain partial matrix")
     final_frozen = check(module, test, directory / "final-frozen")
-    final_golden = check(module, golden, directory / "final-golden")
+    final_golden = check(module, held_out, directory / "final-golden")
     changes = extra_paths(candidate, module)
-    scope = not changes and not module.is_symlink() and module.read_bytes() != initial
+    changed = module.read_bytes() != initial
+    scope = not changes and not module.is_symlink() and (not changed if clean(case) else changed)
     passed = bool(work and stage_ok(work) and final_frozen["passed"] and final_golden["passed"] and scope)
-    row = {"case": case, "arm": arm, "repeat": repetition, "model": MODEL, "thinking": THINKING,
+    row = {"case": case, "kind": "clean" if clean(case) else "defect",
+           "changed": changed, "arm": arm, "repeat": repetition, "model": MODEL, "thinking": THINKING,
            "initial_sha256": sha(initial), "candidate_sha256": sha(module.read_bytes()),
            "preflight": preflight, "frozen": final_frozen, "golden": final_golden,
            "scope_ok": scope, "unexpected_files": changes, "pass_trial": passed,
@@ -215,29 +246,38 @@ def trial(root: Path, case: str, arm: str, repetition: int, spec: str) -> dict:
     return row
 
 
+def source_hashes(case: str) -> dict[str, str]:
+    return {name: sha(data) for name, data in (("seed", seed(case).read_bytes()),
+            ("frozen", frozen(case)), ("golden", golden(case)), ("contract", contract(case)))}
+
+
 def verify(root: Path, repeats: int) -> list[dict]:
     manifest = json.loads((root / "manifest.json").read_text())
     assert manifest["runner_sha256"] == sha(Path(__file__).read_bytes()), "runner changed"
     assert manifest["model"] == MODEL and manifest["thinking"] == THINKING
+    cohort = manifest["cohort"]
+    assert cohort in COHORTS and manifest["cases"] == list(COHORTS[cohort])
+    assert manifest["sources"] == {case: source_hashes(case) for case in COHORTS[cohort]}, "source drift"
     rows = [json.loads(p.read_text()) for p in sorted(root.glob("r*-*/result.json"))]
-    expected = {(case, arm, r) for r in range(1, repeats + 1) for case in CASES for arm in ARMS}
+    expected = {(case, arm, r) for r in range(1, repeats + 1) for case in COHORTS[cohort] for arm in ARMS}
     assert len(rows) == len(expected) and {(x["case"], x["arm"], x["repeat"]) for x in rows} == expected, "incomplete or duplicate matrix"
-    spec = subprocess.run(["git", "-C", str(REPO), "show", f"{FIXTURE_COMMIT}:capy/benchmark/tasks.md"],
-                          capture_output=True, check=True).stdout
-    assert manifest["spec_sha256"] == sha(spec) and manifest["fixture_commit"] == FIXTURE_COMMIT
+    assert manifest["fixture_commit"] == FIXTURE_COMMIT
     for row in rows:
         case = row["case"]
-        assert case in CASES and row["arm"] in ARMS and isinstance(row["repeat"], int)
+        assert case in COHORTS[cohort] and row["arm"] in ARMS and isinstance(row["repeat"], int)
+        assert row["kind"] == ("clean" if clean(case) else "defect")
         directory = root / f"r{row['repeat']}-{case}-{row['arm']}"
-        candidate = directory / "candidate" / f"{case}.py"
+        candidate = directory / "candidate" / module_name(case)
         assert not candidate.is_symlink(), "symlinked candidate"
         assert sha(candidate.read_bytes()) == row["candidate_sha256"], "candidate drift"
-        assert sha((HERE / "fixtures" / candidate.name).read_bytes()) == row["initial_sha256"], "fixture drift"
+        assert sha(seed(case).read_bytes()) == row["initial_sha256"], "fixture drift"
         changes = extra_paths(candidate.parent, candidate)
         assert row["unexpected_files"] == changes, "scope inventory drift"
-        assert row["scope_ok"] == (not changes and row["candidate_sha256"] != row["initial_sha256"]), "scope verdict drift"
+        changed = row["candidate_sha256"] != row["initial_sha256"]
+        assert row["changed"] == changed
+        assert row["scope_ok"] == (not changes and (not changed if clean(case) else changed)), "scope verdict drift"
         for field, relative, test in (("frozen", "final-frozen", frozen(case)),
-                                      ("golden", "final-golden", (HERE / "golden" / candidate.name).read_bytes())):
+                                      ("golden", "final-golden", golden(case))):
             receipt = json.loads((directory / relative / "receipt.json").read_text())
             assert receipt == row[field] and receipt["module_sha256"] == row["candidate_sha256"]
             assert receipt["test_sha256"] == sha(test) and receipt["tests"] > 0
@@ -249,9 +289,9 @@ def verify(root: Path, repeats: int) -> list[dict]:
                     assert fresh[key] == receipt[key], "source-current evaluator drift"
         if row["arm"] == "golden-feedback":
             receipt = json.loads((directory / "preflight" / "receipt.json").read_text())
-            assert receipt == row["preflight"] and not receipt["passed"]
+            assert receipt == row["preflight"] and receipt["passed"] == clean(case)
             assert receipt["module_sha256"] == row["initial_sha256"]
-            assert receipt["test_sha256"] == sha((HERE / "golden" / candidate.name).read_bytes())
+            assert receipt["test_sha256"] == sha(golden(case))
             assert receipt["output_sha256"] == sha((directory / "preflight" / "output.txt").read_bytes())
         else:
             assert row["preflight"] is None
@@ -275,31 +315,35 @@ def verify(root: Path, repeats: int) -> list[dict]:
     return rows
 
 
-def summarize(root: Path, rows: list[dict], repeats: int) -> None:
-    lines = ["# Pi golden-eval pilot: matched real-model runs", "",
-             f"Model {MODEL}, thinking {THINKING}, repeats {repeats}; identical seeded candidate per pair; "
-             "arms alternate order by repetition. Frozen public-contract tests come from commit " + FIXTURE_COMMIT + ".",
-             "Both arms get the same contract, tools and READY check. Golden-feedback also gets failing "
-             "held-out golden test output before editing. Private raw traces are not published.",
-             "Pipeline time includes READY, work and preflight (feedback arm); post-run independent grading "
-             "excluded for both. Usage includes READY and work; local grading uses no model tokens. "
-             "Provider-reported USD is an estimate, not a bill. Failures remain in the denominator.", "",
-             "| Arm | Final frozen | Final golden | Pipeline PASS | False-negative frozen passes | Median seconds | Tokens | Reported USD | pass^" + str(repeats) + " cases |",
+def summarize(root: Path, rows: list[dict], repeats: int, cohort: str) -> None:
+    cases = COHORTS[cohort]
+    lines = [f"# Pi golden-eval {cohort} cohort: matched real-model runs", "",
+             f"Model {MODEL}, thinking {THINKING}, repeats {repeats}; identical candidate within "
+             "each pair, arms alternate order. Pilot frozen tests are from " + FIXTURE_COMMIT + ".",
+             "Both arms get the same public contract, tools and READY check. Feedback arm also gets the "
+             "initial independent held-out result: failure output for defects, PASS notice for clean controls.",
+             "Pipeline time includes READY, work and feedback preflight; independent final grading excluded "
+             "for both. Token counts include READY and work; local grading uses no model tokens. Provider "
+             "USD is an estimate, not a bill. All failures remain in the denominator.", "",
+             "| Arm | Defect repaired | Clean unchanged | Clean regressions | Full PASS | Median seconds | Tokens | Reported USD | pass^" + str(repeats) + " cases |",
              "|---|---:|---:|---:|---:|---:|---:|---:|---:|"]
     for arm in ARMS:
         group = [x for x in rows if x["arm"] == arm]
+        defects = [x for x in group if x["kind"] == "defect"]
+        controls = [x for x in group if x["kind"] == "clean"]
         good = sum(x["pass_trial"] for x in group)
-        both = sum(all(x["pass_trial"] for x in group if x["case"] == case) for case in CASES)
-        lines.append(f"| {arm} | {sum(x['frozen']['passed'] for x in group)}/{len(group)} | "
-                     f"{sum(x['golden']['passed'] for x in group)}/{len(group)} | {good}/{len(group)} | "
-                     f"{sum(x['frozen']['passed'] and not x['golden']['passed'] for x in group)} | "
+        both = sum(all(x["pass_trial"] for x in group if x["case"] == case) for case in cases)
+        lines.append(f"| {arm} | {sum(x['pass_trial'] for x in defects)}/{len(defects)} | "
+                     f"{sum(not x['changed'] for x in controls)}/{len(controls)} | "
+                     f"{sum(not (x['frozen']['passed'] and x['golden']['passed']) for x in controls)} | "
+                     f"{good}/{len(group)} | "
                      f"{statistics.median(x['pipeline_seconds'] for x in group):.2f} | "
                      f"{sum(x['usage']['total'] for x in group)} | "
-                     f"{sum(x['usage']['cost_usd'] for x in group):.6f} | {both}/{len(CASES)} |")
-    lines += ["", "## Limits", "", "Seeded defects and two tiny Python fixtures are an exploratory detection-and-repair pilot, "
-              "not a production failure-rate estimate or proof of general quality gains. No clean controls, "
-              "so false-positive/TNR is unmeasured; reviewer/maintainability is unmeasured. Provider caching "
-              "and stochastic model output are uncontrolled. Existing Brokan acceptance is unchanged.", ""]
+                     f"{sum(x['usage']['cost_usd'] for x in group):.6f} | {both}/{len(cases)} |")
+    lines += ["", "## Limits", "", "These tiny synthetic cases are exploratory. Clean unchanged is only an "
+              "over-edit proxy, not a production TNR; a clean candidate can still have untested defects. "
+              "No representative incident sampling or blinded reviewer quality is measured. Model stochasticity "
+              "and provider caching are uncontrolled. Original Brokan acceptance remains unchanged.", ""]
     (root / "summary.md").write_text("\n".join(lines))
 
 
@@ -308,41 +352,43 @@ def main() -> None:
     parser.add_argument("action", choices=("preflight", "matrix", "verify"))
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--repeats", type=int, default=2)
+    parser.add_argument("--cohort", choices=tuple(COHORTS), default="pilot")
     args = parser.parse_args()
     root = args.root.resolve()
     if args.action == "preflight":
         if root.exists():
             parser.error("preflight root must be new")
         root.mkdir(mode=0o700)
-        for case in CASES:
-            module = HERE / "fixtures" / f"{case}.py"
-            good = check(module, frozen(case), root / f"{case}-frozen")
-            bad = check(module, (HERE / "golden" / f"{case}.py").read_bytes(), root / f"{case}-golden")
-            assert good["passed"] and not bad["passed"] and bad["tests"] >= 2, f"invalid seed: {case}"
-            print(f"{case}: frozen {good['tests']} PASS; golden {bad['tests']} RED")
+        for case in COHORTS[args.cohort]:
+            good = check(seed(case), frozen(case), root / f"{case}-frozen")
+            held = check(seed(case), golden(case), root / f"{case}-golden")
+            assert good["passed"] and held["passed"] == clean(case) and held["tests"] >= 2, f"invalid seed: {case}"
+            print(f"{case}: frozen {good['tests']} PASS; golden {held['tests']} "
+                  + ("GREEN" if clean(case) else "RED"))
     elif args.action == "matrix":
         if args.repeats < 2 or args.repeats > 3 or root.exists():
             parser.error("matrix root must be new, repeats in [2,3]")
         root.mkdir(mode=0o700)
-        spec = subprocess.run(["git", "-C", str(REPO), "show", f"{FIXTURE_COMMIT}:capy/benchmark/tasks.md"],
-                              capture_output=True, check=True).stdout.decode()
+        cases = COHORTS[args.cohort]
         save(root / "manifest.json", {"runner_sha256": sha(Path(__file__).read_bytes()),
               "fixture_commit": FIXTURE_COMMIT, "model": MODEL, "thinking": THINKING,
-              "repeats": args.repeats, "spec_sha256": sha(spec.encode()),
+              "cohort": args.cohort, "cases": list(cases),
+              "sources": {case: source_hashes(case) for case in cases},
+              "repeats": args.repeats,
               "pi_version": subprocess.run(["pi", "--version"], capture_output=True,
                                            text=True, check=True).stdout.strip()})
         for r in range(1, args.repeats + 1):
-            for case in CASES:
+            for case in cases:
                 for arm in (ARMS if r % 2 else tuple(reversed(ARMS))):
-                    result = trial(root, case, arm, r, spec)
+                    result = trial(root, case, arm, r, contract(case).decode())
                     if not result["complete_usage"]:
                         raise RuntimeError("provider stage incomplete; retain private partial matrix, do not retry in place")
         rows = verify(root, args.repeats)
-        summarize(root, rows, args.repeats)
+        summarize(root, rows, args.repeats, args.cohort)
     else:
         manifest = json.loads((root / "manifest.json").read_text())
         rows = verify(root, manifest["repeats"])
-        summarize(root, rows, manifest["repeats"])
+        summarize(root, rows, manifest["repeats"], manifest["cohort"])
         print(f"PASS: {len(rows)} matched trials, verified private receipts")
 
 
