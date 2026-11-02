@@ -665,6 +665,19 @@ class Distribution(unittest.TestCase):
             self.assertNotIn("disable-model-invocation", header.group(1))
             self.assertIn(f"'{name}'", required)
 
+    def test_interface_design_routes_screenshot_requests_to_reference_fidelity(self):
+        """A supplied UI reference must not be routed through creative redesign."""
+        skill = (DEFAULTS / "skills/interface-design/SKILL.md").read_text()
+        header, body = skill.split("---", 2)[1:]
+        self.assertIn("matching a user-provided screenshot", header)
+        self.assertIn("## Reference fidelity: screenshot / 1:1 requests", body)
+        self.assertIn("screenshot is the visual specification, not inspiration", body)
+        self.assertIn("target app/page is unknown, ask which project/page", body)
+        self.assertIn("same viewport", body)
+        self.assertIn("never launch browser tools", body)
+        self.assertIn("do not claim pixel-perfect or verified 1:1 fidelity", body)
+        self.assertIn("For tasks without a supplied visual reference", body)
+
     def test_security_audit_is_vendored_and_required_for_code_changes(self):
         skill = DEFAULTS / "skills/security-audit"
         upstream_files = {

@@ -1,6 +1,6 @@
 ---
 name: interface-design
-description: Craft-first interface design for dashboards, admin panels, SaaS apps, tools, settings pages, data interfaces, and interactive products. Use when designing, building, reviewing, auditing, or refining product UI where visual craft, layout hierarchy, tokens, states, visual direction, or design-system consistency matter. Not for marketing pages, landing pages, campaigns, or brand-only work.
+description: Craft-first interface design for dashboards, admin panels, SaaS apps, tools, settings pages, data interfaces, and interactive products. Use when designing, building, reviewing, auditing, refining, or matching a user-provided screenshot of product UI. Covers visual craft, layout hierarchy, tokens, states, visual direction, and reference fidelity. Not for marketing pages, landing pages, campaigns, or brand-only work.
 ---
 
 # Interface Design
@@ -14,6 +14,17 @@ Build product interfaces with the craft of a top design team — Linear, Vercel,
 **Not for:** Landing pages, marketing sites, campaigns, brand-only work. Use a marketing/frontend design skill for those.
 
 This skill is self-contained: direction, visual hierarchy, design-system architecture, and the polish and motion essentials needed to ship production-grade UI all live here.
+
+## Reference fidelity: screenshot / 1:1 requests
+
+When the user supplies a screenshot and asks to reproduce it, the screenshot is the visual specification, not inspiration. This mode takes priority over this skill's domain exploration, signature, creative direction, anti-template tests and Suggest + Ask flow. Do not redesign, deslop, generate a stronger version, change the palette or layout, or add decorative motion just to make the result distinctive. Other design skills can help implement details but cannot override the reference. Keep the app's real behavior, accessibility and project constraints; if these conflict with the reference, state the specific trade-off instead of silently changing it.
+
+1. Locate the approved target page and existing components/assets. If the screenshot is the only artifact and the target app/page is unknown, ask which project/page to change rather than building a detached mockup.
+2. Inspect the image at its native dimensions. Map the outer frame, sidebar/header, content grid, cards, charts, table, spacing, alignment, type sizes/weights, colors, borders, radii, icons, imagery and visible text. Record a few anchor coordinates and dimensions before coding. Reuse matching real assets; do not fabricate logos, faces, claims or data. Mark unreadable details as uncertain.
+3. Implement the reference's structure and content at the reference viewport first, then adapt smaller widths without distorting the desktop match. Keep repeated elements componentized and interactive controls semantic, keyboard-operable and visibly focusable.
+4. Run source checks. If visual/browser evidence is authorized by the project, render at the **same viewport** as the reference, compare side by side or with an overlay, fix the largest geometry differences first, then typography, color and details. Follow the project's browser gate; never launch browser tools merely because this skill recommends comparison. If rendering is not authorized or assets are missing, describe the gap and do not claim pixel-perfect or verified 1:1 fidelity.
+
+For tasks without a supplied visual reference, use the creative workflow below as usual.
 
 ---
 
