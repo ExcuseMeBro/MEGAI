@@ -38,13 +38,13 @@ remain unchanged. No hosted decision fallback.
 
 ## Three-step default
 
-1. **Locate and edit.** Prefer task-owned `megai-codedb search "text"` for general
-   repository text discovery, `find NAME` for definitions and `outline FILE` for APIs;
-   set `CODEDB_NO_TELEMETRY=1`. Known ranges go directly to `read`. Use native `rg`
-   for exact/exhaustive checks, absence, failures and post-edit freshness. Repeated
-   literal/regex queries on a large stable tree may use task-owned tgrep when a ready
-   index or measured query volume justifies a bounded on-demand build; no startup
-   index/server or mandatory duplicate search.
+1. **Locate and edit.** Use tgrep first for literal/regex text discovery and
+   filename globs as a live scan with no index: the `tgrep` tool when loaded, else
+   CLI `tgrep --no-index` (see `megai/tgrep.md`). Use `megai-codedb find NAME` for
+   definitions and `outline FILE` for APIs; set `CODEDB_NO_TELEMETRY=1`. Known ranges go directly to `read`. Use
+   native `rg` for exact/exhaustive checks, absence, failures and post-edit freshness.
+   A task-owned tgrep index is optional for repeated queries on a large stable tree;
+   no startup index/server or mandatory duplicate search.
    Then `read` relevant ranges and their dependencies. Widen
    for a named unresolved question; complete mandatory document reads still apply.
    Batch independent lookups into ONE assistant turn; keep dependent operations

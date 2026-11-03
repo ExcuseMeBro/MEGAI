@@ -10,12 +10,13 @@ for clause in (
     "MEGAI imposes no GPT-only model scope or provider allowlist",
     "Exactly one writer per checkout",
     "Children never mutate trackers",
-    "one fresh independent review for security/data-integrity risks",
+    "Parent diff review and source-current acceptance apply even to security/data-integrity",
+    "Do not add a separate reviewer step",
     "fresh context",
     "Keep existing tests",
     "one focused correction",
     "do not poll running agents",
-    "Check the returned model identity",
+    "verify the returned identity",
     "no full parent transcript",
     "Never expose credentials, personal/production data or private transcripts",
     "Missing counters stay unknown",
@@ -23,4 +24,5 @@ for clause in (
     "main promotion needs separate explicit user approval",
 ):
     assert clause.lower() in policy.lower(), clause
+assert "independent review" not in policy.lower(), "retired independent review step restored"
 print("PASS: model choice remains user-configured; review and delivery rules retained")

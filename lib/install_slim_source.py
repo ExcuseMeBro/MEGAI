@@ -17,7 +17,7 @@ stage_published(plan, MEGAI)
 for relative in ("lib/install_agent_memory.sh", "lib/install_rtk.sh", "lib/install_caveman.sh", "pi-skill/extensions/memory.sh", "pi-skill/model-guard/index.ts"):
     plan.retire(MEGAI / relative)
 executables = []
-for folder in ("bin", "lib", "pi-skill", "omp-skill", "task-flow", "skills"):
+for folder in ("bin", "lib", "pi-skill", "omp-skill", "task-flow", "skills", "pi-defaults/extensions/tgrep"):
     for path in sorted((source / folder).rglob("*")):
         if path.is_symlink():
             raise SystemExit(f"unexpected source symlink: {path}")

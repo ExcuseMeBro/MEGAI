@@ -167,7 +167,7 @@ printf '{}'
 
     def test_transaction_restores_entrypoints_and_wiring_after_each_publication_phase(self):
         source = self.root / "source"
-        for folder in ("bin", "lib", "pi-skill", "task-flow", "skills"):
+        for folder in ("bin", "lib", "pi-skill", "task-flow", "skills", "pi-defaults/extensions/tgrep"):
             shutil.copytree(self.megai / folder, source / folder)
         self.write(source / "bin/megai", "#!/bin/sh\necho new-entrypoint\n")
         entrypoint = self.megai / "bin/megai"
@@ -193,7 +193,7 @@ printf '{}'
         from retire_local_decisions import EXTENSIONS, PUBLISHED, RUNTIME, RUNTIME_OWNER, STATE_TOOL
 
         source = self.root / "source"
-        for folder in ("bin", "lib", "pi-skill", "task-flow", "skills"):
+        for folder in ("bin", "lib", "pi-skill", "task-flow", "skills", "pi-defaults/extensions/tgrep"):
             shutil.copytree(self.megai / folder, source / folder)
         self.write(source / "lib/install_headroom.sh", "#!/bin/sh\nexit 0\n")
         verifier = source / "lib/verify_headroom_activation.sh"

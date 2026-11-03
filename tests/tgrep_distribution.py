@@ -65,11 +65,35 @@ class Tgrep(Slim):
         self.wire()
         policy = (self.home / ".pi/agent/AGENTS.md").read_text()
         skill = (self.home / ".agents/skills/megai/SKILL.md").read_text()
-        self.assertIn("tgrep for literal/regex discovery", policy)
+        # The Pi bootstrap is frozen and size-bounded; the discovery rule lives in the
+        # `megai` skill that every Pi coding task loads.
+        pi_skill = (self.home / ".pi/agent/skills/megai/SKILL.md").read_text()
+        self.assertIn("megai", policy)
+        self.assertIn("Use tgrep first for literal/regex text discovery", pi_skill)
+        self.assertEqual((self.home / ".pi/agent/skills/megai/tgrep.md").read_bytes(),
+                         (self.megai / "pi-skill/tgrep.md").read_bytes())
         reference = self.home / ".agents/skills/megai/tgrep.md"
         self.assertEqual(reference.read_bytes(), (self.megai / "pi-skill/tgrep.md").read_bytes())
         for phrase in ("tgrep", "rg", "codedb", "freshness", "partial"):
             self.assertIn(phrase, skill)
+        # Live scan is the default everywhere; an index is optional, never a precondition.
+        source = self.megai / "pi-skill"
+        for relative in ("tgrep.md", "SKILL.md", "ADAPTIVE.md"):
+            with self.subTest(relative=relative):
+                text = (source / relative).read_text()
+                self.assertIn("live scan", text)
+                self.assertNotIn("when ready", text)
+                self.assertNotIn("only when a task-owned index is ready", text)
+        self.assertIn("--no-index", (source / "tgrep.md").read_text())
+        for relative in ("index.ts", "search-policy.mjs"):
+            with self.subTest(extension=relative):
+                self.assertEqual((self.home / ".pi/agent/extensions/tgrep" / relative).read_bytes(),
+                                 (self.megai / "pi-defaults/extensions/tgrep" / relative).read_bytes())
+        for client in (".claude/CLAUDE.md", ".codex/AGENTS.md"):
+            with self.subTest(client=client):
+                text = (self.home / client).read_text()
+                self.assertIn("Use tgrep first", text)
+                self.assertIn("tgrep --no-index", text)
         calls = (self.home / "calls").read_text() if (self.home / "calls").exists() else ""
         self.assertNotIn("tgrep", calls)
 

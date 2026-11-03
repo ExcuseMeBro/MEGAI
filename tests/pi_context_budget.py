@@ -24,8 +24,30 @@ sys.path.insert(0, str(LIB))
 import pi_context_budget as budget  # noqa: E402
 
 PACKAGE_ROOT = os.environ.get("PI_PACKAGE_ROOT", "").strip()
-NATIVE = bool(shutil.which("node")) and (
-    bool(PACKAGE_ROOT) or bool(shutil.which("pi")))
+
+
+def _loadable_pi_package() -> bool:
+    """Mirror packageForExecutable: a compiled Pi (e.g. Pi-Bolt) has no dist loader."""
+    if PACKAGE_ROOT:
+        return True
+    executable = shutil.which("pi")
+    if not executable:
+        return False
+    directory = Path(executable).resolve().parent
+    for candidate in (directory, *directory.parents):
+        manifest = candidate / "package.json"
+        if manifest.is_file():
+            try:
+                name = json.loads(manifest.read_text()).get("name")
+            except (OSError, ValueError):
+                name = None
+            if isinstance(name, str) and name.endswith("/pi-coding-agent") \
+                    and (candidate / "dist/index.js").is_file():
+                return True
+    return False
+
+
+NATIVE = bool(shutil.which("node")) and _loadable_pi_package()
 
 # The tracked template, never the installed published copy this process would find
 # through MEGAI_HOME: these contracts describe the repository, not this machine.

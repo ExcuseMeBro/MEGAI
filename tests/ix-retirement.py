@@ -205,8 +205,10 @@ enabled = true
         for name in ('bin/megai', 'lib/main.sh', 'pi-skill/SKILL.md', 'omp-skill/SKILL.md'):
             self.assertIsNone(re.search(r'\bix\b|install_ix|ix_safety', (ROOT / name).read_text(), re.I), name)
         main = (ROOT / 'lib/main.sh').read_text()
-        total = int(re.search(r'TOTAL=(\d+)', main)[1])
-        self.assertEqual([int(n) for n in re.findall(r'^step (\d+) ', main, re.M)], list(range(1, total + 1)))
+        steps = [(int(n), int(of)) for n, of in re.findall(r'^step (\d+) (\d+) ', main, re.M)]
+        self.assertTrue(steps, 'lib/main.sh has no numbered install steps')
+        total = steps[0][1]
+        self.assertEqual(steps, [(n, total) for n in range(1, total + 1)])
         self.assertIn('install_codedb.sh', main)
         self.assertIn('install_codedb.sh', main)
         skill = (ROOT / 'pi-skill/SKILL.md').read_text()

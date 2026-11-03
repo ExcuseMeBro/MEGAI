@@ -133,9 +133,9 @@ class Plan:
             "Security/data-integrity risks require source-current tests and parent self-review. "
             "Hand off at In Review, never Done. Main promotion requires separate explicit approval.\n"
             "Headroom provides local context compression, concise output and explicit persistent memory. "
-            "Use tgrep for literal/regex discovery first, and only when a task-owned index is ready; its status is a readiness hint, not a freshness certificate. "
-            "If tgrep is absent, fails, has no ready index, or differs from required semantics, use rg with the intended flags; a failed search is diagnostic, not zero matches. "
-            "After edits, branch switches, ignore-rule changes or watcher warnings, use rg until a completed rebuild and restart is known to cover the current tree. "
+            "Use tgrep first for literal/regex discovery and filename globs as a live scan (`tgrep --no-index`, no index needed; see `megai/tgrep.md`). "
+            "If tgrep is absent, fails, or differs from required semantics, use rg with the intended flags; a failed search is diagnostic, not zero matches. "
+            "An index is optional for repeated searches only; its status is a readiness hint, not a freshness certificate, and after edits, branch switches, ignore-rule changes or watcher warnings use live scans or rg until a completed rebuild and restart covers the current tree. "
             "Use codedb for structure. Confirm absence and exhaustive impact claims with native rg. "
             "Use Headroom recall for relevant prior decisions, and save only when persistence is requested. "
             "These are task-appropriate defaults, not mandatory extras; index on demand, never at startup. "
@@ -270,6 +270,10 @@ class Plan:
         for relative in ("SKILL.md", "reference.md", "contract.example.json"):
             self.asset(root / "skills/megai-acceptance" / relative,
                        (SOURCE / "pi-skill/acceptance" / relative).read_bytes(), remove)
+        # Default live-scan text discovery for Pi parents and children; no index or server.
+        for relative in ("index.ts", "search-policy.mjs"):
+            self.asset(root / "extensions/tgrep" / relative,
+                       (SOURCE / "pi-defaults/extensions/tgrep" / relative).read_bytes(), remove)
         skill = "appllama-app-design-skill"
         for relative in ("SKILL.md", "PROVENANCE.md", "upstream/SKILL.md", "upstream/LICENSE",
                          "upstream/references/image-assets.md", "upstream/references/motion.md",

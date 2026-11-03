@@ -18,6 +18,9 @@ ROOT = Path(__file__).resolve().parents[1]
 class Runtime(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        missing = [name for name in ("HEADROOM_TEST_PYTHON", "HEADROOM_TEST_ASSETS") if not os.environ.get(name)]
+        if missing:
+            raise unittest.SkipTest("explicit real-Headroom acceptance; set " + " and ".join(missing))
         cls.python = os.environ["HEADROOM_TEST_PYTHON"]
         assets = Path(os.environ["HEADROOM_TEST_ASSETS"])
         cls.temporary = tempfile.TemporaryDirectory(prefix="headroom-runtime-test-")

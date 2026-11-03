@@ -14,9 +14,11 @@ effort router.
 ## Defaults
 
 - Define observable acceptance checks and a stop condition before edits.
-- Use tgrep for literal/regex discovery when ready and `megai-codedb` for structure.
-  A partial index or stale watcher is not authoritative: use native `rg` after edits and
-  for freshness, absence, failures and acceptance evidence. Index only on demand.
+- Use tgrep first for literal/regex discovery and filename globs (live scan, no index
+  needed; see `tgrep.md`) and `megai-codedb` for structure. A partial index or stale
+  watcher is not authoritative: use native `rg` for freshness, absence, failures and
+  acceptance evidence. Indexes are optional and on demand only.
+  Read only relevant ranges with native file tools and edit with exact replacements.
 - Headroom supplies concise-output guidance, conservative discovery compression and
   explicit persistent memory. Recall relevant prior decisions; save only when
   persistence is requested. The native Pi adapter is automatic; on Claude Code,

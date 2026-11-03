@@ -26,7 +26,7 @@ class Slim(unittest.TestCase):
         self.bin = self.root / "bin"
         self.bin.mkdir()
         self.megai.mkdir(parents=True)
-        for folder in ("lib", "pi-skill", "skills", "task-flow", "bin"):
+        for folder in ("lib", "pi-skill", "skills", "task-flow", "bin", "pi-defaults/extensions/tgrep"):
             shutil.copytree(ROOT / folder, self.megai / folder)
         self.env = dict(os.environ, HOME=str(self.home), MEGAI_HOME=str(self.megai),
                         PI_CODING_AGENT_DIR=str(self.home / ".pi/agent"),
