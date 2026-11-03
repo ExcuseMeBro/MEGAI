@@ -6,7 +6,7 @@ import { join } from 'node:path';
 // shell interpreter. Keep classifications conservative and report uncovered paths.
 const DANGEROUS_SHELL = [
   ['session-stop', /\b(?:killall|pkill|kill|launchctl\s+(?:stop|remove)|systemctl\s+(?:stop|restart))\b/i],
-  ['destructive-file', /\b(?:rm\s+(?:-[\w]*r[\w]*f|-[\w]*f[\w]*r|-[\w]*r\s+-[\w]*f)|git\s+(?:reset\s+--hard|clean\s+-[\w]*f[\w]*|worktree\s+remove\s+(?:--force|-f)))\b/i],
+  ['destructive-file', /\b(?:git\s+(?:reset\s+--hard|clean\s+-[\w]*f[\w]*))\b/i],
   // Case-sensitive: `git branch -d` (merged-only delete) is the normal cleanup step.
   ['destructive-file', /\bgit\s+branch\s+(?:-D|--delete\s+--force|-d\s+--force|--force\s+-d)\b/],
   ['publish', /\b(?:git\s+push|git\s+tag|npm\s+publish|eas\s+(?:deploy|submit|update)|docker\s+push)\b/i],
@@ -15,35 +15,82 @@ const DANGEROUS_SHELL = [
 ];
 const BROKAN_DESTRUCTIVE = /^mcp__brokan__(?:delete_task|delete_project)$/;
 
-// STANDING APPROVAL (see AGENTS.md "Autonomous dev delivery"): these exact shapes run
-// without a prompt. Anything with force flags, main, tags or other refs still needs one.
+// STANDING APPROVAL (see AGENTS.md "Autonomous dev delivery"): these shapes run without
+// a prompt. Force flags, tags, --all/--mirror and protected branches still need one.
 const GIT = String.raw`git (?:-C [^\s;&|\x60$'"]+ )?`;
-const BRANCH = String.raw`(?:task|wip)\/[\w.\/-]+`;
+const NAME = String.raw`(?!-)[\w.\/-]+`;
+const REMOTE = String.raw`(?!-)[\w.-]+`;
+const PUSH_PROTECTED = /^(?:main|master|prod|production|release(?:[\/-].*)?|gh-pages|v?\d+(?:\.\d+)+.*)$/;
+const DELETE_PROTECTED = /^(?:main|master|dev|develop|staging|prod|production|release(?:[\/-].*)?|pi|for-ustama|validationsdk|gh-pages)$/;
+const PUSH = new RegExp(`^${GIT}push (?:-u |--set-upstream )?${REMOTE} "?(?:(?:HEAD|[a-f0-9]{7,40}|"?\\$\\{?\\w+\\}?"?):)?(?:refs\\/heads\\/)?(${NAME})"?$`);
+const DELETE = new RegExp(`^${GIT}push ${REMOTE} (?:--delete |-d |:)(?:refs\\/heads\\/)?(${NAME})$`);
 const STANDING_APPROVED = [
-  ['dev-push-policy', new RegExp(`^${GIT}push [\\w.-]+ (?:dev|(?:HEAD|[a-f0-9]{7,40}):(?:refs\\/heads\\/)?dev)$`)],
-  ['task-branch-push', new RegExp(`^${GIT}push (?:-u |--set-upstream )?[\\w.-]+ (?:HEAD:)?(?:refs\\/heads\\/)?${BRANCH}$`)],
-  ['task-branch-cleanup', new RegExp(`^${GIT}push [\\w.-]+ (?:--delete |:)(?:refs\\/heads\\/)?${BRANCH}$`)],
-  ['task-worktree-cleanup', new RegExp(`^${GIT}worktree remove (?:--force |-f )?[^\\s;&|\\x60$]+$`)],
+  ['branch-push', (part) => { const m = PUSH.exec(part); return !!m && !PUSH_PROTECTED.test(m[1]); }],
+  ['branch-cleanup', (part) => { const m = DELETE.exec(part); return !!m && !DELETE_PROTECTED.test(m[1]); }],
+  // Squash/ours-merged task branches need -D; protected long-lived branches still prompt.
+  ['branch-cleanup', (part) => { const m = new RegExp(`^${GIT}branch (?:-D|-d --force|--delete --force) (${NAME})$`).exec(part); return !!m && !DELETE_PROTECTED.test(m[1]); }],
+  // `git clean` scoped to a build/output subdirectory; a bare repo-wide clean still prompts.
+  ['scoped-clean', (part) => { const m = new RegExp(`^${GIT}clean -[dfqxX]+ (?:-- )?((?:[^\\s;&|\x60$/-][^\\s;&|\x60$]*\\s*)+)$`).exec(part); return !!m && !/(?:^|\s)\.\.?(?:\/|\s|$)/.test(m[1]); }],
+  ['task-worktree-cleanup', (part) => new RegExp(`^${GIT}worktree remove (?:--force |-f )?[^\\s;&|\\x60$]+$`).test(part)],
   // One blocking process by exact numeric PID. Broad name-based pkill/killall stays
   // blocked: it would stop every session, including the agent itself.
-  ['targeted-session-stop', /^kill (?:-(?:TERM|15|9|KILL) )?\d+(?: \d+)*$/],
+  // A literal PID, or a script's own child held in a variable (`kill "$server_pid"`).
+  ['targeted-session-stop', (part) => /^kill (?:-(?:0|TERM|15|9|KILL|INT|2) )?(?:\d+|"?\$\{?\w+\}?"?)(?: (?:\d+|"?\$\{?\w+\}?"?))*$/.test(part)],
 ];
 const SEVERITY = { normal: 0, approval: 1, block: 2 };
 
+// `rm -rf` is routine for temp dirs, build output and task cleanup. Prompt only when a
+// target could wipe a root, home, a repository's .git or an unknown expansion.
+const TEMP_ROOT = /^(?:\/tmp|\/private\/tmp|\/var\/folders|\/private\/var\/folders)\/[^/]+/;
+const HOME_VAR = /^(?:~|\$HOME|\$\{HOME\})(?=\/|$)/;
+function riskyRmTarget(raw) {
+  const target = raw.replace(/^(['"])(.*)\1$/, '$2').replace(/["']/g, '');
+  if (!target || /\$\(|\x60/.test(target)) return true;
+  const parts = target.split('/').filter(Boolean);
+  if (parts.some(part => part === '.git')) return true;
+  if (HOME_VAR.test(target)) return parts.length < 3 || target.includes('*') && parts.length < 4;
+  if (/^\$(?:PWD|USER|TMPDIR|OLDPWD)\b|^\$\{(?:PWD|USER|TMPDIR|OLDPWD)\}/.test(target)) return true;
+  if (/^\$\{?\w+\}?/.test(target)) {
+    const rest = target.replace(/^\$\{?\w+\}?/, '');
+    return rest !== '' && !/^\/[^*/][^*]*$/.test(rest);   // $x or ${x}/sub; never $x/ or $x/*
+  }
+  if (target.startsWith('/')) {
+    if (TEMP_ROOT.test(target)) return false;
+    return parts.length < 5 || target.includes('*') && parts.length < 6;
+  }
+  return /^\.\.?(?:\/|$)\*?$|^\*$|^\.\.\//.test(target);
+}
+function rmIsRisky(part) {
+  const match = /(?:^|[\s(])rm\s+(.*)$/.exec(part);
+  if (!match) return false;
+  const tokens = match[1].match(/"[^"]*"|'[^']*'|\S+/g) || [];
+  const flags = tokens.filter(token => /^-/.test(token)).join(' ');
+  if (!/(?:^|\s)-(?:\w*r\w*f|\w*f\w*r)\b|-r\s+-f|-f\s+-r|--recursive|-R\b/.test(flags)) return false;
+  const targets = tokens.filter(token => !/^-/.test(token));
+  return targets.length === 0 || targets.some(riskyRmTarget);
+}
+
 function dangerous(command) {
+  if (rmIsRisky(command)) return { risk: 'approval', category: 'destructive-file' };
   for (const [category, pattern] of DANGEROUS_SHELL) {
     if (pattern.test(command)) return { risk: category === 'session-stop' ? 'block' : 'approval', category };
   }
   return { risk: 'normal', category: 'unclassified' };
 }
 
-// Split simple `cd X && cmd 2>&1 | tail` chains so an approved step is not re-prompted.
-// Command substitution/backticks are not parsed: they fall back to whole-command checks.
+// Split `cd X && cmd 2>&1 | tail` chains and scripts (lines, ;, &&, ||, braces) so an
+// approved step is not re-prompted and every risky step is still classified on its own.
+// Heredoc bodies fed to a non-shell program (python, node, psql, cat …) are data or
+// code in another language, not shell commands; drop them so `proc.kill()` or a quoted
+// "git push" in evidence text is not mistaken for a command. Shell heredocs stay.
+const DATA_HEREDOC = /^([^\n]*\b(?:python3?|node|deno|ruby|perl|cat|tee|psql|sqlite3|mysql|jq|osascript|swift|go\s+run)\b[^\n]*<<-?\s*(['"]?)(\w+)\2[^\n]*)\n[\s\S]*?\n[ \t]*\3[ \t]*$/gm;
 function segments(command) {
-  if (/[\x60]|\$\(/.test(command)) return null;
-  return command.split(/&&|\|\||;|\n/).map(part => part
+  return command.replace(DATA_HEREDOC, '$1').split(/&&|\|\||;|\n|\{|\}/).map(part => part
+    .replace(/^\s*(?:(?:then|do|else|if|while|until|!|time)\s+)+/, '')
+    .replace(/^\s*(?:[A-Za-z_]\w*=(?:'[^']*'|"[^"]*"|[^\s'"]*)\s+)+(?=\S)/, '')
     .replace(/\s*\d?>&\d/g, '')
-    .replace(/(?:\s*\|\s*(?:tail|head|cat|grep|wc)\b[^|]*)+$/, '')
+    .replace(/\s*\d?>\s*\/dev\/null/g, '')
+    .replace(/(?:\s*\|\s*(?:tail|head|cat|grep|wc|tee)\b[^|]*)+$/, '')
     .trim()).filter(Boolean);
 }
 
@@ -53,11 +100,9 @@ export function classify(event) {
   if (name !== 'bash') return { risk: 'normal', category: 'unclassified' };
   const command = event?.input?.command;
   if (typeof command !== 'string' || !command.trim()) return { risk: 'approval', category: 'uninspectable-shell' };
-  const parts = segments(command);
-  if (!parts) return dangerous(command);
   let worst = { risk: 'normal', category: 'unclassified' };
-  for (const part of parts) {
-    const approved = STANDING_APPROVED.find(([, pattern]) => pattern.test(part));
+  for (const part of segments(command)) {
+    const approved = STANDING_APPROVED.find(([, ok]) => ok(part));
     const decision = approved ? { risk: 'normal', category: approved[0] } : dangerous(part);
     if (SEVERITY[decision.risk] > SEVERITY[worst.risk] || (worst.category === 'unclassified' && decision.category !== 'unclassified' && decision.risk === worst.risk)) worst = decision;
   }

@@ -7,10 +7,17 @@ sessions deny those calls with a reason the model can see; a UI error also denie
 It does not retry a failed tool automatically.
 
 STANDING APPROVAL (matches AGENTS.md "Autonomous dev delivery") — these run without a
-prompt, also inside simple `cd X && … 2>&1 | tail` chains: non-force `git push <remote> dev`
-(or `HEAD`/`<sha>:refs/heads/dev`), pushing or deleting `task/*` and `wip/*` branches,
-`git worktree remove [--force] <path>`, `git branch -d`, and `kill <PID>`. Force pushes,
-main, tags, other refs, `git branch -D` and command substitution still need a prompt.
+prompt, also inside multi-line scripts and `cd X && … 2>&1 | tail` chains:
+- non-force pushes of any branch except main/master/prod/production/release*/gh-pages or a
+  version-like name (also `<sha>`/`"$sha"`/`HEAD:refs/heads/<branch>`, `VAR=1 git push …`);
+- deleting a non-protected branch locally (`git branch -d/-D`) or on the remote;
+- `git worktree remove [--force] <path>` and `git clean -fd <build-subdir>`;
+- `rm -rf` of temp dirs, variables (`"$scratch"`, `${tmp}/out`), relative build output and
+  deep absolute paths; root, home, `~/X`, `..`, `*`, `.git`, `$(…)` and `"$x"/*` still prompt;
+- `kill <PID>` or `kill "$pid"` (one process). `pkill`/`killall` stay blocked.
+Heredoc bodies fed to python/node/psql/cat/… are not parsed as shell; shell heredocs are.
+Force pushes, tags, `--all`/`--mirror`, protected branches, `git reset --hard`, bare
+`git clean -fdx`, `sudo` and remote-script piping still need a prompt.
 
 Recognized categories: recursive destructive file and Git cleanup, push/tag/release,
 remote script piping, privilege escalation, and Brokan task/project deletion.
