@@ -1,12 +1,17 @@
 // Explicit end-to-end Pi + installed Headroom runtime. Disposable storage; no model/provider calls.
+import './pi-package.mjs';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, cpSync, symlinkSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 const installed = process.env.HEADROOM_INSTALL_ROOT;
+if (!installed) {
+  console.log('SKIP: explicit Headroom end-to-end check; set HEADROOM_INSTALL_ROOT to an installed runtime');
+  process.exit(0);
+}
 const packageRoot = process.env.PI_PACKAGE_ROOT;
-assert.ok(installed && packageRoot, 'Set HEADROOM_INSTALL_ROOT and PI_PACKAGE_ROOT explicitly');
+assert.ok(packageRoot, 'Set PI_PACKAGE_ROOT to the installed Pi package');
 const { DefaultResourceLoader, SettingsManager } = await import(pathToFileURL(join(packageRoot, 'dist/index.js')));
 const temporary = mkdtempSync(join(tmpdir(), 'headroom-e2e-'));
 const previous = process.env.MEGAI_HOME;

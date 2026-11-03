@@ -1,8 +1,9 @@
 #!/usr/bin/env node
+import './pi-package.mjs';
 // Actual offline Pi loader against a disposable agent root and installed package code.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, readFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -12,15 +13,17 @@ const { DefaultResourceLoader, SettingsManager } = await import(
   pathToFileURL(join(process.env.PI_PACKAGE_ROOT, 'dist/index.js')));
 const npmRoot = process.env.PI_DEFAULTS_NPM_ROOT || join(homedir(), '.pi/agent/npm/node_modules');
 const temp = mkdtempSync(join(tmpdir(), 'pi-defaults-tools-'));
+// Pinned profile packages are optional on a machine whose Pi provides them natively
+// (e.g. Pi-Bolt's built-in MCP); check what is installed and report what is not.
+const packageTools = { 'pi-mcp-adapter': ['mcp'], 'pi-web-access': ['web_search', 'fetch_content'] };
+const present = Object.keys(packageTools).filter(name => existsSync(join(npmRoot, name, 'index.ts')));
+const absent = Object.keys(packageTools).filter(name => !present.includes(name));
+if (absent.length) console.log(`SKIP: profile packages not installed in ${npmRoot}: ${absent.join(', ')} (set PI_DEFAULTS_NPM_ROOT)`);
 try {
   process.env.PI_OFFLINE = '1';
   const loader = new DefaultResourceLoader({ cwd: temp, agentDir: join(temp, 'agent'),
     settingsManager: SettingsManager.inMemory({ packages: [] }),
-    additionalExtensionPaths: [
-      resolve('pi-skill/headroom/index.ts'),
-      join(npmRoot, 'pi-mcp-adapter/index.ts'),
-      join(npmRoot, 'pi-web-access/index.ts'),
-    ],
+    additionalExtensionPaths: [resolve('pi-skill/headroom/index.ts'), ...present.map(name => join(npmRoot, name, 'index.ts'))],
   });
   await loader.reload();
   const loaded = loader.getExtensions();
@@ -28,7 +31,8 @@ try {
   const tools = loaded.extensions.flatMap(extension => [...extension.tools.keys()]);
   const required = readFileSync(resolve('pi-defaults/verify.mjs'), 'utf8')
     .match(/const requiredTools = (?:engineeringOnly \? \[\] : )?\[(.*?)\]/s)[1].match(/'[^']+'/g).map(name => name.slice(1, -1));
-  assert.deepEqual(required.filter(name => !tools.includes(name)), [], 'No required Pi tools missing');
+  const skipped = absent.flatMap(name => packageTools[name]);
+  assert.deepEqual(required.filter(name => !skipped.includes(name) && !tools.includes(name)), [], 'No required Pi tools missing');
   assert.ok(!tools.includes('sift'), 'No local file-ranking companion');
 
   // Standalone policy installation needs no local inference runtime and must

@@ -1,3 +1,4 @@
+import './pi-package.mjs';
 // Offline native-model configuration regression; no provider request or user auth.
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -26,9 +27,11 @@ try {
     assert.equal(shouldCompact(140000, before.contextWindow, settings), false, 'Baseline reproduces late compaction');
     assert.equal(shouldCompact(140000, after.contextWindow, settings), true, '140k history must trigger native compaction');
     assert.equal(after.contextWindow, 65536);
-    // Native override composition materializes an absent samplingParams as undefined.
-    assert.deepEqual({ ...after, contextWindow: before.contextWindow },
-      { ...before, samplingParams: before.samplingParams }, 'Only context budget changes; preserve all other model metadata');
+    // Native override composition materializes absent optional fields (samplingParams,
+    // promptCache, ...) as undefined keys; an undefined key is not a metadata change.
+    const defined = model => Object.fromEntries(Object.entries(model).filter(([, value]) => value !== undefined));
+    assert.deepEqual(defined({ ...after, contextWindow: before.contextWindow }), defined(before),
+      'Only context budget changes; preserve all other model metadata');
     assert.equal(shouldCompact(49152, after.contextWindow, settings), false);
     assert.equal(shouldCompact(49153, after.contextWindow, settings), true);
     assert.equal(shouldCompact(140000, after.contextWindow, { ...settings, enabled: false }), false, 'Explicit opt-out wins');

@@ -1,3 +1,4 @@
+import './pi-package.mjs';
 // Exercise the actual Pi extension loader/hooks. No provider, model or real memory calls.
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, copyFileSync, symlinkSync } from 'node:fs';

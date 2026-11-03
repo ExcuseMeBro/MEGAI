@@ -1,3 +1,4 @@
+import './pi-package.mjs';
 // Actual AgentSession + native Codex SSE; only the external HTTP boundary is synthetic.
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';

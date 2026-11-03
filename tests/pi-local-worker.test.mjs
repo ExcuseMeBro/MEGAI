@@ -1,3 +1,4 @@
+import { piPackageRoot } from './pi-package.mjs';
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { chmodSync, existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, realpathSync,
@@ -11,9 +12,7 @@ import { LocalWorker } from '../pi-defaults/extensions/megai-local-worker/bridge
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const extensionPath = process.env.MEGAI_LOCAL_WORKER_EXTENSION || join(repo, 'pi-defaults/extensions/megai-local-worker/index.ts');
-let piRoot = dirname(realpathSync(execFileSync('which', ['pi'], { encoding: 'utf8' }).trim()));
-while (!existsSync(join(piRoot, 'package.json'))) piRoot = dirname(piRoot);
-assert.equal(JSON.parse(readFileSync(join(piRoot, 'package.json'))).name, '@earendil-works/pi-coding-agent');
+const piRoot = piPackageRoot();
 const { loadExtensions, createExtensionRuntime } = await import(pathToFileURL(join(piRoot, 'dist/core/extensions/index.js')));
 const roots = [];
 const oldHome = process.env.MEGAI_HOME;
@@ -177,7 +176,9 @@ test('failed spawn and incomplete init retain evidence and cannot be blindly ret
   await assert.rejects(worker.init('partial'), /ENOENT/);
 });
 
-test('bridge drives the real native SQLite worker and result with a disposable faux provider, no external model calls', { timeout: 20000 }, async () => {
+const durableInstalled = existsSync(join(repo, 'pi-durable/node_modules/@earendil-works/pi-durable'));
+test('bridge drives the real native SQLite worker and result with a disposable faux provider, no external model calls',
+  { timeout: 20000, skip: !durableInstalled && 'opt-in pi-durable runtime not installed (run npm ci in pi-durable)' }, async () => {
   const f = fixture();
   const q = value => "'" + value.replaceAll("'", "'\\\"'\\\"'") + "'";
   const runtime = join(repo, 'pi-durable');

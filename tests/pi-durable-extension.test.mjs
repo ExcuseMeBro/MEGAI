@@ -1,3 +1,4 @@
+import { piPackageRoot } from './pi-package.mjs';
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, existsSync, rmSync } from 'node:fs';
@@ -7,9 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 
-let piRoot = dirname(realpathSync(execFileSync('which', ['pi'], { encoding: 'utf8' }).trim()));
-while (!existsSync(join(piRoot, 'package.json'))) piRoot = dirname(piRoot);
-assert.equal(JSON.parse(readFileSync(join(piRoot, 'package.json'))).name, '@earendil-works/pi-coding-agent');
+const piRoot = piPackageRoot();
 const { loadExtensions, createExtensionRuntime } = await import(pathToFileURL(join(piRoot, 'dist/core/extensions/index.js')));
 const extensionPath = process.env.MEGAI_DURABLE_EXTENSION || resolve(dirname(fileURLToPath(import.meta.url)), '../pi-defaults/extensions/megai-durable-workflow/index.ts');
 const projectId = '59005e36-ecd4-46ed-bb42-f779858b20ce', taskId = 'a59bc58a-2990-4083-9e2a-8530fa0c2269';

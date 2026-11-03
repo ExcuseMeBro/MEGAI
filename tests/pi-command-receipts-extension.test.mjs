@@ -1,3 +1,4 @@
+import { piPackageRoot } from './pi-package.mjs';
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, readFileSync, realpathSync, existsSync, rmSync } from 'node:fs';
@@ -6,9 +7,7 @@ import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 
-let piRoot = dirname(realpathSync(execFileSync('which', ['pi'], { encoding: 'utf8' }).trim()));
-while (!existsSync(join(piRoot, 'package.json'))) piRoot = dirname(piRoot);
-assert.equal(JSON.parse(readFileSync(join(piRoot, 'package.json'))).name, '@earendil-works/pi-coding-agent');
+const piRoot = piPackageRoot();
 const { createAgentSession, DefaultResourceLoader, SessionManager, SettingsManager } = await import(pathToFileURL(join(piRoot, 'dist/index.js')));
 const extensionPath = process.env.MEGAI_RECEIPTS_EXTENSION || resolve(dirname(fileURLToPath(import.meta.url)), '../pi-defaults/extensions/megai-command-receipts/index.ts');
 const bases = [], previousHome = process.env.MEGAI_HOME;

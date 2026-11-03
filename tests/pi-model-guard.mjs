@@ -1,3 +1,4 @@
+import './pi-package.mjs';
 // Actual Pi resource selection, offline: no agent/provider is invoked.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';

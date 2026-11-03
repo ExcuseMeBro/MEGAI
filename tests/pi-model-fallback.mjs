@@ -1,3 +1,4 @@
+import './pi-package.mjs';
 // Offline: the real Pi extension loader plus stubbed runtime actions. No provider call.
 // Proves a provider failure continues on the configured partner exactly once, that
 // reconciliation-only failures never switch, and that the optional user config is

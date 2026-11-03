@@ -1,3 +1,4 @@
+import './pi-package.mjs';
 // Real Pi loader/hooks for the opt-in token profile: profile present/missing/malformed,
 // explicit overrides, unchanged raw messages, RTK bypass and single core discovery.
 // Offline; the bridge is a local fixture and no provider is contacted.

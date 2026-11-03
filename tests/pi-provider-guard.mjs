@@ -1,3 +1,4 @@
+import './pi-package.mjs';
 // Offline actual Pi loader + native Codex SSE stream. Never calls a provider.
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import './pi-package.mjs';
 // Load and expand the delivery commands through the installed Pi runtime, offline.
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -29,23 +30,29 @@ try {
   const mdev = expandPromptTemplate('/mdev', prompts);
   const prdev = expandPromptTemplate('/prdev', prompts);
   for (const text of [mdev, prdev]) {
-    assert.match(text, /megai queue/);
-    assert.match(text, /--remote-dev/);
-    assert.match(text, /parent\s+self-review/);
-    assert.match(text, /non-force push/);
+    assert.match(text, /Brokan/);
+    assert.match(text, /self-review/);
+    assert.match(text, /git ls-remote/);
+    assert.match(text, /:refs\/heads\/dev`/);
+    assert.match(text, /evidence graph/);
+    assert.match(text, /(Do not run|no) `pi-workflow`, (use )?Plane MCP\/REST/);
+    assert.doesNotMatch(text, /--force|push -f\b/);
     assert.doesNotMatch(text, /^(<<<<<<<|=======|>>>>>>>)/m);
   }
+  assert.match(mdev, /does not authorize main/);
   assert.match(mdev, /git worktree list --porcelain/);
-  assert.match(mdev, /Tracked or untracked task source needs its own task acceptance/);
   assert.match(mdev, /source-current formal PASS/);
-  assert.match(mdev, /megai queue plan/);
-  assert.match(mdev, /Retain active, dirty, unknown or unmerged resources/);
+  assert.match(mdev, /git merge --ff-only/);
+  assert.match(mdev, /non-force push/);
+  assert.match(mdev, /Retain and report active, uncertain, dirty/);
+  assert.match(mdev, /Partial delivery stays `doing`/);
   assert.doesNotMatch(mdev, /pi-workflow cleanup/);
-  assert.match(prdev, /necessary non-force push of verified `dev`/);
+  assert.match(prdev, /does not authorize merging or pushing `main`/);
   assert.match(prdev, /rev-list --count <main-sha>\.\.<dev-sha>/);
-  assert.match(prdev, /never a reason to create a duplicate PR/);
-  assert.match(prdev, /After an uncertain create, look up that same identity/);
-  assert.match(prdev, /does not|never authorizes/);
+  assert.match(prdev, /never create a duplicate/);
+  assert.match(prdev, /\(no force\)/);
+  assert.match(prdev, /Agent-written on behalf of the user/);
+  assert.match(prdev, /A PR is not main delivery/);
   console.log('PASS: /mdev and /prdev load and expand with scoped delivery safeguards');
 } finally {
   rmSync(temp, { recursive: true, force: true });

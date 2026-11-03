@@ -1,3 +1,4 @@
+import './pi-package.mjs';
 // Full AgentSession binding, native SSE and native retry backoff; no network/auth files.
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
