@@ -2,7 +2,9 @@
   "defaultModel": "gpt-6-sol",
   "defaultProvider": "openai-codex",
   "defaultThinkingLevel": "high",
-  "defaultTools": ["+codemode"],
+  "defaultTools": [
+    "+codemode"
+  ],
   "lastChangelogVersion": "1.4.0",
   "modelThinkingLevels": {
     "deepseek/deepseek-flash": "high",
@@ -26,13 +28,15 @@
   "prompts": [
     "!**",
     "+prompts/mdev.md",
-    "+prompts/prdev.md",
-    "+prompts/splane.md"
+    "+prompts/prdev.md"
   ],
   "skills": [
     "!**",
     "+skills/better-ui/SKILL.md",
     "+skills/frontend-design/SKILL.md",
+    "+skills/frontend-design-deslop/SKILL.md",
+    "+skills/unslop/SKILL.md",
+    "+skills/ui-ux-pro-max/SKILL.md",
     "+skills/baseline-ui/SKILL.md",
     "+skills/fixing-accessibility/SKILL.md",
     "+skills/hallmark/SKILL.md",
@@ -96,7 +100,13 @@
     "+skills/pick-ui-library/SKILL.md",
     "+skills/prototype/SKILL.md",
     "+skills/review-animations/SKILL.md",
-    "+skills/write-swift/SKILL.md"
+    "+skills/write-swift/SKILL.md",
+    "+skills/megai-acceptance/SKILL.md",
+    "+skills/pi-workflow/SKILL.md",
+    "+skills/security-audit/SKILL.md",
+    "+skills/ai-design-check/SKILL.md",
+    "+skills/ai-design-fix/SKILL.md",
+    "+skills/interface-design/SKILL.md"
   ],
   "theme": "dark"
 }

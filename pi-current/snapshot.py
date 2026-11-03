@@ -20,9 +20,10 @@ FILES = {
     "npm/package-lock.json": "agent/npm/package-lock.json",
     "prompts/mdev.md": "agent/prompts/mdev.md",
     "prompts/prdev.md": "agent/prompts/prdev.md",
-    "prompts/splane.md": "agent/prompts/splane.md",
     "prompts/rwbrowser.md": "agent/prompts/rwbrowser.md",
     "extensions/tgrep/index.ts": "agent/extensions/tgrep/index.ts",
+    "extensions/tgrep/search-policy.mjs": "agent/extensions/tgrep/search-policy.mjs",
+    "skills/pi-workflow/context-economy.md": "agent/skills/pi-workflow/context-economy.md",
 }
 SENSITIVE = re.compile(
     r"-----BEGIN (?:OPENSSH|RSA|EC|DSA|PRIVATE) PRIVATE KEY-----|"

@@ -6,35 +6,37 @@ and project safety rules apply; never infer destructive or publishing approval.
 
 ## Task boundaries
 
-Pellet (local task vault, MCP server `pellet`) owns execution tracking and
-acceptance. Plane (workspace brodev) is an explicitly synced two-way task/project
-counterpart: only `/splane` may reconcile task data between the systems. Plane
-allocates `PROJECT-N` identifiers; its MCP server stays unloaded by default. Read-only
-questions need no task. Before changes resolve an existing project from config or
+Brokan (local kanban, MCP server `brokan`) is the sole execution tracker and
+acceptance authority. Do not synchronize Brokan tasks with Plane or invoke the retired
+sync entrypoint. Plane's MCP server stays absent. New formal acceptance uses a frozen Brokan
+schema-4 contract with local task/hash readback. Previously approved Plane
+contracts and evidence remain historical; never weaken frozen criteria. Read-only questions need no task. Before changes resolve an existing project from config or
 verified repository identity; missing access/ambiguous mapping blocks changes.
-Reuse the selected task for refinements. Before creating a task, paginate relevant
-listings (`query_tasks` with envelope) to avoid duplicates. Start `open`, then
-`in_progress` before edits. Record scope, short plan and acceptance criteria in the
-task description or body; show the task path/identifier. Review state is Pellet
-status `in-review` (displayed as In Review), never a review tag; completion is
-status `completed`. Preserve unrelated task fields. Post concise evidence-backed
-notes at meaningful boundaries,
-not per tool. Report blockers promptly. Never blindly retry uncertain Pellet
-writes: read the task first.
-
-Vault layout: `/Users/bro/Movies/PROJECTTASKS` holds one folder per project, named
-after the Plane project identifier/name. Create tasks with `create_task` (they land
-in `Inbox/`), then `rename_note` them into `<PROJECT>/` — `/splane` maps the folder
-to the Plane project, so the folder IS the project binding. `Inbox/` and
-root-level files are unbound and fall back to `group` → `default_project`.
-Imported Plane Todo/In Progress tasks carry `plane-import` and a source UUID
-marker; `/splane` updates their original Plane items bidirectionally, without
-duplicates. Plane allocates the per-project `PROJECT-N` identifier for new tasks;
-Pellet stores the same identifier in its filename and `plane_identifier` property.
-Two-sided edits to the same field conflict instead of silently overwriting.
+Reuse the selected task for refinements. Before creating a task, inspect the
+relevant Brokan project and human tasks to avoid duplicates. Start `todo`, then
+`doing` before edits. Record scope, short plan and acceptance criteria in the
+task description; show the task identifier. Review state is Brokan status `review`,
+never a review tag; completion is status `done` only on the user's decision.
+Preserve unrelated task fields. Post concise evidence-backed notes at meaningful
+boundaries, not per tool. Report blockers promptly. Never blindly retry uncertain
+Brokan writes: read the task first. Preserve imported Plane task IDs and historical
+source UUID markers as read-only provenance; never invent or reuse a Plane
+`PROJECT-N` identifier for a new Brokan task. No automatic or implicit task-data
+synchronization is permitted. The legacy PROJECTTASKS/TEMADA archive is not a task
+tracker; do not write new tasks there.
 
 Run focused acceptance checks and self-review the complete diff before handoff.
-Guarded safety/acceptance/installer changes retain their required formal gate;
+For every agent-authored code change, load the `security-audit` skill in guidance
+mode and review the complete changed-code diff for relevant trust boundaries,
+attacker-controlled inputs, authorization, secrets, dependencies and unsafe
+execution before delivery. Trace suspected failures to source and concrete impact;
+fix blocking findings, rerun affected checks, and report the scoped security review
+and any unverified risk in the task. This is not exhaustive coverage or an enforced
+CI/Git gate. Do not run the skill's six-phase full audit or create its artifacts for
+routine coding; use full audit only for an explicit codebase audit/pen-test or
+requested report. Its sandbox and non-production constraints govern audit-specific
+dynamic validation.
+Guarded safety/installer/acceptance changes retain their formal gate and frozen criteria;
 existing frozen acceptance criteria cannot be weakened. No mandatory extra agent
 or duplicate reviewer. Revalidate task, source and authority before boundary writes.
 Git delivery must be verified locally AND remotely before review, never
@@ -73,11 +75,11 @@ requirements; do not falsely report delivery or cleanup.
 
 Use a verified task-owned worktree based on dev, one writer per worktree. Never edit
 source directly on dev/main or touch another task's files/index/branch/worktree.
-Reuse one Pellet task identity across repositories; never git-init a coordination folder.
+Reuse one Brokan task identity across repositories; never git-init a coordination folder.
 Keep test ports/databases/output isolated. Shared external resources need coordination.
 Use native Git, not retired workflow launchers. Coordinate shared delivery targets
 directly: one writer per target, no overlapping writes. Before delivery verify the
-Pellet task, owned clean/idle targets, exact accepted SHAs, remote identity AND
+Brokan task, owned clean/idle targets, exact accepted SHAs, remote identity AND
 fetch/push URLs.
 Fetch intended remote dev and audit the COMPLETE proposed remote commit range.
 Unknown/unrelated ahead commits, dirty/busy target, divergence or stale tests BLOCK
@@ -86,8 +88,8 @@ auto-merge/rebase or change integration targets to evade a blocker. If dev advan
 revalidate the candidate and rerun affected checks; divergence needs explicit reconciliation.
 
 Default authorization: checks + complete self-review → local dev fast-forward →
-normal remote dev push → exact inclusion verification → review state in Pellet
-(status `in-review`, no review tag; mirrored later by `/splane`). No repeated
+normal remote dev push → exact inclusion verification → review state in Brokan
+(status `review`, no review tag; no Plane mirror). No repeated
 push approval is needed for accepted task-owned commits to the verified dev remote.
 This does NOT authorize unrelated commits, other branches, tags, main, releases or
 publishing. Main/publishing need separate explicit approval. Explicit persistent-branch
@@ -104,7 +106,7 @@ EVERY delivered SHA against BOTH local target and freshly fetched remote ref. If
 remote moves, reconcile/repeat observation. Record path, remote/URLs, delivered full
 SHAs, local/remote tips, commands/results and timestamp in the same task.
 On failed/uncertain push or verification, retain resources, reconcile actual target
-state, report partial delivery and keep the task `in_progress`. No review state on
+state, report partial delivery and keep the task `doing`. No review state on
 partial Git delivery.
 After the COMPLETE affected-repository vector is verified in local dev AND freshly
 fetched/independently advertised remote dev, cleanup is the IMMEDIATE mandatory next
@@ -119,10 +121,10 @@ Git and disk, then recheck and delete only their proven-merged local task branch
 with `git branch -d`. Never force, remove primary/foreign resources, delete remote
 refs or terminate sessions to make cleanup possible. A dirty, unknown, active,
 uncertain, unmerged or data-bearing resource is RETAINED with the precise reason;
-record attempted removals and retained paths in the same Pellet task. A safe refusal
+record attempted removals and retained paths in the same Brokan task. A safe refusal
 defers only that resource: verified delivery may still move to review, but never
 claim full cleanup. Failed/uncertain push or remote verification is NOT a cleanup
-trigger; retain resources and keep the task `in_progress` until delivery is reconciled. Missing
+trigger; retain resources and keep the task `doing` until delivery is reconciled. Missing
 safe isolation, exclusive target ownership or evidence blocks the affected action;
 do not reinstall retired tooling or bypass safeguards. Non-Git runtime edits need
 a private pre-change receipt/backup and focused verification.
@@ -130,8 +132,8 @@ a private pre-change receipt/backup and focused verification.
 ## Bounded context and continuity
 
 Choose the next critical-path action; avoid speculative tooling or duplicate rules.
-For Pellet discovery, keep `query_tasks` rows concise and queries narrow; read full descriptions
-for selected candidates, while still paginating required duplicate checks. Discover
+For Brokan discovery, keep project task listings concise and read full descriptions
+for selected candidates; inspect all relevant pages when checking duplicates. Discover
 related deferred tools together once, then reuse them within the unchanged phase.
 Reuse verified IDs, paths and results within the same unchanged phase; reread on
 actual drift, uncertainty or boundary validation, not after every tool. Batch

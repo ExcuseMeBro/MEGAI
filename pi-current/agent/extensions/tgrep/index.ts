@@ -1,7 +1,9 @@
 import { Type } from "@earendil-works/pi-ai";
 import { defineTool, truncateHead, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { guardBroadSearch } from "./search-policy.mjs";
 
 const quote = (s: string) => `'${s.replaceAll("'", "'\\''")}'`;
 export interface SearchParams {
@@ -57,6 +59,8 @@ exit "$code"`;
 }
 
 export default function (pi: ExtensionAPI) {
+  // Best-effort Pi tool-call guard, not a shell sandbox or a user command interceptor.
+  pi.on("tool_call", (event) => guardBroadSearch(event));
   pi.registerTool(defineTool({
     name: "tgrep",
     label: "tgrep",
@@ -78,6 +82,9 @@ export default function (pi: ExtensionAPI) {
     }),
     async execute(_id, params, signal, _update, ctx) {
       if (signal?.aborted) throw new Error("tgrep cancelled.");
+      // A missing scope fails in both tgrep and rg; report it once instead of a fallback.
+      const scope = absolute(ctx.cwd, params.path ?? ctx.cwd);
+      if (!existsSync(scope)) throw new Error(`tgrep path not found: ${scope}. Check the path or search its parent directory.`);
       const outcome = await ctx.executeTool("bash", { command: buildCommand(params, ctx.cwd), timeout: 30 }, { signal });
       if (signal?.aborted) throw new Error("tgrep cancelled.");
       const content = outcome.result.content;
@@ -86,7 +93,7 @@ export default function (pi: ExtensionAPI) {
       return {
         content: [{ type: "text", text: `${bounded.content}${bounded.truncated ? "\n[Discovery output truncated; narrow the query or use native bash/rg.]" : ""}\n[Discovery only: read source; native rg is authoritative for completeness.]` }, ...content.filter((part) => part.type !== "text")],
         isError: outcome.isError,
-        details: { scope: absolute(ctx.cwd, params.path ?? ctx.cwd), truncated: bounded.truncated, nested: outcome.result.details, indexed: !!params.index_path },
+        details: { scope, truncated: bounded.truncated, nested: outcome.result.details, indexed: !!params.index_path },
       };
     },
   }));
