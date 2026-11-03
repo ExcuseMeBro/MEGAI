@@ -24,7 +24,7 @@ test('compact runtime policy keeps safety/delivery/authority boundaries', () => 
 
 test('remediation documents selective reversible application and non-fabricated A/B', () => {
   for (const fragment of ['opt-in runtime profile', 'SHA256', 'rollback', 'new Pi',
-    'MEGAI_DURABLE_EXTENSION', 'session-level', 'first-token', 'at least 5 paired',
+    'session-level', 'first-token', 'at least 5 paired',
     'alternating A/B', 'cold', 'warm', 'p95', 'explicit approval', 'No invented A/B results']) {
     assert.ok(docs.includes(fragment), `missing procedure: ${fragment}`);
   }

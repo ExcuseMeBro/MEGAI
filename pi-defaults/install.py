@@ -485,8 +485,7 @@ def install(reset=False, remove_omp=False):
     shutil.copy2(REPO / "bin/megai", shared / "bin/megai")
     (shared / "bin/megai").chmod(0o755)
     shutil.copytree(SOURCE / "extensions", agent / "extensions", dirs_exist_ok=True,
-                    ignore=shutil.ignore_patterns("megai-durable-workflow", "megai-command-receipts",
-                                                  "megai-local-worker", "project-rules.ts"))
+                    ignore=shutil.ignore_patterns("megai-command-receipts", "project-rules.ts"))
     headroom = agent / "extensions/megai-headroom"
     headroom.mkdir(parents=True, exist_ok=True)
     shutil.copy2(REPO / "pi-skill/headroom/index.ts", headroom / "index.ts")

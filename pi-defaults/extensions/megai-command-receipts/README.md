@@ -4,7 +4,7 @@ A small opt-in T3-inspired reliability layer, not T3's orchestrator and not a ne
 agent loop. Requires Pi's `ctx.executeTool` API and Node with `node:sqlite` (tested
 with Node24.18.0). Uses the existing provider, model, thinking level and session.
 No process is launched on load; no hooks, prompt interception or background work.
-Existing `megai-durable-workflow` metadata and human knowledge approval stay separate.
+Human knowledge approval stays separate.
 
 ## Usage
 

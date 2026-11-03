@@ -833,8 +833,10 @@ class Distribution(unittest.TestCase):
         self.assertIn('"workflow.py", "orchestrator.py",', installer)
         self.assertIn('"delivery.py", "ORCHESTRATOR.md", "projects"', installer)
         self.assertNotIn('shutil.copy2(REPO / "lib/plane_mcp_headers.py"', installer)
-        self.assertIn('"megai-durable-workflow", "megai-command-receipts",', installer)
-        self.assertIn('"megai-local-worker", "project-rules.ts"', installer)
+        self.assertIn('ignore_patterns("megai-command-receipts", "project-rules.ts")', installer)
+        # pi-durable and its extensions were removed; nothing may install them again.
+        for retired in ("megai-durable-workflow", "megai-local-worker", "pi-durable"):
+            self.assertNotIn(retired, installer)
         self.assertIn('legacy_launcher = b', installer)
         skill = (DEFAULTS / "skills/pi-workflow/SKILL.md").read_text()
         self.assertIn('Brokan is the sole task tracker and acceptance authority', skill)

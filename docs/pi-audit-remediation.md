@@ -48,13 +48,13 @@ absence claim. No historical numeric report or private session transcript is shi
 ## Selective local application and rollback
 
 Only apply after reviewing the complete diff and passing focused acceptance.
-Back up `~/.pi/agent/AGENTS.md` and the installed durable extension `index.ts` and
-`store.mjs` in a private task receipt directory outside the source; record pre/post
-SHA256 and modes. Verify installed pre-change bytes against the last receipt before
-replacing them. Install exactly the reviewed profile, store and extension entry point. Preserve
+Back up `~/.pi/agent/AGENTS.md` in a private task receipt directory outside the source;
+record pre/post SHA256 and modes. Verify installed pre-change bytes against the last
+receipt before replacing them. Install exactly the reviewed profile. Preserve
 settings, auth, MCP, sessions and unrelated extensions; do not run the broad installer.
-Check installed hashes and run the real-loader suite with
-`MEGAI_DURABLE_EXTENSION=/absolute/installed/megai-durable-workflow/index.ts`.
+Check installed hashes and run the real-loader suite against the installed profile.
+The optional durable runtime (`pi-durable`, `megai-durable-workflow`, `megai-local-worker`)
+was removed and is not part of this procedure.
 A running session may keep its original system prompt/tool schema: start a **new Pi
 session** for the policy; `/reload` refreshes extensions but is not proof that the
 original system prompt changed. Do not restart/kill somebody else's active session.
