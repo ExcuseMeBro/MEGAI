@@ -1,5 +1,6 @@
 import { Type } from "@earendil-works/pi-ai";
 import { defineTool, truncateHead, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
@@ -58,6 +59,36 @@ if [ "$code" -eq 1 ]; then printf '%s\\n' '[exit=1: no matches in searched cover
 exit "$code"`;
 }
 
+const SEARCH_TIMEOUT_MS = 30_000;
+const MAX_CAPTURE_BYTES = 4 * 1024 * 1024;
+
+// Run the search script directly. It must not depend on the `bash` tool: sessions and
+// children with a tool allowlist (e.g. --tools tgrep) do not have it.
+export function runSearch(command: string, cwd: string, signal?: AbortSignal): Promise<{ text: string; code: number | null }> {
+  return new Promise((done, fail) => {
+    const child = spawn("bash", ["-c", command], { cwd, detached: true, stdio: ["ignore", "pipe", "pipe"] });
+    const chunks: Buffer[] = [];
+    let size = 0, clipped = false, stoppedBy = "";
+    const take = (chunk: Buffer) => { if (size < MAX_CAPTURE_BYTES) { chunks.push(chunk); size += chunk.length; } else clipped = true; };
+    child.stdout.on("data", take);
+    child.stderr.on("data", take);
+    // Kill the whole process group so tgrep/rg do not outlive bash.
+    const stop = (reason: string) => { stoppedBy ||= reason; try { process.kill(-child.pid!, "SIGKILL"); } catch { child.kill("SIGKILL"); } };
+    const timer = setTimeout(() => stop("the 30 s limit"), SEARCH_TIMEOUT_MS);
+    const abort = () => stop("cancellation");
+    signal?.addEventListener("abort", abort, { once: true });
+    const finish = () => { clearTimeout(timer); signal?.removeEventListener("abort", abort); };
+    child.on("error", (error) => { finish(); fail(error); });
+    child.on("close", (code) => {
+      finish();
+      let text = Buffer.concat(chunks).toString("utf8");
+      if (clipped) text += "\n[tgrep] Output exceeded 4 MiB; showing the first part only.";
+      if (stoppedBy) text += `\n[tgrep] Search stopped by ${stoppedBy}; narrow the path or pattern.`;
+      done({ text, code: stoppedBy ? null : code });
+    });
+  });
+}
+
 export default function (pi: ExtensionAPI) {
   // Best-effort Pi tool-call guard, not a shell sandbox or a user command interceptor.
   pi.on("tool_call", (event) => guardBroadSearch(event));
@@ -85,15 +116,14 @@ export default function (pi: ExtensionAPI) {
       // A missing scope fails in both tgrep and rg; report it once instead of a fallback.
       const scope = absolute(ctx.cwd, params.path ?? ctx.cwd);
       if (!existsSync(scope)) throw new Error(`tgrep path not found: ${scope}. Check the path or search its parent directory.`);
-      const outcome = await ctx.executeTool("bash", { command: buildCommand(params, ctx.cwd), timeout: 30 }, { signal });
+      const { text, code } = await runSearch(buildCommand(params, ctx.cwd), ctx.cwd, signal);
       if (signal?.aborted) throw new Error("tgrep cancelled.");
-      const content = outcome.result.content;
-      const text = content.filter((part) => part.type === "text").map((part) => part.text).join("\n");
       const bounded = truncateHead(text, { maxBytes: 24000, maxLines: 400 });
+      const exit = code === 0 ? "" : `\n[tgrep] Search failed (exit ${code ?? "killed"}); this is not a zero-match result.`;
       return {
-        content: [{ type: "text", text: `${bounded.content}${bounded.truncated ? "\n[Discovery output truncated; narrow the query or use native bash/rg.]" : ""}\n[Discovery only: read source; native rg is authoritative for completeness.]` }, ...content.filter((part) => part.type !== "text")],
-        isError: outcome.isError,
-        details: { scope, truncated: bounded.truncated, nested: outcome.result.details, indexed: !!params.index_path },
+        content: [{ type: "text", text: `${bounded.content}${bounded.truncated ? "\n[Discovery output truncated; narrow the query or use native bash/rg.]" : ""}${exit}\n[Discovery only: read source; native rg is authoritative for completeness.]` }],
+        isError: code !== 0,
+        details: { scope, truncated: bounded.truncated, exitCode: code, indexed: !!params.index_path },
       };
     },
   }));
