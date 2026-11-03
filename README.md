@@ -117,27 +117,18 @@ agent repeats after another agent already read it — use
 
 Pellet owns execution tracking and acceptance: open → in_progress → in-review →
 completed. A task's project is its verified Pellet folder. Only an explicit
-`/splane` synchronizes task data with Plane; `/factory`, `/mdev` and normal coding
+`/splane` synchronizes task data with Plane; `/mdev` and normal coding
 work do not call Plane. Keep task-specific acceptance and delivery evidence in
 Pellet. Verify every delivered commit in local and freshly fetched/independently
 advertised remote `dev` before review. Main promotion and publication are separate
 user decisions; neither happens automatically.
 
-The single `/factory` **prompt** (package `./pellet-factory`) works existing
-Pellet tasks in the verified project folder: `/factory all` or `/factory UUID,UUID
-concurrency=1..5`. Bare `/factory` shows usage without starting work. The old
-Plane-only prompt and `/delegate` slash command are retired; Plane sync is only
-via explicit `/splane`. Its internal model-only `factory_delegate` tool asks for
-interactive confirmation, paginates the project queue, and launches independent
-Pi agents in task-owned worktrees. A nonempty open/in_progress queue is
-**not** a global blocker; resume released work safely or report a concrete
-per-task blocker. Launch is not task completion: the parent must verify checks,
-serial delivery to local and remote dev and eligible cleanup before Pellet
-`in-review`. No automatic main promotion, publishing, session termination or
-background daemon. Up to five workers launch concurrently; large queues are
-split into scoped UUID batches. See `pi-defaults/FACTORY.md` and
-`pi-defaults/pellet-factory/prompts/factory.md`. Reload an existing Pi session
-yourself to activate an updated prompt/tool.
+The retired `/factory` prompt, its delegation tool and the former Plane
+`factory-plan`/`factory-start` helpers are not installed. Work existing Pellet
+tasks directly in separate verified task-owned worktrees; `/splane` remains the
+only explicit task-data sync to Plane. Do not delete existing task receipts or
+foreign worktrees as part of the factory retirement. An already-running Pi
+session may retain its loaded command until its owner chooses to reload it.
 
 The `/mdev` and `/prdev` prompt templates are installed globally: `/mdev` is explicit
 authorization to reconcile, review, merge and push task work into `dev` (no repeated approval)
@@ -156,7 +147,7 @@ cleanup immediately after full delivery; preserve active, dirty, unknown or
 unmerged task worktrees. Record evidence and status in Pellet. Main promotion
 and publication require separate explicit approval. Historical `pi-workflow`
 Plane task commands are not the current execution workflow and must not be used
-for `/factory` or delivery; only `/splane` reconciles task data with Plane.
+for delivery; only `/splane` reconciles task data with Plane.
 
 The credentials-free [saved local Pi profile](pi-defaults/local-profile/README.md) records
 the current model, thinking, timeout, fallback and MCP preferences. It is an explicit
