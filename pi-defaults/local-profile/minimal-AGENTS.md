@@ -9,8 +9,9 @@ Autonomous dev delivery); never infer approval for main, releases, tags or force
 
 Brokan is the sole execution tracker and acceptance authority. No Plane task
 synchronization. Read-only questions need no task. Before changes resolve a
-Brokan project from config or verified repository identity; ambiguous mapping
-blocks edits. Reuse the selected task for refinements; inspect relevant tasks
+Brokan project from config or verified repository identity; if none maps or the
+user says no task is needed, work and deliver without a Brokan task (never stop to
+ask which project). Reuse the selected task for refinements; inspect relevant tasks
 before creating a new one. Set todo then doing before edits. Record scope, plan,
 acceptance criteria and the task identifier; preserve unrelated task fields.
 Post evidence-backed comments at meaningful boundaries. Reconcile uncertain
