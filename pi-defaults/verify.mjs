@@ -74,7 +74,6 @@ for (const name of requiredSkills) {
 }
 if (skills.skills.some(s => s.name.startsWith('openspec-')) || promptNames.some(n => n.startsWith('opsx-'))) missing.push('retired OpenSpec resources');
 missing.push(...policyProblems(policy).map(problem => `AGENTS.md: ${problem}`));
-if (/mandatory Paseo integration|Paseo is required/i.test(policy)) missing.push('AGENTS.md: retired mandatory integration');
 // The same prompt can be installed globally and in a project's tracked policy.
 // Accept only byte-identical regular files; a differing override remains a diagnostic.
 const identicalPromptCollision = diagnostic => {

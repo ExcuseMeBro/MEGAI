@@ -61,9 +61,17 @@ test('installer rejects retired task sync without weakening safety or acceptance
 
 test('missing or stale safety evidence is diagnosed while intact policy passes', () => {
   assert.ok(policyProblems('').includes('missing: Brokan task authority'));
-  assert.ok(policyProblems(source.replace('git ls-remote', 'git remote -v'))
+  assert.ok(policyProblems(source.replaceAll('git merge-base --is-ancestor <FULL_SHA> <remote>/dev', 'git log'))
     .includes('missing: independent remote verification'));
-  assert.ok(policyProblems(source.replace('Never terminate, signal, archive, restart or close', 'May terminate'))
-    .includes('missing: session protection'));
+  assert.ok(policyProblems(source.replaceAll('STANDING APPROVAL', 'approval on request'))
+    .includes('missing: standing dev delivery approval'));
+  assert.ok(policyProblems(source + '\nUnknown/unrelated ahead commits, dirty/busy target, divergence or stale tests BLOCK')
+    .includes('obsolete: approval-blocked dev delivery'));
+  assert.ok(policyProblems(source.replace('never use broad `pkill`/`killall`', 'use `pkill`'))
+    .includes('missing: targeted session stop'));
+  assert.ok(policyProblems(source.replace('Uncommitted changes are never discarded, reset or stashed away: commit them', 'Discard uncommitted changes'))
+    .includes('missing: uncommitted work is committed'));
+  assert.ok(policyProblems(source + '\nNever terminate, signal, archive, restart or close a session')
+    .includes('obsolete: approval-blocked dev delivery'));
   assert.deepEqual(policyProblems(source), []);
 });

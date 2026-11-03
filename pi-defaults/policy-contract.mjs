@@ -12,12 +12,16 @@ export function policyProblems(policy) {
     ['no task synchronization', /Do not synchronize Brokan tasks with Plane/],
     ['formal gate preservation', /Guarded safety\/installer\/acceptance changes retain their formal gate and frozen criteria/],
     ['review status', /Brokan status `review`/],
-    ['isolated implementation', /verified task-owned worktree/],
+    ['isolated implementation', /task-owned worktree/],
     ['source-current checks', /source-current/],
-    ['verified local integration', /git merge --ff-only --no-overwrite-ignore <FULL_TASK_SHA>/],
-    ['exact remote dev push', /git push <VERIFIED_REMOTE> <FULL_SHA>:refs\/heads\/dev/],
-    ['independent remote verification', /git ls-remote/],
-    ['session protection', /Never terminate, signal, archive, restart or close/],
+    ['standing dev delivery approval', /STANDING APPROVAL/],
+    ['sync with dev before merge', /git rebase dev/],
+    ['verified local integration', /git merge --ff-only task\/<slug>/],
+    ['exact remote dev push', /git push <remote> dev/],
+    ['independent remote verification', /git merge-base --is-ancestor <FULL_SHA> <remote>\/dev/],
+    ['task branch cleanup', /git worktree remove <path>[\s\S]*git branch -d task\/<slug>/],
+    ['targeted session stop', /`kill <PID>`[\s\S]*never use broad `pkill`\/`killall`/],
+    ['uncommitted work is committed', /Uncommitted changes are never discarded, reset or stashed away: commit them/],
   ];
   const obsolete = [
     ['Plane-only task authority', /Plane \(`brodev`\) is the only task tracker|Plane \(workspace brodev\) alone owns execution tracking/],
@@ -25,6 +29,8 @@ export function policyProblems(policy) {
     ['retired Pellet authority', /Pellet(?: \([^)]*\))? is the sole execution tracker and\s+acceptance authority/],
     ['retired workflow launcher', /Before project changes load `pi-workflow`/],
     ['retired discovery as default', /Use task-owned Codedb first/],
+    // These clauses made models stop and wait for a human instead of merging to dev.
+    ['approval-blocked dev delivery', /auto-merge\/rebase|Unknown\/unrelated ahead commits, dirty\/busy target|divergence needs explicit reconciliation|An active or uncertain task worktree must be RETAINED|Never terminate, signal, archive, restart or close/],
   ];
   return [
     ...required.filter(([, pattern]) => !pattern.test(policy)).map(([label]) => `missing: ${label}`),

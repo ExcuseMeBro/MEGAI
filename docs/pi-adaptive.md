@@ -46,7 +46,7 @@ Only a confirmed DeepSeek 402 insufficient-balance error allows one continuation
 permission errors, shared outages, other errors and uncertain writes do not trigger
 model hopping; failed Luna continuation cannot cycle back to DeepSeek.
 
-A fresh child launch verifies the Paseo harness `pi` separately, then uses the
+A fresh child launch verifies the `pi` executable separately, then uses the
 status-provided handle for the same current native session ID. Match the qualified
 status model to native `model_change.provider` and `model_change.modelId`. Native
 `thinking_level_change.thinkingLevel` must match effective status thinking. Prefer
@@ -59,7 +59,7 @@ The installer preflights ownership, privately backs up managed edits and preserv
 credentials, unrelated settings and resource exclusions. A customized roles file is
 preserved with an error rather than overwritten; reconcile it deliberately. Ordinary
 wiring keeps existing model preferences and retires receipt-owned role assets. Open a fresh Pi session to use updated
-startup defaults; an existing Paseo tab retains its explicit selection.
+startup defaults; an existing session retains its explicit selection.
 
 ## One decision call per boundary, speculative branches included
 

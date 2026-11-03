@@ -1,18 +1,21 @@
-# MEGAI Pi action boundary (opt-in until verified live install)
+# MEGAI Pi action boundary
 
 `index.ts` is a Pi `tool_call` approval hook, **not** an OS sandbox, shell parser,
 network firewall, or permission system for another process. A user-facing local
 confirmation is required for recognized risky model tool calls. Non-interactive
 sessions deny those calls with a reason the model can see; a UI error also denies.
-It does not retry a failed tool automatically. An exact canonical
-`git push origin <40-hex-sha>:refs/heads/dev` avoids *duplicate* approval, but
-MEGAI's ownership, accepted-SHA, remote URL and ancestry rules still apply.
-Nothing here authorizes a push by itself or relaxes main/publishing approvals.
+It does not retry a failed tool automatically.
+
+STANDING APPROVAL (matches AGENTS.md "Autonomous dev delivery") — these run without a
+prompt, also inside simple `cd X && … 2>&1 | tail` chains: non-force `git push <remote> dev`
+(or `HEAD`/`<sha>:refs/heads/dev`), pushing or deleting `task/*` and `wip/*` branches,
+`git worktree remove [--force] <path>`, `git branch -d`, and `kill <PID>`. Force pushes,
+main, tags, other refs, `git branch -D` and command substitution still need a prompt.
 
 Recognized categories: recursive destructive file and Git cleanup, push/tag/release,
 remote script piping, privilege escalation, and Brokan task/project deletion.
-Pi/Paseo process/session stop is blocked, not offered a one-click blanket approval;
-ask the owner for fresh explicit permission naming the exact resource and action.
+Broad process stop (`pkill`, `killall`, `launchctl`/`systemctl` stop) is blocked; stopping
+one blocking process by exact numeric PID (`kill <PID>`) is allowed without a prompt.
 UI confirmation displays the bounded exact
 shell command or Brokan target **locally**, never writes it to telemetry. If it
 cannot display the subject safely it denies. Ordinary calls and unknown names

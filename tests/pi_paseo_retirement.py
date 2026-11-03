@@ -45,11 +45,6 @@ class RetiredDependency(unittest.TestCase):
                 path = ROOT / name
                 self.assertTrue(path.is_file(), name)
                 text = path.read_text().lower()
-                if name == "pi-defaults/AGENTS.md":
-                    # Protecting a user's Pi/Paseo session does not reinstall
-                    # the retired external workspace dependency.
-                    self.assertIn("pi/paseo session", text)
-                    text = text.replace("pi/paseo session", "pi session")
                 self.assertNotIn(RETIRED, text, name)
         self.assertFalse((ROOT / "pi-skill/workspace-guard/index.ts").exists())
         profile = ROOT / "pi-defaults/workflow.py"

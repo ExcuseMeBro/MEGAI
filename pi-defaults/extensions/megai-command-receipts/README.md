@@ -82,5 +82,5 @@ Tests use disposable Git scopes, SQLite, real filesystem effects and the install
 Pi loader/SDK/nested-tool validation and permission pipeline. The SDK tests supply
 an assistant-message fixture through the authoritative SessionManager; they make
 no model/provider call. An exited Node worker tests the dispatch/completion gap;
-no user Pi/Paseo session is signalled or terminated. This is not a full end-to-end
+no user Pi session is signalled or terminated. This is not a full end-to-end
 provider interruption test or an implementation of T3 child/root execution graphs.

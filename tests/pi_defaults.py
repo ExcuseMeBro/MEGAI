@@ -772,8 +772,8 @@ class Distribution(unittest.TestCase):
     def test_native_policy_and_prompts_are_distributed_and_verified(self):
         policy = (DEFAULTS / "AGENTS.md").read_text()
         self.assertIn("verified task-owned worktree", policy)
-        self.assertNotIn("mandatory " + "paseo integration", policy.lower())
-        self.assertIn("Pi/Paseo session", policy)
+        self.assertNotIn("pa" + "seo", policy.lower())
+        self.assertIn("A Pi session, dev server", policy)
         self.assertIn("pi-subagents", policy.lower())
         self.assertNotIn("do not reinstall it", policy.lower())
         routing = (DEFAULTS.parent / "skills/model-composition/routing.md").read_text()
@@ -796,7 +796,7 @@ class Distribution(unittest.TestCase):
                         installer.index('if reset:\n        remove(home / ".pi")'))
         self.assertIn("policyProblems(policy)", verify)
         self.assertIn("Main promotion and publishing require separate explicit approval", policy)
-        self.assertIn("Accepted task-owned dev pushes need no repeated approval", policy)
+        self.assertIn("Task delivery to dev has STANDING APPROVAL", policy)
         self.assertIn("Brokan is the sole execution tracker and acceptance authority", policy)
         self.assertIn("Do not synchronize Brokan tasks with Plane", policy)
         self.assertNotIn("/splane", policy)
@@ -916,10 +916,13 @@ class Distribution(unittest.TestCase):
 
     def test_delivery_prompts_use_native_git_and_keep_fail_closed_boundaries(self):
         mdev = (DEFAULTS / "prompts/mdev.md").read_text()
-        for clause in ("git worktree list --porcelain", "--no-overwrite-ignore",
+        for clause in ("git worktree list --porcelain", "standing-approval", "git rebase dev",
                        "list_tasks", "source-current formal PASS", "non-force push",
-                       "status to `review`", "uncertain ownership"):
+                       "git merge --ff-only task/<slug>", "git branch -d task/<slug>",
+                       "Set Brokan status `review`"):
             self.assertIn(clause, mdev)
+        for blocker in ("auto-merge/rebase", "Unknown/unrelated ahead commits", "uncertain ownership"):
+            self.assertNotIn(blocker, mdev, "clauses that made models wait for human approval")
         for obsolete in ("pi-workflow status", "pi-workflow cleanup", "megai queue plan", "pa" + "seo"):
             self.assertNotIn(obsolete, mdev.lower() if obsolete == "pa" + "seo" else mdev)
         prdev = (DEFAULTS / "prompts/prdev.md").read_text()
@@ -951,11 +954,12 @@ class Distribution(unittest.TestCase):
             "never edit, stage or commit task source in the dev/main checkout",
             "Never idle over a decision", "at most five minutes",
             "Reserved user decisions", "Main promotion and publishing require separate explicit approval",
-            "git push <VERIFIED_REMOTE> <FULL_SHA>:refs/heads/dev", "git ls-remote",
-            "remove only clean, released, proven-merged task-owned resources",
+            "git push <remote> dev", "git push <remote> <FULL_SHA>:refs/heads/dev", "git ls-remote",
+            "git rebase dev", "are NOT blockers", "git worktree remove <path>",
+            "git branch -d task/<slug>", "task delivery to dev, cleanup of the merged task branch/worktree, auto-committing uncommitted work and stopping a blocking session by PID are pre-approved",
         ):
             self.assertIn(required, policy)
-        self.assertNotIn("mandatory " + "paseo integration", policy.lower())
+        self.assertNotIn("pa" + "seo", policy.lower())
 
 
 class InstallerPreflight(unittest.TestCase):
