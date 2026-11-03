@@ -562,7 +562,7 @@ class Slim(unittest.TestCase):
     def test_pipeline_install_update_exact_stack_and_failure(self):
         self.wire()
         (self.megai / "mattpocock-skills/skills").mkdir(parents=True)
-        selected = ("headroom", "tgrep", "codedb", "ruff", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
+        selected = ("headroom", "tgrep", "codedb", "pi_loader", "ruff", "mattpocock_skills", "taskflow", "worktree_lifecycle", "pi_packages")
         for path in (self.megai / "lib").glob("install_*.sh"):
             name = path.stem.removeprefix("install_")
             self.write(path, f'#!/bin/sh\necho install:{name} >>"$HOME/install-calls"\n')

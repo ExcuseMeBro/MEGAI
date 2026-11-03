@@ -1,11 +1,13 @@
 // Locate a loadable native Pi package (@earendil-works/pi-coding-agent with dist/) for tests.
-// Order: PI_PACKAGE_ROOT, the package beside the `pi` executable, then bun/npm globals.
+// Order: PI_PACKAGE_ROOT, the installer's exact-version lookup for `pi` (private
+// $MEGAI_HOME/pi-loader for Pi-Bolt), the package beside `pi`, then bun/npm globals.
 // A compiled Pi (e.g. Pi-Bolt) ships package.json without dist/, so it is skipped.
 // Importing this module sets PI_PACKAGE_ROOT when it was unset and a package is found.
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { packageForExecutable } from '../lib/verify_headroom_activation.mjs';
 
 const NAME = '@earendil-works/pi-coding-agent';
 
@@ -31,9 +33,17 @@ function besideExecutable() {
   }
 }
 
+function forExecutable() {
+  // Same lookup as installer verification: exact-version private loader for Pi-Bolt.
+  const executable = quiet('which', ['pi']);
+  if (!executable) return [];
+  try { return [packageForExecutable(executable)]; } catch { return []; }
+}
+
 export function piPackageRoot() {
   const candidates = [
     process.env.PI_PACKAGE_ROOT,
+    ...forExecutable(),
     ...besideExecutable(),
     join(homedir(), '.bun/install/global/node_modules', NAME),
     quiet('npm', ['root', '-g']) && join(quiet('npm', ['root', '-g']), NAME),

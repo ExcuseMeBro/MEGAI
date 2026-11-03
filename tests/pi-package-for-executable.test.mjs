@@ -22,7 +22,7 @@ function resolveWith(home, executable) {
   const script = `import(${JSON.stringify(verifier)}).then(m => process.stdout.write(m.packageForExecutable(${JSON.stringify(executable)})))`;
   // No npm on PATH: only the HOME-scoped bun global is a candidate.
   return execFileSync(process.execPath, ['--input-type=module', '-e', script],
-    { encoding: 'utf8', env: { HOME: home, PATH: '/usr/bin:/bin' }, stdio: ['ignore', 'pipe', 'pipe'] });
+    { encoding: 'utf8', env: { HOME: home, MEGAI_HOME: join(home, '.megai'), PATH: '/usr/bin:/bin' }, stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
 test('package beside the executable wins; compiled Pi needs an exact-version global loader', () => {
@@ -38,6 +38,11 @@ test('package beside the executable wins; compiled Pi needs an exact-version glo
     pkg(global, '1.5.0', { dist: true });
     assert.throws(() => resolveWith(join(root, 'home'), compiled), /Compiled Pi 1\.4\.0 has no loader/,
       'a different global version must fail closed');
+
+    const loader = join(root, 'home/.megai/pi-loader/1.4.0/node_modules', NAME);
+    pkg(loader, '1.4.0', { dist: true });
+    assert.equal(resolveWith(join(root, 'home'), compiled), loader, 'private exact-version loader is used');
+    rmSync(loader, { recursive: true, force: true });
 
     pkg(global, '1.4.0', { dist: true });
     assert.equal(resolveWith(join(root, 'home'), compiled), global);

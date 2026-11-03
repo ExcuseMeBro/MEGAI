@@ -1,6 +1,5 @@
 // Loads the real tgrep extension source with minimal Pi API stubs (Node type stripping).
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -30,29 +29,35 @@ async function loadTool(root) {
   return { tool, hook };
 }
 
-const bashContext = (cwd) => ({
-  cwd,
-  executeTool: async (_name, { command }) => {
-    let text;
-    try { text = execFileSync('bash', ['-c', command], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); }
-    catch (error) { text = error.stdout; }
-    return { result: { content: [{ type: 'text', text }], details: {} }, isError: false };
-  },
-});
+// No executeTool: the tool must work without the `bash` tool (e.g. `--tools tgrep`).
+const toolOnlyContext = (cwd) => ({ cwd });
 
-test('tgrep tool live-scans by default, rejects a missing scope once and registers the grep guard', async () => {
+test('tgrep tool live-scans without the bash tool, reports failures and missing scopes, and registers the grep guard', async () => {
   const root = mkdtempSync(join(tmpdir(), 'megai-tgrep-ext-'));
   try {
     const { tool, hook } = await loadTool(root);
     const scope = join(root, 'scope');
     mkdirSync(join(scope, 'src'), { recursive: true });
     writeFileSync(join(scope, 'src', 'a.ts'), 'export const needleValue = 1;\n');
-    const ctx = bashContext(scope);
+    const ctx = toolOnlyContext(scope);
 
     const found = await tool.execute('1', { pattern: 'needleValue' }, undefined, undefined, ctx);
     assert.match(found.content[0].text, /src\/a\.ts:1:export const needleValue/);
     assert.match(found.content[0].text, /\[Discovery only:/);
     assert.equal(found.details.indexed, false);
+    assert.equal(found.isError, false);
+    assert.equal(found.details.exitCode, 0);
+
+    const none = await tool.execute('1b', { pattern: 'absentNeedle' }, undefined, undefined, ctx);
+    assert.equal(none.isError, false);
+    assert.match(none.content[0].text, /no matches in searched coverage; not proof of absence/);
+
+    const badRegex = await tool.execute('1c', { pattern: '(', regex: true }, undefined, undefined, ctx);
+    assert.equal(badRegex.isError, true, 'an invalid regex is an error, never a zero-match result');
+    assert.match(badRegex.content[0].text, /not a zero-match result/);
+
+    const aborted = new AbortController(); aborted.abort();
+    await assert.rejects(tool.execute('1d', { pattern: 'x' }, aborted.signal, undefined, ctx), /cancelled/);
 
     await assert.rejects(tool.execute('2', { pattern: 'x', path: 'missing/dir' }, undefined, undefined, ctx),
       /tgrep path not found: .*missing\/dir/);

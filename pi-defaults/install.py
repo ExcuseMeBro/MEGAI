@@ -476,6 +476,11 @@ def install(reset=False, remove_omp=False):
     env = {**os.environ, "MEGAI_HOME": str(shared), "MEGAI_SOURCE": str(REPO)}
     for name in ("ruff", "codedb", "tgrep", "headroom"):
         run("bash", REPO / f"lib/install_{name}.sh", env=env)
+    # A compiled Pi (Pi-Bolt) needs a private exact-version loader for offline verification.
+    try:
+        run("bash", REPO / "lib/install_pi_loader.sh", env=env)
+    except subprocess.CalledProcessError:
+        print("! Pi loader unavailable; set PI_PACKAGE_ROOT for native verification", file=sys.stderr)
     # The policy transaction also retires assets from earlier installs, so it runs on
     # every install, not only on first adoption.
     shutil.copytree(

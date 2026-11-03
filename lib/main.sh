@@ -49,6 +49,8 @@ python3 "$LIB/retire_legacy_sources.py"
 step 3 7 "Installing core search and local tools (indexing starts only on request)"
 bash "$LIB/install_tgrep.sh" || die "tgrep install failed"
 bash "$LIB/install_codedb.sh" || die "codedb install failed"
+# A compiled Pi (Pi-Bolt) needs a private exact-version loader for offline verification.
+bash "$LIB/install_pi_loader.sh" || warn "Pi loader unavailable; set PI_PACKAGE_ROOT for native verification"
 
 step 4 7 "Installing Ruff and the requested skill kit"
 bash "$LIB/install_ruff.sh" || die "Ruff install failed"
