@@ -11,7 +11,7 @@ const DANGEROUS_SHELL = [
   ['destructive-file', /\bgit\s+branch\s+(?:-D|--delete\s+--force|-d\s+--force|--force\s+-d)\b/],
   ['publish', /\b(?:git\s+push|git\s+tag|npm\s+publish|eas\s+(?:deploy|submit|update)|docker\s+push)\b/i],
   ['remote-script', /\b(?:curl|wget)\b[^\n;]{0,500}\|\s*(?:sh|bash|zsh)\b/i],
-  ['privilege', /\b(?:sudo|chmod\s+-R\s+777)\b/i],
+  ['privilege', /(?:^|[\s;&|(])(?:sudo(?=\s)|chmod\s+-R\s+777\b)/i],
 ];
 const BROKAN_DESTRUCTIVE = /^mcp__brokan__(?:delete_task|delete_project)$/;
 
@@ -28,7 +28,7 @@ const STANDING_APPROVED = [
   ['branch-push', (part) => { const m = PUSH.exec(part); return !!m && !PUSH_PROTECTED.test(m[1]); }],
   ['branch-cleanup', (part) => { const m = DELETE.exec(part); return !!m && !DELETE_PROTECTED.test(m[1]); }],
   // Squash/ours-merged task branches need -D; protected long-lived branches still prompt.
-  ['branch-cleanup', (part) => { const m = new RegExp(`^${GIT}branch (?:-D|-d --force|--delete --force) (${NAME})$`).exec(part); return !!m && !DELETE_PROTECTED.test(m[1]); }],
+  ['branch-cleanup', (part) => { const m = new RegExp(`^${GIT}branch (?:-D|-d --force|--delete --force) (${NAME}|"?\\$\\{?\\w+\\}?"?)$`).exec(part); return !!m && !DELETE_PROTECTED.test(m[1]); }],
   // `git clean` scoped to a build/output subdirectory; a bare repo-wide clean still prompts.
   ['scoped-clean', (part) => { const m = new RegExp(`^${GIT}clean -[dfqxX]+ (?:-- )?((?:[^\\s;&|\x60$/-][^\\s;&|\x60$]*\\s*)+)$`).exec(part); return !!m && !/(?:^|\s)\.\.?(?:\/|\s|$)/.test(m[1]); }],
   ['task-worktree-cleanup', (part) => new RegExp(`^${GIT}worktree remove (?:--force |-f )?[^\\s;&|\\x60$]+$`).test(part)],
@@ -90,9 +90,43 @@ function segments(command) {
     .replace(/^\s*(?:[A-Za-z_]\w*=(?:'[^']*'|"[^"]*"|[^\s'"]*)\s+)+(?=\S)/, '')
     .replace(/\s*\d?>&\d/g, '')
     .replace(/\s*\d?>\s*\/dev\/null/g, '')
-    .replace(/(?:\s*\|\s*(?:tail|head|cat|grep|wc|tee)\b[^|]*)+$/, '')
+    .replace(/(?:\s*\|\s*(?:tail|head|cat|grep|wc|tee|sed|sort|uniq|cut|tr)\b[^|]*)+$/, '')
     .trim()).filter(Boolean);
 }
+
+// `ssh host 'cmd'` runs cmd on a remote server. Pull that remote command out so its own
+// steps are classified one by one; `sudo` there is routine server work (standing
+// approval), but the remote steps still face every other rule (e.g. `rm -rf /`).
+const SSH_OPTS_WITH_ARG = new Set(['-i', '-o', '-p', '-l', '-F', '-J', '-L', '-R', '-D', '-c', '-m', '-b', '-E', '-S', '-W', '-O', '-Q', '-w', '-e', '-B', '-I']);
+function sshTokens(command, start) {
+  const tokens = []; let i = start;
+  while (i < command.length) {
+    while (command[i] === ' ' || command[i] === '\t') i += 1;
+    const ch = command[i];
+    if (ch === undefined || ch === '\n' || ch === ';' || ch === '|' || ch === '&' || ch === '<' || ch === '>' || ch === ')') break;
+    let j = i;
+    if (ch === "'" || ch === '"') { j = command.indexOf(ch, i + 1); if (j < 0) return null; j += 1; }
+    else { while (j < command.length && !/[\s;|&<>)]/.test(command[j])) { if (command[j] === "'" || command[j] === '"') { const k = command.indexOf(command[j], j + 1); if (k < 0) return null; j = k; } j += 1; } }
+    tokens.push(command.slice(i, j)); i = j;
+  }
+  return { tokens, end: i };
+}
+function splitRemote(command) {
+  const remotes = []; let local = ''; let last = 0;
+  const re = /(^|[\s;&|(])ssh(?=\s)/g; let m;
+  while ((m = re.exec(command))) {
+    const at = m.index + m[1].length; const scan = sshTokens(command, at + 3);
+    if (!scan) return null;
+    let k = 0;
+    while (k < scan.tokens.length && scan.tokens[k].startsWith('-')) k += SSH_OPTS_WITH_ARG.has(scan.tokens[k]) ? 2 : 1;
+    const host = scan.tokens[k]; const rest = scan.tokens.slice(k + 1);
+    if (!host || !rest.length) continue;
+    remotes.push(rest.map(token => /^(['"])[\s\S]*\1$/.test(token) ? token.slice(1, -1) : token).join(' '));
+    local += command.slice(last, at) + 'ssh ' + host; last = scan.end; re.lastIndex = scan.end;
+  }
+  return { local: local + command.slice(last), remotes };
+}
+const REMOTE_SUDO = /(^|[\s;&|(])sudo(?:\s+-[A-Za-z]+)*\s+/g;
 
 export function classify(event) {
   const name = event?.toolName;
@@ -100,10 +134,16 @@ export function classify(event) {
   if (name !== 'bash') return { risk: 'normal', category: 'unclassified' };
   const command = event?.input?.command;
   if (typeof command !== 'string' || !command.trim()) return { risk: 'approval', category: 'uninspectable-shell' };
+  const split = splitRemote(command.replace(DATA_HEREDOC, '$1'));
+  const parts = split
+    ? [...segments(split.local).map(text => ({ text })),
+      ...split.remotes.flatMap(remote => segments(remote.replace(REMOTE_SUDO, '$1')).map(text => ({ text, remote: true })))]
+    : segments(command).map(text => ({ text }));
   let worst = { risk: 'normal', category: 'unclassified' };
-  for (const part of segments(command)) {
+  for (const { text: part, remote } of parts) {
     const approved = STANDING_APPROVED.find(([, ok]) => ok(part));
-    const decision = approved ? { risk: 'normal', category: approved[0] } : dangerous(part);
+    let decision = approved ? { risk: 'normal', category: approved[0] } : dangerous(part);
+    if (remote && decision.category === 'privilege') decision = { risk: 'normal', category: 'remote-sudo' };
     if (SEVERITY[decision.risk] > SEVERITY[worst.risk] || (worst.category === 'unclassified' && decision.category !== 'unclassified' && decision.risk === worst.risk)) worst = decision;
   }
   return worst;

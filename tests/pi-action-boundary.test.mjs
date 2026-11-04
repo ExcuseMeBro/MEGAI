@@ -138,3 +138,28 @@ test('quoted refspecs, env prefixes and a script stopping its own child are not 
     assert.equal(classify(bash(command)).risk, 'normal', command);
   }
 });
+
+test('sudo on a remote server over ssh is standing-approved; remote danger and local sudo still prompt', () => {
+  const key = '-i ~/.ssh/adam_mail -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=6';
+  for (const command of [
+    `ssh ${key} ADAM-EMAIL-SERVER 'sudo -n true && echo sudo-ok; docker exec adam-mail-stalwart-1 stalwart --help 2>&1 | head -60; ls -la /opt/adam-mail | grep -E "script|account"; ls -la /var/lib/adam-mail'`,
+    `ssh -i "$HOME/.ssh/k" -o BatchMode=yes ADAM-GITLAB-SERVER 'sudo -n journalctl -u x.service --since "2026-11-02" | tail -50'`,
+    "ssh host 'sudo -n docker exec -i db sh' <<'SH'\npsql -c 'select 1'\nSH",
+    'ssh host sudo systemctl status nginx', 'echo sudo-ok']) {
+    assert.equal(classify(bash(command)).risk, 'normal', command);
+  }
+  for (const command of ["ssh host 'sudo rm -rf /'", "ssh host 'rm -rf /var'", "ssh host 'pkill -f node'",
+    "ssh host 'cd /srv/app && git push origin main'", 'sudo ls', 'sudo rm -rf /tmp/x', 'x=1; sudo -n true']) {
+    assert.notEqual(classify(bash(command)).risk, 'normal', command);
+  }
+});
+
+test('a python heredoc run remotely over ssh is data, not shell', () => {
+  const command = "ssh -i ~/.ssh/adam_mail -o BatchMode=yes ADAM-EMAIL-SERVER 'python3 -' <<'PY'\nimport subprocess\ntry:\n    pass\nexcept subprocess.TimeoutExpired: proc.kill()\nPY";
+  assert.equal(classify(bash(command)).risk, 'normal');
+});
+
+test('loop deletes of local branches by variable are allowed; reset --hard still prompts', () => {
+  assert.equal(classify(bash('for b in task/a task/b; do git branch -D "$b" 2>&1 | sed "s/^/  /"; done')).risk, 'normal');
+  assert.notEqual(classify(bash('git reset --hard 68edbd9e0d59aa6355acf9df6836284532f33903')).risk, 'normal');
+});

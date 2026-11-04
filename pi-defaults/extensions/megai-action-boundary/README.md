@@ -15,9 +15,11 @@ prompt, also inside multi-line scripts and `cd X && … 2>&1 | tail` chains:
 - `rm -rf` of temp dirs, variables (`"$scratch"`, `${tmp}/out`), relative build output and
   deep absolute paths; root, home, `~/X`, `..`, `*`, `.git`, `$(…)` and `"$x"/*` still prompt;
 - `kill <PID>` or `kill "$pid"` (one process). `pkill`/`killall` stay blocked.
+- `sudo` inside a remote `ssh host '…'` command (server work); the remote steps are still
+  checked one by one, so `ssh host 'rm -rf /'` or a remote main push still prompts.
 Heredoc bodies fed to python/node/psql/cat/… are not parsed as shell; shell heredocs are.
 Force pushes, tags, `--all`/`--mirror`, protected branches, `git reset --hard`, bare
-`git clean -fdx`, `sudo` and remote-script piping still need a prompt.
+`git clean -fdx`, local `sudo` and remote-script piping still need a prompt.
 
 Recognized categories: recursive destructive file and Git cleanup, push/tag/release,
 remote script piping, privilege escalation, and Brokan task/project deletion.
