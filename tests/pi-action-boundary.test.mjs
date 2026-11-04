@@ -139,16 +139,18 @@ test('quoted refspecs, env prefixes and a script stopping its own child are not 
   }
 });
 
-test('sudo on a remote server over ssh is standing-approved; remote danger and local sudo still prompt', () => {
+test('sudo and process stops on a remote server over ssh are standing-approved; remote danger and local sudo still prompt', () => {
   const key = '-i ~/.ssh/adam_mail -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=6';
   for (const command of [
     `ssh ${key} ADAM-EMAIL-SERVER 'sudo -n true && echo sudo-ok; docker exec adam-mail-stalwart-1 stalwart --help 2>&1 | head -60; ls -la /opt/adam-mail | grep -E "script|account"; ls -la /var/lib/adam-mail'`,
     `ssh -i "$HOME/.ssh/k" -o BatchMode=yes ADAM-GITLAB-SERVER 'sudo -n journalctl -u x.service --since "2026-11-02" | tail -50'`,
     "ssh host 'sudo -n docker exec -i db sh' <<'SH'\npsql -c 'select 1'\nSH",
-    'ssh host sudo systemctl status nginx', 'echo sudo-ok']) {
+    'ssh host sudo systemctl status nginx', 'echo sudo-ok', "ssh host 'pkill -f prod_backup.sh; sudo -n systemctl restart app'",
+    "ssh -T -i \"$HOME/.ssh/k\" host 'bash -s' <<'SH'\nset -eu\nsudo -n docker ps\nSH",
+    `ssh host 'sudo -n docker exec -i c python - <<'"'"'PY'"'"'\nprint(1)\nPY'`]) {
     assert.equal(classify(bash(command)).risk, 'normal', command);
   }
-  for (const command of ["ssh host 'sudo rm -rf /'", "ssh host 'rm -rf /var'", "ssh host 'pkill -f node'",
+  for (const command of ["ssh host 'sudo rm -rf /'", "ssh host 'rm -rf /var'", "ssh host 'bash -s' <<'SH'\nrm -rf /\nSH",
     "ssh host 'cd /srv/app && git push origin main'", 'sudo ls', 'sudo rm -rf /tmp/x', 'x=1; sudo -n true']) {
     assert.notEqual(classify(bash(command)).risk, 'normal', command);
   }
@@ -162,4 +164,46 @@ test('a python heredoc run remotely over ssh is data, not shell', () => {
 test('loop deletes of local branches by variable are allowed; reset --hard still prompts', () => {
   assert.equal(classify(bash('for b in task/a task/b; do git branch -D "$b" 2>&1 | sed "s/^/  /"; done')).risk, 'normal');
   assert.notEqual(classify(bash('git reset --hard 68edbd9e0d59aa6355acf9df6836284532f33903')).risk, 'normal');
+});
+
+test('multi-branch cleanup and real worktree loops run without a prompt; protected names still prompt', () => {
+  const command = 'cd /Users/bro/PROJECTS/paylov-marketplace-be && for d in /Users/bro/PROJECTS/.worktrees/paylov-batch-int2 /Users/bro/.t3/worktrees/paylov-marketplace-be/t3-c63787da; do git worktree remove "$d" 2>&1; done; git branch -D task/paylov-batch-int2 task/paylov-679-templates tasks/published-home-content 2>&1 | tail -8; git worktree prune; git status -sb; git worktree list; docker rm -f paylov-chat-test >/dev/null 2>&1; docker ps --format \'{{.Names}}\'';
+  assert.equal(classify(bash(command)).risk, 'normal');
+  for (const ok of ['git branch -D task/a task/b', 'git push origin --delete task/a task/b', 'git push -q origin task/x',
+    'git push origin "$(git rev-parse dev):refs/heads/dev"', 'git push origin $(git -C ../wt rev-parse HEAD):refs/heads/dev']) {
+    assert.equal(classify(bash(ok)).risk, 'normal', ok);
+  }
+  for (const bad of ['git branch -D task/a dev', 'git push origin --delete task/a main', 'git push origin "$(git rev-parse dev):refs/heads/main"',
+    'git -C /x push origin main', 'git tag v1.2.3', 'git push --tags origin']) {
+    assert.notEqual(classify(bash(bad)).risk, 'normal', bad);
+  }
+});
+
+test('quoted text is data: search patterns and messages do not prompt, but shell strings are still checked', () => {
+  for (const ok of ["rg -n 'commit|git push|branch -d|kill\\(' file", 'git commit -m "fix: then git push; pkill done"',
+    "rg -i 'curl|wget .* | bash' src", 'git tag --list | wc -l', 'git tag -l', 'git tag',
+    'timeout --signal=TERM --kill-after=5s 130s python3 -B x.py', 'adb -s emulator-5556 emu kill',
+    `trap 'kill "$pid" 2>/dev/null || true' EXIT`, "case \"$cmd\" in *'runserver'*) kill -TERM \"$pid\";; esac",
+    '( sleep 75; kill -9 $PID 2>/dev/null ) & WPID=$!; wait $PID; kill $WPID 2>/dev/null', 'kill -TERM -26646; kill -TERM 26484',
+    'echo "exit? $(kill -0 688 && echo no)"', 'kill -0 "$(< "$d/backend.pid")" 2>/dev/null && echo yes']) {
+    assert.equal(classify(bash(ok)).risk, 'normal', ok);
+  }
+  for (const bad of ["bash -c 'git push origin main'", "sh -c 'pkill -f node'", "eval 'rm -rf ~'", "rm -rf '/'",
+    'git commit -m x; git push origin main', 'nohup x & pkill node', 'kill -9 -1', "trap 'pkill node' EXIT"]) {
+    assert.notEqual(classify(bash(bad)).risk, 'normal', bad);
+  }
+});
+
+test('masking never hides executed code: $(…), shell strings, ssh and heredoc scripts are still checked', () => {
+  for (const bad of ['echo "$(git push origin main)"', 'bash -c "git push origin main"', "xargs sh -c 'pkill node'",
+    'echo `git push origin main`', 'ssh host "sudo rm -rf /"', "bash <<'EOF'\ngit push origin main\nEOF",
+    "ssh host 'bash -s' <<'SH'\nset -e\nrm -rf /var\n", 'launchctl bootout gui/$(id -u)', 'launchctl bootout system',
+    'git -C "$repo" push origin "$sha":refs/heads/main', 'git push origin "+$sha:refs/heads/task/x"', 'git push origin "$sha:$ref"']) {
+    assert.notEqual(classify(bash(bad)).risk, 'normal', bad);
+  }
+  for (const ok of ['git -C "$repo" push origin "$sha":refs/heads/dev > "$evd/push.log" 2>&1',
+    'git -C "$repo" push origin "$sha":refs/heads/dev |& tee "$logs/push.log"', 'launchctl bootout gui/$(id -u)/dev.agentmemory.local',
+    'git clean -fdX', 'kill -USR2 "$pid"', `ssh -i "$key" "$remote" "umask 077; test \\"\\$(hostname)\\" = h; sudo -n docker ps -q | wc -l"`]) {
+    assert.equal(classify(bash(ok)).risk, 'normal', ok);
+  }
 });

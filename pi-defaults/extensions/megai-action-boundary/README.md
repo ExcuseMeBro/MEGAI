@@ -7,19 +7,28 @@ sessions deny those calls with a reason the model can see; a UI error also denie
 It does not retry a failed tool automatically.
 
 STANDING APPROVAL (matches AGENTS.md "Autonomous dev delivery") — these run without a
-prompt, also inside multi-line scripts and `cd X && … 2>&1 | tail` chains:
+prompt, also inside multi-line scripts, loops and `cd X && … 2>&1 | tail` chains:
 - non-force pushes of any branch except main/master/prod/production/release*/gh-pages or a
-  version-like name (also `<sha>`/`"$sha"`/`HEAD:refs/heads/<branch>`, `VAR=1 git push …`);
-- deleting a non-protected branch locally (`git branch -d/-D`) or on the remote;
-- `git worktree remove [--force] <path>` and `git clean -fd <build-subdir>`;
+  version-like name, in any common shape: `git -C "$repo" [-c k=v] push [-u|-q] origin
+  "$sha":refs/heads/dev`, `HEAD:`/`<sha>:`/`$(git rev-parse X):`, `VAR=1 git push …`,
+  with `> log`/`| tee log` output. A `$ref` target, `+refspec`, `--force*`, `--tags`,
+  `--all`/`--mirror` or a protected target still prompts;
+- deleting one or many non-protected branches locally (`git branch -D a b c`) or on the
+  remote (`git push origin --delete a b`); one protected name keeps the prompt;
+- `git worktree remove [--force] <path>`, `git clean -fd <build-subdir>`, `git clean -fdX`;
 - `rm -rf` of temp dirs, variables (`"$scratch"`, `${tmp}/out`), relative build output and
   deep absolute paths; root, home, `~/X`, `..`, `*`, `.git`, `$(…)` and `"$x"/*` still prompt;
-- `kill <PID>` or `kill "$pid"` (one process). `pkill`/`killall` stay blocked.
-- `sudo` inside a remote `ssh host '…'` command (server work); the remote steps are still
-  checked one by one, so `ssh host 'rm -rf /'` or a remote main push still prompts.
-Heredoc bodies fed to python/node/psql/cat/… are not parsed as shell; shell heredocs are.
-Force pushes, tags, `--all`/`--mirror`, protected branches, `git reset --hard`, bare
-`git clean -fdx`, local `sudo` and remote-script piping still need a prompt.
+- `kill [-TERM|-9|-USR2…] <PID>|"$pid"|$!|-<PGID>|"$(< pidfile)"`, `kill -0` checks and
+  `launchctl bootout gui/$(id -u)/<label>` (one job). `pkill`/`killall` and a whole
+  launchd domain stay blocked;
+- `sudo` and process stops inside a remote `ssh host '…'` command or an
+  `ssh host 'bash -s' <<SH` script (server work); remote steps are still checked one by
+  one, so `ssh host 'rm -rf /'` or a remote main push still prompts.
+Quoted text is data: `rg 'git push|kill'`, commit messages and `echo "…"` never prompt.
+Code passed as a string (`bash -c '…'`, `sh -c`, `eval`, `trap`, `$(…)`, backticks) is
+extracted and checked. Heredoc bodies fed to python/node/psql/cat/… are not parsed as
+shell; shell heredocs are. `git reset --hard`, a worktree-wide `git clean -fd/-fdx`,
+creating tags, local `sudo` and remote-script piping still need a prompt.
 
 Recognized categories: recursive destructive file and Git cleanup, push/tag/release,
 remote script piping, privilege escalation, and Brokan task/project deletion.
