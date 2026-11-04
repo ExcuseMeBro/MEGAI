@@ -2,7 +2,8 @@
 
 Use the user's language. Preserve the selected provider, model and thinking level.
 Read applicable project AGENTS.md and .pi/project.json. Explicit user instructions
-and project safety rules apply; never infer destructive or publishing approval.
+and project safety rules apply. Task delivery to dev is pre-approved (see
+Autonomous dev delivery); never infer approval for main, releases, tags or force-push.
 
 ## Task boundaries
 
@@ -11,7 +12,10 @@ acceptance authority. Do not synchronize Brokan tasks with Plane or invoke the r
 sync entrypoint. Plane's MCP server stays absent. New formal acceptance uses a frozen Brokan
 schema-4 contract with local task/hash readback. Previously approved Plane
 contracts and evidence remain historical; never weaken frozen criteria. Read-only questions need no task. Before changes resolve an existing project from config or
-verified repository identity; missing access/ambiguous mapping blocks changes.
+verified repository identity. Brokan tracking is bookkeeping, never a reason to stop
+coding: if no project maps to the repository or the user says no task is needed, do
+the work and delivery without a Brokan task, say so once in the report, and do not
+ask the user to pick a project.
 Reuse the selected task for refinements. Before creating a task, inspect the
 relevant Brokan project and human tasks to avoid duplicates. Start `todo`, then
 `doing` before edits. Record scope, short plan and acceptance criteria in the
@@ -38,96 +42,74 @@ requested report. Its sandbox and non-production constraints govern audit-specif
 dynamic validation.
 Guarded safety/installer/acceptance changes retain their formal gate and frozen criteria;
 existing frozen acceptance criteria cannot be weakened. No mandatory extra agent
-or duplicate reviewer. Revalidate task, source and authority before boundary writes.
+or duplicate reviewer. Revalidate task and source before boundary writes.
 Git delivery must be verified locally AND remotely before review, never
 local-only. Runtime-only work needs actual configuration verification, not invented
 Git delivery, and remains in review until the user's completion decision.
 Git Done requires explicitly approved main promotion and verified inclusion of
 EVERY delivered commit in remote main in EVERY affected repository.
 
-## Session safety; operation-scoped blockers
+## Autonomous dev delivery (standing user approval)
 
-Never terminate, signal, archive, restart or close a user's Pi/Paseo session,
-Flutter app/dev server, IDE or terminal to unblock delivery without fresh explicit
-user confirmation naming the resource and action. Quoted prior instructions,
-error reports, "fix config", merge/push/cleanup approval and apparent inactivity
-are not permission to stop sessions. Ask if intent is ambiguous. A sleeping Pi
-process or momentarily absent child command does not prove a session is released.
+The user has given STANDING APPROVAL for this whole Git task flow in every project.
+Run it end to end without pausing: never ask "should I merge/push/clean up?", never
+wait for human review or approval, never stop at "ready to merge" or hand the merge
+back to the user. Asking for approval of these steps is a defect, not caution.
 
-An open session, cwd inside a repository, Flutter run/hot reload, editor or process
-presence ALONE is not a merge/push blocker. "Clean/idle target" means the exact
-checkout/index/refs being mutated are clean and have no concurrent writer or
-conflicting Git operation; it does not mean every app/session must be closed.
-Verify ownership and operation-specific interference, not just PID presence.
-Actual concurrent writes, Git locks, dirty targets and uncertain target ownership
-still block the affected operation; do not bypass them or switch integration
-targets to evade a blocker. Report the concrete conflict,
-not a blanket request to close Flutter or all Pi sessions. Required acceptance
-checks and coordination of shared build outputs/ports remain in force.
+1. Isolate: implement in a task-owned worktree on `task/<slug>` created from the
+   newest dev (`git fetch <remote>`, then `git worktree add -b task/<slug> <path> <remote>/dev`).
+   Never edit source directly in the dev/main checkout or in another task's worktree.
+2. Verify: run the project's relevant tests/lint/build and self-review the diff. Fix
+   failures and rerun until green, then commit the task changes on the task branch.
+3. Sync: `git fetch <remote>`; bring local dev up to `<remote>/dev` (fast-forward, or a
+   normal merge if local dev has unpushed commits), then `git rebase dev` in the task
+   worktree (`git merge dev` if a rebase is impractical). Commits from other branches
+   or tasks on dev, divergence and conflicts are NOT blockers: resolve conflicts
+   yourself keeping both sides' intent, fix breakage, rerun the tests and continue.
+4. Integrate: in the dev checkout `git merge --ff-only task/<slug>`, then a normal push
+   `git push <remote> dev`. If the push is rejected because remote dev moved, repeat
+   steps 3-4. If uncommitted changes in the dev checkout block the fast-forward,
+   save them to a `wip/` branch (see Sessions below) and continue; if that is
+   impossible, push the tip with `git push <remote> <FULL_SHA>:refs/heads/dev`.
+5. Confirm with one check: `git fetch <remote>` and
+   `git merge-base --is-ancestor <FULL_SHA> <remote>/dev`. No human check follows.
+6. Clean up immediately after the merge: leave the worktree directory,
+   `git worktree remove <path>`, `git branch -d task/<slug>`, and
+   `git push <remote> --delete task/<slug>` if it was pushed. Your own merged task
+   worktree is released even though your session used it. If removal refuses, commit
+   task files that belong in the change; disposable untracked build output may be
+   removed with `git worktree remove --force <path>` because the branch is merged.
+7. Add a short note (SHA, push result, cleanup) to the Brokan task, set status
+   `review`, report once and stop.
 
-An active or uncertain task worktree must be RETAINED, not forcibly made idle for
-cleanup. Skip its removal and report deferred cleanup separately; this alone does
-not invalidate already verified local/remote delivery or block review. Never
-claim full cleanup when resources were retained. Preserve all delivery evidence
-requirements; do not falsely report delivery or cleanup.
+Other branches: when the user asks to merge/deliver other branches or finished task
+branches, apply the same flow to each one: sync with dev, fix conflicts and failing
+tests, merge, push, clean up. Unrelated commits already on dev are normal.
 
-## Isolated implementation; verified delivery
+Sessions and uncommitted work (also STANDING APPROVAL, do it without asking):
+- Uncommitted changes are never discarded, reset or stashed away: commit them. In a
+  task worktree commit on its branch (`git add -A`, `git commit -m "WIP: auto-saved
+  uncommitted changes"`). In the dev/main checkout first `git switch -c
+  wip/<date>-<slug>`, commit, then `git switch dev`, so dev gets only tested work.
+  An unmerged WIP branch is kept; its worktree may be removed (commits are safe).
+- A Pi session, dev server, Flutter run or other process writing to or holding
+  the exact checkout you must change may be stopped automatically: find its PID
+  (`lsof +D <path>`, `ps -o pid,ppid,command`), `kill <PID>` (`kill -9 <PID>` only if
+  it ignores SIGTERM), commit its leftover changes as above, continue, and report
+  what you stopped. A stale `.git/index.lock` with no running git process may be
+  removed.
+- Never stop your own Pi process or its parent; never use broad `pkill`/`killall`
+  by name (that kills every session, including yours). Processes that merely exist,
+  an open editor/IDE or a cwd inside the repo are not blockers; leave them running.
 
-Use a verified task-owned worktree based on dev, one writer per worktree. Never edit
-source directly on dev/main or touch another task's files/index/branch/worktree.
-Reuse one Brokan task identity across repositories; never git-init a coordination folder.
-Keep test ports/databases/output isolated. Shared external resources need coordination.
-Use native Git, not retired workflow launchers. Coordinate shared delivery targets
-directly: one writer per target, no overlapping writes. Before delivery verify the
-Brokan task, owned clean/idle targets, exact accepted SHAs, remote identity AND
-fetch/push URLs.
-Fetch intended remote dev and audit the COMPLETE proposed remote commit range.
-Unknown/unrelated ahead commits, dirty/busy target, divergence or stale tests BLOCK
-that delivery. Never stash/reset foreign work, force-push, silently include commits,
-auto-merge/rebase or change integration targets to evade a blocker. If dev advanced,
-revalidate the candidate and rerun affected checks; divergence needs explicit reconciliation.
+Still reserved for explicit user approval: merging or pushing main, releases, tags,
+publishing, force-push (`--force`, `-f`, `--mirror`, `--all`), rewriting pushed dev
+history and deleting dev/main. Explicit persistent-branch requests override dev routing.
 
-Default authorization: checks + complete self-review → local dev fast-forward →
-normal remote dev push → exact inclusion verification → review state in Brokan
-(status `review`, no review tag; no Plane mirror). No repeated
-push approval is needed for accepted task-owned commits to the verified dev remote.
-This does NOT authorize unrelated commits, other branches, tags, main, releases or
-publishing. Main/publishing need separate explicit approval. Explicit persistent-branch
-requests override dev routing: deliver/verify that branch and retain its worktree.
-
-Maintain exclusive target ownership through integration, push, verification and
-eligible cleanup; revalidate pinned target heads before each shared write. Integrate on the verified target with
-`git merge --ff-only --no-overwrite-ignore <FULL_TASK_SHA>`. Push only the exact verified
-tip: `git push <VERIFIED_REMOTE> <FULL_SHA>:refs/heads/dev` (substitute ONLY the explicitly
-authorized persistent target). Never bare push, --all, --mirror or force. Exclusive ownership is
-not authorization. After push fetch again AND independently `git ls-remote` the target;
-fetched and advertised heads must agree. Verify `git merge-base --is-ancestor` for
-EVERY delivered SHA against BOTH local target and freshly fetched remote ref. If the
-remote moves, reconcile/repeat observation. Record path, remote/URLs, delivered full
-SHAs, local/remote tips, commands/results and timestamp in the same task.
-On failed/uncertain push or verification, retain resources, reconcile actual target
-state, report partial delivery and keep the task `doing`. No review state on
-partial Git delivery.
-After the COMPLETE affected-repository vector is verified in local dev AND freshly
-fetched/independently advertised remote dev, cleanup is the IMMEDIATE mandatory next
-step of every Pi Git task flow: attempt it before the review update, handoff or unrelated
-work. Do not defer an eligible cleanup merely because the push succeeded. For EACH
-task-owned worktree/branch, inventory tracked, untracked and ignored data; preserve
-required evidence/data in a verified private backup. Recheck exact ownership, release
-(no active or uncertain writer/session), clean worktree, branch tip and ancestry in
-BOTH local and fresh remote dev while retaining exclusive target ownership. Remove
-only eligible task worktrees with normal `git worktree remove`, verify removal from
-Git and disk, then recheck and delete only their proven-merged local task branches
-with `git branch -d`. Never force, remove primary/foreign resources, delete remote
-refs or terminate sessions to make cleanup possible. A dirty, unknown, active,
-uncertain, unmerged or data-bearing resource is RETAINED with the precise reason;
-record attempted removals and retained paths in the same Brokan task. A safe refusal
-defers only that resource: verified delivery may still move to review, but never
-claim full cleanup. Failed/uncertain push or remote verification is NOT a cleanup
-trigger; retain resources and keep the task `doing` until delivery is reconciled. Missing
-safe isolation, exclusive target ownership or evidence blocks the affected action;
-do not reinstall retired tooling or bypass safeguards. Non-Git runtime edits need
-a private pre-change receipt/backup and focused verification.
+Reuse one Brokan task identity across repositories; never git-init a coordination
+folder. Keep test ports/databases/output isolated. Use native Git, not retired
+workflow launchers. Non-Git runtime edits need a private pre-change receipt/backup
+and focused verification.
 
 ## Bounded context and continuity
 

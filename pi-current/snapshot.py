@@ -24,6 +24,12 @@ FILES = {
     "extensions/tgrep/index.ts": "agent/extensions/tgrep/index.ts",
     "extensions/tgrep/search-policy.mjs": "agent/extensions/tgrep/search-policy.mjs",
     "skills/pi-workflow/context-economy.md": "agent/skills/pi-workflow/context-economy.md",
+    "skills/pi-workflow/SKILL.md": "agent/skills/pi-workflow/SKILL.md",
+    "extensions/megai-action-boundary/index.ts": "agent/extensions/megai-action-boundary/index.ts",
+    "extensions/megai-action-boundary/boundary.mjs": "agent/extensions/megai-action-boundary/boundary.mjs",
+    "extensions/megai-action-boundary/README.md": "agent/extensions/megai-action-boundary/README.md",
+    "extensions/megai-project-size/index.ts": "agent/extensions/megai-project-size/index.ts",
+    "extensions/megai-project-size/measure.mjs": "agent/extensions/megai-project-size/measure.mjs",
 }
 SENSITIVE = re.compile(
     r"-----BEGIN (?:OPENSSH|RSA|EC|DSA|PRIVATE) PRIVATE KEY-----|"
