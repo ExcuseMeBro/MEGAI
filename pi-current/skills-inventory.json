@@ -475,6 +475,15 @@
     ]
   },
   {
+    "name": "diff-security",
+    "files": [
+      {
+        "path": "diff-security/SKILL.md",
+        "sha256": "d5dc474ec3ce6198acf686ce446d72fe8360990b87b7e5556b7f445e52bfc7ef"
+      }
+    ]
+  },
+  {
     "name": "distributed-logging",
     "files": [
       {

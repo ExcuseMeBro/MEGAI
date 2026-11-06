@@ -34,6 +34,11 @@ FILES = {
     "extensions/megai-keep-going/index.ts": "agent/extensions/megai-keep-going/index.ts",
     "extensions/megai-keep-going/keep-going-core.mjs": "agent/extensions/megai-keep-going/keep-going-core.mjs",
     "extensions/megai-keep-going/README.md": "agent/extensions/megai-keep-going/README.md",
+    "extensions/megai-lean-prompt/index.ts": "agent/extensions/megai-lean-prompt/index.ts",
+    "extensions/megai-lean-prompt/lean-core.mjs": "agent/extensions/megai-lean-prompt/lean-core.mjs",
+    "extensions/megai-lean-prompt/config.json": "agent/extensions/megai-lean-prompt/config.json",
+    "extensions/megai-lean-prompt/README.md": "agent/extensions/megai-lean-prompt/README.md",
+    "skills/diff-security/SKILL.md": "agent/skills/diff-security/SKILL.md",
 }
 # Codex (GPT) autonomy: global instructions and the keep-going Stop hook only.
 # config.toml is deliberately excluded (MCP servers, hook trust state, local paths).

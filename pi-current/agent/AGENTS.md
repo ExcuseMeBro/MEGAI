@@ -34,10 +34,10 @@ synchronization is permitted. The legacy PROJECTTASKS/TEMADA archive is not a ta
 tracker; do not write new tasks there.
 
 Run focused acceptance checks and self-review the complete diff before handoff.
-For every agent-authored code change, load the `security-audit` skill in guidance
-mode and review the complete changed-code diff for relevant trust boundaries,
-attacker-controlled inputs, authorization, secrets, dependencies and unsafe
-execution before delivery. Trace suspected failures to source and concrete impact;
+For every agent-authored code change, run the `diff-security` skill on the complete
+changed-code diff before delivery (trust boundaries, attacker-controlled inputs,
+authorization, secrets, dependencies, unsafe execution). For a high-risk diff, as
+`diff-security` defines it, it also loads `security-audit` in guidance mode. Trace suspected failures to source and concrete impact;
 fix blocking findings, rerun affected checks, and report the scoped security review
 and any unverified risk in the task. This is not exhaustive coverage or an enforced
 CI/Git gate. Do not run the skill's six-phase full audit or create its artifacts for

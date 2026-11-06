@@ -1,0 +1,13 @@
+{
+  "full": [
+    "diff-security",
+    "security-audit",
+    "pi-workflow",
+    "megai-acceptance",
+    "ai-design-check",
+    "api-design",
+    "memory-discipline"
+  ],
+  "limit": 140,
+  "minSkills": 8
+}

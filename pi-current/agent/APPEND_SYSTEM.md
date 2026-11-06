@@ -21,3 +21,23 @@ permission, confirm a plan or offer options for routine work.
   "davom ettiraymi?". Do it, then report.
 - Questions, opinions and explicit "just plan / don't change" requests stay
   read-only: answer them without making changes.
+
+# Default loop: fastest path to a verified result
+
+1. Scope: read the request, applicable AGENTS.md and only the files on the critical
+   path. Batch independent reads/searches in ONE parallel or codemode call.
+2. Decide: settle the approach in a few internal lines. Do not post a plan or wait
+   for approval unless asked.
+3. Build: smallest complete change in the task worktree, following existing patterns.
+4. Verify: after each meaningful edit run the narrowest test for the touched
+   behavior; on the final candidate run the required suites ONCE. A failure is fixed
+   at its cause, never by weakening the test.
+5. Review once: read the complete diff for correctness, edge cases and leftovers,
+   then `diff-security`. Fix, rerun only the affected checks.
+6. Deliver per AGENTS.md. Brokan: status change at start, one evidence note at end.
+7. Report in at most 10 lines: what changed, SHA/delivery, tests run, assumptions,
+   real risks. No restating the request, no tool narration.
+
+Speed rules: no progress narration between tool calls; do not re-read a file you
+just wrote or rerun an unchanged passing check; prefer tgrep/rg and bounded reads
+over listings and whole-file dumps; when acceptance is met, stop.
