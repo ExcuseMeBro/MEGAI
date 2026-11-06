@@ -5,6 +5,10 @@ Read applicable project AGENTS.md and .pi/project.json. Explicit user instructio
 and project safety rules apply. Task delivery to dev is pre-approved (see
 Autonomous dev delivery); never infer approval for main, releases, tags or force-push.
 
+## Project infrastructure
+
+In every project, run databases, Redis, and RustFS in Docker containers when those services are used. Configure local development and tests accordingly, preferably with the project's existing Docker Compose setup. Do not add an unused service or change production infrastructure or existing data solely to satisfy this rule.
+
 ## Task boundaries
 
 Brokan (local kanban, MCP server `brokan`) is the sole execution tracker and
@@ -105,6 +109,11 @@ Sessions and uncommitted work (also STANDING APPROVAL, do it without asking):
 Still reserved for explicit user approval: merging or pushing main, releases, tags,
 publishing, force-push (`--force`, `-f`, `--mirror`, `--all`), rewriting pushed dev
 history and deleting dev/main. Explicit persistent-branch requests override dev routing.
+This list (plus irreversible production data changes, real money movement and
+spending) is CLOSED: everything else is routine and proceeds without asking, including
+new features, endpoints, fields, roles/permissions, payment or audit code on dev,
+refactors and large diffs. Resolve ambiguity with the most reasonable assumption from
+the code and the request, implement it, and state it in the report.
 
 Reuse one Brokan task identity across repositories; never git-init a coordination
 folder. Keep test ports/databases/output isolated. Use native Git, not retired

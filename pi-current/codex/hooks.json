@@ -1,0 +1,16 @@
+{
+  "description": "MEGAI: continue once when GPT ends a turn by asking permission instead of finishing.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\" node \"$HOME/.codex/hooks/megai-keep-going.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

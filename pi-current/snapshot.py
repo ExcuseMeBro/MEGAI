@@ -30,12 +30,27 @@ FILES = {
     "extensions/megai-action-boundary/README.md": "agent/extensions/megai-action-boundary/README.md",
     "extensions/megai-project-size/index.ts": "agent/extensions/megai-project-size/index.ts",
     "extensions/megai-project-size/measure.mjs": "agent/extensions/megai-project-size/measure.mjs",
+    "APPEND_SYSTEM.md": "agent/APPEND_SYSTEM.md",
+    "extensions/megai-keep-going/index.ts": "agent/extensions/megai-keep-going/index.ts",
+    "extensions/megai-keep-going/keep-going-core.mjs": "agent/extensions/megai-keep-going/keep-going-core.mjs",
+    "extensions/megai-keep-going/README.md": "agent/extensions/megai-keep-going/README.md",
+}
+# Codex (GPT) autonomy: global instructions and the keep-going Stop hook only.
+# config.toml is deliberately excluded (MCP servers, hook trust state, local paths).
+CODEX_SOURCE = HOME / ".codex"
+CODEX_FILES = {
+    "AGENTS.md": "codex/AGENTS.md",
+    "hooks.json": "codex/hooks.json",
+    "hooks/megai-keep-going.mjs": "codex/hooks/megai-keep-going.mjs",
+    "hooks/keep-going-core.mjs": "codex/hooks/keep-going-core.mjs",
 }
 SENSITIVE = re.compile(
     r"-----BEGIN (?:OPENSSH|RSA|EC|DSA|PRIVATE) PRIVATE KEY-----|"
-    r"\b(?:gh[pousr]_|sk-[A-Za-z0-9]{20}|AIza[A-Za-z0-9_-]{20})|"
+    r"\b(?:gh[pousr]_|figd_|xox[abpr]-|sk-[A-Za-z0-9]{20}|AIza[A-Za-z0-9_-]{20})|"
     r"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}", re.IGNORECASE
 )
+
+SECRET_ENV = re.compile(r"TOKEN|SECRET|KEY|PASSWORD|PASS|AUTH|CREDENTIAL|COOKIE", re.IGNORECASE)
 
 
 def safe_write(rel: str, content: bytes) -> None:
@@ -47,16 +62,23 @@ def safe_write(rel: str, content: bytes) -> None:
 
 
 def main() -> None:
-    for source, output in FILES.items():
-        path = SOURCE / source
-        if not path.is_file() or path.is_symlink():
-            raise ValueError(f"Missing or linked source: {source}")
-        safe_write(output, path.read_bytes())
+    pi_core = (SOURCE / "extensions/megai-keep-going/keep-going-core.mjs").read_bytes()
+    if pi_core != (CODEX_SOURCE / "hooks/keep-going-core.mjs").read_bytes():
+        raise ValueError("Pi and Codex keep-going-core.mjs differ; copy one over the other first")
+    for base, files in ((SOURCE, FILES), (CODEX_SOURCE, CODEX_FILES)):
+        for source, output in files.items():
+            path = base / source
+            if not path.is_file() or path.is_symlink():
+                raise ValueError(f"Missing or linked source: {path}")
+            safe_write(output, path.read_bytes())
 
     mcp = json.loads((SOURCE / "mcp.json").read_text())
     for server in mcp["mcpServers"].values():
         if "headers" in server:
             server["headers"] = {key: "<SET_LOCALLY>" for key in server["headers"]}
+        if isinstance(server.get("env"), dict):
+            server["env"] = {key: "<SET_LOCALLY>" if SECRET_ENV.search(key) else value
+                             for key, value in server["env"].items()}
         # The JSON is a template: $HOME must be replaced with the destination home.
         for key in ("command",):
             if isinstance(server.get(key), str):
@@ -79,7 +101,7 @@ def main() -> None:
             for f in files
         ]})
     safe_write("skills-inventory.json", (json.dumps(skills, indent=2) + "\n").encode())
-    print(f"Snapshot refreshed: {len(FILES)} allowlisted files, MCP template, {len(skills)} skill inventories")
+    print(f"Snapshot refreshed: {len(FILES) + len(CODEX_FILES)} allowlisted files, MCP template, {len(skills)} skill inventories")
 
 
 if __name__ == "__main__":
