@@ -1,14 +1,15 @@
 {
   "mcpServers": {
-    "open-pencil": {
-      "command": "$HOME/.local/share/openpencil/node_modules/.bin/openpencil-mcp",
-      "exposure": "deferred",
-      "description": "OpenPencil local design editor: inspect, edit and export canvas layers. Requires the OpenPencil desktop app and local MCP server running."
+    "brokan": {
+      "command": "$HOME/.local/bin/brokan",
+      "args": [
+        "mcp"
+      ]
     },
     "agentmemory": {
-      "command": "/usr/local/bin/node",
+      "command": "/opt/homebrew/bin/node",
       "args": [
-        "$HOME/.npm-global/lib/node_modules/@agentmemory/agentmemory/dist/standalone.mjs"
+        "$HOME/.local/share/agentmemory-package/node_modules/@agentmemory/agentmemory/dist/standalone.mjs"
       ],
       "env": {
         "AGENTMEMORY_TOOLS": "all",
@@ -16,20 +17,18 @@
       },
       "exposure": "deferred"
     },
-    "brokan": {
-      "command": "brokan",
+    "figma-console": {
+      "command": "/opt/homebrew/bin/node",
       "args": [
-        "mcp"
+        "$HOME/.local/share/figma-console-mcp/node_modules/figma-console-mcp/dist/local.js"
       ],
-      "enabled": true
-    },
-    "argent": {
-      "command": "$HOME/.npm-global/bin/argent",
-      "args": [
-        "mcp"
-      ],
-      "exposure": "deferred",
-      "description": "Argent local simulator and app interaction; use only for an identified app and coordinated device"
+      "env": {
+        "FIGMA_ACCESS_TOKEN": "<SET_LOCALLY>",
+        "ENABLE_MCP_APPS": "true"
+      },
+      "description": "Figma design system as an API: read and write Figma files, variables, components, tokens, FigJam boards and slides, plus accessibility and design-code parity checks. Write tools need the Figma Desktop Bridge plugin running in Figma Desktop.",
+      "timeout": 120,
+      "exposure": "deferred"
     }
   }
 }

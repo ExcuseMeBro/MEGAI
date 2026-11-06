@@ -1,29 +1,8 @@
 {
-  "defaultModel": "gpt-6-sol",
-  "defaultProvider": "openai-codex",
-  "defaultThinkingLevel": "high",
+  "defaultProvider": "openai",
+  "defaultModel": "gpt-6.1-sol",
   "defaultTools": [
     "+codemode"
-  ],
-  "lastChangelogVersion": "1.4.0",
-  "modelThinkingLevels": {
-    "deepseek/deepseek-flash": "high",
-    "openai-codex/gpt-5.6-luna": "medium",
-    "openai-codex/gpt-6-luna": "medium",
-    "openai-codex/gpt-6-sol": "high",
-    "openai-codex/gpt-6.1-sol": "medium"
-  },
-  "packages": [
-    {
-      "extensions": [
-        "!src/features/google-search.ts"
-      ],
-      "source": "npm:pi-antigravity"
-    },
-    "npm:pi-web-access@0.38.0",
-    "npm:billion-context@0.1.194",
-    "/Users/bro/.pi/agent/agentmemory",
-    "npm:skill-diet@0.1.0"
   ],
   "prompts": [
     "!**",
@@ -109,5 +88,17 @@
     "+skills/ai-design-fix/SKILL.md",
     "+skills/interface-design/SKILL.md"
   ],
-  "theme": "dark"
+  "packages": [
+    {
+      "source": "npm:pi-antigravity",
+      "extensions": [
+        "!src/features/google-search.ts"
+      ]
+    },
+    "npm:pi-web-access@0.38.0",
+    "npm:billion-context@0.1.194",
+    "npm:skill-diet@0.1.0",
+    "../../.local/share/agentmemory-package/node_modules/@agentmemory/agentmemory/integrations/pi"
+  ],
+  "defaultProjectTrust": "always"
 }

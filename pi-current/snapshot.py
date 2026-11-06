@@ -77,6 +77,12 @@ def main() -> None:
                 raise ValueError(f"Missing or linked source: {path}")
             safe_write(output, path.read_bytes())
 
+    # Per-device identifiers and runtime bookkeeping are not configuration.
+    settings = json.loads((SOURCE / "settings.json").read_text())
+    for key in ("deviceId", "lastChangelogVersion", "extensionChangelogVersions"):
+        settings.pop(key, None)
+    safe_write("agent/settings.json", (json.dumps(settings, indent=2, ensure_ascii=False) + "\n").encode())
+
     mcp = json.loads((SOURCE / "mcp.json").read_text())
     for server in mcp["mcpServers"].values():
         if "headers" in server:
