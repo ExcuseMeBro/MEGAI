@@ -4,9 +4,11 @@ import hashlib
 import importlib.util
 import io
 import json
-from pathlib import Path
+import os
+import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -46,6 +48,9 @@ class FakeDocker:
         if args[1] == "rm":
             del self.items[args[0], args[-1]]
 
+    def everything(self, kind):
+        return [i for k, i in self.items if k == kind]
+
 
 class LifecycleTests(unittest.TestCase):
     def test_preview_does_not_mutate(self):
@@ -66,9 +71,9 @@ class LifecycleTests(unittest.TestCase):
 
     def test_preflight_inspect_failure_has_no_mutations(self):
         d = FakeDocker()
-        with patch.object(d, "inspect", side_effect=m.Refused("failed")):
-            with self.assertRaises(m.Refused):
-                m.cleanup(d, LABELS, True)
+        with patch.object(d, "inspect", side_effect=m.Refused("failed")), \
+                self.assertRaises(m.Refused):
+            m.cleanup(d, LABELS, True)
         self.assertEqual(d.calls, [])
 
     def test_ownership_rechecked(self):
@@ -84,9 +89,9 @@ class LifecycleTests(unittest.TestCase):
                 item = {**item, "Config": {"Labels": {}}}
             return item
 
-        with patch.object(d, "inspect", side_effect=inspect), patch("sys.stdout", new=io.StringIO()):
-            with self.assertRaises(m.Refused):
-                m.cleanup(d, LABELS, True)
+        with patch.object(d, "inspect", side_effect=inspect), \
+                patch("sys.stdout", new=io.StringIO()), self.assertRaises(m.Refused):
+            m.cleanup(d, LABELS, True)
         self.assertEqual(d.calls, [])
 
     def test_attached_network_preserved(self):
@@ -99,9 +104,9 @@ class LifecycleTests(unittest.TestCase):
 
     def test_engine_refusal_is_not_forced(self):
         d = FakeDocker()
-        with patch.object(d, "call", side_effect=m.Refused("in use")), patch("sys.stdout", new=io.StringIO()):
-            with self.assertRaises(m.Refused):
-                m.cleanup(d, LABELS, True)
+        with patch.object(d, "call", side_effect=m.Refused("in use")), \
+                patch("sys.stdout", new=io.StringIO()), self.assertRaises(m.Refused):
+            m.cleanup(d, LABELS, True)
 
     def test_delivery_checks_and_explicit_fetch(self):
         with patch.object(m, "git", side_effect=["task/test", "", SHA, "", ""]) as g:
@@ -113,9 +118,9 @@ class LifecycleTests(unittest.TestCase):
         for results in (["dev"], ["task/x", " M file"], ["task/x", "", "b" * 40],
                         ["task/x", "", SHA, m.Refused("offline")],
                         ["task/x", "", SHA, "", m.Refused("not merged")]):
-            with self.subTest(results=results), patch.object(m, "git", side_effect=results):
-                with self.assertRaises(m.Refused):
-                    m.verify_delivery("repo", SHA, "origin")
+            with self.subTest(results=results), patch.object(m, "git", side_effect=results), \
+                    self.assertRaises(m.Refused):
+                m.verify_delivery("repo", SHA, "origin")
 
     def test_invalid_inputs(self):
         for task in ("", "../escape", "--help", "two words", "a" * 81):
@@ -190,10 +195,257 @@ class LifecycleTests(unittest.TestCase):
             with self.assertRaises(m.Refused):
                 m.kiri_image_labels(store, "sha256:" + invalid_digest)
 
+    def test_installer_syncs_policy_block(self):
+        spec = importlib.util.spec_from_file_location(
+            "install_task_resources", ROOT / "scripts/install_task_resources.py")
+        installer = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(installer)
+        with tempfile.TemporaryDirectory() as temp:
+            home, repo = Path(temp) / "home", Path(temp) / "repo"
+            (repo / "docs").mkdir(parents=True)
+            (repo / "docs/task-resources-policy.md").write_text(
+                (ROOT / "docs/task-resources-policy.md").read_text())
+            (repo / "pi-defaults").mkdir()
+            (repo / "pi-defaults/AGENTS.md").write_text("# Pi\n")
+            stale = home / ".claude/CLAUDE.md"
+            stale.parent.mkdir(parents=True)
+            stale.write_text("# Claude\n\n" + installer.BEGIN + "\nold\n" + installer.END + "\n\ntail\n")
+            changed = installer.install(home=home, repo=repo)
+            self.assertIn(str(stale), changed)
+            self.assertIn(installer.policy_block(), stale.read_text())
+            self.assertTrue(stale.read_text().endswith("tail\n"))
+            self.assertTrue(os.access(home / ".local/bin/megai-task-resources", os.X_OK))
+            self.assertEqual(installer.install(home=home, repo=repo),
+                             [str(home / ".local/bin/megai-task-resources")])
+            (repo / "docs/task-resources-policy.md").write_text("no markers")
+            with self.assertRaises(installer.Refused):
+                installer.policy_block(repo / "docs/task-resources-policy.md")
+
     def test_shared_policy_bytes(self):
         policy = (ROOT / "docs/task-resources-policy.md").read_text().strip()
         self.assertIn(policy, (ROOT / "pi-defaults/AGENTS.md").read_text())
         self.assertIn("--apply", (ROOT / "docs/task-resources.md").read_text())
+
+
+def real_repo(temp):
+    repo = Path(temp) / "repo"
+    m.run(["git", "init", "-b", "dev", str(repo)])
+    m.git(repo, "config", "user.email", "test@example.invalid")
+    m.git(repo, "config", "user.name", "Test")
+    m.git(repo, "commit", "--allow-empty", "-m", "baseline")
+    return repo
+
+
+OLD = "2020-01-01T00:00:00.000000000Z"
+NEW = "2099-01-01T00:00:00.000000000Z"
+
+
+class SweepTests(unittest.TestCase):
+    def grouped(self, repo_id, task="old-task", when=OLD):
+        d = FakeDocker()
+        d.items = {}
+        lab = {m.PREFIX + "repo": repo_id, m.PREFIX + "task": task, m.PREFIX + "disposable": "true"}
+        d.add("container", "1" * 64, lab, State={"Running": False}, Created=when)
+        d.add("network", "2" * 64, lab, Containers={}, Created=when)
+        d.add("volume", "deadbeef", lab, CreatedAt=when)
+        return d, lab
+
+    def sweep(self, d, **kwargs):
+        out = io.StringIO()
+        with patch("sys.stdout", new=out):
+            m.sweep(d, emit=lambda line: out.write(line + "\n"), **kwargs)
+        return [json.loads(line) for line in out.getvalue().splitlines() if line.strip()]
+
+    def test_unresolvable_repo_is_skipped(self):
+        d, _ = self.grouped("c" * 64)
+        lines = self.sweep(d, apply=True)
+        self.assertEqual({line["action"] for line in lines}, {"skip"})
+        self.assertEqual({line["reason"] for line in lines}, {"repo-unresolved"})
+        self.assertEqual(d.calls, [])
+
+    def test_finished_task_group_removed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = real_repo(temp)
+            d, lab = self.grouped(m.labels(repo, "old-task")[m.PREFIX + "repo"])
+            self.sweep(d, hints=[repo], apply=True)
+            self.assertEqual(sorted(d.items), [])
+            self.assertFalse(any("--force" in c or "prune" in c for c in d.calls))
+            with tempfile.TemporaryDirectory() as registry:
+                self.assertEqual(m.resolve_repo(lab[m.PREFIX + "repo"], path=Path(registry) / "r.json"), None)
+
+    def test_active_task_branch_and_worktree_block(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = real_repo(temp)
+            m.git(repo, "branch", "task/old-task")
+            d, _ = self.grouped(m.labels(repo, "old-task")[m.PREFIX + "repo"])
+            lines = self.sweep(d, hints=[repo], apply=True)
+            self.assertEqual({line["reason"] for line in lines}, {"task-branch-active"})
+            self.assertEqual(d.calls, [])
+            m.git(repo, "branch", "-D", "task/old-task")
+            worktree = Path(temp) / "wt"
+            m.git(repo, "worktree", "add", "-b", "task/old-task", str(worktree), "dev")
+            lines = self.sweep(d, hints=[repo], apply=True)
+            self.assertEqual({line["reason"] for line in lines}, {"task-branch-active"})
+            self.assertEqual(d.calls, [])
+
+    def test_recent_group_is_skipped(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = real_repo(temp)
+            d, _ = self.grouped(m.labels(repo, "old-task")[m.PREFIX + "repo"], when=NEW)
+            lines = self.sweep(d, hints=[repo], apply=True)
+            self.assertEqual({line["reason"] for line in lines}, {"too-recent"})
+            self.assertEqual(d.calls, [])
+
+    def test_invalid_labels_are_reported_not_deleted(self):
+        d = FakeDocker()
+        d.items = {}
+        d.add("volume", "bad-one", {m.PREFIX + "repo": "--help", m.PREFIX + "task": "x",
+                                    m.PREFIX + "disposable": "true"}, CreatedAt=OLD)
+        d.add("volume", "retained", {**LABELS, m.PREFIX + "disposable": "false"}, CreatedAt=OLD)
+        lines = self.sweep(d, apply=True)
+        self.assertEqual([line["reason"] for line in lines], ["invalid-labels"])
+        self.assertEqual(d.calls, [])
+
+    def test_preview_mutates_nothing(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = real_repo(temp)
+            d, _ = self.grouped(m.labels(repo, "old-task")[m.PREFIX + "repo"])
+            lines = self.sweep(d, hints=[repo])
+            self.assertEqual({line["action"] for line in lines}, {"preview"})
+            self.assertEqual(d.calls, [])
+
+    def test_anonymous_volume_rules(self):
+        d = FakeDocker()
+        d.items = {}
+        referenced = "a" * 64
+        d.add("container", "9" * 64, {}, State={"Running": True}, Created=OLD,
+              Mounts=[{"Type": "volume", "Name": referenced}])
+        d.add("volume", referenced, None, CreatedAt=OLD)
+        d.add("volume", "b" * 64, None, CreatedAt=OLD)
+        d.add("volume", "b" * 64 + "x", None, CreatedAt=OLD)
+        d.add("volume", "labelled", {m.PREFIX + "disposable": "false"}, CreatedAt=OLD)
+        d.add("volume", "c" * 64, None, CreatedAt=NEW)
+        out = io.StringIO()
+        m.sweep(d, anonymous=True, apply=True, emit=lambda line: out.write(line + "\n"))
+        actions = {(json.loads(l)["action"], json.loads(l).get("id")) for l in out.getvalue().splitlines()}
+        self.assertIn(("remove", "b" * 64), actions)
+        volumes = {i for k, i in d.items if k == "volume"}
+        self.assertEqual(volumes, {referenced, "b" * 64 + "x", "labelled", "c" * 64})
+
+    def test_registry_roundtrip(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = real_repo(temp)
+            registry = Path(temp) / "state/registry.json"
+            identity = m.remember(repo, "old-task", path=registry)
+            self.assertEqual(registry.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(m.resolve_repo(identity, path=registry), m.repo_common(repo))
+            self.assertEqual(m.load_registry(registry)[identity], str(m.repo_common(repo)))
+            self.assertEqual(m.resolve_repo("d" * 64, path=registry), None)
+            registry.write_text("[]")
+            self.assertEqual(m.load_registry(registry), {})
+
+    def test_age_helpers(self):
+        self.assertAlmostEqual(m.elapsed_hours("02-13:14:54"), 61.2483, places=3)
+        self.assertEqual(m.elapsed_hours("30:00"), 0.5)
+        self.assertEqual(m.elapsed_hours("1:00:00"), 1.0)
+        self.assertEqual(m.age_hours(None), 0.0)
+        self.assertEqual(m.age_hours("2020-01-01T00:00:00Z") > 24 * 365, True)
+        # Docker emits nanoseconds and Python 3.9 rejects both `Z` and >6 digits.
+        self.assertGreater(m.age_hours("2020-01-01T00:00:00.123456789Z"), 24 * 365)
+        self.assertGreater(m.age_hours("2020-01-01T00:00:00"), 24 * 365)
+        self.assertEqual(m.age_hours("2999-01-01T00:00:00Z"), 0.0)
+        self.assertEqual(m.age_hours("not a stamp"), 0.0)
+
+
+class TempClusterTests(unittest.TestCase):
+    def test_orphan_only_inside_temp_and_old(self):
+        with tempfile.TemporaryDirectory() as inside:
+            keep = Path(tempfile.mkdtemp(dir="/tmp"))
+            try:
+                ps = "\n".join([
+                    f"  10     1    02-13:14:54 /opt/postgres/bin/postgres -D {keep} -p 51105",
+                    f"  11    42    02-13:14:54 /opt/postgres/bin/postgres -D {keep} -p 51106",
+                    f"  12     1    00:05 /opt/postgres/bin/postgres -D {keep} -p 51107",
+                    f"  13     1    02-13:14:54 /opt/postgres/bin/postgres -D {inside} -p 51108",
+                ])
+                with patch.object(m, "run", return_value=ps):
+                    clusters = m.temp_clusters([Path("/tmp").resolve()])
+                self.assertEqual([c["pid"] for c in clusters], [10])
+            finally:
+                keep.rmdir()
+
+    def test_apply_stops_and_removes(self):
+        keep = Path(tempfile.mkdtemp(dir="/tmp"))
+        (keep / "data.txt").write_text("x")
+        ps = f"  10     1    02-13:14:54 /opt/postgres/bin/postgres -D {keep} -p 51105"
+        out = io.StringIO()
+        with patch.object(m, "run", return_value=ps), patch.object(m.os, "kill") as kill, \
+                patch.object(m.subprocess, "run", return_value=subprocess.CalledProcessError(1, "ps")):
+            m.sweep_temp([Path("/tmp").resolve()], apply=True,
+                         emit=lambda line: out.write(line + "\n"))
+        kill.assert_called_once_with(10, m.signal.SIGTERM)
+        self.assertFalse(keep.exists())
+        self.assertEqual(json.loads(out.getvalue().splitlines()[0])["action"], "remove")
+
+    def test_swapped_symlink_is_not_removed(self):
+        keep = Path(tempfile.mkdtemp(dir="/tmp"))
+        target = Path(tempfile.mkdtemp())
+        ps = f"  10     1    02-13:14:54 /opt/postgres/bin/postgres -D {keep} -p 51105"
+        with patch.object(m, "run", return_value=ps), patch.object(m.os, "kill"), \
+                patch.object(m.subprocess, "run", return_value=subprocess.CalledProcessError(1, "ps")):
+            keep.rmdir()
+            keep.symlink_to(target, target_is_directory=True)
+            try:
+                out = io.StringIO()
+                m.sweep_temp([Path("/tmp").resolve()], apply=True,
+                             emit=lambda line: out.write(line + "\n"))
+                self.assertTrue(target.exists())
+            finally:
+                keep.unlink()
+                target.rmdir()
+
+
+class CacheTests(unittest.TestCase):
+    def test_unused_gradle_versions_only(self):
+        with tempfile.TemporaryDirectory() as temp:
+            cache, projects = Path(temp) / "cache", Path(temp) / "projects"
+            for name in ("9.6.0", "8.14", "modules-2", "jars-9"):
+                (cache / name).mkdir(parents=True)
+            wrapper = projects / "app/gradle/wrapper"
+            wrapper.mkdir(parents=True)
+            (wrapper / "gradle-wrapper.properties").write_text(
+                "distributionUrl=https\\://services.gradle.org/distributions/gradle-9.6.0-bin.zip")
+            used, stale = m.gradle_cache_plan(cache, projects)
+            self.assertEqual(used, {"9.6.0"})
+            self.assertEqual([name for name, _ in stale], ["8.14"])
+            out = io.StringIO()
+            m.sweep_caches(cache, projects, apply=True, emit=lambda line: out.write(line + "\n"))
+            self.assertFalse((cache / "8.14").exists())
+            self.assertTrue((cache / "modules-2").exists())
+            self.assertTrue((cache / "9.6.0").exists())
+
+    def test_unused_wrapper_distributions_only(self):
+        with tempfile.TemporaryDirectory() as temp:
+            cache, projects = Path(temp) / "cache", Path(temp) / "projects"
+            cache.mkdir(parents=True)
+            dists = Path(temp) / "wrapper/dists"
+            kept, stale = dists / "gradle-9.6.0-bin", dists / "gradle-9.2.0-all"
+            for path in (kept, stale, dists / "CACHEDIR.TAG"):
+                path.mkdir(parents=True) if path != dists / "CACHEDIR.TAG" else path.write_text("x")
+            wrapper = projects / "app/gradle/wrapper"
+            wrapper.mkdir(parents=True)
+            (wrapper / "gradle-wrapper.properties").write_text(
+                "distributionUrl=https\\://services.gradle.org/distributions/gradle-9.6.0-bin.zip")
+            out = io.StringIO()
+            m.sweep_caches(cache, projects, emit=lambda line: out.write(line + "\n"))
+            preview = [json.loads(line) for line in out.getvalue().splitlines()]
+            dists_preview = [line for line in preview if line["kind"] == "gradle-dist"]
+            self.assertEqual([line["dist"] for line in dists_preview], ["gradle-9.2.0-all"])
+            out = io.StringIO()
+            m.sweep_caches(cache, projects, apply=True, emit=lambda line: out.write(line + "\n"))
+            self.assertFalse(stale.exists())
+            self.assertTrue(kept.exists())
+            self.assertTrue((dists / "CACHEDIR.TAG").exists())
 
 
 if __name__ == "__main__":

@@ -1,17 +1,28 @@
 #!/usr/bin/env python3
-"""Explicit local, label-scoped Docker cleanup after verified remote-dev delivery."""
+"""Explicit local, label-scoped Docker/process/cache cleanup after verified delivery."""
 import argparse
+import datetime
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
+import shutil
+import signal
 import stat
 import subprocess
 import sys
+import time
+from pathlib import Path
 
 PREFIX = "io.megai."
 KINDS = ("container", "network", "volume", "image")
+TASK = re.compile(r"[a-z0-9][a-z0-9_-]{0,79}")
+IDENTITY = re.compile(r"[0-9a-f]{64}")
+ANONYMOUS_VOLUME = re.compile(r"[0-9a-f]{64}")
+GRADLE_VERSION = re.compile(r"\d+\.\d+(?:\.\d+)*")
+GRADLE_DISTRIBUTION = re.compile(r"gradle-(\d+\.\d+(?:\.\d+)*)-(?:bin|all)\.zip")
+GRADLE_DIST_DIR = re.compile(r"gradle-(\d+\.\d+(?:\.\d+)*)-(?:bin|all)")
+STATE = Path.home() / ".local/state/megai-task-resources/registry.json"
 
 
 class Refused(RuntimeError):
@@ -19,7 +30,8 @@ class Refused(RuntimeError):
 
 
 def run(argv, env=None):
-    result = subprocess.run(argv, text=True, capture_output=True, timeout=90, env=env)
+    result = subprocess.run(argv, text=True, capture_output=True, timeout=90, env=env,
+                            check=False)
     if result.returncode:
         # Avoid echoing subprocess output (container metadata may contain secrets).
         raise Refused(f"Command failed ({result.returncode}): {argv[0]} {argv[1]}")
@@ -30,12 +42,19 @@ def git(repo, *args):
     return run(["git", "-C", str(repo), *args])
 
 
-def labels(repo, task):
-    if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,79}", task):
-        raise Refused("Task must be a unique lowercase slug (1-80 characters)")
+def repo_common(repo):
     common = git(repo, "rev-parse", "--path-format=absolute", "--git-common-dir")
-    identity = hashlib.sha256(str(Path(common).resolve()).encode()).hexdigest()
-    return {PREFIX + "repo": identity, PREFIX + "task": task,
+    return Path(common).resolve()
+
+
+def repo_identity(repo):
+    return hashlib.sha256(str(repo_common(repo)).encode()).hexdigest()
+
+
+def labels(repo, task):
+    if not TASK.fullmatch(task):
+        raise Refused("Task must be a unique lowercase slug (1-80 characters)")
+    return {PREFIX + "repo": repo_identity(repo), PREFIX + "task": task,
             PREFIX + "disposable": "true"}
 
 
@@ -102,6 +121,13 @@ class Docker:
                 args += ["--filter", f"label={key}={value}"]
         return sorted(set(self.call(*args).split()))
 
+    def everything(self, kind):
+        """All identities of a kind; label checks stay client-side."""
+        args = [kind, "ls", "--quiet"]
+        if kind in ("container", "image"):
+            args += ["--all", "--no-trunc"]
+        return sorted(set(self.call(*args).split()))
+
 
 def kiri_image_labels(store, identity):
     if not re.fullmatch(r"sha256:[0-9a-f]{64}", identity):
@@ -135,7 +161,70 @@ def canonical(kind, item):
     return value
 
 
-def cleanup(docker, expected, apply=False):
+UTC = datetime.timezone.utc  # noqa: UP017 - the installed helper runs on system python3 3.9
+FRACTION = re.compile(r"^(.*\.\d{6})\d*(.*)$")
+
+
+def timestamp(value):
+    """Parse Docker's RFC3339 stamp under Python 3.9+ (no `Z`, nanosecond support)."""
+    text = str(value).strip()
+    if text[-1:] in {"Z", "z"}:
+        text = text[:-1] + "+00:00"
+    trimmed = FRACTION.match(text)
+    if trimmed:
+        text = trimmed.group(1) + trimmed.group(2)
+    stamp = datetime.datetime.fromisoformat(text)
+    return stamp if stamp.tzinfo is not None else stamp.replace(tzinfo=UTC)
+
+
+def age_hours(value):
+    """Docker's RFC3339 creation stamp as an age; unknown or future means too recent."""
+    try:
+        stamp = timestamp(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+    age = (datetime.datetime.now(UTC) - stamp).total_seconds() / 3600
+    return age if age > 0 else 0.0
+
+
+def elapsed_hours(text):
+    days = 0
+    if "-" in text:
+        head, text = text.split("-", 1)
+        days = int(head)
+    parts = [int(p) for p in text.split(":")]
+    if len(parts) == 2:
+        parts = [0, *parts]
+    hours, minutes, seconds = parts
+    return days * 24 + hours + minutes / 60 + seconds / 3600
+
+
+def drop(docker, kind, identity, eligible, apply, emit=print):
+    """Remove one resource, re-verifying eligibility and never forcing."""
+    if not apply:
+        emit(json.dumps({"action": "preview", "kind": kind, "id": identity}))
+        return False
+    item = docker.inspect(kind, identity)
+    if canonical(kind, item) != identity or not eligible(item):
+        raise Refused("Resource eligibility changed; refusing removal")
+    if kind == "container":
+        if (item.get("State") or {}).get("Running"):
+            docker.call("container", "stop", "--time", "10", identity)
+        # No force, no -v: anonymous volumes are not implicitly disposable.
+        docker.call("container", "rm", identity)
+    elif kind == "network":
+        if item.get("Containers"):
+            raise Refused("Network still has attached containers; refusing removal")
+        docker.call("network", "rm", identity)
+    else:
+        # Engine rejects in-use volumes/images; never force deletion or prune.
+        docker.call(kind, "rm", identity)
+    emit(json.dumps({"action": "remove", "kind": kind, "id": identity}))
+    return True
+
+
+def cleanup(docker, expected, apply=False, emit=print):
     plan = []
     # Inspect ALL candidates before any mutation. Filters alone are not trusted.
     for kind in KINDS:
@@ -144,48 +233,362 @@ def cleanup(docker, expected, apply=False):
             if owned(metadata(kind, item), expected):
                 plan.append((kind, canonical(kind, item)))
     for kind, identity in plan:
-        if not apply:
-            print(json.dumps({"action": "preview", "kind": kind, "id": identity}))
-            continue
-        item = docker.inspect(kind, identity)
-        if canonical(kind, item) != identity or not owned(metadata(kind, item), expected):
-            raise Refused("Resource ownership changed; refusing removal")
-        if kind == "container":
-            state = item.get("State", {})
-            if state.get("Running"):
-                docker.call("container", "stop", "--time", "10", identity)
-            # No force, no -v: anonymous volumes are not implicitly disposable.
-            docker.call("container", "rm", identity)
-        elif kind == "network":
-            if item.get("Containers"):
-                raise Refused("Network still has attached containers; refusing removal")
-            docker.call("network", "rm", identity)
-        else:
-            # Engine rejects in-use volumes/images; never force deletion or prune.
-            docker.call(kind, "rm", identity)
-        print(json.dumps({"action": "remove", "kind": kind, "id": identity}), flush=True)
+        drop(docker, kind, identity,
+             lambda item, kind=kind: owned(metadata(kind, item), expected), apply, emit)
     return plan
+
+
+# --- repository/state registry -------------------------------------------------
+
+def load_registry(path=STATE):
+    try:
+        data = json.loads(Path(path).read_text())
+    except (OSError, ValueError):
+        return {}
+    repos = data.get("repos") if isinstance(data, dict) else None
+    if not isinstance(repos, dict):
+        return {}
+    return {k: v for k, v in repos.items()
+            if isinstance(k, str) and IDENTITY.fullmatch(k) and isinstance(v, str) and v.startswith("/")}
+
+
+def remember(repo, task, path=STATE):
+    """Map a repo identity hash back to its common dir so later sweeps can verify it."""
+    identity = repo_identity(repo)
+    repos = load_registry(path)
+    repos[identity] = str(repo_common(repo))
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    temp = path.with_suffix(".tmp")
+    temp.write_text(json.dumps({"version": 1, "repos": repos}, sort_keys=True))
+    temp.chmod(0o600)
+    os.replace(temp, path)
+    return identity
+
+
+def resolve_repo(identity, hints=(), path=STATE):
+    """Only return a path that still hashes to this identity."""
+    candidates = [Path(p) for p in hints]
+    known = load_registry(path).get(identity)
+    if known:
+        candidates.append(Path(known))
+    for candidate in candidates:
+        try:
+            if repo_identity(candidate) == identity:
+                return candidate
+        except (Refused, OSError, subprocess.TimeoutExpired):
+            continue
+    return None
+
+
+def task_inactive(repo, task):
+    """True only when no task branch and no worktree for it remain."""
+    branch = f"refs/heads/task/{task}"
+    verify = subprocess.run(["git", "-C", str(repo), "rev-parse", "--verify", "--quiet", branch],
+                            text=True, capture_output=True, timeout=60, check=False)
+    if verify.returncode == 0:
+        return False
+    if verify.returncode != 1:
+        raise Refused("Cannot inspect task branch state")
+    for line in git(repo, "worktree", "list", "--porcelain").splitlines():
+        if line.strip() == f"branch {branch}":
+            return False
+    return True
+
+
+# --- sweep: orphaned labelled resources, anonymous volumes, temp clusters ------
+
+def volume_references(docker):
+    names = set()
+    for identity in docker.everything("container"):
+        item = docker.inspect("container", identity)
+        for mount in item.get("Mounts") or []:
+            if isinstance(mount, dict) and mount.get("Type") == "volume" and isinstance(mount.get("Name"), str):
+                names.add(mount["Name"])
+    return names
+
+
+def sweep(docker, hints=(), anonymous=False, apply=False, min_age_hours=24.0, emit=print):
+    """Remove labelled groups whose repo is verifiable and whose task is finished."""
+    groups = {}
+    for kind in KINDS:
+        for identity in docker.everything(kind):
+            item = docker.inspect(kind, identity)
+            meta = metadata(kind, item)
+            if not isinstance(meta, dict) or meta.get(PREFIX + "disposable") != "true":
+                continue
+            repo_id, task = meta.get(PREFIX + "repo"), meta.get(PREFIX + "task")
+            if not isinstance(repo_id, str) or not IDENTITY.fullmatch(repo_id) \
+                    or not isinstance(task, str) or not TASK.fullmatch(task):
+                emit(json.dumps({"action": "skip", "kind": kind, "id": canonical(kind, item),
+                                 "reason": "invalid-labels"}))
+                continue
+            when = item.get("Created", item.get("CreatedAt"))
+            groups.setdefault((repo_id, task), []).append((kind, canonical(kind, item), when))
+
+    for (repo_id, task) in sorted(groups):
+        entries = groups[(repo_id, task)]
+        order = {kind: index for index, kind in enumerate(KINDS)}
+        entries.sort(key=lambda entry: (order[entry[0]], entry[1]))
+        reject = None
+        repo = resolve_repo(repo_id, hints)
+        if repo is None:
+            reject = "repo-unresolved"
+        else:
+            try:
+                if labels(repo, task)[PREFIX + "repo"] != repo_id:
+                    reject = "repo-mismatch"
+                elif not task_inactive(repo, task):
+                    reject = "task-branch-active"
+                elif min(age_hours(when) for _, _, when in entries) < min_age_hours:
+                    reject = "too-recent"
+            except (Refused, OSError, subprocess.TimeoutExpired) as exc:
+                reject = f"unverifiable: {exc}"
+        if reject:
+            for kind, identity, _ in entries:
+                emit(json.dumps({"action": "skip", "kind": kind, "id": identity, "task": task,
+                                 "repo": repo_id, "reason": reject}))
+            continue
+        for kind, identity, _ in entries:
+            drop(docker, kind, identity,
+                 lambda item, kind=kind, repo_id=repo_id, task=task: owned(
+                     metadata(kind, item), {PREFIX + "repo": repo_id, PREFIX + "task": task,
+                                            PREFIX + "disposable": "true"}),
+                 apply, emit)
+
+    if anonymous:
+        referenced = volume_references(docker)
+        for identity in docker.everything("volume"):
+            item = docker.inspect("volume", identity)
+            name = canonical("volume", item)
+            if not ANONYMOUS_VOLUME.fullmatch(name) or name in referenced:
+                continue
+            if any(str(key).startswith(PREFIX) for key in (item.get("Labels") or {})):
+                continue
+            if age_hours(item.get("CreatedAt")) < min_age_hours:
+                continue
+            drop(docker, "volume", name,
+                 lambda item, name=name: (
+                     canonical("volume", item) == name
+                     and not any(str(k).startswith(PREFIX) for k in (item.get("Labels") or {}))
+                     and name not in volume_references(docker)),
+                 apply, emit)
+
+
+def temp_roots():
+    roots = {Path("/tmp").resolve()}
+    if Path("/private/tmp").exists():
+        roots.add(Path("/private/tmp").resolve())
+    temp = os.environ.get("TMPDIR")
+    if temp:
+        try:
+            roots.add(Path(temp).resolve())
+        except OSError:
+            pass
+    return {root for root in roots if root.is_dir()}
+
+
+def temp_clusters(roots, min_age_hours=24.0):
+    """Orphaned (parent gone) PostgreSQL servers whose data dir sits in temp."""
+    found = []
+    for line in run(["ps", "-axo", "pid=,ppid=,etime=,command="]).splitlines():
+        fields = line.split(None, 3)
+        if len(fields) != 4:
+            continue
+        pid, ppid, elapsed, command = fields
+        if not re.search(r"(?:^|/)postgres ", command) or " -D " not in command:
+            continue
+        match = re.search(r" -D (\S+)", command)
+        if not match:
+            continue
+        try:
+            data = Path(match.group(1)).resolve(strict=True)
+        except OSError:
+            continue
+        if data.name in ("", ".", "..") or not any(
+                data != root and data.is_relative_to(root) for root in roots):
+            continue
+        if ppid != "1":
+            continue
+        try:
+            hours = elapsed_hours(elapsed)
+        except (TypeError, ValueError):
+            continue
+        if hours < min_age_hours:
+            continue
+        found.append({"pid": int(pid), "data": str(data), "hours": round(hours, 2)})
+    return found
+
+
+def sweep_temp(roots, min_age_hours=24.0, apply=False, emit=print):
+    clusters = temp_clusters(roots, min_age_hours)
+    for cluster in clusters:
+        if not apply:
+            emit(json.dumps({"action": "preview", "kind": "temp-cluster", "pid": cluster["pid"],
+                             "data": cluster["data"], "hours": cluster["hours"]}))
+            continue
+        current = [c for c in temp_clusters(roots, min_age_hours) if c["pid"] == cluster["pid"]]
+        if not current:
+            emit(json.dumps({"action": "skip", "kind": "temp-cluster", "pid": cluster["pid"],
+                             "reason": "changed"}))
+            continue
+        os.kill(cluster["pid"], signal.SIGTERM)
+        for _ in range(20):
+            time.sleep(0.5)
+            if subprocess.run(["ps", "-p", str(cluster["pid"])], capture_output=True,
+                              check=False).returncode != 0:
+                break
+        else:
+            emit(json.dumps({"action": "skip", "kind": "temp-cluster", "pid": cluster["pid"],
+                             "reason": "still-running"}))
+            continue
+        data = Path(cluster["data"])
+        if (not data.is_symlink() and data.exists()
+                and any(data != root and data.is_relative_to(root) for root in roots)):
+            shutil.rmtree(data)
+        emit(json.dumps({"action": "remove", "kind": "temp-cluster", "pid": cluster["pid"],
+                         "data": cluster["data"]}))
+    return clusters
+
+
+# --- caches: unused Gradle version caches -------------------------------------
+
+SKIP_DIRS = {".git", "node_modules", "vendor", "Library", ".gradle", "DerivedData", ".next", "build"}
+
+
+def used_gradle_versions(root, depth=6):
+    versions = set()
+    base = Path(root)
+    for current, dirs, files in os.walk(base):
+        here = Path(current)
+        if len(here.relative_to(base).parts) >= depth:
+            dirs[:] = []
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        if "gradle-wrapper.properties" in files:
+            try:
+                text = (here / "gradle-wrapper.properties").read_text(errors="replace")
+            except OSError:
+                continue
+            for match in GRADLE_DISTRIBUTION.finditer(text):
+                versions.add(match.group(1))
+    return versions
+
+
+def gradle_cache_plan(cache_root, projects_root):
+    cache_root = Path(cache_root)
+    versions = {p.name: p for p in cache_root.iterdir()
+                if p.is_dir() and GRADLE_VERSION.fullmatch(p.name)} if cache_root.is_dir() else {}
+    used = used_gradle_versions(projects_root)
+    stale = {name: path for name, path in versions.items() if name not in used}
+    return used, sorted(stale.items())
+
+
+def wrapper_dists(wrapper_root, used):
+    """Downloaded distributions no scanned wrapper asks for."""
+    root = Path(wrapper_root)
+    if not root.is_dir():
+        return []
+    stale = []
+    for entry in root.iterdir():
+        match = GRADLE_DIST_DIR.fullmatch(entry.name)
+        if entry.is_dir() and match and match.group(1) not in used:
+            stale.append((entry.name, entry))
+    return sorted(stale)
+
+
+def directory_size(path):
+    try:
+        blocks = run(["du", "-sk", str(path)]).split()[0]
+    except (Refused, IndexError, ValueError):
+        return 0
+    return int(blocks) * 1024
+
+
+def sweep_caches(cache_root, projects_root, apply=False, emit=print):
+    used, stale = gradle_cache_plan(cache_root, projects_root)
+    dist_root = Path(cache_root).parent / "wrapper/dists"
+    emit(json.dumps({"action": "inspect", "kind": "gradle", "used": sorted(used),
+                     "retained": ["modules-2", "jars-9", "journal-1"]}))
+    total = 0
+    for name, path in stale:
+        size = directory_size(path)
+        if not apply:
+            emit(json.dumps({"action": "preview", "kind": "gradle-cache", "version": name,
+                             "bytes": size}))
+            continue
+        if Path(path) != Path(cache_root) / name or not GRADLE_VERSION.fullmatch(name):
+            raise Refused("Gradle cache path changed; refusing removal")
+        if name in used_gradle_versions(projects_root):
+            emit(json.dumps({"action": "skip", "kind": "gradle-cache", "version": name,
+                             "reason": "now-used"}))
+            continue
+        shutil.rmtree(path)
+        total += size
+        emit(json.dumps({"action": "remove", "kind": "gradle-cache", "version": name,
+                         "bytes": size}))
+    for name, path in wrapper_dists(dist_root, used):
+        size = directory_size(path)
+        if not apply:
+            emit(json.dumps({"action": "preview", "kind": "gradle-dist", "dist": name,
+                             "bytes": size}))
+            continue
+        if Path(path).parent != dist_root or not GRADLE_DIST_DIR.fullmatch(name):
+            raise Refused("Gradle distribution path changed; refusing removal")
+        if name.split("-")[1] in used_gradle_versions(projects_root):
+            emit(json.dumps({"action": "skip", "kind": "gradle-dist", "dist": name,
+                             "reason": "now-used"}))
+            continue
+        shutil.rmtree(path)
+        total += size
+        emit(json.dumps({"action": "remove", "kind": "gradle-dist", "dist": name,
+                         "bytes": size}))
+    return stale, total
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("labels", "cleanup"))
+    parser.add_argument("action", choices=("labels", "cleanup", "sweep", "caches"))
     parser.add_argument("--repo", type=Path, default=Path.cwd())
-    parser.add_argument("--task", required=True)
+    parser.add_argument("--repo-dir", type=Path, action="append", default=[])
+    parser.add_argument("--projects-root", type=Path, default=Path.home() / "PROJECTS")
+    parser.add_argument("--gradle-cache", type=Path, default=Path.home() / ".gradle/caches")
+    parser.add_argument("--task")
     parser.add_argument("--context", default="kiri")
     parser.add_argument("--remote", default="origin")
     parser.add_argument("--commit")
+    parser.add_argument("--min-age-hours", type=float, default=24.0)
+    parser.add_argument("--anonymous-volumes", action="store_true")
+    parser.add_argument("--temp-clusters", action="store_true")
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args(argv)
     try:
-        expected = labels(args.repo, args.task)
-        if args.action == "labels":
-            if args.apply:
-                raise Refused("--apply is only valid for cleanup")
-            print(json.dumps(expected, sort_keys=True))
+        if args.min_age_hours < 0 or not args.min_age_hours < 10 ** 6:
+            raise Refused("Invalid age gate")
+        if args.action in ("labels", "cleanup"):
+            if not args.task:
+                raise Refused("--task is required")
+            expected = labels(args.repo, args.task)
+            if args.action == "labels":
+                if args.apply:
+                    raise Refused("--apply is only valid for cleanup")
+                try:
+                    remember(args.repo, args.task)
+                except OSError as exc:
+                    # Recording is a convenience for later sweeps, never a gate.
+                    print(f"warning: cannot record repo identity: {exc}", file=sys.stderr)
+                print(json.dumps(expected, sort_keys=True))
+            else:
+                verify_delivery(args.repo, args.commit or "", args.remote)
+                cleanup(Docker(args.context), expected, args.apply)
+        elif args.action == "sweep":
+            sweep(Docker(args.context), args.repo_dir, args.anonymous_volumes, args.apply,
+                  args.min_age_hours)
+            if args.temp_clusters:
+                sweep_temp(temp_roots(), args.min_age_hours, args.apply)
         else:
-            verify_delivery(args.repo, args.commit or "", args.remote)
-            cleanup(Docker(args.context), expected, args.apply)
+            if args.apply and not args.gradle_cache.is_dir():
+                raise Refused("Gradle cache directory is missing")
+            sweep_caches(args.gradle_cache, args.projects_root, args.apply)
         return 0
     except (Refused, OSError, ValueError, KeyError, IndexError, TypeError, subprocess.TimeoutExpired) as exc:
         print(f"Refused: {exc}", file=sys.stderr)

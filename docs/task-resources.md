@@ -2,7 +2,18 @@
 
 Use `python3 scripts/task_resources.py` (installed as
 `~/.local/bin/megai-task-resources`) synchronously during task delivery, **not** a
-Git hook, background janitor or a global Docker prune. Instructions are shared in
+Git hook, background janitor or a global Docker prune. Install or refresh the
+helper and the shared policy block in one step:
+
+```sh
+python3 scripts/install_task_resources.py
+```
+
+It copies the helper to `~/.local/bin`, makes it executable, and replaces the
+`megai:task-resources` block in `pi-defaults/AGENTS.md`, `~/.pi/agent/AGENTS.md`,
+`~/.codex/AGENTS.md` and `~/.claude/CLAUDE.md` with the exact bytes of
+`docs/task-resources-policy.md`; it is idempotent and refuses a policy file whose
+markers are missing. Instructions are shared in
 `docs/task-resources-policy.md`. They apply to new task resources; existing
 unlabelled resources are deliberately not adopted or deleted.
 
@@ -124,3 +135,41 @@ than inferring ownership from image names. No store files are written.
 Concurrent writers using the same task slug must be quiesced before cleanup;
 Docker has no transactional label-and-delete primitive. Persist this tool's stdout
 (resource IDs only) as the cleanup receipt; do not log container environments.
+
+## Sweeping leftovers, temp clusters and caches
+
+Per-task `cleanup` only knows one slug. Older or abandoned leftovers are handled
+by two read-only-by-default commands; both print JSON lines and mutate nothing
+without `--apply`.
+
+```sh
+# Labelled groups of finished tasks + unreferenced anonymous volumes
+~/.local/bin/megai-task-resources sweep --context kiri --anonymous-volumes
+# Orphaned PostgreSQL servers started from a temp directory
+~/.local/bin/megai-task-resources sweep --context kiri --temp-clusters
+# Regenerable Gradle version caches and wrapper distributions nobody references
+~/.local/bin/megai-task-resources caches
+```
+
+Rules the sweep enforces:
+
+- A group is touched only when its `io.megai.repo` hash re-computes from a
+  recorded common dir (`labels` records it in
+  `~/.local/state/megai-task-resources/registry.json`, mode 0600) or from an
+  explicit `--repo-dir`, and the task's `refs/heads/task/<slug>` plus any worktree
+  using it are gone. Unresolvable or active tasks are reported as `skip`.
+- `--min-age-hours` (default 24) protects freshly created resources.
+- Anonymous volumes are only the 64-hex unnamed ones no container mounts and
+  that carry no `io.megai.*` label. Named, labelled and mounted volumes stay.
+- Temp clusters must be `ppid 1`, inside `/tmp`, `/private/tmp` or `$TMPDIR`,
+  older than the gate; the helper sends `SIGTERM`, waits a bounded time, and
+  removes the data dir only if the server actually exited.
+- `caches` removes only `~/.gradle/caches/<version>` directories and
+  `~/.gradle/wrapper/dists/gradle-<version>-*` downloads that no
+  `gradle-wrapper.properties` under `--projects-root` (default `~/PROJECTS`)
+  references. Shared dependency caches (`modules-2`, `jars-9`, `journal-1`) are
+  retained; project build output and `node_modules` are never touched.
+
+Kiri's `docker system df` can report tiny volume/build-cache sizes while the host
+disk is mostly the VM image and host-side caches. Measure with `du` and
+`stat -f %b` before promising reclaimed space.
