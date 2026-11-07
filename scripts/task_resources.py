@@ -451,6 +451,246 @@ def sweep_temp(roots, min_age_hours=24.0, apply=False, emit=print):
     return clusters
 
 
+# --- memory pressure and idle dev servers -------------------------------------
+
+DEV_SERVER = re.compile(
+    r"craco/scripts/start\.js|/craco start\b|react-scripts/scripts/start\.js"
+    r"|/next/dist/bin/next dev\b|node_modules/\.bin/(?:next|vite|webpack|serve)\b"
+    r"|\bwebpack serve\b|\bvite (?:--|dev|serve)\b"
+)
+EMULATOR = re.compile(r"(?:^|/)emulator .*-avd |qemu-system-\w+ ")
+HEAP = re.compile(r"-Xmx(\d+)([kKmMgG])\b")
+MEMORY_UNIT = {"K": 1024, "M": 1024 ** 2, "G": 1024 ** 3}
+MEMORY_SIZE = re.compile(r"([\d.]+)([KMG])")
+
+
+def processes():
+    """pid/ppid/elapsed/ RSS table for process-level checks."""
+    rows = []
+    for line in run(["ps", "-axo", "pid=,ppid=,etime=,rss=,command="]).splitlines():
+        fields = line.split(None, 4)
+        if len(fields) != 5:
+            continue
+        pid, ppid, elapsed, rss, command = fields
+        try:
+            rows.append({"pid": int(pid), "ppid": int(ppid), "etime": elapsed,
+                         "rss": int(rss) * 1024, "command": command})
+        except ValueError:
+            continue
+    return rows
+
+
+def system_value(name):
+    try:
+        return run(["sysctl", "-n", name]).strip()
+    except Refused:
+        return ""
+
+
+def parse_size(text):
+    match = MEMORY_SIZE.search(str(text))
+    if not match:
+        return 0
+    return int(float(match.group(1)) * MEMORY_UNIT[match.group(2)])
+
+
+def swap_usage():
+    values = {"total_bytes": 0, "used_bytes": 0, "free_bytes": 0}
+    for key, size in re.findall(r"(\w+)\s*=\s*([\d.]+[KMG])", system_value("vm.swapusage")):
+        if key.lower() in {"total", "used", "free"}:
+            values[key.lower() + "_bytes"] = parse_size(size)
+    return values
+
+
+def vm_stat():
+    values, page = {}, 4096
+    for line in run(["vm_stat"]).splitlines():
+        if "page size of" in line:
+            match = re.search(r"page size of (\d+)", line)
+            if match:
+                page = int(match.group(1))
+            continue
+        key, _, rest = line.partition(":")
+        digits = re.findall(r"\d+", rest)
+        if key.strip() and digits:
+            values[key.strip()] = int(digits[0]) * page
+    return values
+
+
+def heavy_processes(rows):
+    """Processes whose footprint is worth reporting before heavy work."""
+    heavy = []
+    for row in rows:
+        if EMULATOR.search(row["command"]):
+            kind = "emulator"
+        elif DEV_SERVER.search(row["command"]):
+            kind = "dev-server"
+        elif HEAP.search(row["command"]):
+            kind = "jvm"
+        elif "Virtualization.VirtualMachine" in row["command"]:
+            kind = "docker-vm"
+        else:
+            continue
+        heavy.append({"pid": row["pid"], "kind": kind, "rss": row["rss"],
+                      "command": row["command"][:200]})
+    return sorted(heavy, key=lambda item: -item["rss"])
+
+
+def heap_bytes(command):
+    match = HEAP.search(command)
+    return int(int(match.group(1)) * MEMORY_UNIT[match.group(2).upper()]) if match else 0
+
+
+def footprint_table(limit=32):
+    """Best-effort per-process footprint: RSS alone hides compressed pages."""
+    try:
+        text = run(["top", "-l", "2", "-stats", "pid,mem,cmprs,command", "-o", "mem",
+                    "-n", str(limit)])
+    except (Refused, subprocess.TimeoutExpired):
+        return {}
+    found = {}
+    for line in text.splitlines():
+        fields = line.split(None, 3)
+        if len(fields) != 4 or not fields[0].isdigit():
+            continue
+        found[int(fields[0])] = parse_size(fields[1])
+    return found
+
+
+def memory_report(top=10):
+    """Read-only memory breakdown; no process is signalled."""
+    rows = processes()
+    stats = vm_stat()
+    footprint = footprint_table(max(top, 24))
+
+    def describe(row):
+        return {"pid": row["pid"], "ppid": row["ppid"],
+                "hours": round(_hours(row["etime"]), 2), "rss": row["rss"],
+                "footprint": footprint.get(row["pid"]),
+                "command": row["command"][:200]}
+
+    report = {
+        "action": "inspect",
+        "kind": "memory",
+        "total_bytes": int(system_value("hw.memsize") or 0),
+        "swap": swap_usage(),
+        "compressor_bytes": stats.get("Pages stored in compressor", 0),
+        "compressor_occupied_bytes": stats.get("Pages occupied by compressor", 0),
+        "wired_bytes": stats.get("Pages wired down", 0),
+        "process_count": len(rows),
+        "process_rss_bytes": sum(row["rss"] for row in rows),
+        "footprint_available": bool(footprint),
+        "top": [describe(row) for row in sorted(rows, key=lambda item: -item["rss"])[:top]],
+        "heavy": [{**item, "footprint": footprint.get(item["pid"])}
+                  for item in heavy_processes(rows)],
+        "idle_servers": stale_servers(0.0, rows),
+        "warnings": [],
+    }
+    for item in report["heavy"]:
+        if item["kind"] == "emulator" and (item["footprint"] or 0) >= 4 * MEMORY_UNIT["G"]:
+            report["warnings"].append({"reason": "heavy-emulator", "pid": item["pid"],
+                                       "footprint_bytes": item["footprint"]})
+    if report["swap"]["used_bytes"] and report["swap"]["used_bytes"] * 2 >= report["swap"]["total_bytes"]:
+        report["warnings"].append({"reason": "swap-pressure", "used_bytes": report["swap"]["used_bytes"],
+                                   "total_bytes": report["swap"]["total_bytes"]})
+    if report["total_bytes"] and report["compressor_bytes"] * 5 >= report["total_bytes"]:
+        report["warnings"].append({"reason": "compressor-pressure", "bytes": report["compressor_bytes"]})
+    for row in rows:
+        if heap_bytes(row["command"]) >= 6 * MEMORY_UNIT["G"]:
+            report["warnings"].append({"reason": "oversized-jvm-heap", "pid": row["pid"],
+                                       "heap_bytes": heap_bytes(row["command"])})
+    return report
+
+
+def _hours(etime):
+    try:
+        return elapsed_hours(etime)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def server_clients(pid):
+    try:
+        rows = run(["lsof", "-nP", "-a", "-p", str(pid), "-iTCP", "-sTCP:ESTABLISHED"])
+    except Refused:
+        return 0
+    return len([line for line in rows.splitlines()[1:] if line.strip()])
+
+
+def stale_servers(min_age_hours=8.0, rows=None):
+    """Dev servers older than the gate with no established client."""
+    found = []
+    for row in processes() if rows is None else rows:
+        if not DEV_SERVER.search(row["command"]):
+            continue
+        hours = _hours(row["etime"])
+        if hours < min_age_hours or server_clients(row["pid"]):
+            continue
+        found.append({"pid": row["pid"], "ppid": row["ppid"], "hours": round(hours, 2),
+                      "rss": row["rss"], "command": row["command"][:200]})
+    return found
+
+
+def descendants(rows, pid):
+    children = {}
+    for row in rows:
+        children.setdefault(row["ppid"], []).append(row["pid"])
+    found, stack = [], [pid]
+    while stack:
+        for child in children.get(stack.pop(), []):
+            found.append(child)
+            stack.append(child)
+    return found
+
+
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def sweep_servers(min_age_hours=8.0, apply=False, emit=print):
+    """Stop only long-idle dev servers (never emulators, never JVMs)."""
+    servers = stale_servers(min_age_hours)
+    stopped = set()
+    for server in servers:
+        if server["pid"] in stopped:
+            continue
+        if not apply:
+            emit(json.dumps({"action": "preview", "kind": "dev-server", "pid": server["pid"],
+                             "hours": server["hours"], "rss": server["rss"],
+                             "command": server["command"]}))
+            continue
+        rows = processes()
+        current = [s for s in stale_servers(min_age_hours, rows) if s["pid"] == server["pid"]]
+        if not current:
+            emit(json.dumps({"action": "skip", "kind": "dev-server", "pid": server["pid"],
+                             "reason": "changed"}))
+            continue
+        targets = [server["pid"], *descendants(rows, server["pid"])]
+        stopped.update(targets)
+        for pid in targets:
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+        for _ in range(20):
+            if not any(alive(pid) for pid in targets):
+                break
+            time.sleep(0.5)
+        else:
+            emit(json.dumps({"action": "skip", "kind": "dev-server", "pid": server["pid"],
+                             "reason": "still-running"}))
+            continue
+        emit(json.dumps({"action": "remove", "kind": "dev-server", "pid": server["pid"],
+                         "stopped": targets}))
+    return servers
+
+
 # --- caches: unused Gradle version caches -------------------------------------
 
 SKIP_DIRS = {".git", "node_modules", "vendor", "Library", ".gradle", "DerivedData", ".next", "build"}
@@ -547,7 +787,7 @@ def sweep_caches(cache_root, projects_root, apply=False, emit=print):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("labels", "cleanup", "sweep", "caches"))
+    parser.add_argument("action", choices=("labels", "cleanup", "sweep", "caches", "mem"))
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--repo-dir", type=Path, action="append", default=[])
     parser.add_argument("--projects-root", type=Path, default=Path.home() / "PROJECTS")
@@ -559,11 +799,16 @@ def main(argv=None):
     parser.add_argument("--min-age-hours", type=float, default=24.0)
     parser.add_argument("--anonymous-volumes", action="store_true")
     parser.add_argument("--temp-clusters", action="store_true")
+    parser.add_argument("--idle-servers", action="store_true")
+    parser.add_argument("--min-idle-hours", type=float, default=8.0)
+    parser.add_argument("--top", type=int, default=10)
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args(argv)
     try:
         if args.min_age_hours < 0 or not args.min_age_hours < 10 ** 6:
             raise Refused("Invalid age gate")
+        if args.min_idle_hours < 0 or not args.min_idle_hours < 10 ** 6:
+            raise Refused("Invalid idle gate")
         if args.action in ("labels", "cleanup"):
             if not args.task:
                 raise Refused("--task is required")
@@ -585,6 +830,14 @@ def main(argv=None):
                   args.min_age_hours)
             if args.temp_clusters:
                 sweep_temp(temp_roots(), args.min_age_hours, args.apply)
+            if args.idle_servers:
+                sweep_servers(args.min_idle_hours, args.apply)
+        elif args.action == "mem":
+            if args.apply:
+                raise Refused("--apply is only valid for cleanup, sweep and caches")
+            if not 1 <= args.top <= 100:
+                raise Refused("Invalid --top")
+            print(json.dumps(memory_report(args.top), sort_keys=True))
         else:
             if args.apply and not args.gradle_cache.is_dir():
                 raise Refused("Gradle cache directory is missing")

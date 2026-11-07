@@ -135,6 +135,11 @@ than inferring ownership from image names. No store files are written.
 Concurrent writers using the same task slug must be quiesced before cleanup;
 Docker has no transactional label-and-delete primitive. Persist this tool's stdout
 (resource IDs only) as the cleanup receipt; do not log container environments.
+Process-level reclamation reads the OS process table and signals only by numeric
+pid with `SIGTERM`, never by name pattern or shell string, and re-reads the table
+immediately before signalling, so a recycled pid is refused by the same age,
+client and command checks; nothing is ever forced with `SIGKILL` and no process
+the tool did not classify is signalled.
 
 ## Sweeping leftovers, temp clusters and caches
 
@@ -173,3 +178,37 @@ Rules the sweep enforces:
 Kiri's `docker system df` can report tiny volume/build-cache sizes while the host
 disk is mostly the VM image and host-side caches. Measure with `du` and
 `stat -f %b` before promising reclaimed space.
+
+## Memory pressure and idle servers
+
+Disk leftovers and RAM exhaustion have different owners: on this Mac the disk is
+typically the Kiri VM image plus Gradle caches, while memory pressure comes from
+live emulators, JVM heaps, Docker VMs and abandoned dev servers. `mem` is a
+read-only diagnostic that mutates nothing:
+
+```sh
+# Swap, compressor, top processes by footprint, oversized -Xmx, idle servers
+~/.local/bin/megai-task-resources mem --top 10
+
+# Preview (or stop with --apply) dev servers idle past the gate with no clients
+~/.local/bin/megai-task-resources sweep --context kiri --idle-servers
+```
+
+Reading the report:
+
+- `swap.used_bytes` above half of `swap.total_bytes`, or `compressor_bytes`
+  above a fifth of RAM, means the machine is already oversubscribed: defer heavy
+  work instead of starting another build, emulator or container stack.
+- `top`/`heavy` report both `rss` and `footprint`; `footprint` comes from a
+  best-effort `top -l 2` sample and includes compressed pages, so an emulator can
+  show a small RSS and a multi-gigabyte footprint. `footprint_available: false`
+  means the sample failed and the numbers are RSS-only lower bounds.
+- `oversized-jvm-heap` warns about any `-Xmx` at or above 6 GiB; `heavy-emulator`
+  warns about a software-GPU emulator holding 4 GiB or more; `swap-pressure` and
+  `compressor-pressure` are host-level.
+- `idle_servers` lists of age-gate dev servers (`craco`, `next dev`, `vite`,
+  `webpack serve`, `react-scripts`) with zero established TCP clients.
+  `sweep --idle-servers --apply` sends `SIGTERM` to the process and its
+  descendants, waits a bounded time, and reports `still-running` rather than
+  forcing. Emulators, IDEs, Docker VMs and JVM daemons are never auto-stopped:
+  they hold another session's state and are only reported.

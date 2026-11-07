@@ -448,5 +448,139 @@ class CacheTests(unittest.TestCase):
             self.assertTrue((dists / "CACHEDIR.TAG").exists())
 
 
+class FakeSystem:
+    """Routes ps/sysctl/vm_stat/lsof calls used by the memory checks."""
+
+    def __init__(self, ps="", mem=8589934592,
+                 swap="total = 4096.00M  used = 3072.00M  free = 1024.00M",
+                 vm=("Mach Virtual Memory Statistics: (page size of 16384 bytes)\n"
+                     "Pages stored in compressor: 1000.\n"
+                     "Pages occupied by compressor: 900.\n"
+                     "Pages wired down: 200.\n"),
+                 clients=(), top=""):
+        self.ps, self.mem, self.swap, self.vm = ps, mem, swap, vm
+        self.top = top
+        self.clients = set(clients)
+
+    def __call__(self, argv, env=None):
+        if argv[0] == "ps":
+            return self.ps
+        if argv[0] == "sysctl":
+            if argv[2] == "hw.memsize":
+                return str(self.mem)
+            if argv[2] == "vm.swapusage":
+                return self.swap
+        if argv[0] == "vm_stat":
+            return self.vm
+        if argv[0] == "top":
+            if self.top:
+                return self.top
+            raise m.Refused("Command failed (1): top")
+        if argv[0] == "lsof":
+            if argv[4] in self.clients:
+                return ("COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME\n"
+                        "node 1 user 18u IPv4 0x1 0t0 TCP 127.0.0.1:3015")
+            raise m.Refused("Command failed (1): lsof")
+        raise m.Refused(f"unexpected command: {argv[0]}")
+
+
+SERVER_PS = (
+    "   10     1 09:25:54 989000 node /work/node_modules/@craco/craco/scripts/start.js\n"
+    "   11    10 09:25:50 764000 node /work/node_modules/.bin/craco start\n"
+    "   20     1 00:20 500000 node /work/node_modules/.bin/vite --port 5173\n"
+    "   30     1 12:00:00 8028000 /opt/emulator/emulator -avd Pixel -gpu swiftshader_indirect\n"
+    "   40     1 03:45:00 1567000 java -Xmx8G -jar gradle-launcher.jar\n"
+    "   50     1 02:15:00 1130000 node billion-context start --port 18788\n"
+)
+
+class MemoryTests(unittest.TestCase):
+    def test_report_flags_pressure_and_heavy_processes(self):
+        with patch.object(m, "run", new=FakeSystem(SERVER_PS)):
+            report = m.memory_report(3)
+        self.assertEqual(report["total_bytes"], 8589934592)
+        self.assertEqual(report["swap"]["used_bytes"], 3 * 1024 ** 3)
+        self.assertEqual(len(report["top"]), 3)
+        self.assertEqual(report["top"][0]["pid"], 30)
+        self.assertEqual({item["kind"] for item in report["heavy"]},
+                         {"emulator", "dev-server", "jvm"})
+        reasons = {item["reason"] for item in report["warnings"]}
+        self.assertIn("swap-pressure", reasons)
+        self.assertIn("oversized-jvm-heap", reasons)
+        self.assertNotIn("compressor-pressure", reasons)
+
+    def test_footprint_and_heavy_emulator_warning(self):
+        top = ("PID    MEM    CMPRS  COMMAND\n"
+               "  30  7889M  7381M  qemu-system-aarch\n"
+               "  10   989M   931M  node start.js\n")
+        with patch.object(m, "run", new=FakeSystem(SERVER_PS, top=top)):
+            report = m.memory_report(2)
+        self.assertTrue(report["footprint_available"])
+        self.assertEqual(report["top"][0]["footprint"], 7889 * 1024 ** 2)
+        emulator = next(item for item in report["heavy"] if item["kind"] == "emulator")
+        self.assertEqual(emulator["footprint"], 7889 * 1024 ** 2)
+        self.assertIn("heavy-emulator", {item["reason"] for item in report["warnings"]})
+
+    def test_footprint_is_optional(self):
+        with patch.object(m, "run", new=FakeSystem(SERVER_PS)):
+            report = m.memory_report(2)
+        self.assertFalse(report["footprint_available"])
+        self.assertIsNone(report["top"][0]["footprint"])
+        self.assertNotIn("heavy-emulator", {item["reason"] for item in report["warnings"]})
+
+    def test_idle_servers_need_age_and_no_clients(self):
+        system = FakeSystem(SERVER_PS, clients={"11"})
+        with patch.object(m, "run", new=system):
+            servers = m.stale_servers(8.0)
+        self.assertEqual([server["pid"] for server in servers], [10])
+
+    def test_preview_never_signals(self):
+        out = io.StringIO()
+        with patch.object(m, "run", new=FakeSystem(SERVER_PS, clients={"11"})), \
+                patch.object(m.os, "kill") as kill:
+            m.sweep_servers(8.0, emit=lambda line: out.write(line + "\n"))
+        kill.assert_not_called()
+        self.assertEqual([json.loads(line)["action"] for line in out.getvalue().splitlines()],
+                         ["preview"])
+
+    def test_apply_stops_server_tree(self):
+        out = io.StringIO()
+        with patch.object(m, "run", new=FakeSystem(SERVER_PS)), \
+                patch.object(m.os, "kill") as kill, patch.object(m, "alive", return_value=False):
+            m.sweep_servers(8.0, apply=True, emit=lambda line: out.write(line + "\n"))
+        self.assertEqual([call.args[0] for call in kill.call_args_list], [10, 11])
+        self.assertEqual(json.loads(out.getvalue())["action"], "remove")
+
+    def test_apply_keeps_unrelated_processes(self):
+        out = io.StringIO()
+        with patch.object(m, "run", new=FakeSystem(SERVER_PS)), \
+                patch.object(m.os, "kill") as kill, patch.object(m, "alive", return_value=False):
+            m.sweep_servers(8.0, apply=True, emit=lambda line: out.write(line + "\n"))
+        killed = {call.args[0] for call in kill.call_args_list}
+        self.assertEqual(killed, {10, 11})
+        self.assertNotIn(20, killed)
+        self.assertNotIn(30, killed)
+        self.assertNotIn(40, killed)
+
+    def test_unstopped_server_is_not_reported_removed(self):
+        out = io.StringIO()
+        with patch.object(m, "run", new=FakeSystem(SERVER_PS)), \
+                patch.object(m.os, "kill"), patch.object(m, "alive", return_value=True):
+            m.sweep_servers(8.0, apply=True, emit=lambda line: out.write(line + "\n"))
+        self.assertEqual(json.loads(out.getvalue().splitlines()[-1])["reason"], "still-running")
+
+    def test_mem_rejects_apply(self):
+        with patch.object(m, "run", new=FakeSystem(SERVER_PS)), \
+                patch("sys.stdout", new=io.StringIO()), patch("sys.stderr", new=io.StringIO()):
+            self.assertEqual(m.main(["mem", "--apply"]), 2)
+        self.assertEqual(m.main(["mem", "--top", "0"]), 2)
+
+    def test_mem_prints_json(self):
+        out = io.StringIO()
+        with patch.object(m, "run", new=FakeSystem(SERVER_PS)), \
+                patch("sys.stdout", new=out):
+            self.assertEqual(m.main(["mem", "--top", "2"]), 0)
+        self.assertEqual(json.loads(out.getvalue())["kind"], "memory")
+
+
 if __name__ == "__main__":
     unittest.main()

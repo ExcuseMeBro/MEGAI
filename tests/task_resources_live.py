@@ -148,7 +148,14 @@ def main():
     for extra in (["caches"], ["sweep", "--context", args.context, "--temp-clusters", "--min-age-hours", "0"]):
         lines = m.run([sys.executable, str(ROOT / "scripts/task_resources.py"), *extra]).splitlines()
         assert all(json.loads(line)["action"] for line in lines), lines
-    print("PASS read-only cache/temp-cluster preview JSON")
+    report = json.loads(m.run([sys.executable, str(ROOT / "scripts/task_resources.py"),
+                               "mem", "--top", "3"]))
+    assert report["kind"] == "memory" and report["total_bytes"] > 0, report
+    assert 0 < len(report["top"]) <= 3 and "swap" in report, report
+    lines = m.run([sys.executable, str(ROOT / "scripts/task_resources.py"), "sweep",
+                   "--context", args.context, "--idle-servers", "--min-idle-hours", "0"]).splitlines()
+    assert all(json.loads(line)["action"] for line in lines), lines
+    print("PASS read-only cache/temp-cluster/idle-server preview and mem JSON")
     print("PASS installed helper SHA256:", hashlib.sha256(installed.read_bytes()).hexdigest())
     print("PASS identical Pi/Codex/Claude policy; Kiri 64 GiB disk, 8 GiB cache/300s saved settings")
 
