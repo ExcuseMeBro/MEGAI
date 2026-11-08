@@ -212,3 +212,45 @@ Reading the report:
   descendants, waits a bounded time, and reports `still-running` rather than
   forcing. Emulators, IDEs, Docker VMs and JVM daemons are never auto-stopped:
   they hold another session's state and are only reported.
+
+## Disk pressure and Kiri compaction
+
+```bash
+megai-task-resources disk --kiri                       # read-only report
+megai-task-resources disk --xcode --builders --temp-clusters            # preview
+megai-task-resources disk --xcode --builders --temp-clusters --apply    # reclaim
+kiri stop && megai-task-resources disk --kiri --apply                   # compact, then `kiri daemon`
+```
+
+`disk` prints one JSON object with `volume` (total, used, free, free fraction of
+`/System/Volumes/Data`), `categories` (Library, Library/Caches, Library/Developer,
+Library/Android, Gradle, `/private/var`) and, with `--kiri`, a `kiri` block:
+`host_allocated_bytes` (what the sparse image really costs on APFS),
+`guest_used_bytes`/`guest_free_bytes` (read from the ext4 superblock and block
+bitmaps) and `reclaimable_bytes`.
+
+Why the numbers disagree: `data.img` is a fixed 64 GiB sparse file, so its logical
+size never shrinks, and Kiri's virtual disk advertises no discard/TRIM, so blocks
+freed inside the guest stay allocated on the host. The gap between
+`host_allocated_bytes` and `guest_used_bytes` is exactly the space a compaction
+returns.
+
+Reclaim categories and their guards:
+
+- `--xcode` — `~/Library/Developer/Xcode/DerivedData`, refused while an
+  `xcodebuild` process is running.
+- `--builders` — `~/Library/Caches/go-build`, `~/Library/Caches/Yarn`,
+  `~/Library/Caches/t3code-updater`. Nothing else in `~/Library/Caches` is
+  touched.
+- `--temp-clusters` — orphaned PostgreSQL servers whose data directory is inside
+  a temp root and whose parent is gone (same rule as `sweep --temp-clusters`).
+- `--kiri` — punch-hole compaction. It refuses to run while any
+  `Virtualization.VirtualMachine` process exists, while the ext4 journal needs
+  replay (`s_recover`), when the image changes during the read, when the
+  bitmap-derived free count disagrees with the superblock, when any block group
+  is still uninitialised (its bitmap hides group metadata), or below 512 MiB of
+  reclaimable space. It punches only blocks the block bitmaps mark free and never
+  touches the image size, the guest's files or Docker objects.
+
+A clean sequence is: quit builds and container work, `kiri stop` (clean
+shutdown clears the journal), run `disk --kiri --apply`, then start Kiri again.

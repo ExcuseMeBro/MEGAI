@@ -2,6 +2,7 @@
 """Explicit local, label-scoped Docker/process/cache cleanup after verified delivery."""
 import argparse
 import datetime
+import fcntl
 import hashlib
 import json
 import os
@@ -9,6 +10,7 @@ import re
 import shutil
 import signal
 import stat
+import struct
 import subprocess
 import sys
 import time
@@ -737,11 +739,12 @@ def wrapper_dists(wrapper_root, used):
 
 
 def directory_size(path):
+    result = subprocess.run(["du", "-sk", str(path)], text=True, capture_output=True,
+                            timeout=900, check=False)
     try:
-        blocks = run(["du", "-sk", str(path)]).split()[0]
-    except (Refused, IndexError, ValueError):
+        return int(result.stdout.split()[0]) * 1024
+    except (IndexError, ValueError):
         return 0
-    return int(blocks) * 1024
 
 
 def sweep_caches(cache_root, projects_root, apply=False, emit=print):
@@ -785,9 +788,268 @@ def sweep_caches(cache_root, projects_root, apply=False, emit=print):
     return stale, total
 
 
+
+def u16(buf, offset):
+    return int.from_bytes(buf[offset:offset + 2], "little")
+
+
+def u32(buf, offset):
+    return int.from_bytes(buf[offset:offset + 4], "little")
+
+
+EXT4_MAGIC = 0xEF53
+EXT4_VALID_FS = 0x0001
+EXT4_BLOCK_UNINIT = 0x0002
+EXT4_64BIT = 0x80
+EXT4_RECOVER = 0x4
+PUNCHHOLE = 99
+
+
+def ext4_layout(path):
+    """Parse an ext4 image read-only and return its block/free-block layout."""
+    path = Path(path)
+    with path.open("rb") as handle:
+        handle.seek(1024)
+        sb = handle.read(1024)
+        if len(sb) < 1024 or u16(sb, 56) != EXT4_MAGIC:
+            raise Refused(f"{path} is not an ext4 image")
+        state = u16(sb, 0x3A)
+        log_block = u32(sb, 24)
+        if log_block > 6:
+            raise Refused("Unsupported ext4 block size")
+        block_size = 1024 << log_block
+        blocks = u32(sb, 4) | (u32(sb, 0x150) << 32)
+        free = u32(sb, 12) | (u32(sb, 0x158) << 32)
+        first_data = u32(sb, 20)
+        per_group = u32(sb, 32)
+        if not block_size or not per_group or per_group & (per_group - 1):
+            raise Refused("Inconsistent ext4 geometry")
+        if first_data >= blocks or blocks * block_size > path.stat().st_size:
+            raise Refused("Inconsistent ext4 geometry")
+        desc_size = u16(sb, 0xFE) if u32(sb, 0x60) & EXT4_64BIT else 32
+        if desc_size < 32:
+            raise Refused("Unsupported ext4 descriptor size")
+        groups = -(-(blocks - first_data) // per_group)
+        if groups > 32768:
+            raise Refused("Unsupported ext4 group count")
+        handle.seek((2 if block_size == 1024 else 1) * block_size)
+        descs = handle.read(groups * desc_size)
+        if len(descs) != groups * desc_size:
+            raise Refused("Truncated ext4 group descriptors")
+        runs, counted, uninit_groups = [], 0, 0
+        for group in range(groups):
+            desc = descs[group * desc_size:(group + 1) * desc_size]
+            start = first_data + group * per_group
+            end = min(start + per_group, blocks)
+            if u16(desc, 0x12) & EXT4_BLOCK_UNINIT:
+                # Uninitialised group bitmaps hide group metadata blocks inside the
+                # free range, so such images are never punched (fail closed).
+                uninit_groups += 1
+                continue
+            bitmap_block = u32(desc, 0)
+            if desc_size >= 64:
+                bitmap_block |= u32(desc, 0x20) << 32
+            handle.seek(bitmap_block * block_size)
+            width = (end - start + 7) // 8
+            bitmap = handle.read(width)
+            if len(bitmap) != width:
+                raise Refused("Truncated ext4 block bitmap")
+            for index in range(end - start):
+                if bitmap[index >> 3] >> (index & 7) & 1:
+                    continue
+                counted += 1
+                if runs and runs[-1][1] == start + index:
+                    runs[-1] = (runs[-1][0], start + index + 1)
+                else:
+                    runs.append((start + index, start + index + 1))
+    return {"block_size": block_size, "blocks": blocks, "free_blocks": free,
+            "counted_blocks": counted, "state": state, "runs": runs,
+            "free_bytes": free * block_size, "uninit_groups": uninit_groups,
+            "recover": bool(u32(sb, 0x60) & EXT4_RECOVER)}
+
+
+def kiri_vm_running(rows=None):
+    """True while Kiri's VM (and therefore every Docker consumer) is live."""
+    for row in rows if rows is not None else processes():
+        if "Virtualization.VirtualMachine" in row["command"]:
+            return True
+    return False
+
+
+def punch_hole(fd, offset, length):
+    fcntl.fcntl(fd, PUNCHHOLE, struct.pack("QQ", offset, length))
+
+
+def compact_kiri(image, apply=False, emit=print, punch=punch_hole, running=kiri_vm_running,
+                 min_reclaim=1 << 29):
+    """Return the image's free ext4 blocks to APFS; Kiri never TRIMs its disk."""
+    image = Path(image)
+    if not image.is_file():
+        raise Refused("Kiri VM image is missing")
+    before = image.stat()
+    layout = ext4_layout(image)
+    plan = {"action": "inspect", "kind": "kiri-image", "image": str(image),
+            "guest_used_bytes": (layout["blocks"] - layout["free_blocks"])
+            * layout["block_size"],
+            "guest_free_bytes": layout["free_bytes"],
+            "reclaimable_bytes": layout["free_bytes"],
+            "host_allocated_bytes": before.st_blocks * 512}
+    if layout["recover"]:
+        plan.update(action="skip", reason="journal-recovery-pending")
+        emit(json.dumps(plan, sort_keys=True))
+        return plan
+    if layout["uninit_groups"]:
+        plan.update(action="skip", reason="uninit-block-groups",
+                    uninit_groups=layout["uninit_groups"])
+        emit(json.dumps(plan, sort_keys=True))
+        return plan
+    if layout["counted_blocks"] != layout["free_blocks"]:
+        raise Refused(f"ext4 free-block mismatch ({layout['counted_blocks']} "
+                      f"!= {layout['free_blocks']}); refusing to compact")
+    if layout["state"] & EXT4_VALID_FS != EXT4_VALID_FS:
+        plan.update(action="skip", reason="filesystem-not-clean")
+        emit(json.dumps(plan, sort_keys=True))
+        return plan
+    if layout["free_bytes"] < min_reclaim:
+        plan.update(action="skip", reason="nothing-to-reclaim")
+        emit(json.dumps(plan, sort_keys=True))
+        return plan
+    if not apply:
+        emit(json.dumps(plan, sort_keys=True))
+        return plan
+    if running():
+        raise Refused("Kiri VM is running; run 'kiri stop' first, then compact")
+    after_read = image.stat()
+    if (after_read.st_size, after_read.st_mtime_ns) != (before.st_size, before.st_mtime_ns):
+        raise Refused("Kiri image changed while reading; retry")
+    punched, failed = 0, 0
+    fd = os.open(image, os.O_RDWR)
+    try:
+        for start, end in layout["runs"]:
+            try:
+                punch(fd, start * layout["block_size"], (end - start) * layout["block_size"])
+                punched += (end - start) * layout["block_size"]
+            except OSError:
+                failed += 1
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    emit(json.dumps({"action": "compact", "kind": "kiri-image", "punched_bytes": punched,
+                     "failed_runs": failed,
+                     "host_allocated_before": before.st_blocks * 512,
+                     "host_allocated_after": image.stat().st_blocks * 512}, sort_keys=True))
+    return plan
+
+
+def xcode_derived_data(home, rows=None):
+    root = Path(home) / "Library/Developer/Xcode/DerivedData"
+    for row in rows if rows is not None else processes():
+        if row["command"].split(" ")[0].rsplit("/", 1)[-1].startswith("xcodebuild"):
+            raise Refused("xcodebuild is running; refusing to drop DerivedData")
+    return root if root.is_dir() else None
+
+
+def builder_caches(home):
+    home = Path(home)
+    return [("go-build", home / "Library/Caches/go-build"),
+            ("yarn", home / "Library/Caches/Yarn"),
+            ("t3code-updater", home / "Library/Caches/t3code-updater")]
+
+
+def reclaim_temp(roots, min_age_hours=24.0, apply=False, emit=print):
+    clusters = temp_clusters(roots, min_age_hours)
+    total = sum(directory_size(cluster["data"]) for cluster in clusters)
+    sweep_temp(roots, min_age_hours, apply, emit)
+    emit(json.dumps({"action": "temp-clusters", "count": len(clusters), "bytes": total},
+                    sort_keys=True))
+    return len(clusters), total
+
+
+def reclaim(apply=False, emit=print, home=None, xcode=False, builders=False, temp=False,
+            kiri_image=None, min_age_hours=24.0, roots=None, var_root=None):
+    """Drop only named rebuildable artifacts; nothing else is ever touched."""
+    home = Path(home or Path.home())
+    total = 0
+    if xcode:
+        root = xcode_derived_data(home)
+        if root is None:
+            emit(json.dumps({"action": "skip", "kind": "xcode-derived-data",
+                             "reason": "missing"}))
+        else:
+            size = directory_size(root)
+            if apply:
+                shutil.rmtree(root)
+                total += size
+                emit(json.dumps({"action": "remove", "kind": "xcode-derived-data",
+                                 "bytes": size}, sort_keys=True))
+            else:
+                emit(json.dumps({"action": "preview", "kind": "xcode-derived-data",
+                                 "path": str(root), "bytes": size}, sort_keys=True))
+    if builders:
+        for label, path in builder_caches(home):
+            if not path.is_dir():
+                continue
+            size = directory_size(path)
+            if apply:
+                shutil.rmtree(path)
+                total += size
+                emit(json.dumps({"action": "remove", "kind": "builder-cache",
+                                 "cache": label, "bytes": size}, sort_keys=True))
+            else:
+                emit(json.dumps({"action": "preview", "kind": "builder-cache",
+                                 "cache": label, "path": str(path), "bytes": size},
+                                sort_keys=True))
+    if temp:
+        total += reclaim_temp(roots or temp_roots(), min_age_hours, apply, emit)[1]
+    if kiri_image:
+        compact_kiri(kiri_image, apply, emit)
+    return total
+
+
+def default_kiri_image(home=None):
+    home = Path(home or Path.home())
+    for name in ("Kiri", "kiri"):
+        candidate = home / "Library/Application Support" / name / "vm/data.img"
+        if candidate.is_file():
+            return candidate
+    return home / "Library/Application Support/Kiri/vm/data.img"
+
+
+def disk_report(home=None, kiri_image=None, var_root=None):
+    home = Path(home or Path.home())
+    usage = shutil.disk_usage("/System/Volumes/Data")
+    report = {"volume": {"total_bytes": usage.total, "used_bytes": usage.used,
+                         "free_bytes": usage.free,
+                         "free_fraction": round(usage.free / usage.total, 4)},
+              "categories": {}}
+    paths = {"library": home / "Library", "library-caches": home / "Library/Caches",
+             "library-developer": home / "Library/Developer",
+             "library-android": home / "Library/Android", "gradle": home / ".gradle",
+             "var": Path(var_root or "/private/var")}
+    for name, path in paths.items():
+        if path.is_dir():
+            report["categories"][name] = directory_size(path)
+    cache_bytes = sum(directory_size(path) for _, path in builder_caches(home) if path.is_dir())
+    report["rebuildable_caches_bytes"] = cache_bytes
+    if kiri_image and Path(kiri_image).is_file():
+        image = Path(kiri_image)
+        layout = ext4_layout(image)
+        report["kiri"] = {"host_allocated_bytes": image.stat().st_blocks * 512,
+                          "logical_bytes": image.stat().st_size,
+                          "guest_used_bytes": (layout["blocks"] - layout["free_blocks"])
+                          * layout["block_size"],
+                          "guest_free_bytes": layout["free_bytes"],
+                          "reclaimable_bytes": layout["free_bytes"],
+                          "journal_recovery": layout["recover"],
+                          "filesystem_clean": bool(layout["state"] & EXT4_VALID_FS)}
+        report["categories"]["kiri"] = report["kiri"]["host_allocated_bytes"]
+    return report
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("labels", "cleanup", "sweep", "caches", "mem"))
+    parser.add_argument("action", choices=("labels", "cleanup", "sweep", "caches", "mem",
+                                          "disk"))
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--repo-dir", type=Path, action="append", default=[])
     parser.add_argument("--projects-root", type=Path, default=Path.home() / "PROJECTS")
@@ -801,6 +1063,12 @@ def main(argv=None):
     parser.add_argument("--temp-clusters", action="store_true")
     parser.add_argument("--idle-servers", action="store_true")
     parser.add_argument("--min-idle-hours", type=float, default=8.0)
+    parser.add_argument("--xcode", action="store_true")
+    parser.add_argument("--builders", action="store_true")
+    parser.add_argument("--kiri", action="store_true")
+    parser.add_argument("--kiri-image", type=Path)
+    parser.add_argument("--home", type=Path)
+    parser.add_argument("--var-root", type=Path)
     parser.add_argument("--top", type=int, default=10)
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args(argv)
@@ -838,6 +1106,17 @@ def main(argv=None):
             if not 1 <= args.top <= 100:
                 raise Refused("Invalid --top")
             print(json.dumps(memory_report(args.top), sort_keys=True))
+        elif args.action == "disk":
+            image = args.kiri_image or (default_kiri_image() if args.kiri else None)
+            if image is not None and not Path(image).is_file():
+                raise Refused("Kiri VM image is missing")
+            print(json.dumps(disk_report(args.home, image, args.var_root), sort_keys=True))
+            if args.xcode or args.builders or args.temp_clusters or image is not None:
+                if args.apply and not (args.xcode or args.builders or args.temp_clusters):
+                    raise Refused("Compacting Kiri needs a stopped VM; use 'kiri stop' first")
+                reclaim(args.apply, home=args.home, xcode=args.xcode, builders=args.builders,
+                        temp=args.temp_clusters, kiri_image=image,
+                        min_age_hours=args.min_age_hours, roots=None, var_root=args.var_root)
         else:
             if args.apply and not args.gradle_cache.is_dir():
                 raise Refused("Gradle cache directory is missing")

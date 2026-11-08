@@ -584,3 +584,202 @@ class MemoryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+BLOCK = 1024
+FIRST_DATA = 1
+PER_GROUP = 16
+GROUPS = 4
+BITMAPS = (3, 4, 5, 6)
+
+
+def make_ext4(path, free_each=8, declared=None, recover=False, state=1):
+    """Synthetic ext4 image: block_size 1024, descriptors at block 2, free-first bitmaps."""
+    blocks = FIRST_DATA + GROUPS * PER_GROUP
+    image = bytearray(blocks * BLOCK)
+    image[1024 + 56:1024 + 58] = b"\x53\xef"
+    def put32(offset, value):
+        image[offset:offset + 4] = value.to_bytes(4, "little")
+    put32(1024 + 4, blocks)
+    put32(1024 + 12, GROUPS * free_each if declared is None else declared)
+    put32(1024 + 20, FIRST_DATA)
+    put32(1024 + 24, 0)
+    put32(1024 + 32, PER_GROUP)
+    image[1024 + 0x3A:1024 + 0x3C] = state.to_bytes(2, "little")
+    put32(1024 + 0x60, 0x4 if recover else 0)
+    image[1024 + 0xFE:1024 + 0x100] = (32).to_bytes(2, "little")
+    for group in range(GROUPS):
+        desc = 2 * BLOCK + group * 32
+        put32(desc, BITMAPS[group])
+        bitmap = bytearray(BLOCK)
+        for index in range(PER_GROUP):
+            if index < free_each:
+                continue
+            bitmap[index >> 3] |= 1 << (index & 7)
+        image[BITMAPS[group] * BLOCK:BITMAPS[group] * BLOCK + BLOCK] = bitmap
+    Path(path).write_bytes(bytes(image))
+    return Path(path)
+
+
+class DiskTests(unittest.TestCase):
+    def test_layout_reads_free_runs(self):
+        with tempfile.TemporaryDirectory() as temp:
+            image = make_ext4(Path(temp) / "data.img")
+            layout = m.ext4_layout(image)
+            self.assertEqual(layout["block_size"], BLOCK)
+            self.assertEqual(layout["counted_blocks"], GROUPS * 8)
+            self.assertEqual(layout["free_blocks"], GROUPS * 8)
+            self.assertEqual(layout["runs"][0], (FIRST_DATA, FIRST_DATA + 8))
+            self.assertEqual(len(layout["runs"]), GROUPS)
+
+    def test_uninit_block_groups_skip_without_punching(self):
+        with tempfile.TemporaryDirectory() as temp:
+            image = make_ext4(Path(temp) / "data.img")
+            data = bytearray(image.read_bytes())
+            offset = 2 * BLOCK + 0x12
+            data[offset:offset + 2] = (0x0002).to_bytes(2, "little")
+            Path(image).write_bytes(bytes(data))
+            layout = m.ext4_layout(image)
+            self.assertEqual(layout["uninit_groups"], 1)
+            self.assertEqual(layout["counted_blocks"], (GROUPS - 1) * 8)
+            calls = []
+            out = io.StringIO()
+            plan = m.compact_kiri(image, apply=True, emit=lambda line: out.write(line + "\n"),
+                                  running=lambda: False, punch=lambda *args: calls.append(args))
+            self.assertEqual(plan["reason"], "uninit-block-groups")
+            self.assertEqual(calls, [])
+
+    def test_bad_geometry_refuses(self):
+        with tempfile.TemporaryDirectory() as temp:
+            image = make_ext4(Path(temp) / "data.img")
+            data = bytearray(image.read_bytes())
+            data[1024 + 32:1024 + 36] = (20).to_bytes(4, "little")
+            Path(image).write_bytes(bytes(data))
+            with self.assertRaises(m.Refused):
+                m.ext4_layout(image)
+
+    def test_free_count_mismatch_refuses(self):
+        with tempfile.TemporaryDirectory() as temp:
+            image = make_ext4(Path(temp) / "data.img", declared=99)
+            with self.assertRaises(m.Refused):
+                m.compact_kiri(image, apply=True, emit=lambda line: None, running=lambda: False,
+                               punch=lambda *args: None)
+
+    def test_recovery_pending_skips_and_never_punches(self):
+        with tempfile.TemporaryDirectory() as temp:
+            image = make_ext4(Path(temp) / "data.img", recover=True)
+            calls = []
+            out = io.StringIO()
+            plan = m.compact_kiri(image, apply=True, emit=lambda line: out.write(line + "\n"),
+                                  running=lambda: False, punch=lambda *args: calls.append(args))
+            self.assertEqual(plan["reason"], "journal-recovery-pending")
+            self.assertEqual(calls, [])
+
+    def test_not_clean_filesystem_skips(self):
+        with tempfile.TemporaryDirectory() as temp:
+            image = make_ext4(Path(temp) / "data.img", state=0)
+            out = io.StringIO()
+            plan = m.compact_kiri(image, apply=True, emit=lambda line: out.write(line + "\n"),
+                                  running=lambda: False, punch=lambda *args: None)
+            self.assertEqual(plan["reason"], "filesystem-not-clean")
+
+    def test_preview_never_punches(self):
+        with tempfile.TemporaryDirectory() as temp:
+            image = make_ext4(Path(temp) / "data.img", declared=None)
+            # Preview needs a reclaimable size above the guard: scale the image instead.
+            big = Path(temp) / "big.img"
+            data = bytearray(image.read_bytes())
+            Path(big).write_bytes(bytes(data) + b"\x00" * (1 << 29))
+            calls = []
+            out = io.StringIO()
+            plan = m.compact_kiri(big, emit=lambda line: out.write(line + "\n"), min_reclaim=0,
+                                  punch=lambda *args: calls.append(args))
+            lines = [json.loads(line) for line in out.getvalue().splitlines()]
+            self.assertEqual(lines[0]["action"], "inspect")
+            self.assertEqual(plan["reclaimable_bytes"], GROUPS * 8 * BLOCK)
+            self.assertEqual(calls, [])
+
+    def test_small_reclaim_is_skipped(self):
+        with tempfile.TemporaryDirectory() as temp:
+            image = make_ext4(Path(temp) / "data.img")
+            out = io.StringIO()
+            plan = m.compact_kiri(image, emit=lambda line: out.write(line + "\n"))
+            self.assertEqual(plan["reason"], "nothing-to-reclaim")
+
+    def test_apply_punches_every_free_run(self):
+        with tempfile.TemporaryDirectory() as temp:
+            image = make_ext4(Path(temp) / "data.img")
+            data = bytearray(image.read_bytes())
+            Path(image).write_bytes(bytes(data) + b"\x00" * (1 << 29))
+            punched = []
+            out = io.StringIO()
+            m.compact_kiri(image, apply=True, emit=lambda line: out.write(line + "\n"),
+                           running=lambda: False, min_reclaim=0,
+                           punch=lambda fd, offset, length: punched.append((offset, length)))
+            self.assertEqual(punched, [(FIRST_DATA * BLOCK, 8 * BLOCK),
+                                       ((FIRST_DATA + 16) * BLOCK, 8 * BLOCK),
+                                       ((FIRST_DATA + 32) * BLOCK, 8 * BLOCK),
+                                       ((FIRST_DATA + 48) * BLOCK, 8 * BLOCK)])
+            summary = json.loads(out.getvalue().splitlines()[-1])
+            self.assertEqual(summary["action"], "compact")
+            self.assertEqual(summary["punched_bytes"], GROUPS * 8 * BLOCK)
+
+    def test_running_vm_refuses_compaction(self):
+        with tempfile.TemporaryDirectory() as temp:
+            image = make_ext4(Path(temp) / "data.img")
+            Path(image).write_bytes(image.read_bytes() + b"\x00" * (1 << 29))
+            with self.assertRaises(m.Refused):
+                m.compact_kiri(image, apply=True, emit=lambda line: None, min_reclaim=0,
+                               running=lambda: True, punch=lambda *args: None)
+
+    def test_xcode_derived_data_preview_then_removal(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            derived = home / "Library/Developer/Xcode/DerivedData"
+            (derived / "Build").mkdir(parents=True)
+            (derived / "Build/blob").write_bytes(b"x" * 4096)
+            out = io.StringIO()
+            m.reclaim(emit=lambda line: out.write(line + "\n"), home=home, xcode=True)
+            preview = [json.loads(line) for line in out.getvalue().splitlines()]
+            self.assertEqual(preview[0]["action"], "preview")
+            self.assertTrue(derived.exists())
+            m.reclaim(apply=True, emit=lambda line: None, home=home, xcode=True)
+            self.assertFalse(derived.exists())
+
+    def test_xcode_refuses_while_building(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            (home / "Library/Developer/Xcode/DerivedData").mkdir(parents=True)
+            rows = [{"pid": 1, "ppid": 0, "command": "/usr/bin/xcodebuild -scheme App"}]
+            with self.assertRaises(m.Refused):
+                m.xcode_derived_data(home, rows)
+
+    def test_builder_caches_are_named_and_removable(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            go = home / "Library/Caches/go-build"
+            go.mkdir(parents=True)
+            (go / "blob").write_bytes(b"x" * 4096)
+            keep = home / "Library/Caches/Homebrew"
+            keep.mkdir(parents=True)
+            self.assertIn(("go-build", go), m.builder_caches(home))
+            m.reclaim(apply=True, emit=lambda line: None, home=home, builders=True)
+            self.assertFalse(go.exists())
+            self.assertTrue(keep.exists())
+
+    def test_disk_report_shape(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            (home / "Library/Caches/go-build").mkdir(parents=True)
+            image = make_ext4(home / "data.img")
+            report = m.disk_report(home, image, var_root=home)
+            self.assertGreater(report["volume"]["total_bytes"], 0)
+            self.assertEqual(report["kiri"]["guest_free_bytes"], GROUPS * 8 * BLOCK)
+            self.assertEqual(report["categories"]["kiri"], image.stat().st_blocks * 512)
+
+    def test_disk_apply_with_kiri_only_is_refused(self):
+        with tempfile.TemporaryDirectory() as temp:
+            image = make_ext4(Path(temp) / "data.img")
+            code = m.main(["disk", "--kiri-image", str(image), "--apply", "--home", temp,
+                           "--var-root", temp])
+            self.assertEqual(code, 2)
