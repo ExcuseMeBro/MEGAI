@@ -219,7 +219,9 @@ Reading the report:
 megai-task-resources disk --kiri                       # read-only report
 megai-task-resources disk --xcode --builders --temp-clusters            # preview
 megai-task-resources disk --xcode --builders --temp-clusters --apply    # reclaim
-kiri stop && megai-task-resources disk --kiri --apply                   # compact, then `kiri daemon`
+curl -s -X POST --unix-socket ~/.kiri/run/docker.sock http://localhost/kiri/stop
+megai-task-resources disk --kiri --apply                                # compact
+open -a Kiri && curl -s -X POST --unix-socket ~/.kiri/run/docker.sock http://localhost/kiri/wake
 ```
 
 `disk` prints one JSON object with `volume` (total, used, free, free fraction of
@@ -254,5 +256,24 @@ Reclaim categories and their guards:
   descriptor's free-block count or the run is refused. It punches only blocks the block bitmaps mark free and never
   touches the image size, the guest's files or Docker objects.
 
-A clean sequence is: quit builds and container work, `kiri stop` (clean
-shutdown clears the journal), run `disk --kiri --apply`, then start Kiri again.
+A clean sequence, verified on this Mac:
+
+```bash
+docker --context kiri ps --format '{{.Names}}' > /tmp/kiri-containers    # remember what ran
+curl -s -X POST --unix-socket ~/.kiri/run/docker.sock http://localhost/kiri/stop
+/opt/homebrew/opt/e2fsprogs/sbin/e2fsck -E journal_only -fy \
+  "$HOME/Library/Application Support/Kiri/vm/data.img"                  # replay the journal
+megai-task-resources disk --kiri --apply                                # punch the free blocks
+open -a Kiri
+curl -s -X POST --unix-socket ~/.kiri/run/docker.sock http://localhost/kiri/wake
+docker --context kiri start $(cat /tmp/kiri-containers)                 # restore containers
+```
+
+`kiri stop` is not a VM command (the `kiri` client proxies Docker), and stopping
+only the app process leaves the guest running: the daemon owns the VM, so
+`POST /kiri/stop` is the stop. The guest shuts down uncleanly, so the journal is
+usually dirty and `disk --kiri --apply` refuses with `journal-recovery-pending`;
+replaying it with `e2fsck -E journal_only` is enough (a full `-fy` pass is only
+needed if that reports errors). After `open -a Kiri` the daemon reports
+"Kiri is stopped" until `POST /kiri/wake` starts the guest, and manually started
+containers do not come back on their own.
