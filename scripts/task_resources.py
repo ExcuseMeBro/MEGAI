@@ -802,7 +802,47 @@ EXT4_VALID_FS = 0x0001
 EXT4_BLOCK_UNINIT = 0x0002
 EXT4_64BIT = 0x80
 EXT4_RECOVER = 0x4
-PUNCHHOLE = 99
+PUNCHHOLE = 99  # F_PUNCHHOLE fcntl command; argument is struct fpunchhole
+
+
+def _has_super(group):
+    """Groups that carry a superblock backup and the GDT copies beside it."""
+    if group <= 1:
+        return True
+    for base in (3, 5, 7):
+        power = base
+        while power < group:
+            power *= base
+        if power == group:
+            return True
+    return False
+
+
+def _group_spans(group, start, desc, gdt_blocks, itable_blocks):
+    """Blocks an uninitialised group still owns: sb copy, GDT, bitmaps, inode table."""
+    spans = []
+    if _has_super(group):
+        spans.append((start, start + 1 + gdt_blocks))
+    for offset, length in ((0, 1), (4, 1), (8, itable_blocks)):
+        block = u32(desc, offset)
+        if len(desc) >= 64:
+            block |= u32(desc, offset + 0x20) << 32
+        spans.append((block, block + length))
+    return sorted(spans)
+
+
+def _free_ranges(start, end, spans):
+    """Complement of the metadata spans inside one group."""
+    runs, cursor = [], start
+    for span_start, span_end in spans:
+        if span_end <= cursor or span_start >= end:
+            continue
+        if span_start > cursor:
+            runs.append((cursor, span_start))
+        cursor = max(cursor, span_end)
+    if cursor < end:
+        runs.append((cursor, end))
+    return runs
 
 
 def ext4_layout(path):
@@ -836,15 +876,36 @@ def ext4_layout(path):
         descs = handle.read(groups * desc_size)
         if len(descs) != groups * desc_size:
             raise Refused("Truncated ext4 group descriptors")
+        gdt_blocks = -(-(groups * desc_size) // block_size) + u16(sb, 0xCE)
+        inodes_per_group = u32(sb, 0x28)
+        inode_size = u16(sb, 0x58) or 128
+        itable_blocks = -(-(inodes_per_group * inode_size) // block_size)
         runs, counted, uninit_groups = [], 0, 0
+
+        def add_run(begin, finish):
+            nonlocal counted
+            counted += finish - begin
+            if runs and runs[-1][1] == begin:
+                runs[-1] = (runs[-1][0], finish)
+            else:
+                runs.append((begin, finish))
+
         for group in range(groups):
             desc = descs[group * desc_size:(group + 1) * desc_size]
             start = first_data + group * per_group
             end = min(start + per_group, blocks)
             if u16(desc, 0x12) & EXT4_BLOCK_UNINIT:
-                # Uninitialised group bitmaps hide group metadata blocks inside the
-                # free range, so such images are never punched (fail closed).
+                # The bitmap is not on disk: every block except the group's own
+                # metadata is free. Cross-check the descriptor's free count first
+                # and refuse when the arithmetic disagrees.
                 uninit_groups += 1
+                spans = _group_spans(group, start, desc, gdt_blocks, itable_blocks)
+                found = _free_ranges(start, end, spans)
+                if sum(finish - begin for begin, finish in found) != u16(desc, 0x0C):
+                    raise Refused(f"Uninitialised ext4 group {group} disagrees with "
+                                  "its free-block count")
+                for begin, finish in found:
+                    add_run(begin, finish)
                 continue
             bitmap_block = u32(desc, 0)
             if desc_size >= 64:
@@ -857,11 +918,7 @@ def ext4_layout(path):
             for index in range(end - start):
                 if bitmap[index >> 3] >> (index & 7) & 1:
                     continue
-                counted += 1
-                if runs and runs[-1][1] == start + index:
-                    runs[-1] = (runs[-1][0], start + index + 1)
-                else:
-                    runs.append((start + index, start + index + 1))
+                add_run(start + index, start + index + 1)
     return {"block_size": block_size, "blocks": blocks, "free_blocks": free,
             "counted_blocks": counted, "state": state, "runs": runs,
             "free_bytes": free * block_size, "uninit_groups": uninit_groups,
@@ -877,7 +934,8 @@ def kiri_vm_running(rows=None):
 
 
 def punch_hole(fd, offset, length):
-    fcntl.fcntl(fd, PUNCHHOLE, struct.pack("QQ", offset, length))
+    """Mark bytes dead in APFS without changing the file's length (struct fpunchhole)."""
+    fcntl.fcntl(fd, PUNCHHOLE, struct.pack("=IIqq", 0, 0, offset, length))
 
 
 def compact_kiri(image, apply=False, emit=print, punch=punch_hole, running=kiri_vm_running,
@@ -893,14 +951,10 @@ def compact_kiri(image, apply=False, emit=print, punch=punch_hole, running=kiri_
             * layout["block_size"],
             "guest_free_bytes": layout["free_bytes"],
             "reclaimable_bytes": layout["free_bytes"],
+            "uninit_groups": layout["uninit_groups"],
             "host_allocated_bytes": before.st_blocks * 512}
     if layout["recover"]:
         plan.update(action="skip", reason="journal-recovery-pending")
-        emit(json.dumps(plan, sort_keys=True))
-        return plan
-    if layout["uninit_groups"]:
-        plan.update(action="skip", reason="uninit-block-groups",
-                    uninit_groups=layout["uninit_groups"])
         emit(json.dumps(plan, sort_keys=True))
         return plan
     if layout["counted_blocks"] != layout["free_blocks"]:
@@ -1112,8 +1166,6 @@ def main(argv=None):
                 raise Refused("Kiri VM image is missing")
             print(json.dumps(disk_report(args.home, image, args.var_root), sort_keys=True))
             if args.xcode or args.builders or args.temp_clusters or image is not None:
-                if args.apply and not (args.xcode or args.builders or args.temp_clusters):
-                    raise Refused("Compacting Kiri needs a stopped VM; use 'kiri stop' first")
                 reclaim(args.apply, home=args.home, xcode=args.xcode, builders=args.builders,
                         temp=args.temp_clusters, kiri_image=image,
                         min_age_hours=args.min_age_hours, roots=None, var_root=args.var_root)

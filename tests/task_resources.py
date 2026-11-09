@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Fast offline lifecycle checks; no real Docker resources are touched."""
+import contextlib
 import hashlib
 import importlib.util
 import io
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -621,6 +623,34 @@ def make_ext4(path, free_each=8, declared=None, recover=False, state=1):
     return Path(path)
 
 
+def make_ext4_uninit(path, declared=55):
+    """One uninitialised group (63 blocks from block 1) owning sb/gdt, bitmaps, inode table."""
+    blocks = 64
+    image = bytearray(blocks * BLOCK)
+
+    def put32(offset, value):
+        image[offset:offset + 4] = value.to_bytes(4, "little")
+
+    image[1024 + 56:1024 + 58] = b"\x53\xef"
+    put32(1024 + 4, blocks)
+    put32(1024 + 12, declared)
+    put32(1024 + 20, FIRST_DATA)
+    put32(1024 + 24, 0)
+    put32(1024 + 32, 64)
+    put32(1024 + 0x28, 32)
+    image[1024 + 0x3A:1024 + 0x3C] = (1).to_bytes(2, "little")
+    image[1024 + 0x58:1024 + 0x5A] = (128).to_bytes(2, "little")
+    image[1024 + 0xFE:1024 + 0x100] = (32).to_bytes(2, "little")
+    desc = 2 * BLOCK
+    put32(desc, 3)
+    put32(desc + 4, 4)
+    put32(desc + 8, 5)
+    image[desc + 0x0C:desc + 0x0E] = declared.to_bytes(2, "little")
+    image[desc + 0x12:desc + 0x14] = (0x0002).to_bytes(2, "little")
+    Path(path).write_bytes(bytes(image))
+    return Path(path)
+
+
 class DiskTests(unittest.TestCase):
     def test_layout_reads_free_runs(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -632,22 +662,42 @@ class DiskTests(unittest.TestCase):
             self.assertEqual(layout["runs"][0], (FIRST_DATA, FIRST_DATA + 8))
             self.assertEqual(len(layout["runs"]), GROUPS)
 
-    def test_uninit_block_groups_skip_without_punching(self):
+    def test_uninit_group_free_blocks_exclude_metadata(self):
         with tempfile.TemporaryDirectory() as temp:
-            image = make_ext4(Path(temp) / "data.img")
-            data = bytearray(image.read_bytes())
-            offset = 2 * BLOCK + 0x12
-            data[offset:offset + 2] = (0x0002).to_bytes(2, "little")
-            Path(image).write_bytes(bytes(data))
+            image = make_ext4_uninit(Path(temp) / "data.img")
             layout = m.ext4_layout(image)
             self.assertEqual(layout["uninit_groups"], 1)
-            self.assertEqual(layout["counted_blocks"], (GROUPS - 1) * 8)
-            calls = []
-            out = io.StringIO()
-            plan = m.compact_kiri(image, apply=True, emit=lambda line: out.write(line + "\n"),
-                                  running=lambda: False, punch=lambda *args: calls.append(args))
-            self.assertEqual(plan["reason"], "uninit-block-groups")
-            self.assertEqual(calls, [])
+            self.assertEqual(layout["counted_blocks"], 55)
+            self.assertEqual(layout["free_blocks"], 55)
+            self.assertEqual(layout["runs"], [(9, 64)])
+            punched, out = [], io.StringIO()
+            m.compact_kiri(image, apply=True, emit=lambda line: out.write(line + "\n"),
+                           running=lambda: False, min_reclaim=0,
+                           punch=lambda fd, offset, length: punched.append((offset, length)))
+            self.assertEqual(punched, [(9 * BLOCK, 55 * BLOCK)])
+            self.assertEqual(json.loads(out.getvalue().splitlines()[-1])["action"], "compact")
+
+    def test_uninit_group_count_mismatch_refuses(self):
+        with tempfile.TemporaryDirectory() as temp:
+            image = make_ext4_uninit(Path(temp) / "data.img", declared=60)
+            with self.assertRaises(m.Refused):
+                m.ext4_layout(image)
+
+    @unittest.skipUnless(sys.platform == "darwin", "APFS hole punching")
+    def test_punch_hole_releases_blocks_without_truncating(self):
+        with tempfile.TemporaryDirectory() as temp:
+            image = Path(temp) / "sparse.img"
+            image.write_bytes(os.urandom(4 << 20))
+            before = image.stat()
+            handle = os.open(image, os.O_RDWR)
+            try:
+                m.punch_hole(handle, 1 << 20, 2 << 20)
+                os.fsync(handle)
+            finally:
+                os.close(handle)
+            after = image.stat()
+            self.assertEqual(after.st_size, before.st_size)
+            self.assertLess(after.st_blocks, before.st_blocks)
 
     def test_bad_geometry_refuses(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -777,9 +827,12 @@ class DiskTests(unittest.TestCase):
             self.assertEqual(report["kiri"]["guest_free_bytes"], GROUPS * 8 * BLOCK)
             self.assertEqual(report["categories"]["kiri"], image.stat().st_blocks * 512)
 
-    def test_disk_apply_with_kiri_only_is_refused(self):
+    def test_disk_apply_with_kiri_only_reaches_the_reclaim_gate(self):
         with tempfile.TemporaryDirectory() as temp:
             image = make_ext4(Path(temp) / "data.img")
-            code = m.main(["disk", "--kiri-image", str(image), "--apply", "--home", temp,
-                           "--var-root", temp])
-            self.assertEqual(code, 2)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = m.main(["disk", "--kiri-image", str(image), "--apply", "--home", temp,
+                               "--var-root", temp])
+            self.assertEqual(code, 0)
+            self.assertIn('"reason": "nothing-to-reclaim"', out.getvalue())

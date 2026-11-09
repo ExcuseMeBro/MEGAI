@@ -247,9 +247,11 @@ Reclaim categories and their guards:
 - `--kiri` — punch-hole compaction. It refuses to run while any
   `Virtualization.VirtualMachine` process exists, while the ext4 journal needs
   replay (`s_recover`), when the image changes during the read, when the
-  bitmap-derived free count disagrees with the superblock, when any block group
-  is still uninitialised (its bitmap hides group metadata), or below 512 MiB of
-  reclaimable space. It punches only blocks the block bitmaps mark free and never
+  bitmap-derived free count disagrees with the superblock, or below 512 MiB of
+  reclaimable space. Uninitialised block groups are handled without reading a
+  bitmap: the group's own metadata (superblock copy, descriptor table, block and
+  inode bitmaps, inode table) is excluded, and the arithmetic must equal the
+  descriptor's free-block count or the run is refused. It punches only blocks the block bitmaps mark free and never
   touches the image size, the guest's files or Docker objects.
 
 A clean sequence is: quit builds and container work, `kiri stop` (clean
