@@ -1,0 +1,76 @@
+{
+  "name": "@enmera/ai-design-check",
+  "version": "0.8.0",
+  "description": "Finds and fixes what makes AI-built interfaces look generated, on the web and in SwiftUI and Jetpack Compose apps: 74 design rules, a zero-dependency checker, a design system generator (fonts, type, colours that pass contrast), an agent fix skill and before/after videos. English and Turkish.",
+  "type": "module",
+  "bin": {
+    "ai-design-check": "bin/ai-design-check.js"
+  },
+  "exports": {
+    ".": "./src/check.js",
+    "./rules.json": "./rules.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin",
+    "src",
+    "data",
+    "rules.json",
+    "RULES.md",
+    "RULES.tr.md",
+    "skills",
+    "README.md",
+    "README.tr.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "RESEARCH.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "docs": "node scripts/docs.js",
+    "test": "node --test",
+    "check:docs": "node scripts/docs.js --check"
+  },
+  "keywords": [
+    "ai",
+    "ai-generated-ui",
+    "claude-code",
+    "cursor",
+    "codex",
+    "hooks",
+    "accessibility",
+    "i18n",
+    "components",
+    "design-system",
+    "ui",
+    "lint",
+    "tailwind",
+    "react",
+    "sentence-case",
+    "agent-skill",
+    "claude",
+    "design-rules",
+    "unslop",
+    "vibecoding",
+    "design-lint",
+    "ui-review",
+    "swiftui",
+    "jetpack-compose",
+    "ios",
+    "android",
+    "mobile",
+    "design-tokens",
+    "typography",
+    "color-contrast"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/enmerasoftware/ai-design-check.git"
+  },
+  "homepage": "https://github.com/enmerasoftware/ai-design-check#readme",
+  "bugs": "https://github.com/enmerasoftware/ai-design-check/issues",
+  "license": "MIT",
+  "author": "Enmera"
+}

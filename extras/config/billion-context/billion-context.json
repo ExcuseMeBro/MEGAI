@@ -1,0 +1,8 @@
+{
+  "autoUpdate": false,
+  "autoRestartOnUpdate": false,
+  "advisoryCheck": false,
+  "pi": {
+    "subagents": false
+  }
+}

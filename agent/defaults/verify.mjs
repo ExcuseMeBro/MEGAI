@@ -1,0 +1,91 @@
+#!/usr/bin/env node
+import { realpathSync, existsSync, readFileSync, lstatSync, accessSync, constants } from 'node:fs';
+import { dirname, join, delimiter } from 'node:path';
+import { homedir } from 'node:os';
+import { pathToFileURL } from 'node:url';
+import { policyProblems } from './policy-contract.mjs';
+
+const command = process.env.PATH.split(delimiter).map(p => join(p, 'pi')).find(p => { try { accessSync(p, constants.X_OK); return true; } catch { return false; } });
+if (!command) throw new Error('Pi CLI missing');
+let packageRoot = dirname(realpathSync(command));
+while (!existsSync(join(packageRoot, 'package.json'))) {
+  const parent = dirname(packageRoot);
+  if (parent === packageRoot) throw new Error('Cannot find Pi package');
+  packageRoot = parent;
+}
+const agentDir = join(homedir(), '.pi/agent');
+if (process.env.PI_CODING_AGENT_DIR && realpathSync(process.env.PI_CODING_AGENT_DIR) !== realpathSync(agentDir)) {
+  throw new Error('Custom PI_CODING_AGENT_DIR is unsupported by the clean default profile');
+}
+// The profile installs the newest Pi and records what it resolved; the check compares
+// PATH against that record instead of a version pinned here, which only went stale.
+const metadata = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
+const manifestPath = join(agentDir, 'defaults/manifest.json');
+const recorded = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')).pi : undefined;
+if (metadata.name !== '@earendil-works/pi-coding-agent'
+    || (typeof recorded === 'string' && metadata.version !== recorded)) {
+  throw new Error(`PATH must select @earendil-works/pi-coding-agent${typeof recorded === 'string' ? ` ${recorded}` : ''}, found ${metadata.name}@${metadata.version}; re-run the MEGAI Pi install`);
+}
+const { DefaultResourceLoader } = await import(pathToFileURL(join(packageRoot, 'dist/index.js')).href);
+const loader = new DefaultResourceLoader({ cwd: process.cwd(), agentDir });
+await loader.reload();
+const loaded = loader.getExtensions();
+const tools = loaded.extensions.flatMap(e => [...e.tools.keys()]);
+const commands = loaded.extensions.flatMap(e => [...e.commands.keys()]);
+const skills = loader.getSkills();
+const prompts = loader.getPrompts();
+const promptNames = prompts.prompts.map(p => p.name);
+const engineeringOnly = process.argv.includes('--engineering-only');
+const requiredTools = engineeringOnly ? [] : ['mcp', 'web_search', 'fetch_content', 'headroom_retrieve', 'headroom_memory'];
+const requiredSkills = ['pi-workflow', 'codebase-design', 'diagnosing-bugs', 'tdd', 'code-review',
+  'frontend-design', 'interface-design', 'baseline-ui', 'make-interfaces-feel-better', 'fixing-accessibility'];
+const requiredPrompts = engineeringOnly ? [] : ['mdev', 'prdev', 'rwbrowser'];
+const selection = JSON.parse(readFileSync(join(agentDir, 'settings.json'), 'utf8'));
+const mcpPath = join(agentDir, 'mcp.json');
+const mcpServers = existsSync(mcpPath) ? JSON.parse(readFileSync(mcpPath, 'utf8')).mcpServers : {};
+if (!mcpServers || typeof mcpServers !== 'object' || Array.isArray(mcpServers)) {
+  throw new Error('Invalid Pi MCP configuration');
+}
+if (selection.prompts !== undefined && (!Array.isArray(selection.prompts) || selection.prompts.some(value => typeof value !== 'string'))) {
+  throw new Error('Invalid Pi prompt selection');
+}
+const excludedPrompts = new Set((selection.prompts ?? []).filter(value => value.startsWith('-prompts/')));
+const policy = existsSync(join(agentDir, 'AGENTS.md')) ? readFileSync(join(agentDir, 'AGENTS.md'), 'utf8') : '';
+const missing = [...requiredTools.filter(t => !tools.includes(t)), ...requiredSkills.filter(s => !skills.skills.some(v => v.name === s))];
+if ('pellet' in mcpServers) missing.push('retired Pellet MCP entry still configured');
+if (!mcpServers.brokan || mcpServers.brokan.enabled === false) missing.push('Brokan MCP not enabled');
+if ('plane' in mcpServers) missing.push('retired Plane MCP entry still configured');
+for (const name of requiredPrompts) {
+  if (!promptNames.includes(name) && !excludedPrompts.has(`-prompts/${name}.md`)) missing.push(`/${name}`);
+}
+if (tools.includes('factory_delegate') || commands.includes('delegate') || commands.includes('factory')
+    || promptNames.includes('factory') || promptNames.includes('delegate'))
+  missing.push('retired /factory or /delegate still loaded');
+const configuredFactory = (selection.packages ?? []).filter(p =>
+  (typeof p === 'string' ? p : p?.source) === './pellet-factory');
+if (configuredFactory.length) missing.push('retired ./pellet-factory package still selected');
+for (const name of ['ponytail', 'using-superpowers']) {
+  if (skills.skills.some(s => s.name === name) || commands.includes(name)) missing.push(`retired resource: ${name}`);
+}
+for (const name of requiredSkills) {
+  if (skills.skills.filter(s => s.name === name).length > 1) missing.push(`duplicate skill: ${name}`);
+}
+if (skills.skills.some(s => s.name.startsWith('openspec-')) || promptNames.some(n => n.startsWith('opsx-'))) missing.push('retired OpenSpec resources');
+missing.push(...policyProblems(policy).map(problem => `AGENTS.md: ${problem}`));
+if (/mandatory Paseo integration|Paseo is required/i.test(policy)) missing.push('AGENTS.md: retired mandatory integration');
+// The same prompt can be installed globally and in a project's tracked policy.
+// Accept only byte-identical regular files; a differing override remains a diagnostic.
+const identicalPromptCollision = diagnostic => {
+  const c = diagnostic.collision;
+  if (diagnostic.type !== 'collision' || c?.resourceType !== 'prompt'
+      || typeof c.winnerPath !== 'string' || typeof c.loserPath !== 'string') return false;
+  try {
+    const winner = lstatSync(c.winnerPath), loser = lstatSync(c.loserPath);
+    return winner.isFile() && loser.isFile() && !winner.isSymbolicLink() && !loser.isSymbolicLink()
+      && readFileSync(c.winnerPath).equals(readFileSync(c.loserPath));
+  } catch { return false; }
+};
+const diagnostics = [...skills.diagnostics, ...prompts.diagnostics].filter(d => !identicalPromptCollision(d));
+const report = { extensions: loaded.extensions.map(e => e.path), tools, skills: skills.skills.map(s => s.name), prompts: promptNames, errors: loaded.errors, diagnostics, missing };
+console.log(JSON.stringify(report, null, 2));
+process.exit(loaded.errors.length || diagnostics.length || missing.length ? 1 : 0);

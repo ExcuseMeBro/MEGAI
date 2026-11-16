@@ -1,0 +1,34 @@
+{
+  "mcpServers": {
+    "brokan": {
+      "command": "__HOME__/.local/bin/brokan",
+      "args": [
+        "mcp"
+      ]
+    },
+    "agentmemory": {
+      "command": "__NODE__",
+      "args": [
+        "__HOME__/.local/share/agentmemory-package/node_modules/@agentmemory/agentmemory/dist/standalone.mjs"
+      ],
+      "env": {
+        "AGENTMEMORY_TOOLS": "all",
+        "AGENTMEMORY_FORCE_PROXY": "1"
+      },
+      "exposure": "deferred"
+    },
+    "figma-console": {
+      "command": "__NODE__",
+      "args": [
+        "__HOME__/.local/share/figma-console-mcp/node_modules/figma-console-mcp/dist/local.js"
+      ],
+      "env": {
+        "FIGMA_ACCESS_TOKEN": "${FIGMA_ACCESS_TOKEN}",
+        "ENABLE_MCP_APPS": "true"
+      },
+      "description": "Figma design system as an API: read and write Figma files, variables, components, tokens, FigJam boards and slides, plus accessibility and design-code parity checks. Write tools need the Figma Desktop Bridge plugin running in Figma Desktop.",
+      "timeout": 120,
+      "exposure": "deferred"
+    }
+  }
+}

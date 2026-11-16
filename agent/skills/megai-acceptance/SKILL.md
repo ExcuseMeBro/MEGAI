@@ -1,0 +1,88 @@
+---
+name: megai-acceptance
+description: Formal Pi acceptance for guarded risks or explicitly requested assurance; freeze criteria and collect source-current evidence.
+managed-by: megai
+---
+
+# Pi acceptance gate
+
+Use for **guarded** work selected by `megai`, explicit formal assurance, or an
+existing frozen contract. Routine Pi tasks use focused verification and self-review
+without loading this workflow. Once selected, this gate is mandatory: urgency or a
+failed check cannot downgrade it. Changes to safety/acceptance/installer behavior
+or enforcement are guarded, including instruction-only changes to approval or
+validation requirements. Harmless prose edits and installation of already-reviewed
+policy bytes do not trigger this gate by filename alone; classify their actual
+risk with `megai`.
+
+Parent owns the contract and Brokan task identity; leaves inherit both, never mutate
+approval or integrate. Load this workflow once per task; reuse it at handoff.
+Read [reference.md](reference.md) when preparing contracts, recording a regression,
+collecting evidence or checking acceptance. This gate is not a sandbox or tracker.
+
+## 1. Freeze the task
+
+For non-Git configuration work, use the complete owned configuration directory as
+`--root`; the CLI fingerprints all entries without Git or ignore rules. Follow the
+scoped local-workspace/backup/one-writer procedure in `agent-worktree-lifecycle`.
+Contracts, evidence and backups stay outside that source root. Git absence alone
+is not BLOCKED; unreadable/unsupported source or missing tests still are.
+
+Start/reuse the selected Brokan task. Name observable outcomes, error cases and
+regression boundaries; bind each to a bounded command that asserts the outcome.
+Use schema 4 and `brokan.task_id` for new tasks: classify `bugfix`, `change` or `docs`.
+Previously frozen Plane schema-1/2/3 contracts remain readable without mutation. Product behavior requires a
+real CLI/API/browser check; static-only work needs an explicit runtime rationale.
+Live tests require user-approved local/staging targets and isolated identities.
+Missing prerequisites mean BLOCKED; production mutations, real payments/messages
+and destructive cleanup remain outside scope.
+
+For **bugfix**, first reproduce the reported failure and capture the regression
+command with `run --test-file`. Inspect its actual assertion failure, not a missing
+dependency, timeout or unrelated error. Bind that red receipt, exact expected exit
+and failure signature into a regression criterion. The same test files and command
+must pass after the fix. Freeze the parent-approved contract bytes outside source;
+record SHA256 as `Frozen acceptance SHA256: HASH` on its own line in the same Brokan task
+before implementation; read back the task identity, status and exact hash. Changes
+to criteria/tests require parent reconciliation and fresh red evidence, not a waiver.
+
+## 2. Fix and collect
+
+Use the narrowest root-cause fix and task-relevant checks. One writer, no mandatory
+scout or duplicate reviewer. Git source tasks use isolated per-repo worktrees via
+`agent-worktree-lifecycle`. Commit before final Git delivery capture. For a multi-repo
+task, freeze the full affected repo/commit vector and require every repo plus cross-repo
+checks to pass before any dev integration. A moved base or candidate needs fresh
+source-current evidence; one repository's PASS never substitutes for another's.
+Non-Git configuration has no commit step;
+finish writes and freeze the directory fingerprint before final capture. Keep artifacts
+outside the source root.
+
+Run `megai acceptance collect` with the frozen contract and hash retrieved from
+Brokan. The CLI reads back the approved hash from the local board for schema 4
+and captures commands once, in order, into a new private directory; a failure
+or source change stops later commands. The generated evidence is a **BLOCKED draft**,
+not acceptance. Inspect raw logs and fill each observation with the actual outcome.
+For runtime checks, bind the running build/environment to the candidate and verify
+the result (e.g. save then reload), including required error/permission/a11y cases.
+Existing E2E commands and authorized browser observations may supply evidence;
+screenshots, coverage, exit zero or LLM scores alone do not prove behavior.
+
+## 3. Self-review, decide, stop
+
+The parent checks every criterion, regression, runtime provenance and the full diff
+against actual receipts; no separate reviewer step is used. Repeat a passing
+check only for a concrete unresolved risk. Do not add a separate reviewer step.
+Resolve blocking findings and rerun affected diagnostics. Any source/index/commit
+change invalidates the prior snapshot: final capture must match the delivered
+candidate. Historical frozen schema-1/2 contracts keep their original review
+requirement; never rewrite approved bytes to evade it.
+
+Run `megai acceptance check` with the Brokan-approved hash. Only a source-current PASS
+permits agreed delivery (Git branch or non-Git configuration files) and Brokan
+`review`, never `done` or unapproved main promotion.
+Report criterion → command/action → observed result → artifact. FAIL needs a fix;
+BLOCKED needs the named evidence/prerequisite. Stop at acceptance. Keep user
+resource exclusions and native provider settings intact.
+Credentials/private data stay out of argv and public artifacts; raw logs remain
+private, and sanitized exports need their own hashes.

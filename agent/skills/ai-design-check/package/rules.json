@@ -1,0 +1,2091 @@
+{
+  "version": 1,
+  "areas": {
+    "writing": {
+      "en": "Writing",
+      "tr": "Yazım"
+    },
+    "type": {
+      "en": "Type scale",
+      "tr": "Yazı ölçeği"
+    },
+    "shape": {
+      "en": "Corners and surfaces",
+      "tr": "Köşe ve yüzey"
+    },
+    "components": {
+      "en": "Components and reuse",
+      "tr": "Bileşen ve tekrar"
+    },
+    "selectors": {
+      "en": "Selectors",
+      "tr": "Seçiciler"
+    },
+    "layout": {
+      "en": "Layout",
+      "tr": "Yerleşim"
+    },
+    "navigation": {
+      "en": "Navigation",
+      "tr": "Menü"
+    },
+    "visual": {
+      "en": "Visual language",
+      "tr": "Görsel dil"
+    },
+    "accessibility": {
+      "en": "Accessibility",
+      "tr": "Erişilebilirlik"
+    },
+    "motion": {
+      "en": "Motion",
+      "tr": "Hareket"
+    },
+    "data": {
+      "en": "Data and numbers",
+      "tr": "Veri ve sayılar"
+    },
+    "i18n": {
+      "en": "Localisation",
+      "tr": "Yerelleştirme"
+    },
+    "interaction": {
+      "en": "Interaction",
+      "tr": "Etkileşim"
+    },
+    "copy": {
+      "en": "Copy",
+      "tr": "Metin"
+    }
+  },
+  "rules": [
+    {
+      "id": "sentence-case",
+      "area": "writing",
+      "severity": "error",
+      "title": {
+        "en": "Sentence case for interface text",
+        "tr": "Arayüz metninde yalnız ilk kelime büyük"
+      },
+      "rule": {
+        "en": "Only the first word and proper names start with a capital letter: \"Rank tracking\", \"Site health\". No automatic title-casing helper; text shows as written.",
+        "tr": "Yalnız ilk kelime ve özel adlar büyük harfle başlar: \"Kelime takibi\", \"Bu hafta yükselen\". Otomatik büyük harf dönüştürücü yok; metin nasıl yazıldıysa öyle görünür."
+      },
+      "why": {
+        "en": "Title Case on every short label reads loud and is not Turkish (or modern English UI) style. Microsoft's Turkish style guide: only proper nouns and the first word.",
+        "tr": "Her kısa etikette her kelimenin büyük yazılması bağırır ve Türkçe yazım kuralı değildir. Microsoft Türkçe stil kılavuzu (4.1.5): yalnız özel adlar ve ilk kelime; TDK'de her kelime büyük yalnız eser, belge ve kurum adlarında."
+      },
+      "fix": {
+        "en": "Keep proper names (Google Business Profile, Search Console), official category and document names, abbreviations (AI, SERP) and language-code badges as they are. After a path separator the first word stays capitalised: \"Site health › Site audit\".",
+        "tr": "Özel adlar (Google İşletme Profili, Search Console), resmî kategori ve belge adları (Sağlık ve Fitness, Gizlilik Politikası), kısaltmalar (AI, SERP) ve dil kodu rozetleri olduğu gibi kalır. Yol ayracından sonraki ilk kelime büyük: \"Site sağlığı › Site denetimi\"."
+      },
+      "check": {
+        "type": "i18n-case",
+        "native": {
+          "swift": {
+            "pattern": "(?:\\b(?:Text|Label|Button|Section|Toggle|navigationTitle)\\(\\s*|\\b(?:title|linkTitle|label):\\s*)\"([^\"\\\\\\n]{3,40})\"",
+            "titleCase": true
+          },
+          "kt": {
+            "pattern": "(?:\\bText\\(\\s*(?:text\\s*=\\s*)?|\\b(?:title|label)\\s*=\\s*)\"([^\"\\\\$\\n]{3,40})\"",
+            "titleCase": true
+          }
+        }
+      }
+    },
+    {
+      "id": "no-decorative-uppercase",
+      "area": "writing",
+      "severity": "warn",
+      "title": {
+        "en": "No tracked uppercase labels",
+        "tr": "Süs amaçlı büyük harf ve harf aralığı yok"
+      },
+      "rule": {
+        "en": "No small uppercase, letter-spaced labels (kickers, eyebrows, section captions such as \"NAVIGATION\").",
+        "tr": "Küçük, büyük harfli ve harf aralıklı etiket yok (başlık üstü etiket, kahraman alanı hap etiketi, \"NAVIGATION\" gibi bölüm başlığı)."
+      },
+      "why": {
+        "en": "It is the most common generated-UI template and hurts reading: we recognise words by shape.",
+        "tr": "Yapay zekâ üretimi arayüzlerin en bilinen kalıbıdır ve okumayı zorlaştırır: kelimeleri biçiminden tanırız."
+      },
+      "fix": {
+        "en": "Write the label in sentence case with normal tracking. Codes, language codes and initials avatars may stay uppercase.",
+        "tr": "Etiketi normal yazım ve harf aralığıyla yazın. Kodlar, dil kodu rozeti ve baş harf avatarı büyük kalabilir."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:\\buppercase\\b[^\"'`]*\\btracking-(?:wide|wider|widest|\\[0?\\.\\d+em\\])|\\btracking-(?:wide|wider|widest|\\[0?\\.\\d+em\\])[^\"'`]*\\buppercase\\b)",
+        "markup": "class(?:Name)?=[\"'][^\"']*\\btracking-(?:wide|wider|widest|\\[0?\\.\\d+em\\])[^\"']*[\"'][^>]*>\\s*(\\p{Lu}[\\p{Lu}\\d&/ -]{3,})\\s*<"
+      }
+    },
+    {
+      "id": "short-labels",
+      "area": "writing",
+      "severity": "info",
+      "title": {
+        "en": "Labels fit their slot",
+        "tr": "Etiket yerine sığar"
+      },
+      "rule": {
+        "en": "A menu item or tab label that gets truncated is shortened, using the same word for the same thing everywhere.",
+        "tr": "Menüde ya da sekmede kesilen etiket kısaltılır; aynı şey her yerde aynı kelimeyle söylenir (kısa etikette \"keyword\" = \"kelime\": \"Kelime araştırması\")."
+      },
+      "why": {
+        "en": "A cut label hides the meaning and looks unfinished.",
+        "tr": "Kesilen etiket anlamı gizler ve yarım görünür."
+      },
+      "fix": {
+        "en": "Shorten the label; do not shrink the font.",
+        "tr": "Etiketi kısaltın; yazıyı küçültmeyin."
+      }
+    },
+    {
+      "id": "type-scale",
+      "area": "type",
+      "severity": "error",
+      "title": {
+        "en": "Font sizes from the scale only",
+        "tr": "Yazı boyutu yalnız ölçekten"
+      },
+      "rule": {
+        "en": "Use the theme scale: text-2xs (11 px, the smallest), text-xs, text-sm, text-base and up. No arbitrary text-[10px] or text-[13px].",
+        "tr": "Temadaki ölçek kullanılır: text-2xs (11 px, en küçük), text-xs, text-sm, text-base … Elle text-[10px], text-[13px] yazılmaz."
+      },
+      "why": {
+        "en": "One-off sizes pile up into screens that are almost, but not quite, the same. Text under 11 px is a legibility failure.",
+        "tr": "Tek seferlik boyutlar ekranlar arasında küçük farklar biriktirir. 11 px altı metin okunmaz."
+      },
+      "fix": {
+        "en": "Add --text-2xs: 0.6875rem (line height 1rem) to the theme and map 9–11 px to it, 12 px to text-xs, 13 px to text-sm. Display sizes on marketing pages go in the allow list.",
+        "tr": "Temaya --text-2xs: 0.6875rem (satır yüksekliği 1rem) ekleyin; 9–11 px → text-2xs, 12 px → text-xs, 13 px → text-sm. Tanıtım sitesinin büyük başlık boyutları izin listesine yazılır."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "\\btext-\\[[0-9.]+(?:px|rem)\\]",
+        "native": {
+          "kt": {
+            "pattern": "\\bfontSize\\s*=\\s*([0-9.]+)\\.sp"
+          }
+        }
+      }
+    },
+    {
+      "id": "dynamic-type",
+      "area": "type",
+      "severity": "warn",
+      "title": {
+        "en": "Text styles that follow Dynamic Type",
+        "tr": "Dinamik yazı boyutuna uyan metin stilleri"
+      },
+      "rule": {
+        "en": "In SwiftUI, set text with text styles (.body, .headline, .caption) or a custom font with relativeTo, not a fixed .system(size:). Icons may use a fixed size.",
+        "tr": "SwiftUI'da metni metin stilleriyle (.body, .headline, .caption) ya da relativeTo ile özel yazı tipiyle verin, sabit .system(size:) ile değil. İkonlar sabit boyut kullanabilir."
+      },
+      "why": {
+        "en": "A fixed size ignores the reader's text size setting, so people who need larger text cannot read the screen, and every screen ends up with its own ad hoc sizes.",
+        "tr": "Sabit boyut, kullanıcının yazı boyutu ayarını yok sayar: büyük yazıya ihtiyacı olan ekranı okuyamaz ve her ekran kendi gelişigüzel boyutlarına sahip olur."
+      },
+      "fix": {
+        "en": "Map each size to the nearest text style (11 caption2, 12 caption, 13 footnote, 15 subheadline, 17 body, 20 title3, 22 title2, 28 title, 34 largeTitle) and keep the weight with .fontWeight.",
+        "tr": "Her boyutu en yakın metin stiline eşleyin (11 caption2, 12 caption, 13 footnote, 15 subheadline, 17 body, 20 title3, 22 title2, 28 title, 34 largeTitle) ve kalınlığı .fontWeight ile verin."
+      },
+      "check": {
+        "type": "native",
+        "native": {
+          "swift": {
+            "pattern": "\\.font\\(\\s*\\.system\\(\\s*size:\\s*([0-9.]+)(?![^)\\n]*relativeTo)",
+            "unlessBefore": "Image\\((?:systemName:)?[^)\\n]*\\)\\s*(?:\\.[a-zA-Z]+\\([^()\\n]*\\)\\s*){0,3}$"
+          }
+        }
+      }
+    },
+    {
+      "id": "radius-scale",
+      "area": "shape",
+      "severity": "error",
+      "title": {
+        "en": "Corner radii from the scale only",
+        "tr": "Köşe yuvarlaklığı yalnız ölçekten"
+      },
+      "rule": {
+        "en": "Use rounded-md … rounded-3xl and rounded-full; large marketing surfaces get one shared token (rounded-panel). Arbitrary radii only for micro elements up to 5 px and for drawn device or icon shapes.",
+        "tr": "rounded-md … rounded-3xl ve rounded-full kullanılır; tanıtım sitesinin büyük yüzeyleri tek bir ortak değer alır (rounded-panel). Elle köşe yalnız 5 px'e kadar mikro öğelerde ve cihaz/ikon çizimlerinde."
+      },
+      "why": {
+        "en": "28, 30 and 32 px side by side read as noise, not as a system.",
+        "tr": "Yan yana 28, 30 ve 32 px'lik köşeler sistem değil gürültü gibi okunur."
+      },
+      "fix": {
+        "en": "Pick the nearest scale step or add one named token.",
+        "tr": "En yakın ölçek adımını seçin ya da tek bir adlı değer ekleyin."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "\\brounded(?:-[a-z]{1,2})?-\\[(?![1-5]px\\]|inherit\\])[^\\]]+\\]",
+        "native": {
+          "swift": {
+            "pattern": "cornerRadius(?::\\s*|\\(\\s*)([0-9.]+)",
+            "notMultipleOf": 4
+          },
+          "kt": {
+            "pattern": "RoundedCornerShape\\(\\s*(?:size\\s*=\\s*)?([0-9.]+)\\.dp",
+            "notMultipleOf": 4
+          }
+        }
+      }
+    },
+    {
+      "id": "no-nested-cards",
+      "area": "shape",
+      "severity": "warn",
+      "title": {
+        "en": "No cards inside cards",
+        "tr": "Kart içinde kart yok"
+      },
+      "rule": {
+        "en": "Group inside a card with spacing, type and dividers, not another bordered card.",
+        "tr": "Kartın içindeki gruplar boşluk, yazı ve ayraçla ayrılır; içe ikinci bir çerçeveli kart konmaz."
+      },
+      "why": {
+        "en": "Nested frames add depth without meaning.",
+        "tr": "İç içe çerçeve anlamı olmayan derinlik ekler."
+      },
+      "fix": {
+        "en": "Flatten: a divider or a muted background block instead of a second border and shadow.",
+        "tr": "Düzleştirin: ikinci kenarlık ve gölge yerine ayraç ya da hafif zeminli blok."
+      }
+    },
+    {
+      "id": "selector-language",
+      "area": "selectors",
+      "severity": "error",
+      "title": {
+        "en": "One selector language",
+        "tr": "Tek seçici dili"
+      },
+      "rule": {
+        "en": "A primary choice that changes the content (page tabs, topic groups, separate lists) is a segmented control. Its sub-tabs sit on the same row to its right as plain text (selected one on a light fill). Filters that narrow the same list are pill chips inside the list.",
+        "tr": "İçerik değiştiren ana seçim (sayfa sekmeleri, konu grupları, ayrı listeler) bölmeli seçicidir. Alt sekmeleri aynı satırda, sağında, ince ayraçtan sonra kutusuz metindir (seçili olan hafif zeminli). Aynı listeyi daraltan süzgeç, listenin içinde hap düğmedir."
+      },
+      "why": {
+        "en": "Two stacked selector rows of similar weight hide which one is the main choice. Underlined tabs were tried and rejected.",
+        "tr": "Alt alta, benzer ağırlıkta iki seçici sırası hangisinin ana seçim olduğunu gizler. Alt çizgili sekme denendi ve beğenilmedi."
+      },
+      "fix": {
+        "en": "Never two selector rows on top of each other and no underline tabs. A small variant switch inside a card is a small segmented control.",
+        "tr": "Alt alta iki seçici sırası ve alt çizgili sekme yok. Kart içindeki küçük varyant seçimi küçük bölmeli seçicidir."
+      }
+    },
+    {
+      "id": "full-width-tables",
+      "area": "layout",
+      "severity": "warn",
+      "title": {
+        "en": "Wide tables span the page",
+        "tr": "Geniş tablo tam genişlikte"
+      },
+      "rule": {
+        "en": "A data table with several columns takes the full width; the last column absorbs the spare width (w-full, cells max-w-0 truncate) so date and value never drift apart.",
+        "tr": "Çok sütunlu veri tablosu tam genişlikte durur; artan genişliği son sütun alır (w-full, hücrede max-w-0 truncate). Az sütunda tarih ile değer birbirinden kopmaz, uzun adlar kesilmez."
+      },
+      "why": {
+        "en": "Squeezed into a side column it truncates names; with few rows it leaves an empty area below.",
+        "tr": "Yan sütuna sıkışan tablo adları keser; satır azken altında boş alan bırakır."
+      },
+      "fix": {
+        "en": "Move the side cards below the table into a two-column masonry.",
+        "tr": "Yan kartları tablonun altına, iki sütunlu masonry yerleşime alın."
+      }
+    },
+    {
+      "id": "masonry",
+      "area": "layout",
+      "severity": "warn",
+      "title": {
+        "en": "Uneven cards in a grid masonry",
+        "tr": "Yüksekliği farklı kartlar ızgara tabanlı masonry'de"
+      },
+      "rule": {
+        "en": "Cards of different heights go into a grid-based masonry (two columns, left-to-right order). No CSS columns, and no narrow column with empty space under it.",
+        "tr": "Yüksekliği farklı kartlar ızgara tabanlı masonry'ye girer (iki sütun, soldan sağa sıra). CSS columns kullanılmaz; altı boş kalan dar sütun bırakılmaz."
+      },
+      "why": {
+        "en": "CSS columns split shadows at the column top in Chrome and order cards column by column.",
+        "tr": "CSS columns Chrome'da gölgeyi sütun başında bölüyor ve kartları sütun sütun diziyor."
+      },
+      "fix": {
+        "en": "Use a grid masonry component that places each card into the shortest column.",
+        "tr": "Her kartı en kısa sütuna yerleştiren ızgara tabanlı masonry bileşeni kullanın."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:^|\\s)(?:[\\w-]+:)*columns-(?:[1-9]|xs|sm|md|lg|xl|[2-7]xl)(?=\\s|$)",
+        "css": "column-count\\s*:"
+      }
+    },
+    {
+      "id": "readable-measure",
+      "area": "layout",
+      "severity": "warn",
+      "title": {
+        "en": "Readable line length and leading",
+        "tr": "Okunur satır uzunluğu ve aralığı"
+      },
+      "rule": {
+        "en": "Running text stays under about 80 characters per line (max-w-prose / max-w-3xl) with line height of at least 1.3; headings have more space above than below.",
+        "tr": "Akan metin satırda yaklaşık 80 karakteri geçmez (max-w-prose / max-w-3xl), satır aralığı en az 1,3; başlığın üstündeki boşluk altındakinden büyüktür."
+      },
+      "why": {
+        "en": "Long lines lose the reader on the way back.",
+        "tr": "Uzun satırda göz bir sonraki satırın başını kaybeder."
+      },
+      "fix": {
+        "en": "Cap the paragraph width, not the card.",
+        "tr": "Kartı değil paragrafı daraltın."
+      }
+    },
+    {
+      "id": "spacing-rhythm",
+      "area": "layout",
+      "severity": "info",
+      "title": {
+        "en": "Spacing with rhythm",
+        "tr": "Boşlukta ritim"
+      },
+      "rule": {
+        "en": "Related items sit tight, sections breathe. The same gap everywhere has no rhythm.",
+        "tr": "İlgili öğeler sıkı, bölümler arası geniş. Her yerde aynı boşluk ritimsizdir."
+      },
+      "why": {
+        "en": "Grouping is read from spacing before anything else.",
+        "tr": "Gruplama her şeyden önce boşluktan okunur."
+      },
+      "fix": {
+        "en": "Use two or three steps: inside a group, between groups, between sections.",
+        "tr": "İki üç adım kullanın: grup içi, gruplar arası, bölümler arası."
+      }
+    },
+    {
+      "id": "menu-by-job",
+      "area": "navigation",
+      "severity": "warn",
+      "title": {
+        "en": "Menu grouped by job, place decided first",
+        "tr": "Menü işe göre, yer önce kararlaştırılır"
+      },
+      "rule": {
+        "en": "Before building a feature decide its place: which menu section, its own row or a tab of an existing page, which URL prefix. Pages of the same job are one menu row with tabs. Sections collapse; the current one stays open.",
+        "tr": "Özellik yazılmadan önce yeri kararlaştırılır: hangi menü bölümü, ayrı satır mı var olan sayfanın sekmesi mi, hangi adres öneki. Aynı işin sayfaları menüde tek satır, sayfada sekmedir. Bölümler katlanır; içinde bulunulan bölüm açık kalır."
+      },
+      "why": {
+        "en": "Without it a menu grows into a flat list of fifty rows where related work sits in four places.",
+        "tr": "Yoksa menü, birbiriyle ilgili işlerin dört ayrı yere düştüğü elli satırlık düz bir listeye dönüşür."
+      },
+      "fix": {
+        "en": "A moved address answers with 301 (path and query kept); callback URLs registered with outside services never move. Help texts name the same path as the menu.",
+        "tr": "Taşınan adres 301 ile yönlenir (alt yol ve sorgu korunur); dış servislere kayıtlı geri dönüş adresleri taşınmaz. Yardım metinlerindeki \"nerede\" yolu menüyle aynı yazılır."
+      }
+    },
+    {
+      "id": "icons-not-emoji",
+      "area": "visual",
+      "severity": "warn",
+      "title": {
+        "en": "Line icons, not emoji",
+        "tr": "Emoji yerine çizgi ikon"
+      },
+      "rule": {
+        "en": "Interface marks are line icons from one set (lucide). Emoji and text glyphs such as ✓ ★ are not used as UI decoration; emoji that are content (an emoji picker) stay.",
+        "tr": "Arayüz işaretleri tek bir setten çizgi ikondur (lucide). Emoji ve ✓ gibi metin işaretleri süs olarak kullanılmaz; içerik olan emoji (sohbet emoji seçici) kalır."
+      },
+      "why": {
+        "en": "Emoji render differently on every platform and read as generated.",
+        "tr": "Emoji her platformda farklı çizilir ve üretilmiş gibi okunur."
+      },
+      "fix": {
+        "en": "Replace with the matching icon at the text size.",
+        "tr": "Metin boyutunda karşılık gelen ikonla değiştirin."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "[\\u{1F300}-\\u{1FAFF}\\u{2705}\\u{2714}\\u{2728}\\u{2B50}\\u{26A1}\\u{2764}]",
+        "flags": "u",
+        "files": [
+          "tsx",
+          "jsx",
+          "vue",
+          "svelte",
+          "html",
+          "blade.php"
+        ],
+        "native": {
+          "swift": "\"(?:[^\"\\\\\\n]|\\\\.)*[\\u{1F300}-\\u{1FAFF}\\u{2705}\\u{2714}\\u{2728}\\u{2B50}\\u{26A1}\\u{2764}](?:[^\"\\\\\\n]|\\\\.)*\"",
+          "kt": "\"(?:[^\"\\\\\\n]|\\\\.)*[\\u{1F300}-\\u{1FAFF}\\u{2705}\\u{2714}\\u{2728}\\u{2B50}\\u{26A1}\\u{2764}](?:[^\"\\\\\\n]|\\\\.)*\""
+        }
+      }
+    },
+    {
+      "id": "no-ai-gradients",
+      "area": "visual",
+      "severity": "error",
+      "title": {
+        "en": "No gradient text or purple gradients",
+        "tr": "Gradyan metin ve mor gradyan yok"
+      },
+      "rule": {
+        "en": "Text is solid colour. No purple, violet or indigo gradients and no decorative radial halos behind sections.",
+        "tr": "Metin düz renktir. Mor, menekşe ya da çivit gradyan ve bölümlerin arkasında süs amaçlı radyal parıltı yok."
+      },
+      "why": {
+        "en": "They are the most recognisable tells of generated interfaces.",
+        "tr": "Yapay zekâ üretimi arayüzlerin en tanınan izleridir."
+      },
+      "fix": {
+        "en": "Use the brand colour flat; colour carries meaning (state, series, selection).",
+        "tr": "Marka rengini düz kullanın; renk anlam taşır (durum, seri, seçim)."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:\\bbg-clip-text\\b|\\b(?:from|via|to)-(?:purple|violet|fuchsia|indigo)-[0-9]{2,3}\\b)",
+        "native": {
+          "swift": "(?:Linear|Angular|Radial)Gradient\\([\\s\\S]{0,240}?\\.(?:purple|indigo|pink)\\b|Text\\([^\\n]*\\)\\s*(?:\\.[a-zA-Z]+\\([^()\\n]*\\)\\s*){0,4}\\.foregroundStyle\\(\\s*(?:Linear|Angular|Radial)Gradient",
+          "kt": "Brush\\.(?:linear|horizontal|vertical|sweep|radial)Gradient\\([\\s\\S]{0,240}?(?:Purple|Violet|Magenta|Indigo|Pink)"
+        }
+      }
+    },
+    {
+      "id": "no-side-stripe",
+      "area": "visual",
+      "severity": "warn",
+      "title": {
+        "en": "No coloured side stripe on cards",
+        "tr": "Kartın kenarında renkli kalın çizgi yok"
+      },
+      "rule": {
+        "en": "No thick coloured border on one side of a card or alert.",
+        "tr": "Kartın ya da uyarının tek kenarında kalın renkli çizgi yok."
+      },
+      "why": {
+        "en": "It is the single most common generated-UI accent and fights the rounded corner.",
+        "tr": "Yapay zekâ üretimi arayüzün en yaygın vurgusudur ve yuvarlak köşeyle çatışır."
+      },
+      "fix": {
+        "en": "Use a status badge, an icon or a light tinted background.",
+        "tr": "Durum rozeti, ikon ya da hafif renkli zemin kullanın."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "\\bborder-(?:l|s|r|e)-(?:2|4|8)\\b"
+      }
+    },
+    {
+      "id": "glow-in-charts-only",
+      "area": "visual",
+      "severity": "warn",
+      "title": {
+        "en": "Glow only in charts",
+        "tr": "Parıltı yalnız grafikte"
+      },
+      "rule": {
+        "en": "Coloured glow shadows belong to the chart language (score rings, chart lines) only; buttons, cards and text do not glow.",
+        "tr": "Renkli parıltı gölgesi yalnız grafik dilindedir (puan halkası, grafik çizgisi); düğme, kart ve metin parlamaz."
+      },
+      "why": {
+        "en": "Glow everywhere is noise; glow on data draws the eye to the number.",
+        "tr": "Her yerde parıltı gürültüdür; veride parıltı gözü sayıya çeker."
+      },
+      "fix": {
+        "en": "Remove it, or list the chart component in the allow list.",
+        "tr": "Kaldırın ya da grafik bileşenini izin listesine yazın."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "\\b(?:drop-)?shadow-\\[0_0_[1-9][0-9]*(?:px|rem)"
+      }
+    },
+    {
+      "id": "pulse-for-live-only",
+      "area": "motion",
+      "severity": "info",
+      "title": {
+        "en": "Pulse only for live data",
+        "tr": "Nabız yalnız canlı veride"
+      },
+      "rule": {
+        "en": "A pulsing dot means something is running right now; it never decorates.",
+        "tr": "Nabız atan nokta şu an süren bir işi anlatır; süs için atmaz."
+      },
+      "why": {
+        "en": "Fake liveness teaches people to ignore real alerts.",
+        "tr": "Sahte canlılık gerçek uyarıları görmezden gelmeyi öğretir."
+      },
+      "fix": {
+        "en": "Bind the animation to the running state; show a static dot otherwise.",
+        "tr": "Animasyonu süren duruma bağlayın; değilse sabit nokta gösterin."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "\\banimate-(?:ping|pulse)\\b",
+        "native": {
+          "swift": "\\.repeatForever\\(",
+          "kt": "\\binfiniteRepeatable\\("
+        }
+      }
+    },
+    {
+      "id": "no-marquee",
+      "area": "motion",
+      "severity": "warn",
+      "title": {
+        "en": "No auto-scrolling strips",
+        "tr": "Kendiliğinden kayan şerit yok"
+      },
+      "rule": {
+        "en": "Content does not scroll by itself.",
+        "tr": "İçerik kendiliğinden kaymaz."
+      },
+      "why": {
+        "en": "It demands attention and always hides half of its content.",
+        "tr": "Dikkat ister ve içeriğinin yarısını hep gizler."
+      },
+      "fix": {
+        "en": "A static, swipeable row or a short list.",
+        "tr": "Kaydırılabilen sabit bir satır ya da kısa liste."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:^|\\s)(?:[\\w-]+:)*animate-marquee(?=\\s|$)",
+        "css": "@keyframes\\s+marquee|<marquee\\b"
+      }
+    },
+    {
+      "id": "numbers-with-context",
+      "area": "data",
+      "severity": "warn",
+      "title": {
+        "en": "Numbers carry their comparison",
+        "tr": "Sayı neye göre olduğunu söyler"
+      },
+      "rule": {
+        "en": "A headline number shows what it is compared with (\"−1.2 vs last week\") and, if it moves over time, its recent history.",
+        "tr": "Öne çıkan sayı neyle kıyaslandığını söyler (\"geçen haftaya göre −1,2\"); zamanla değişiyorsa yakın geçmişini gösterir."
+      },
+      "why": {
+        "en": "\"Average rank 13.8\" alone does not say whether that is good news.",
+        "tr": "Tek başına \"Ortalama sıra 13,8\" bunun iyi haber olup olmadığını söylemez."
+      },
+      "fix": {
+        "en": "Add the delta and its period under the number.",
+        "tr": "Sayının altına değişimi ve dönemini ekleyin."
+      }
+    },
+    {
+      "id": "empty-states",
+      "area": "data",
+      "severity": "warn",
+      "title": {
+        "en": "Empty data shows an empty state",
+        "tr": "Boş veride boş durum"
+      },
+      "rule": {
+        "en": "No data means an empty state with the next step, never an empty chart or a table of dashes.",
+        "tr": "Veri yoksa bir sonraki adımı söyleyen boş durum gösterilir; boş grafik ya da tirelerle dolu tablo değil."
+      },
+      "why": {
+        "en": "An empty chart looks broken.",
+        "tr": "Boş grafik bozuk görünür."
+      },
+      "fix": {
+        "en": "Say why it is empty and what fills it (connect, run, wait for the first check).",
+        "tr": "Neden boş olduğunu ve neyin dolduracağını söyleyin (bağlayın, çalıştırın, ilk kontrolü bekleyin)."
+      }
+    },
+    {
+      "id": "legible-contrast",
+      "area": "visual",
+      "severity": "warn",
+      "title": {
+        "en": "Legible contrast",
+        "tr": "Okunur kontrast"
+      },
+      "rule": {
+        "en": "Text meets WCAG AA (4.5:1, large text 3:1); no grey text on coloured backgrounds.",
+        "tr": "Metin WCAG AA'yı karşılar (4,5:1, büyük metin 3:1); renkli zeminde gri metin yok."
+      },
+      "why": {
+        "en": "Grey on colour looks washed out and fails readers in sunlight.",
+        "tr": "Renkli zeminde gri soluk görünür ve güneş altında okunmaz."
+      },
+      "fix": {
+        "en": "Use a darker shade of the background colour or near-white.",
+        "tr": "Zemin renginin koyu tonunu ya da beyaza yakın rengi kullanın."
+      }
+    },
+    {
+      "id": "instant-filters",
+      "area": "interaction",
+      "severity": "info",
+      "title": {
+        "en": "Filters react instantly",
+        "tr": "Süzgeç anında tepki verir"
+      },
+      "rule": {
+        "en": "A filter's value updates in local state at once; the list does not fade while reloading; tabs are prefetched.",
+        "tr": "Süzgeç değeri anında yerel durumda değişir; liste yenilenirken soluklaşmaz; sekmeler önden yüklenir."
+      },
+      "why": {
+        "en": "Waiting for the server before the control moves feels broken.",
+        "tr": "Denetim sunucuyu beklerken kıpırdamazsa bozuk hissettirir."
+      },
+      "fix": {
+        "en": "Optimistic local value, background reload without a progress bar, prefetch on tabs.",
+        "tr": "İyimser yerel değer, ilerleme çubuğu olmadan arka planda yenileme, sekmelerde önden yükleme."
+      }
+    },
+    {
+      "id": "no-buzzwords",
+      "area": "copy",
+      "severity": "warn",
+      "title": {
+        "en": "No marketing buzzwords",
+        "tr": "Pazarlama klişesi yok"
+      },
+      "rule": {
+        "en": "No streamline, empower, supercharge, seamless, cutting-edge, next-generation, world-class, revolutionize. Say what it does, with a number if there is one.",
+        "tr": "\"Yeni nesil\", \"devrim niteliğinde\", \"kusursuz\", \"sınırları zorlayan\", \"üst düzey deneyim\" yok. Ne yaptığını söyleyin, varsa sayıyla."
+      },
+      "why": {
+        "en": "These words are instant tells of generated copy and promise nothing measurable.",
+        "tr": "Bu kelimeler üretilmiş metnin anında fark edilen izleridir ve ölçülebilir bir şey vaat etmez."
+      },
+      "fix": {
+        "en": "Replace the claim with the measured fact.",
+        "tr": "İddiayı ölçülmüş bilgiyle değiştirin."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "\\b(?:streamline[sd]?|empower(?:s|ing)?|supercharge[sd]?|seamless(?:ly)?|cutting-edge|next-generation|world-class|revolutioni[sz]e[sd]?|game-chang(?:er|ing))\\b|yeni nesil|devrim niteliğinde|sınırları zorlayan|kusursuz deneyim",
+        "flags": "iu",
+        "files": [
+          "tsx",
+          "jsx",
+          "vue",
+          "svelte",
+          "html",
+          "json",
+          "md"
+        ]
+      }
+    },
+    {
+      "id": "use-shared-components",
+      "area": "components",
+      "severity": "warn",
+      "title": {
+        "en": "Interactive elements come from shared components",
+        "tr": "Etkileşimli öğeler ortak bileşenden"
+      },
+      "rule": {
+        "en": "Pages use the shared Button, Input, Select, Textarea and Checkbox components, not raw <button>, <input>, <select> or <textarea>. Raw elements live only inside the component folder.",
+        "tr": "Sayfalar ortak Button, Input, Select, Textarea ve Checkbox bileşenlerini kullanır; ham <button>, <input>, <select>, <textarea> yazılmaz. Ham öğeler yalnız bileşen klasörünün içinde durur."
+      },
+      "why": {
+        "en": "Every raw element is a new copy of the button: one place gets a different height, focus ring or radius, and the next fix misses it.",
+        "tr": "Her ham öğe düğmenin yeni bir kopyasıdır: bir yerde yükseklik, odak halkası ya da köşe farklı olur ve bir sonraki düzeltme onu kaçırır."
+      },
+      "fix": {
+        "en": "Replace it with the component; if the component lacks a variant, add the variant to the component.",
+        "tr": "Bileşenle değiştirin; bileşende gereken görünüm yoksa görünümü bileşene ekleyin."
+      },
+      "check": {
+        "type": "shared-components"
+      }
+    },
+    {
+      "id": "use-shared-looks",
+      "area": "components",
+      "severity": "warn",
+      "title": {
+        "en": "Badges, boxes, headings and button links come from shared components",
+        "tr": "Rozet, kutu, başlık ve düğme görünümlü bağlantı ortak bileşenden"
+      },
+      "rule": {
+        "en": "A span styled as a badge, a div styled as a card, a heading with its own size classes or a link styled as a button is a hand-made copy of a shared component. Use the badge, box, heading and link-button components; the project names them in config.looks.",
+        "tr": "Rozet gibi biçimlenmiş span, kart gibi biçimlenmiş div, kendi boyut sınıflarını taşıyan başlık ya da düğme gibi biçimlenmiş bağlantı, ortak bileşenin elle yapılmış kopyasıdır. Rozet, kutu, başlık ve bağlantı düğmesi bileşenleri kullanılır; proje adlarını config.looks ile verir."
+      },
+      "why": {
+        "en": "Badges and boxes drift fastest: the same 'new' label ends up in five paddings and four greens. A heading scale only holds when headings pick a size instead of writing one.",
+        "tr": "En hızlı dağılan şey rozet ve kutudur: aynı 'yeni' etiketi beş farklı boşluk ve dört farklı yeşille yazılır. Başlık ölçeği ancak başlıklar boyut yazmak yerine boyut seçtiğinde korunur."
+      },
+      "fix": {
+        "en": "Replace the element with the component and pick a tone and size; if none fits, add a tone or size to the component, not a class at the call site.",
+        "tr": "Öğeyi bileşenle değiştirip ton ve boyut seçin; uyan yoksa çağrı yerine sınıf değil, bileşene ton ya da boyut ekleyin."
+      },
+      "check": {
+        "type": "shared-looks"
+      }
+    },
+    {
+      "id": "no-style-overrides",
+      "area": "components",
+      "severity": "warn",
+      "title": {
+        "en": "No visual overrides on shared components",
+        "tr": "Ortak bileşene dışarıdan görünüm verilmez"
+      },
+      "rule": {
+        "en": "className on Button, Badge, Input, Card and other shared components only places them (width, margin, alignment, grid position). Colour, radius, padding, height, font and border come from the component's variant and size props.",
+        "tr": "Button, Badge, Input, Card gibi ortak bileşenlere verilen className yalnız yerleştirir (genişlik, kenar boşluğu, hizalama, ızgara konumu). Renk, köşe, iç boşluk, yükseklik, yazı ve kenarlık bileşenin variant/size seçeneklerinden gelir."
+      },
+      "why": {
+        "en": "An override is a hidden fork of the component: the same button looks different on two screens, which is exactly what a design system exists to stop.",
+        "tr": "Dışarıdan verilen görünüm bileşenin gizli bir kopyasıdır: aynı düğme iki ekranda farklı görünür; tasarım sistemi tam da bunu engellemek için vardır."
+      },
+      "fix": {
+        "en": "Move the look into a named variant or size of the component and use that.",
+        "tr": "Görünümü bileşenin adlı bir variant ya da size seçeneğine taşıyın ve onu kullanın."
+      },
+      "check": {
+        "type": "style-overrides"
+      }
+    },
+    {
+      "id": "repeated-markup",
+      "area": "components",
+      "severity": "warn",
+      "title": {
+        "en": "Repeated markup becomes a component",
+        "tr": "Tekrarlanan kalıp bileşen olur"
+      },
+      "rule": {
+        "en": "The same long class list repeated in several places (a card, a badge, a stat tile, a section heading) is extracted into one shared component.",
+        "tr": "Birden çok yerde tekrarlanan aynı uzun sınıf listesi (kart, rozet, gösterge kutusu, bölüm başlığı) tek bir ortak bileşene çıkarılır."
+      },
+      "why": {
+        "en": "Copies drift: one gets a new padding, another keeps the old radius. One component means one fix and less code.",
+        "tr": "Kopyalar zamanla ayrışır: birine yeni boşluk verilir, diğeri eski köşede kalır. Tek bileşen tek düzeltme ve daha az kod demektir."
+      },
+      "fix": {
+        "en": "Extract the element into a component (or a variant of an existing one) and replace the copies.",
+        "tr": "Öğeyi bir bileşene (ya da var olanın bir görünümüne) çıkarın ve kopyaları onunla değiştirin."
+      },
+      "check": {
+        "type": "repeated-markup",
+        "minTokens": 6,
+        "minCount": 3
+      }
+    },
+    {
+      "id": "focus-ring-removed",
+      "area": "accessibility",
+      "severity": "error",
+      "title": {
+        "en": "Never remove the focus ring without a replacement",
+        "tr": "Odak halkası yerine yenisi konmadan kaldırılmaz"
+      },
+      "rule": {
+        "en": "outline-none / outline-hidden only together with a visible focus-visible style (ring, outline or border) on the same element.",
+        "tr": "outline-none / outline-hidden yalnız aynı öğede görünür bir focus-visible biçimiyle (ring, outline ya da border) birlikte kullanılır."
+      },
+      "why": {
+        "en": "Keyboard users lose their place. WCAG 2.4.7 (focus visible), 2.4.11 (focus not obscured).",
+        "tr": "Klavye kullanan kişi nerede olduğunu kaybeder. WCAG 2.4.7 (görünür odak), 2.4.11 (odak gizlenmez)."
+      },
+      "fix": {
+        "en": "Add focus-visible:ring-2 (or the component's focus style); prefer outline-hidden over outline-none in Tailwind 4 so forced-colours mode keeps an outline. Dialog and popover containers receive focus programmatically and are exempt.",
+        "tr": "focus-visible:ring-2 (ya da bileşenin odak biçimini) ekleyin; Tailwind 4'te outline-none yerine outline-hidden kullanın, zorlanmış renk kipinde çerçeve kalsın. Odağı programla alan diyalog ve açılır pencere kapsayıcıları muaftır."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:^|\\s)(?:[\\w-]+:)*outline-(?:none|hidden)(?=\\s|$)",
+        "unless": "(?:focus-visible|focus|focus-within|group-focus-visible|peer-focus-visible|data-focus-visible|data-\\[focus-visible\\]|data-\\[focused\\]|data-focused|has-focus-visible):(?:ring|outline|shadow|border|bg|underline)",
+        "exceptElements": "^(?:\\w*(?:Dialog|Popover|Modal|Sheet|Drawer|Menu|ListBox|Listbox|Tooltip|Command|Overlay|Popup|Viewport|Panel)\\w*|[A-Z]\\w*Content)$",
+        "unlessBefore": "(?:focus-within|has-\\[:focus-visible\\]|has-focus-visible|has-\\[\\[[^\\]]*\\]:focus-visible\\]):(?:ring|outline|shadow|border)"
+      }
+    },
+    {
+      "id": "icon-button-name",
+      "area": "accessibility",
+      "severity": "error",
+      "title": {
+        "en": "Icon-only buttons have a name",
+        "tr": "Yalnız ikonlu düğmenin adı vardır"
+      },
+      "rule": {
+        "en": "A button or link that shows only an icon carries aria-label (or title, or visually hidden text).",
+        "tr": "Yalnız ikon gösteren düğme ya da bağlantı aria-label (ya da title veya görünmeyen metin) taşır."
+      },
+      "why": {
+        "en": "Screen readers announce \"button\" with no purpose; WCAG 4.1.2 name, role, value.",
+        "tr": "Ekran okuyucu amacı olmadan yalnız \"düğme\" der; WCAG 4.1.2 ad, rol, değer."
+      },
+      "fix": {
+        "en": "Add aria-label with the action in sentence case (\"Delete keyword\").",
+        "tr": "Eylemi söyleyen bir aria-label ekleyin (\"Kelimeyi sil\")."
+      },
+      "check": {
+        "type": "icon-button-name"
+      }
+    },
+    {
+      "id": "tabular-numbers",
+      "area": "data",
+      "severity": "info",
+      "title": {
+        "en": "Tabular numerals in tables and KPIs",
+        "tr": "Tablo ve göstergelerde eşit genişlikte rakam"
+      },
+      "rule": {
+        "en": "Numbers that are compared or update (table columns, KPIs, counters, timers) use tabular-nums and right alignment in tables.",
+        "tr": "Kıyaslanan ya da değişen sayılar (tablo sütunları, göstergeler, sayaçlar, süreler) tabular-nums kullanır; tabloda sağa hizalanır."
+      },
+      "why": {
+        "en": "Proportional digits make columns jagged and values jump as they change.",
+        "tr": "Orantılı rakamlar sütunları eğri büğrü yapar, değer değişince sayı zıplar."
+      },
+      "fix": {
+        "en": "Add tabular-nums to the cell or the table; text-end for numeric columns.",
+        "tr": "Hücreye ya da tabloya tabular-nums ekleyin; sayısal sütunda text-end."
+      }
+    },
+    {
+      "id": "locale-aware-case",
+      "area": "i18n",
+      "severity": "warn",
+      "title": {
+        "en": "Case changes name the locale",
+        "tr": "Büyük-küçük harf dönüşümü dili belirtir"
+      },
+      "rule": {
+        "en": "toUpperCase()/toLowerCase() on interface text use toLocaleUpperCase(locale)/toLocaleLowerCase(locale).",
+        "tr": "Arayüz metninde toUpperCase()/toLowerCase() yerine toLocaleUpperCase(dil)/toLocaleLowerCase(dil) kullanılır."
+      },
+      "why": {
+        "en": "Turkish i/İ and ı/I: \"istanbul\".toUpperCase() is \"ISTANBUL\", not \"İSTANBUL\".",
+        "tr": "Türkçe i/İ ve ı/I: \"istanbul\".toUpperCase() \"ISTANBUL\" verir, \"İSTANBUL\" değil."
+      },
+      "fix": {
+        "en": "Pass the interface locale; for keys and ids the plain methods are fine (allow-list them).",
+        "tr": "Arayüz dilini verin; anahtar ve kimlikler için düz yöntem doğrudur (izin listesine yazın)."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "\\.to(?:Upper|Lower)Case\\(\\)|\\.toLocale(?:Upper|Lower)Case\\(\\s*\\)",
+        "files": [
+          "tsx",
+          "jsx",
+          "ts",
+          "js",
+          "vue",
+          "svelte"
+        ]
+      }
+    },
+    {
+      "id": "locale-number-format",
+      "area": "i18n",
+      "severity": "warn",
+      "title": {
+        "en": "Numbers, dates and money through the locale formatter",
+        "tr": "Sayı, tarih ve para dil biçimleyicisinden"
+      },
+      "rule": {
+        "en": "Interface numbers go through the project's formatter (Intl with an explicit locale). No toFixed(), no toLocaleString() without a locale, no \"$\" + value.",
+        "tr": "Arayüzdeki sayılar projenin biçimleyicisinden geçer (açık dil verilmiş Intl). toFixed(), dilsiz toLocaleString() ve \"$\" + değer yok."
+      },
+      "why": {
+        "en": "1,255.00 vs 1.255,00: the wrong separator misreads by a factor of a thousand; server and browser render different text.",
+        "tr": "1,255.00 ile 1.255,00: yanlış ayraç değeri bin kat yanlış okutur; sunucu ve tarayıcı farklı metin üretir."
+      },
+      "fix": {
+        "en": "Use the shared format helper; keep raw toFixed() only for machine values.",
+        "tr": "Ortak biçim yardımcısını kullanın; düz toFixed() yalnız makine değerleri için."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "\\.toFixed\\(|\\.toLocale(?:String|DateString|TimeString)\\(\\s*\\)|new Intl\\.(?:NumberFormat|DateTimeFormat|RelativeTimeFormat)\\(\\s*\\)",
+        "files": [
+          "tsx",
+          "jsx",
+          "vue",
+          "svelte"
+        ]
+      }
+    },
+    {
+      "id": "no-naive-plural",
+      "area": "i18n",
+      "severity": "warn",
+      "title": {
+        "en": "Plurals through the plural system",
+        "tr": "Çoğul, çoğul sistemiyle"
+      },
+      "rule": {
+        "en": "No count === 1 ? \"item\" : \"items\" and no + \"s\": plurals go through the i18n plural form (trans_choice, ICU, Intl.PluralRules).",
+        "tr": "sayı === 1 ? \"öğe\" : \"öğeler\" ve + \"s\" yok: çoğul, çeviri sisteminin çoğul biçiminden geçer (trans_choice, ICU, Intl.PluralRules)."
+      },
+      "why": {
+        "en": "Languages have up to six plural categories; English-only logic breaks every translation.",
+        "tr": "Dillerde altıya kadar çoğul türü vardır; yalnız İngilizceye göre yazılmış mantık her çeviriyi bozar."
+      },
+      "fix": {
+        "en": "Use the plural helper of the i18n layer with the count.",
+        "tr": "Çeviri katmanının çoğul yardımcısını sayıyla kullanın."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "===?\\s*1\\s*\\?\\s*(?:t\\()?(['\"`])((?:[^'\"`\\n]){1,40})\\1\\)?\\s*:\\s*(?:t\\()?\\1\\2(?:s|es)\\1|\\+\\s*['\"]s['\"]",
+        "files": [
+          "tsx",
+          "jsx",
+          "ts",
+          "js",
+          "vue",
+          "svelte"
+        ]
+      }
+    },
+    {
+      "id": "no-concatenated-translation",
+      "area": "i18n",
+      "severity": "warn",
+      "title": {
+        "en": "No sentences glued from pieces",
+        "tr": "Parçalardan yapıştırılmış cümle yok"
+      },
+      "rule": {
+        "en": "A sentence is one translation key with placeholders, never t('a') + value + t('b').",
+        "tr": "Bir cümle yer tutuculu tek bir çeviri anahtarıdır; t('a') + değer + t('b') yazılmaz."
+      },
+      "why": {
+        "en": "Word order differs by language: Turkish puts the verb last.",
+        "tr": "Kelime sırası dile göre değişir: Türkçede fiil sondadır."
+      },
+      "fix": {
+        "en": "One key: t(':count keywords on page one', { count }).",
+        "tr": "Tek anahtar: t(':count keywords on page one', { count })."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "\\bt\\([^()\\n]*\\)\\s*\\+\\s*(?:['\"`][^'\"`\\n]*\\p{L}|t\\(|['\"`][^'\"`\\n]*['\"`]\\s*\\+\\s*t\\()|['\"`][^'\"`\\n]*\\p{L}[^'\"`\\n]*['\"`]\\s*\\+\\s*t\\(",
+        "files": [
+          "tsx",
+          "jsx",
+          "ts",
+          "js",
+          "vue",
+          "svelte"
+        ],
+        "flags": "u"
+      }
+    },
+    {
+      "id": "no-transition-all",
+      "area": "motion",
+      "severity": "warn",
+      "title": {
+        "en": "Transition named properties, not all",
+        "tr": "Geçiş tüm özelliklere değil, adlı özelliklere"
+      },
+      "rule": {
+        "en": "No transition-all / transition: all; animate transform and opacity, transition colours by name.",
+        "tr": "transition-all / transition: all yok; transform ve opacity canlandırılır, renk geçişi adıyla verilir."
+      },
+      "why": {
+        "en": "transition: all animates layout and size changes nobody intended and costs frames.",
+        "tr": "transition: all kimsenin istemediği yerleşim ve boyut değişimlerini de canlandırır, kare kaybettirir."
+      },
+      "fix": {
+        "en": "transition-colors, transition-opacity, transition-transform or transition-[width].",
+        "tr": "transition-colors, transition-opacity, transition-transform ya da transition-[width]."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:^|\\s)(?:[\\w-]+:)*transition-all(?=\\s|$)",
+        "css": "transition(?:-property)?\\s*:\\s*all\\b"
+      }
+    },
+    {
+      "id": "no-bounce-easing",
+      "area": "motion",
+      "severity": "warn",
+      "title": {
+        "en": "No bounce or overshoot easing on interface",
+        "tr": "Arayüzde zıplama ve taşma eğrisi yok"
+      },
+      "rule": {
+        "en": "No animate-bounce and no cubic-bezier that overshoots for controls, panels and lists.",
+        "tr": "Denetim, panel ve listelerde animate-bounce ve taşan cubic-bezier yok."
+      },
+      "why": {
+        "en": "Bounce reads as toy-like and dated on working screens and slows repeated actions.",
+        "tr": "Zıplama çalışılan ekranda oyuncak ve eski görünür, tekrarlanan işi yavaşlatır."
+      },
+      "fix": {
+        "en": "ease-out for entering, ease-in for leaving, 150–300 ms.",
+        "tr": "Girişte ease-out, çıkışta ease-in, 150–300 ms."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:^|\\s)(?:[\\w-]+:)*animate-bounce(?=\\s|$)",
+        "css": "cubic-bezier\\(\\s*[\\d.]+\\s*,\\s*(?:-[\\d.]+|1\\.\\d*[1-9])|cubic-bezier\\(\\s*[\\d.]+\\s*,\\s*[\\d.-]+\\s*,\\s*[\\d.]+\\s*,\\s*(?:-[\\d.]+|1\\.\\d*[1-9])",
+        "native": {
+          "swift": "\\.(?:bouncy|interpolatingSpring)\\b|\\bbounce:\\s*0?\\.[3-9]",
+          "kt": "DampingRatio(?:HighBouncy|MediumBouncy)\\b"
+        }
+      }
+    },
+    {
+      "id": "reduced-motion",
+      "area": "motion",
+      "severity": "info",
+      "title": {
+        "en": "Respect reduced motion",
+        "tr": "\"Hareketi azalt\" tercihine uyulur"
+      },
+      "rule": {
+        "en": "Decorative and large motion stops or shrinks under prefers-reduced-motion (motion-safe: / motion-reduce:).",
+        "tr": "Süs amaçlı ve büyük hareket prefers-reduced-motion altında durur ya da küçülür (motion-safe: / motion-reduce:)."
+      },
+      "why": {
+        "en": "Motion triggers vestibular discomfort; WCAG 2.3.3.",
+        "tr": "Hareket denge rahatsızlığı tetikler; WCAG 2.3.3."
+      },
+      "fix": {
+        "en": "Prefix long or looping animations with motion-safe:.",
+        "tr": "Uzun ya da döngülü animasyonların başına motion-safe: ekleyin."
+      }
+    },
+    {
+      "id": "specific-action-labels",
+      "area": "copy",
+      "severity": "warn",
+      "title": {
+        "en": "Buttons say what they do",
+        "tr": "Düğme ne yaptığını söyler"
+      },
+      "rule": {
+        "en": "No Submit, OK, Click here, Yes/No: the label names the action and its object (\"Save changes\", \"Delete keyword\").",
+        "tr": "\"Gönder\", \"Tamam\", \"Buraya tıklayın\", \"Evet/Hayır\" yok: etiket eylemi ve nesnesini söyler (\"Değişiklikleri kaydet\", \"Kelimeyi sil\")."
+      },
+      "why": {
+        "en": "Generic labels force people to read the whole dialog and make destructive buttons easy to hit by mistake.",
+        "tr": "Genel etiket tüm pencereyi okutur ve yıkıcı düğmeye yanlışlıkla basmayı kolaylaştırır."
+      },
+      "fix": {
+        "en": "Verb + object, sentence case.",
+        "tr": "Fiil + nesne, yalnız ilk kelime büyük."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": ">\\s*(?:Submit|OK|Ok|Click here|Tamam|Gönder|Buraya tıklayın|Tıklayın)\\s*<|\\bt\\(\\s*['\"](?:Submit|Click here)['\"]\\s*\\)",
+        "files": [
+          "tsx",
+          "jsx",
+          "vue",
+          "svelte",
+          "html",
+          "blade.php"
+        ]
+      }
+    },
+    {
+      "id": "error-copy",
+      "area": "copy",
+      "severity": "warn",
+      "title": {
+        "en": "Errors say what happened and what to do",
+        "tr": "Hata ne olduğunu ve ne yapılacağını söyler"
+      },
+      "rule": {
+        "en": "No \"Oops\", \"Something went wrong\", \"An error occurred\", \"Invalid input\": name the problem and the next step.",
+        "tr": "\"Hay aksi\", \"Bir şeyler ters gitti\", \"Bir hata oluştu\", \"Geçersiz giriş\" yok: sorunu ve sonraki adımı söyleyin."
+      },
+      "why": {
+        "en": "A vague error leaves people stuck and creates support tickets (GOV.UK error message guidance).",
+        "tr": "Belirsiz hata kişiyi takılı bırakır ve destek talebi doğurur (GOV.UK hata mesajı rehberi)."
+      },
+      "fix": {
+        "en": "\"Enter a date in the past\", \"The file is over 5 MB: choose a smaller one\".",
+        "tr": "\"Geçmiş bir tarih girin\", \"Dosya 5 MB'tan büyük: daha küçük bir dosya seçin\"."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "\\b(?:Oops|Whoops|Something went wrong|An error (?:has )?occurred|Invalid input)\\b|Bir şeyler ters gitti|Bir hata oluştu|Hay aksi",
+        "flags": "iu",
+        "files": [
+          "tsx",
+          "jsx",
+          "vue",
+          "svelte",
+          "html",
+          "blade.php",
+          "json"
+        ]
+      }
+    },
+    {
+      "id": "ellipsis-character",
+      "area": "copy",
+      "severity": "info",
+      "title": {
+        "en": "Ellipsis character, not three dots",
+        "tr": "Üç nokta yerine üç nokta karakteri"
+      },
+      "rule": {
+        "en": "\"Loading…\", \"Search…\" use the single … character.",
+        "tr": "\"Yükleniyor…\", \"Ara…\" tek … karakteriyle yazılır."
+      },
+      "why": {
+        "en": "Three periods break differently and read as a typo next to real typography.",
+        "tr": "Üç ayrı nokta farklı satır kırar ve düzgün yazının yanında yazım hatası gibi durur."
+      },
+      "fix": {
+        "en": "Replace ... with … in interface strings.",
+        "tr": "Arayüz metinlerinde ... yerine … yazın."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "(?<=[\\p{L}])\\.\\.\\.(?=['\"`<\\s])",
+        "flags": "u",
+        "files": [
+          "tsx",
+          "jsx",
+          "vue",
+          "svelte",
+          "html",
+          "blade.php",
+          "json"
+        ]
+      }
+    },
+    {
+      "id": "no-icon-tile-stack",
+      "area": "visual",
+      "severity": "warn",
+      "title": {
+        "en": "No icon tile above every heading",
+        "tr": "Her başlığın üstünde ikon kutusu yok"
+      },
+      "rule": {
+        "en": "A grid of identical cards each with a rounded icon tile, a heading and two lines of text is a template, not a layout. Use the icon inline or not at all, and vary what leads.",
+        "tr": "Her birinde yuvarlak ikon kutusu, başlık ve iki satır metin olan aynı kartlardan ızgara bir şablondur, yerleşim değildir. İkonu satır içinde kullanın ya da hiç kullanmayın; öne çıkanı değiştirin."
+      },
+      "why": {
+        "en": "It is the default output of every generator and says nothing about the product.",
+        "tr": "Her üreticinin varsayılan çıktısıdır ve ürün hakkında hiçbir şey söylemez."
+      },
+      "fix": {
+        "en": "Lead with the real content (a number, a screenshot, an example) instead of an icon.",
+        "tr": "İkon yerine gerçek içerikle başlayın (bir sayı, bir ekran görüntüsü, bir örnek)."
+      }
+    },
+    {
+      "id": "no-heavy-headings",
+      "area": "type",
+      "severity": "warn",
+      "title": {
+        "en": "Headings at regular to semibold weight",
+        "tr": "Başlıklar normal ile yarı kalın arası"
+      },
+      "rule": {
+        "en": "No font-extrabold or font-black (weight 800–900) in interface headings and numbers; hierarchy comes from size and position.",
+        "tr": "Arayüz başlıklarında ve sayılarda font-extrabold ya da font-black (800–900) yok; hiyerarşi boyut ve konumdan gelir."
+      },
+      "why": {
+        "en": "Generated screens make every heading as heavy as possible, so nothing reads as more important.",
+        "tr": "Üretilmiş ekranlar her başlığı olabildiğince kalın yapar, böylece hiçbiri öne çıkmaz."
+      },
+      "fix": {
+        "en": "Use 400–600 and a step up in size. A display face that is designed heavy can be allowed in config.",
+        "tr": "400–600 kullanın ve boyutu bir basamak büyütün. Kalın çizilmiş bir gösterim yazı tipi ayarda izinli yapılabilir."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:^|\\s)(?:[\\w-]+:)*font-(?:extrabold|black)(?=\\s|$)",
+        "css": "font-weight\\s*:\\s*(?:800|900)\\b",
+        "native": {
+          "swift": "\\.fontWeight\\(\\s*\\.(?:heavy|black)\\s*\\)|\\bweight:\\s*\\.(?:heavy|black)\\b",
+          "kt": "FontWeight\\.(?:ExtraBold|Black)\\b"
+        }
+      }
+    },
+    {
+      "id": "no-hover-scale",
+      "area": "motion",
+      "severity": "warn",
+      "title": {
+        "en": "No growing on hover",
+        "tr": "Üzerine gelince büyüme yok"
+      },
+      "rule": {
+        "en": "Cards and buttons do not scale up on hover; hover changes colour or surface, press may scale down slightly (0.97–0.98).",
+        "tr": "Kart ve düğmeler üzerine gelince büyümez; üzerine gelme renk ya da yüzey değiştirir, basınca hafifçe küçülebilir (0,97–0,98)."
+      },
+      "why": {
+        "en": "Growing elements push their neighbours visually, blur text and read as a template effect.",
+        "tr": "Büyüyen öğe komşularını görsel olarak iter, yazıyı bulanıklaştırır ve şablon efekti gibi durur."
+      },
+      "fix": {
+        "en": "Replace hover:scale-105 with a background or border step; use active:scale-[0.98] for press feedback.",
+        "tr": "hover:scale-105 yerine zemin ya da kenarlık basamağı; basma geri bildirimi için active:scale-[0.98]."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:^|\\s)(?:group-)?hover:scale-(?:10[1-9]|1[1-9]\\d|\\[1\\.\\d+\\])(?=\\s|$)"
+      }
+    },
+    {
+      "id": "spacing-scale",
+      "area": "layout",
+      "severity": "warn",
+      "title": {
+        "en": "Spacing on the 4 px grid",
+        "tr": "Boşluklar 4 px ızgarasında"
+      },
+      "rule": {
+        "en": "Arbitrary spacing and sizes in px (mt-[13px], h-[31px], gap-[7px]) sit on the 4 px grid; prefer the theme steps.",
+        "tr": "Piksel cinsinden keyfi boşluk ve boyutlar (mt-[13px], h-[31px], gap-[7px]) 4 px ızgarasına oturur; tema basamakları tercih edilir."
+      },
+      "why": {
+        "en": "Off-grid values are what a model types when it guesses; rows and gaps drift apart by a pixel or two and the screen looks uneven.",
+        "tr": "Izgara dışı değerler modelin tahmin ederken yazdığı değerlerdir; satır ve aralıklar bir iki piksel kayar, ekran düzensiz görünür."
+      },
+      "fix": {
+        "en": "Round to the nearest theme step (mt-3, h-8, gap-2).",
+        "tr": "En yakın tema basamağına yuvarlayın (mt-3, h-8, gap-2)."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:^|\\s)(?:[\\w-]+:)*-?(?:[mp][xytrblse]?|gap(?:-[xy])?|space-[xy]|(?:min-|max-)?[hw]|size|top|right|bottom|left|inset(?:-[xy])?|start|end)-\\[(\\d+(?:\\.\\d+)?)px\\]",
+        "notMultipleOf": 4,
+        "native": {
+          "swift": {
+            "pattern": "(?:\\.padding\\(\\s*(?:\\.[a-zA-Z]+\\s*,\\s*|\\[[^\\]]*\\]\\s*,\\s*)?|\\bspacing:\\s*)([0-9.]+)(?=\\s*[,)])",
+            "notMultipleOf": 4
+          },
+          "kt": {
+            "pattern": "(?<=\\b(?:padding|spacedBy)\\([^)]*)\\b([0-9.]+)\\.dp",
+            "notMultipleOf": 4
+          }
+        }
+      }
+    },
+    {
+      "id": "no-exclamation-copy",
+      "area": "copy",
+      "severity": "warn",
+      "title": {
+        "en": "No exclamation marks in interface copy",
+        "tr": "Arayüz metninde ünlem yok"
+      },
+      "rule": {
+        "en": "Labels, numbers, toasts and headings state things plainly: no \"!\" or \"!!\", including after a change such as \"+12%!!\".",
+        "tr": "Etiket, sayı, bildirim ve başlıklar düz söyler: \"!\" ya da \"!!\" yok, \"+12%!!\" gibi değişimlerde de."
+      },
+      "why": {
+        "en": "Exclamations make every message sound equally urgent and are a strong tell of generated copy.",
+        "tr": "Ünlem her mesajı aynı derecede acil gösterir ve üretilmiş metnin güçlü bir izidir."
+      },
+      "fix": {
+        "en": "Drop the mark; give a change its comparison (\"+12% vs last month\").",
+        "tr": "İşareti kaldırın; değişime karşılaştırmasını yazın (\"geçen aya göre +%12\")."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "(?<=[\\s>\"'`(]|^)[^\\s<>\"'`!{}()=-]*[\\p{L}\\d%)]!+(?=[\"'`<]|\\s+[\\p{L}\\p{Extended_Pictographic}:\"'`<]|\\s*$)",
+        "flags": "mu",
+        "files": [
+          "tsx",
+          "jsx",
+          "vue",
+          "svelte",
+          "html",
+          "blade.php",
+          "json"
+        ],
+        "native": {
+          "swift": "\"(?:[^\"\\\\\\n]|\\\\.)*?\\p{L}!+(?:\\s(?:[^\"\\\\\\n]|\\\\.)*)?\"",
+          "kt": "\"(?:[^\"\\\\\\n]|\\\\.)*?\\p{L}!+(?:\\s(?:[^\"\\\\\\n]|\\\\.)*)?\""
+        }
+      }
+    },
+    {
+      "id": "no-greeting-headline",
+      "area": "copy",
+      "severity": "warn",
+      "title": {
+        "en": "The title names the page, not the user",
+        "tr": "Başlık kullanıcıyı değil sayfayı adlandırır"
+      },
+      "rule": {
+        "en": "No \"Welcome back, Name\" or \"Good morning\" as the page title of a working screen; the title says what the page shows.",
+        "tr": "Çalışılan ekranın başlığı \"Tekrar hoş geldin, Ad\" ya da \"Günaydın\" değildir; başlık sayfanın ne gösterdiğini söyler."
+      },
+      "why": {
+        "en": "A greeting takes the most valuable line on the screen and tells nothing on the hundredth visit.",
+        "tr": "Selamlama ekranın en değerli satırını alır ve yüzüncü ziyarette hiçbir şey söylemez."
+      },
+      "fix": {
+        "en": "Use the page or the period as the title (\"Overview · this week\").",
+        "tr": "Başlık olarak sayfayı ya da dönemi yazın (\"Genel bakış · bu hafta\")."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "\\b(?:Welcome back|Good (?:morning|afternoon|evening)|Hey there|Hi there|Hello there)\\b|Tekrar hoş geldin|Günaydın,",
+        "flags": "iu",
+        "files": [
+          "tsx",
+          "jsx",
+          "vue",
+          "svelte",
+          "html",
+          "blade.php",
+          "json"
+        ],
+        "native": {
+          "swift": "\"(?:Welcome back|Good (?:morning|afternoon|evening)|Hey there|Hi there|Tekrar hoş geldin|Günaydın|İyi (?:geceler|akşamlar|günler)|Merhaba)(?=[\\s,!.\"\\\\])",
+          "kt": "\"(?:Welcome back|Good (?:morning|afternoon|evening)|Hey there|Hi there|Tekrar hoş geldin|Günaydın|İyi (?:geceler|akşamlar|günler)|Merhaba)(?=[\\s,!.\"\\\\$])"
+        }
+      }
+    },
+    {
+      "id": "no-unsourced-proof",
+      "area": "copy",
+      "severity": "warn",
+      "title": {
+        "en": "Social proof with a source",
+        "tr": "Kaynağı olan sosyal kanıt"
+      },
+      "rule": {
+        "en": "No \"Trusted by 10,000+ teams\", rows of five stars or avatar stacks without a source; name the customers or the review site, or leave it out.",
+        "tr": "\"10.000+ ekip güveniyor\", beş yıldız sırası ya da kaynaksız avatar yığını yok; müşterileri ya da puan sitesini adıyla yazın ya da çıkarın."
+      },
+      "why": {
+        "en": "Round, unsourced numbers are the first thing a visitor stops believing, and they make the rest of the page look invented.",
+        "tr": "Yuvarlak ve kaynaksız sayılar ziyaretçinin ilk inanmadığı şeydir ve sayfanın geri kalanını da uydurma gösterir."
+      },
+      "fix": {
+        "en": "Show the real number with its source (\"4.8 on the App Store, 312 ratings\") or a named customer.",
+        "tr": "Gerçek sayıyı kaynağıyla (\"App Store'da 4,8, 312 puan\") ya da adı verilen bir müşteriyi gösterin."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "\\b(?:Trusted|Loved|Used|Chosen) by (?:over |more than )?[\\d.,]+\\s*[kKmM]?\\+|(?:⭐|★){4,}",
+        "flags": "iu",
+        "files": [
+          "tsx",
+          "jsx",
+          "vue",
+          "svelte",
+          "html",
+          "blade.php",
+          "json"
+        ]
+      }
+    },
+    {
+      "id": "no-layout-animation",
+      "area": "motion",
+      "severity": "warn",
+      "title": {
+        "en": "Animate transform and opacity, not position",
+        "tr": "Konum değil, transform ve opacity canlandırılır"
+      },
+      "rule": {
+        "en": "Transitions do not animate top, left, right, bottom, margin or padding; movement uses transform. Width on a progress meter is fine.",
+        "tr": "Geçişler top, left, right, bottom, margin ya da padding canlandırmaz; hareket transform ile yapılır. İlerleme çubuğunda genişlik serbesttir."
+      },
+      "why": {
+        "en": "Position and spacing changes re-run layout every frame and stutter on slower devices.",
+        "tr": "Konum ve boşluk değişimi her karede yerleşimi yeniden hesaplatır, yavaş cihazda takılır."
+      },
+      "fix": {
+        "en": "Use translate and opacity (transition-transform, transition-opacity).",
+        "tr": "translate ve opacity kullanın (transition-transform, transition-opacity)."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:^|\\s)(?:[\\w-]+:)*transition-\\[[^\\]]*\\b(?:top|left|right|bottom|margin|padding)\\b[^\\]]*\\]",
+        "css": "transition(?:-property)?\\s*:[^;]*\\b(?:top|left|right|bottom|margin|padding)\\b"
+      }
+    },
+    {
+      "id": "no-announcement-pill",
+      "area": "visual",
+      "severity": "warn",
+      "title": {
+        "en": "No announcement pill above the headline",
+        "tr": "Başlık üstünde duyuru hapı yok"
+      },
+      "rule": {
+        "en": "No \"✨ Introducing X 2.0\" pill above a hero headline unless it links to real, recent news; then it is a quiet text link.",
+        "tr": "Kahraman başlığının üstünde \"✨ Introducing X 2.0\" hapı yok; gerçek ve yeni bir habere gidiyorsa sade bir metin bağlantısıdır."
+      },
+      "why": {
+        "en": "It is the most copied hero template; the eye lands on it before the headline and finds nothing.",
+        "tr": "En çok kopyalanan kahraman kalıbıdır; göz başlıktan önce ona takılır ve bir şey bulamaz."
+      },
+      "fix": {
+        "en": "Remove it, or turn it into a plain link with a date.",
+        "tr": "Kaldırın ya da tarihli düz bir bağlantıya çevirin."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "rounded-full[^>]*>\\s*(?:<[^>]+>\\s*)*(?:\\p{Extended_Pictographic}\\s*)?(?:Introducing|Announcing|Now with|Just launched)\\b",
+        "flags": "iu",
+        "files": [
+          "tsx",
+          "jsx",
+          "vue",
+          "svelte",
+          "html",
+          "blade.php"
+        ]
+      }
+    },
+    {
+      "id": "no-italic-emphasis",
+      "area": "type",
+      "severity": "info",
+      "title": {
+        "en": "Emphasis with weight or colour, not italic",
+        "tr": "Vurgu italikle değil, kalınlık ya da renkle"
+      },
+      "rule": {
+        "en": "Interface text is not set in italic for emphasis; quotes and titles of works may be italic.",
+        "tr": "Arayüz metni vurgu için italik yazılmaz; alıntı ve eser adı italik olabilir."
+      },
+      "why": {
+        "en": "Italic is harder to read at interface sizes and looks like a placeholder.",
+        "tr": "İtalik arayüz boyutlarında zor okunur ve yer tutucu gibi görünür."
+      },
+      "fix": {
+        "en": "Use font-medium or the secondary text colour.",
+        "tr": "font-medium ya da ikincil metin rengi kullanın."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:^|\\s)italic(?=\\s|$)"
+      }
+    },
+    {
+      "id": "no-tight-small-text",
+      "area": "type",
+      "severity": "warn",
+      "title": {
+        "en": "No negative tracking on small text",
+        "tr": "Küçük metinde dar harf aralığı yok"
+      },
+      "rule": {
+        "en": "tracking-tight and negative letter spacing belong to large display text (40 px and up), never to text-base and smaller.",
+        "tr": "tracking-tight ve eksi harf aralığı büyük gösterim metnine (40 px ve üstü) aittir, text-base ve küçüğüne asla."
+      },
+      "why": {
+        "en": "Small letters squeezed together lose their shapes and become hard to read.",
+        "tr": "Sıkıştırılmış küçük harfler biçimini kaybeder, zor okunur."
+      },
+      "fix": {
+        "en": "Leave tracking at 0 for small text; slightly positive is fine for muted captions.",
+        "tr": "Küçük metinde harf aralığını 0 bırakın; soluk açıklamada hafif artı olabilir."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:\\btext-(?:2xs|xs|sm|base)\\b[^\"'`]*\\btracking-(?:tight|tighter|\\[-[^\\]]+\\])|\\btracking-(?:tight|tighter|\\[-[^\\]]+\\])[^\"'`]*\\btext-(?:2xs|xs|sm|base)\\b)"
+      }
+    },
+    {
+      "id": "no-trailing-period-labels",
+      "area": "writing",
+      "severity": "info",
+      "title": {
+        "en": "No full stop on buttons and labels",
+        "tr": "Düğme ve etiketlerde nokta yok"
+      },
+      "rule": {
+        "en": "Buttons, tabs, menu items and short labels end without a full stop; sentences in help text keep theirs.",
+        "tr": "Düğme, sekme, menü öğesi ve kısa etiketler noktasız biter; yardım metnindeki cümleler noktasını korur."
+      },
+      "why": {
+        "en": "A full stop turns a command into a sentence and makes a row of buttons uneven.",
+        "tr": "Nokta bir komutu cümleye çevirir ve düğme sırasını düzensiz gösterir."
+      },
+      "fix": {
+        "en": "Remove the final full stop.",
+        "tr": "Sondaki noktayı kaldırın."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "<(?:button|Button|LinkButton)\\b[^>]*>\\s*[^<>{}\\n.]{2,40}\\.\\s*</",
+        "files": [
+          "tsx",
+          "jsx",
+          "vue",
+          "svelte",
+          "html",
+          "blade.php"
+        ]
+      }
+    },
+    {
+      "id": "short-placeholders",
+      "area": "writing",
+      "severity": "info",
+      "title": {
+        "en": "Short placeholders",
+        "tr": "Kısa yer tutucular"
+      },
+      "rule": {
+        "en": "No \"Search anything...\", \"Type here...\" or \"Enter your email here\"; a placeholder is one or two words or an example value.",
+        "tr": "\"Her şeyi ara...\", \"Buraya yazın...\" ya da \"E-postanızı buraya girin\" yok; yer tutucu bir iki kelime ya da örnek değerdir."
+      },
+      "why": {
+        "en": "Wordy placeholders repeat the label, disappear when typing and read as filler.",
+        "tr": "Uzun yer tutucu etiketi tekrarlar, yazınca kaybolur ve dolgu gibi okunur."
+      },
+      "fix": {
+        "en": "\"Search\", or an example such as \"name@company.com\".",
+        "tr": "\"Ara\" ya da \"ad@sirket.com\" gibi bir örnek."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "placeholder=\\{?\\s*(?:t\\(\\s*)?[\"'](?:Search (?:anything|everything)|Type (?:here|something|anything)|Enter your [\\w ]+ here|Start typing)",
+        "flags": "i",
+        "files": [
+          "tsx",
+          "jsx",
+          "vue",
+          "svelte",
+          "html",
+          "blade.php"
+        ]
+      }
+    },
+    {
+      "id": "no-sparkle-for-ai",
+      "area": "visual",
+      "severity": "info",
+      "title": {
+        "en": "No sparkle icon for anything AI",
+        "tr": "Yapay zekâ için ışıltı ikonu yok"
+      },
+      "rule": {
+        "en": "A sparkle does not mark every AI feature; use an icon that says what the action does (write, summarise, translate), or none.",
+        "tr": "Her yapay zekâ özelliği ışıltıyla işaretlenmez; işlemin ne yaptığını söyleyen ikonu (yaz, özetle, çevir) kullanın ya da hiç kullanmayın."
+      },
+      "why": {
+        "en": "Sparkles are on every AI product, so they tell the user nothing about the button.",
+        "tr": "Işıltı her yapay zekâ ürününde var; düğme hakkında kullanıcıya hiçbir şey söylemez."
+      },
+      "fix": {
+        "en": "Replace with a verb icon (PenLine, ListChecks, Languages) or text only.",
+        "tr": "Fiil ikonuyla (PenLine, ListChecks, Languages) ya da yalnız metinle değiştirin."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "<Sparkles?(?:Icon)?\\b|data-lucide=[\"']sparkles",
+        "files": [
+          "tsx",
+          "jsx",
+          "vue",
+          "svelte",
+          "html",
+          "blade.php"
+        ],
+        "native": {
+          "swift": "systemName:\\s*\"(?:sparkles?|wand\\.and\\.stars(?:\\.inverse)?|sparkle\\.magnifyingglass)\"",
+          "kt": "Icons\\.\\w+\\.AutoAwesome\\b"
+        }
+      }
+    },
+    {
+      "id": "no-placeholder-data",
+      "area": "data",
+      "severity": "warn",
+      "title": {
+        "en": "Plausible sample data",
+        "tr": "İnandırıcı örnek veri"
+      },
+      "rule": {
+        "en": "No Lorem ipsum, John Doe, $123,456 or [X] in screens, demos and screenshots; sample data looks like real data from the product's world.",
+        "tr": "Ekran, demo ve görüntülerde Lorem ipsum, John Doe, $123,456 ya da [X] yok; örnek veri ürünün dünyasından gerçek veri gibi görünür."
+      },
+      "why": {
+        "en": "Filler data makes a finished screen look like a mock-up and hides layout problems that real lengths would show.",
+        "tr": "Dolgu veri bitmiş ekranı taslak gibi gösterir ve gerçek uzunlukların ortaya çıkaracağı yerleşim sorunlarını saklar."
+      },
+      "fix": {
+        "en": "Use realistic names, amounts with uneven digits and real lengths.",
+        "tr": "Gerçekçi adlar, düzensiz basamaklı tutarlar ve gerçek uzunluklar kullanın."
+      },
+      "check": {
+        "type": "regex",
+        "pattern": "\\bLorem ipsum\\b|\\b(?:John|Jane) Doe\\b|\\$123,456|\\[X\\]",
+        "flags": "i",
+        "files": [
+          "tsx",
+          "jsx",
+          "vue",
+          "svelte",
+          "html",
+          "blade.php",
+          "json"
+        ],
+        "native": {
+          "swift": "\"[^\"\\n]*(?:Lorem ipsum|John Doe|Jane Doe)[^\"\\n]*\"",
+          "kt": "\"[^\"\\n]*(?:Lorem ipsum|John Doe|Jane Doe)[^\"\\n]*\""
+        }
+      }
+    },
+    {
+      "id": "no-blur-blobs",
+      "area": "visual",
+      "severity": "warn",
+      "title": {
+        "en": "No blurred colour blobs behind content",
+        "tr": "İçeriğin arkasında bulanık renk lekesi yok"
+      },
+      "rule": {
+        "en": "No large blurred shapes (blur-2xl, blur-3xl) or radial colour washes as decoration behind text and cards.",
+        "tr": "Metin ve kartların arkasında süs olarak büyük bulanık şekil (blur-2xl, blur-3xl) ya da radyal renk lekesi yok."
+      },
+      "why": {
+        "en": "Blobs are the default backdrop of generated pages; they lower contrast and say nothing about the product.",
+        "tr": "Leke, üretilmiş sayfaların varsayılan arka planıdır; kontrastı düşürür ve ürün hakkında bir şey söylemez."
+      },
+      "fix": {
+        "en": "Use one plain surface, or a real product view as the visual.",
+        "tr": "Tek düz yüzey kullanın ya da görsel olarak gerçek bir ürün ekranı koyun."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:^|\\s)(?:[\\w-]+:)*blur-(?:2xl|3xl|\\[(?:[4-9]\\d|\\d{3,})px\\])(?=\\s|$)",
+        "native": {
+          "swift": {
+            "pattern": "\\.blur\\(\\s*radius:\\s*([0-9.]+)",
+            "min": 20
+          },
+          "kt": {
+            "pattern": "\\.blur\\(\\s*(?:radius\\s*=\\s*)?([0-9.]+)\\.dp",
+            "min": 20
+          }
+        }
+      }
+    },
+    {
+      "id": "one-accent",
+      "area": "visual",
+      "severity": "warn",
+      "title": {
+        "en": "One accent, used where it means something",
+        "tr": "Tek vurgu rengi, anlamı olduğu yerde"
+      },
+      "rule": {
+        "en": "The accent colour covers a few percent of the screen: the primary action, the selection and one key figure. Surfaces, borders and labels stay neutral.",
+        "tr": "Vurgu rengi ekranın küçük bir bölümünü kaplar: ana işlem, seçim ve bir önemli sayı. Yüzey, kenarlık ve etiketler nötr kalır."
+      },
+      "why": {
+        "en": "When everything is highlighted nothing stands out, and the screen loses the one place the eye should land.",
+        "tr": "Her şey vurgulanınca hiçbir şey öne çıkmaz; ekran gözün ineceği tek yeri kaybeder."
+      },
+      "fix": {
+        "en": "Count the accent on a screenshot; move it off chrome and onto the one thing that matters.",
+        "tr": "Ekran görüntüsünde vurguyu sayın; çerçeveden alıp önemli olan tek şeye taşıyın."
+      }
+    },
+    {
+      "id": "nested-radius",
+      "area": "shape",
+      "severity": "warn",
+      "title": {
+        "en": "Inner corners follow the outer ones",
+        "tr": "İç köşe dış köşeyi izler"
+      },
+      "rule": {
+        "en": "An element inside a rounded container uses radius = outer radius − padding (never below 4 px); not every element is a full pill.",
+        "tr": "Yuvarlak bir kabın içindeki öğe köşe = dış köşe − iç boşluk kullanır (4 px altına inmez); her öğe tam hap değildir."
+      },
+      "why": {
+        "en": "Equal radii inside and out make the gap look uneven at the corners; pills everywhere erase the difference between controls and containers.",
+        "tr": "İç ve dışta eşit köşe, köşelerde boşluğu düzensiz gösterir; her yerde hap, denetim ile kap arasındaki farkı siler."
+      },
+      "fix": {
+        "en": "A 16 px card with 8 px padding holds 8 px items; keep full pills for chips and avatars.",
+        "tr": "8 px boşluklu 16 px kart 8 px köşeli öğe taşır; tam hapı çip ve avatarlara bırakın."
+      }
+    },
+    {
+      "id": "hero-one-action",
+      "area": "layout",
+      "severity": "warn",
+      "title": {
+        "en": "One primary action in a hero",
+        "tr": "Kahraman alanında tek ana işlem"
+      },
+      "rule": {
+        "en": "A hero has one primary and at most one secondary action; no third button, no chips or avatar rows stacked under the buttons.",
+        "tr": "Kahraman alanında bir ana ve en çok bir ikincil işlem olur; üçüncü düğme, düğmelerin altına yığılmış çip ya da avatar sırası yok."
+      },
+      "why": {
+        "en": "Each extra action splits attention at the moment the visitor decides whether to stay.",
+        "tr": "Her ek işlem, ziyaretçinin kalıp kalmayacağına karar verdiği anda dikkati böler."
+      },
+      "fix": {
+        "en": "Keep the main action and one alternative; move the rest further down the page.",
+        "tr": "Ana işlemi ve bir alternatifi tutun; gerisini sayfanın aşağısına taşıyın."
+      }
+    },
+    {
+      "id": "show-the-product",
+      "area": "visual",
+      "severity": "warn",
+      "title": {
+        "en": "Show the product, not a generic visual",
+        "tr": "Genel görsel değil, ürünü gösterin"
+      },
+      "rule": {
+        "en": "The main visual is the product itself or one concrete object from its world; no glossy blobs, orbs, robots, glowing brains or stock circuits.",
+        "tr": "Ana görsel ürünün kendisi ya da dünyasından somut bir nesnedir; parlak leke, küre, robot, parlayan beyin ya da hazır devre görseli yok."
+      },
+      "why": {
+        "en": "A generic visual could sit on any product page, so it explains nothing and makes the page look like a template.",
+        "tr": "Genel görsel her ürün sayfasına konabilir; hiçbir şey anlatmaz ve sayfayı şablon gibi gösterir."
+      },
+      "fix": {
+        "en": "Use a real screen with real data, or an object that says what the product does.",
+        "tr": "Gerçek veriyle gerçek bir ekran ya da ürünün ne yaptığını söyleyen bir nesne kullanın."
+      }
+    },
+    {
+      "id": "no-badge-spam",
+      "area": "components",
+      "severity": "warn",
+      "title": {
+        "en": "Few, quiet badges",
+        "tr": "Az ve sakin rozet"
+      },
+      "rule": {
+        "en": "PRO, New and Beta badges are rare, text-only and have a reason; counts and shortcuts are plain text or a keycap, not glowing pills.",
+        "tr": "PRO, Yeni ve Beta rozetleri seyrek, yalnız metindir ve bir nedeni vardır; sayaç ve kısayol parlayan hap değil, düz metin ya da tuş görünümüdür."
+      },
+      "why": {
+        "en": "Badges on every row stop meaning anything and add noise to the menu.",
+        "tr": "Her satırdaki rozet anlamını yitirir ve menüye gürültü ekler."
+      },
+      "fix": {
+        "en": "Keep one badge where it changes a decision; remove the rest.",
+        "tr": "Karar değiştiren yerde tek rozet bırakın; gerisini kaldırın."
+      }
+    },
+    {
+      "id": "no-gradient-buttons",
+      "area": "visual",
+      "severity": "warn",
+      "title": {
+        "en": "Solid buttons, no gradient fills",
+        "tr": "Düğmeler düz renk, gradyan dolgu yok"
+      },
+      "rule": {
+        "en": "Buttons and button links use one solid fill from the theme; no gradient backgrounds, including the \"Ask AI\" button.",
+        "tr": "Düğme ve düğme görünümlü bağlantılar temadan tek düz renk kullanır; \"Yapay zekâya sor\" düğmesi dahil gradyan zemin yok."
+      },
+      "why": {
+        "en": "In the dashboards we studied the strongest work used flat primary buttons; gradient buttons appeared on the AI features of weaker shots and read as decoration, not as the main action.",
+        "tr": "İncelediğimiz panellerde en güçlü işler düz ana düğme kullandı; gradyan düğme zayıf işlerin yapay zekâ özelliklerinde çıktı ve ana işlem değil süs gibi okundu."
+      },
+      "fix": {
+        "en": "Use the primary colour as a flat fill; mark an AI action with a verb, not a gradient.",
+        "tr": "Ana rengi düz dolgu olarak kullanın; yapay zekâ işlemini gradyanla değil fiille belirtin."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:^|\\s)(?:[\\w-]+:)*bg-(?:gradient|linear|radial|conic)-[\\w-]+",
+        "onlyElements": "^(?:button|Button|LinkButton|a|Link)$"
+      }
+    },
+    {
+      "id": "no-heavy-card-shadow",
+      "area": "shape",
+      "severity": "warn",
+      "title": {
+        "en": "Cards rest on surface steps, not heavy shadows",
+        "tr": "Kartlar ağır gölgeyle değil yüzey basamağıyla ayrılır"
+      },
+      "rule": {
+        "en": "Cards and panels in the page flow use a hairline border or a surface one step lighter than the page; shadow-lg and larger are for things that float (menus, dialogs, popovers).",
+        "tr": "Sayfa akışındaki kart ve paneller ince kenarlık ya da sayfadan bir basamak açık yüzey kullanır; shadow-lg ve üstü havada duran öğeler içindir (menü, iletişim kutusu, açılır panel)."
+      },
+      "why": {
+        "en": "Every high-rated dashboard we studied separated cards with a light page background and white or raised cards, with almost no shadow; heavy shadows make a grid of cards look like floating stickers.",
+        "tr": "İncelediğimiz yüksek puanlı panellerin hepsi kartları açık sayfa zemini ve beyaz ya da yükseltilmiş kartla ayırdı, gölge neredeyse yoktu; ağır gölge kart ızgarasını yapıştırma etiketler gibi gösterir."
+      },
+      "fix": {
+        "en": "Drop the shadow to shadow-sm or none and step the surface (page gray-50, card white; dark: page #0b0d14, card #11141c).",
+        "tr": "Gölgeyi shadow-sm'e indirin ya da kaldırın, yüzeyi basamaklayın (sayfa gray-50, kart beyaz; koyu: sayfa #0b0d14, kart #11141c)."
+      },
+      "check": {
+        "type": "class",
+        "pattern": "(?:^|\\s)shadow-(?:lg|xl|2xl)(?=\\s|$)",
+        "unless": "\\b(?:absolute|fixed|sticky|z-\\d+|popover|dropdown|dialog|modal|tooltip)\\b",
+        "native": {
+          "swift": {
+            "pattern": "\\.shadow\\((?:[^()\\n]|\\([^()\\n]*\\))*?radius:\\s*([0-9.]+)",
+            "min": 12
+          },
+          "kt": {
+            "pattern": "(?:\\.shadow\\(\\s*(?:elevation\\s*=\\s*)?|\\belevation\\s*=\\s*)([0-9.]+)\\.dp",
+            "min": 8
+          }
+        }
+      }
+    },
+    {
+      "id": "stat-card-anatomy",
+      "area": "data",
+      "severity": "warn",
+      "title": {
+        "en": "Stat cards read label, value, change",
+        "tr": "Gösterge kartı: etiket, değer, değişim"
+      },
+      "rule": {
+        "en": "A stat card has three lines in this order: a short muted label, the value large and tabular, then the change with its period (\"+1.5% vs last month\"). No icon tiles, sparklines or emoji competing with the number.",
+        "tr": "Gösterge kartı bu sırayla üç satırdır: kısa soluk etiket, büyük ve sabit genişlikli rakamlarla değer, sonra dönemiyle değişim (\"geçen aya göre +%1,5\"). Sayıyla yarışan ikon kutusu, mini grafik ya da emoji yok."
+      },
+      "why": {
+        "en": "This was the most consistent pattern across the professional dashboards we studied: the eye reads down one column, and the change is meaningless without its period.",
+        "tr": "İncelediğimiz profesyonel panellerde en tutarlı örüntü buydu: göz tek sütunda aşağı okur ve değişim dönemi olmadan anlamsızdır."
+      },
+      "fix": {
+        "en": "Reorder to label → value → change; put the period next to every change.",
+        "tr": "Sırayı etiket → değer → değişim yapın; her değişimin yanına dönemi yazın."
+      }
+    },
+    {
+      "id": "card-header-pattern",
+      "area": "layout",
+      "severity": "warn",
+      "title": {
+        "en": "One card header pattern",
+        "tr": "Tek kart başlığı düzeni"
+      },
+      "rule": {
+        "en": "Every card header is the same: title on the left, at most one control on the right (period selector, \"See all\" or a ⋯ menu), on one baseline.",
+        "tr": "Her kart başlığı aynıdır: solda başlık, sağda en çok bir denetim (dönem seçici, \"Tümünü gör\" ya da ⋯ menüsü), aynı taban çizgisinde."
+      },
+      "why": {
+        "en": "Repeating one header across cards is what makes a dense dashboard calm; mixed headers make every card a new reading task.",
+        "tr": "Kartlarda tek başlık düzenini tekrarlamak yoğun paneli sakin gösteren şeydir; karışık başlıklar her kartı yeni bir okuma işi yapar."
+      },
+      "fix": {
+        "en": "Extract a CardHeader component with title and an optional action slot and use it everywhere.",
+        "tr": "Başlık ve isteğe bağlı işlem yuvası olan bir CardHeader bileşeni çıkarıp her yerde kullanın."
+      }
+    },
+    {
+      "id": "chart-highlight-one",
+      "area": "data",
+      "severity": "warn",
+      "title": {
+        "en": "Charts highlight one thing",
+        "tr": "Grafik tek şeyi öne çıkarır"
+      },
+      "rule": {
+        "en": "Bars and series are neutral; the accent goes on the one that matters (the current period, the selected point), with its value labelled on the chart. Category charts use one hue in steps, not a rainbow.",
+        "tr": "Çubuk ve seriler nötrdür; vurgu rengi önemli olana gider (bu dönem, seçili nokta) ve değeri grafiğin üstünde yazılıdır. Kategori grafikleri gökkuşağı değil tek rengin basamaklarıdır."
+      },
+      "why": {
+        "en": "The professional work we studied kept inactive bars light grey and lit one; the weaker shots used five or six hues, which turns a chart into a legend lookup.",
+        "tr": "İncelediğimiz profesyonel işler pasif çubukları açık gri tuttu ve birini yaktı; zayıf işler beş altı renk kullandı, bu da grafiği gösterge tablosunda arama işine çevirir."
+      },
+      "fix": {
+        "en": "Grey out every series but one; label it directly; collapse small categories into \"Other\".",
+        "tr": "Bir seri dışında hepsini griye çekin; onu doğrudan etiketleyin; küçük kategorileri \"Diğer\"de toplayın."
+      }
+    },
+    {
+      "id": "direct-labels",
+      "area": "data",
+      "severity": "info",
+      "title": {
+        "en": "Label series on the chart",
+        "tr": "Serileri grafiğin üstünde etiketleyin"
+      },
+      "rule": {
+        "en": "With three series or fewer, put the name or value at the end of the line or on the bar instead of a separate legend.",
+        "tr": "Üç ya da daha az seride ad ya da değer ayrı bir gösterge yerine çizginin sonuna ya da çubuğun üstüne yazılır."
+      },
+      "why": {
+        "en": "A legend makes the reader match colours back and forth; a direct label is read once.",
+        "tr": "Gösterge okuru renkleri ileri geri eşleştirmeye zorlar; doğrudan etiket bir kez okunur."
+      },
+      "fix": {
+        "en": "Move the legend text next to its series; keep a legend only for many series.",
+        "tr": "Gösterge metnini serisinin yanına taşıyın; göstergeyi yalnız çok seri varken tutun."
+      }
+    },
+    {
+      "id": "dim-secondary-digits",
+      "area": "data",
+      "severity": "info",
+      "title": {
+        "en": "Dim the digits that matter less",
+        "tr": "Daha az önemli basamakları soldurun"
+      },
+      "rule": {
+        "en": "In a headline figure the cents, decimals or unit are set in the secondary text colour ($422,525.82 with .82 muted), so the significant part reads first.",
+        "tr": "Öne çıkan sayıda kuruş, ondalık ya da birim ikincil metin rengindedir (422.525,82 $ içinde ,82 soluk); önemli kısım önce okunur."
+      },
+      "why": {
+        "en": "The strongest hero numbers we studied used this one detail instead of any decoration.",
+        "tr": "İncelediğimiz en güçlü öne çıkan sayılar süs yerine bu tek ayrıntıyı kullandı."
+      },
+      "fix": {
+        "en": "Wrap the fraction in a span with the secondary colour; keep the same size.",
+        "tr": "Kesirli kısmı ikincil renkli bir span içine alın; boyut aynı kalsın."
+      }
+    },
+    {
+      "id": "status-system",
+      "area": "components",
+      "severity": "warn",
+      "title": {
+        "en": "One status system",
+        "tr": "Tek durum sistemi"
+      },
+      "rule": {
+        "en": "Statuses are a small tinted pill with a dot and a word, from one shared map (success, pending, failed, draft); the same status has the same colour on every screen.",
+        "tr": "Durumlar nokta ve kelimeli küçük, hafif renkli haplardır ve tek bir ortak eşlemeden gelir (başarılı, bekliyor, başarısız, taslak); aynı durum her ekranda aynı renktir."
+      },
+      "why": {
+        "en": "Status colour is learned once; when \"Pending\" is amber in one table and blue in another, people stop trusting colour at all.",
+        "tr": "Durum rengi bir kez öğrenilir; \"Bekliyor\" bir tabloda turuncu, ötekinde maviyse kullanıcı renge hiç güvenmez."
+      },
+      "fix": {
+        "en": "Create one StatusBadge with a status → tone map and use it in every table and card.",
+        "tr": "Durum → ton eşlemesiyle tek bir StatusBadge oluşturun, her tablo ve kartta onu kullanın."
+      }
+    },
+    {
+      "id": "one-primary-action",
+      "area": "layout",
+      "severity": "warn",
+      "title": {
+        "en": "One primary action per page",
+        "tr": "Sayfa başına tek ana işlem"
+      },
+      "rule": {
+        "en": "A page header has one filled primary button (usually top right); other actions are secondary, ghost or in a menu.",
+        "tr": "Sayfa başlığında tek dolu ana düğme olur (genelde sağ üstte); diğer işlemler ikincil, hayalet ya da menü içindedir."
+      },
+      "why": {
+        "en": "Two filled buttons side by side ask the user to choose before they know what the page is for.",
+        "tr": "Yan yana iki dolu düğme, kullanıcıdan sayfanın ne için olduğunu anlamadan seçim yapmasını ister."
+      },
+      "fix": {
+        "en": "Keep the action that moves the page's job forward filled; demote the rest.",
+        "tr": "Sayfanın işini ilerleten işlemi dolu bırakın; gerisini bir basamak indirin."
+      }
+    },
+    {
+      "id": "no-horizontal-overflow",
+      "area": "layout",
+      "severity": "error",
+      "title": {
+        "en": "No sideways scrolling on phones",
+        "tr": "Telefonda yana kaydırma yok"
+      },
+      "rule": {
+        "en": "At 320 px the page is no wider than the screen. Wide content (a table, a code block) scrolls inside its own box, never the page.",
+        "tr": "320 px'te sayfa ekrandan geniş değildir. Geniş içerik (tablo, kod bloğu) sayfa değil kendi kutusu içinde kayar."
+      },
+      "why": {
+        "en": "A page that scrolls sideways hides its right edge and makes every vertical scroll wobble.",
+        "tr": "Yana kayan sayfa sağ kenarını saklar ve her dikey kaydırmayı yalpalatır."
+      },
+      "fix": {
+        "en": "Let rows wrap (flex-wrap), allow long words to break (hyphens: auto with the right lang, overflow-wrap), wrap wide tables in overflow-x-auto.",
+        "tr": "Satırların alta geçmesine izin verin (flex-wrap), uzun kelimeleri bölün (doğru lang ile hyphens: auto, overflow-wrap), geniş tabloyu overflow-x-auto içine alın."
+      },
+      "check": {
+        "type": "render",
+        "command": "narrow"
+      }
+    },
+    {
+      "id": "text-not-clipped",
+      "area": "writing",
+      "severity": "warn",
+      "title": {
+        "en": "Text is not cut off",
+        "tr": "Metin kesilmez"
+      },
+      "rule": {
+        "en": "Labels, buttons and table cells show their whole text at 320 px. Truncation with an ellipsis is allowed only where the full text is one tap away (title, tooltip, detail view).",
+        "tr": "Etiket, düğme ve tablo hücreleri 320 px'te metnin tamamını gösterir. Üç noktayla kısaltma yalnız tam metin bir dokunuş uzaktaysa (title, ipucu, ayrıntı) serbesttir."
+      },
+      "why": {
+        "en": "A cut-off label can change meaning (\"Delete all…\" of what?), and translations are often 30–40 % longer than English.",
+        "tr": "Kesilen etiket anlamını değiştirebilir (\"Tümünü sil…\" neyi?) ve çeviriler İngilizceden çoğu zaman %30–40 uzundur."
+      },
+      "fix": {
+        "en": "Let the text wrap; if it truly must be one line, keep the full text in a title and in the detail view.",
+        "tr": "Metni alt satıra geçirin; gerçekten tek satır olmalıysa tam metni title'da ve ayrıntı görünümünde tutun."
+      },
+      "check": {
+        "type": "render",
+        "command": "narrow"
+      }
+    },
+    {
+      "id": "no-shrunk-text",
+      "area": "type",
+      "severity": "warn",
+      "title": {
+        "en": "Text is not shrunk to fit",
+        "tr": "Metin sığsın diye küçültülmez"
+      },
+      "rule": {
+        "en": "Body text and labels keep their size on phones (never below 12 px, never smaller than on desktop); only large headlines may scale down.",
+        "tr": "Gövde metni ve etiketler telefonda boyutunu korur (12 px altına inmez, masaüstünden küçük olmaz); yalnız büyük başlıklar küçülebilir."
+      },
+      "why": {
+        "en": "Phones are read at arm's length and in sunlight; shrinking text to make a layout fit moves the problem to the reader.",
+        "tr": "Telefon kol mesafesinde ve güneş altında okunur; yerleşimi sığdırmak için yazıyı küçültmek sorunu okura yükler."
+      },
+      "fix": {
+        "en": "Keep the size and let the layout give: wrap, stack, or move secondary content below.",
+        "tr": "Boyutu koruyun, yerleşim esnesin: alta geçirin, üst üste dizin ya da ikincil içeriği aşağı alın."
+      },
+      "check": {
+        "type": "render",
+        "command": "narrow"
+      }
+    },
+    {
+      "id": "no-hidden-content-narrow",
+      "area": "layout",
+      "severity": "info",
+      "title": {
+        "en": "Phones get the same content",
+        "tr": "Telefon aynı içeriği alır"
+      },
+      "rule": {
+        "en": "Text shown on desktop is not hidden on phones (hidden sm:block). A collapsed menu is fine when the items stay one tap away.",
+        "tr": "Masaüstünde görünen metin telefonda gizlenmez (hidden sm:block). Öğeler bir dokunuş uzakta kaldıkça daraltılmış menü sorun değildir."
+      },
+      "why": {
+        "en": "Hiding content to make a small layout work removes information from the majority of visitors.",
+        "tr": "Küçük yerleşimi çalıştırmak için içerik gizlemek ziyaretçilerin çoğundan bilgiyi saklar."
+      },
+      "fix": {
+        "en": "Show it, shorten it for everyone, or move it lower on the page instead of hiding it.",
+        "tr": "Gösterin, herkes için kısaltın ya da gizlemek yerine sayfada aşağı taşıyın."
+      },
+      "check": {
+        "type": "render",
+        "command": "narrow"
+      }
+    }
+  ]
+}

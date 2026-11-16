@@ -1,0 +1,32 @@
+# MEGAI: gpt-6.1-sol at xhigh, no approvals, no sandbox (use in git repos)
+model = "gpt-6.1-sol"
+model_reasoning_effort = "xhigh"
+plan_mode_reasoning_effort = "xhigh"
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+
+[projects."__HOME__/Projects"]
+trust_level = "trusted"
+
+[tui]
+screen_reader_detection_done = true
+
+[mcp_servers.brokan]
+command = "__HOME__/.local/bin/brokan"
+args = ["mcp"]
+
+[mcp_servers.figma-console]
+command = "__NODE__"
+args = ["__HOME__/.local/share/figma-console-mcp/node_modules/figma-console-mcp/dist/local.js"]
+startup_timeout_sec = 60.0
+tool_timeout_sec = 300.0
+
+[mcp_servers.figma-console.env]
+ENABLE_MCP_APPS = "true"
+FIGMA_ACCESS_TOKEN = "${FIGMA_ACCESS_TOKEN}"
+
+[mcp_servers.yab-browser]
+command = "/Applications/yab.app/Contents/MacOS/yab"
+args = ["mcp"]
+tool_timeout_sec = 900
+default_tools_approval_mode = "approve"
