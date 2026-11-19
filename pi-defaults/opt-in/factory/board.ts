@@ -122,7 +122,7 @@ export async function repository(cwd: string, configDir: string, request?: strin
   if (!SLUG.test(project) || project === 'all' || (request && project !== request)) {
     throw new FactoryError('Brokan project does not match this repository. Set brokanProject in .pi/project.json if names differ.');
   }
-  return { project, repo, github, configured: configured !== undefined };
+  return { root, url, project, repo, github, configured: configured !== undefined };
 }
 
 // Factory-to-Factory coordination only; normal/manual work still checks worktree ownership.

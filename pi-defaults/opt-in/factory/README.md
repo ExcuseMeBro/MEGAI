@@ -1,6 +1,6 @@
 # Factory: opt-in Brokan long runs in Pi
 
-Factory runs one verified repository’s `doing`, then `todo` tasks in board order, one at a time. It takes an initial snapshot and rereads each task before starting or continuing it. The selected Pi model and thinking level do not change. Factory itself only reads Brokan; the agent uses the existing Brokan tools and repository workflow for edits, acceptance, delivery and `review`. Factory does not set `done`, start without a request, or run a background process.
+Factory runs one verified repository’s `doing`, then `todo` tasks in board order, one at a time by default. It takes an initial snapshot and rereads each task before starting or continuing it. The selected Pi model and thinking level do not change. Factory itself only reads Brokan; the agent uses the existing Brokan tools and repository workflow for edits, acceptance, delivery and `review`. Factory does not set `done`, start without a request, or run a background process.
 
 ## Setup (Pi 1.5.2)
 
@@ -11,6 +11,15 @@ Copy this directory to `~/.pi/agent/extensions/megai-factory/` (do not overwrite
 - `/factory`: take a batch from the current repository’s project.
 - `/factory your-slug#123`: run just that task if eligible. `/factory your-slug` uses the same project-wide batch as `/factory`.
 - Plain prompt: `factory run`, `factory run your-slug#123`, or `Brokandagi todo va doing tasklarni oxirigacha bajar`. Other prompts do not start Factory.
-- `/factory status` shows the current task and queue; `/factory stop` or Esc stops. User input mid-run takes over from Factory, and UI prompts halt automatic continuation.
+- `/factory parallel`: prepare up to five tasks at once. Use `/factory parallel 2` through `/factory parallel 5` to set the width, or the equivalent plain prompt `factory run parallel [2–5]`.
+- `/factory status` shows the current task and queue; `/factory stop` stops. Esc also interrupts an active Pi turn; use `/factory stop` while the first parallel wave is preparing. User input mid-run takes over from Factory, and UI prompts halt automatic continuation.
 
 Factory skips human tasks, archived projects, and all other columns. It hands off on a readback of `review` or `done`, pauses on a real blocker or a board error, and gives an unfinished task at most three automatic continuations. A batch is the eligible queue as it stood when you started; run `/factory` again for newly added tasks. Other manual agents are not covered by the Factory lock: do not run it against work another agent is actively editing. A hard process kill can leave a lock under `~/.pi/agent/factory-locks/`; remove only that project's lock after verifying its recorded PID and that the owning run is no longer active. Reloading or restarting Pi never automatically resumes a batch.
+
+## Parallel preparation
+
+Use parallel mode only when the eligible tasks are independent Git changes in the same repository. It needs POSIX, `pi` on `PATH`, a reachable `origin/dev`, and the selected provider/model and Brokan tools available to fresh Pi processes without project-local approval. All workers use the current Pi provider, model and thinking level; this mode can use several model requests concurrently. It does not start automatically.
+
+Each worker prepares one task in its own `task/factory-<slug>-<id>` branch and worktree under `~/.pi/agent/factory-worktrees/`. Workers do not deliver. The parent Pi verifies and integrates each prepared branch to `dev` **one at a time**, in queue order, including remote verification, cleanup and Brokan readback. The next wave starts only after that handoff. Workers share the host and must honor the repository's shared heavy-test lock and resource rules; worktrees are not security sandboxes.
+
+A blocker, worker failure, model change or cancellation stops further dispatch and leaves any unfinished worktrees in place. There is no on-disk transcript for the preparation workers in this mode. Inspect the retained branch/worktree and the Brokan task before restarting or continuing manually. Check scope and that no other agent owns the work before resuming.

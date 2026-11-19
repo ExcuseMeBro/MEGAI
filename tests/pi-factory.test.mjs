@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync, existsSync, chmodSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
@@ -22,16 +22,19 @@ const lockName = `factory-locks/${project}.lock`;
 // Exercise the installed Pi SDK with its native faux model. Only this test process
 // reroutes the fixed Brokan origin, to an ephemeral HTTP fixture rather than the live board.
 async function fixture(t, { tasks = [makeTask(1, 'doing'), makeTask(2, 'todo')], repos = ['test/factory-fixture'],
-  trusted = true, configured, origin = 'https://github.com/test/factory-fixture.git' } = {}) {
+  trusted = true, configured, parallel = false, origin = 'https://github.com/test/factory-fixture.git' } = {}) {
   const base = realpathSync(mkdtempSync(join(tmpdir(), 'pi-factory-sdk-')));
   const cwd = join(base, 'checkout'), agentDir = join(base, 'agent');
   const priorDir = process.env.PI_CODING_AGENT_DIR, originalFetch = globalThis.fetch;
   const sessions = [], reads = [], unexpected = [];
+  const vars = ['PATH', 'PI_FACTORY_TEST_BASE', 'PI_FACTORY_TEST_URL'];
+  const saved = vars.map(key => [key, process.env[key]]);
   t.after(() => {
     for (const session of sessions) session.dispose();
     globalThis.fetch = originalFetch;
     if (priorDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
     else process.env.PI_CODING_AGENT_DIR = priorDir;
+    for (const [key, value] of saved) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
     rmSync(base, { recursive: true, force: true });
     assert.deepEqual(unexpected, []);
   });
@@ -43,10 +46,47 @@ async function fixture(t, { tasks = [makeTask(1, 'doing'), makeTask(2, 'todo')],
     mkdirSync(join(cwd, '.pi'));
     writeFileSync(join(cwd, '.pi/project.json'), JSON.stringify({ brokanProject: configured }));
   }
-  const state = { tasks, failed: undefined, gate: undefined };
+  const state = { tasks, failed: undefined, gate: undefined, worker: undefined };
+  const git = (dir, ...args) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const workerRoot = join(agentDir, 'factory-worktrees', project);
+  if (parallel) {
+    const bin = join(base, 'bin');
+    mkdirSync(bin);
+    const actualGit = execFileSync('which', ['git'], { encoding: 'utf8' }).trim();
+    git(base, 'init', '-q', '--bare', 'remote.git');
+    git(cwd, 'config', 'user.email', 'factory@example.invalid');
+    git(cwd, 'config', 'user.name', 'Factory Fixture');
+    git(cwd, 'switch', '-qc', 'dev');
+    git(cwd, 'commit', '-qm', 'Fixture base', '--allow-empty');
+    git(cwd, 'push', '-q', join(base, 'remote.git'), 'dev');
+    writeFileSync(join(bin, 'git'), `#!/bin/sh
+if [ "$1" = fetch ] && [ "$2" = --no-tags ] && [ "$3" = origin ] && [ "$#" = 4 ]; then
+  exec ${JSON.stringify(actualGit)} fetch --no-tags "$PI_FACTORY_TEST_BASE/remote.git" "$4"
+fi
+exec ${JSON.stringify(actualGit)} "$@"
+`);
+    const workerFixture = fileURLToPath(new URL('./fixtures/pi-factory-worker.mjs', import.meta.url));
+    const nativeArgs = [join(root, 'dist/bundle/cli.js'), '--offline', '--no-mcp', '--no-context-files', '--no-skills',
+      '--no-extensions', '-e', fileURLToPath(new URL('./fixtures/pi-factory-native.ts', import.meta.url))];
+    const args = parallel === 'native' ? nativeArgs : [workerFixture];
+    writeFileSync(join(bin, 'pi'), `#!/bin/sh
+exec ${[process.execPath, ...args].map(value => JSON.stringify(value)).join(' ')} "$@"
+`);
+    for (const file of ['git', 'pi']) chmodSync(join(bin, file), 0o700);
+    process.env.PATH = `${bin}:${process.env.PATH}`;
+    process.env.PI_FACTORY_TEST_BASE = base;
+  }
   const server = createServer(async (req, res) => {
     const path = req.url;
     if (req.method !== 'GET') { unexpected.push(req.method); res.writeHead(405).end(); return; }
+    if (parallel && path?.startsWith('/worker?')) {
+      const params = new URL(path, 'http://127.0.0.1').searchParams;
+      try {
+        const result = await state.worker?.({ id: Number(params.get('id')), pid: Number(params.get('pid')), phase: params.get('phase') });
+        res.writeHead(200).end(result ?? 'ready');
+      } catch { res.writeHead(500).end(); }
+      return;
+    }
     reads.push(path);
     if (state.gate) await state.gate(path);
     if (path === state.failed) { res.writeHead(503).end(); return; }
@@ -60,6 +100,7 @@ async function fixture(t, { tasks = [makeTask(1, 'doing'), makeTask(2, 'todo')],
   });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
+  if (parallel) process.env.PI_FACTORY_TEST_URL = `http://127.0.0.1:${server.address().port}`;
   t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
   globalThis.fetch = (url, init) => {
     const target = new URL(url);
@@ -68,7 +109,7 @@ async function fixture(t, { tasks = [makeTask(1, 'doing'), makeTask(2, 'todo')],
   };
 
   async function open(respond) {
-    const calls = [], notices = [], errors = [];
+    const calls = [], notices = [], errors = [], pendingNotices = [];
     const settingsManager = SettingsManager.inMemory({ compaction: { enabled: false } }, { projectTrusted: trusted });
     const resourceLoader = new DefaultResourceLoader({ cwd, agentDir, settingsManager,
       additionalExtensionPaths: [extensionPath], noSkills: true, noContextFiles: true, noPromptTemplates: true, noThemes: true });
@@ -83,7 +124,10 @@ async function fixture(t, { tasks = [makeTask(1, 'doing'), makeTask(2, 'todo')],
       model, thinkingLevel: 'low', sessionManager: SessionManager.inMemory(cwd), noTools: 'all' });
     sessions.push(session);
     await session.bindExtensions({ mode: 'rpc', uiContext: {
-      notify: message => notices.push(message), setStatus: () => {},
+      notify: message => {
+        notices.push(message);
+        for (const [predicate, resolve] of pendingNotices) if (predicate(message)) resolve(message);
+      }, setStatus: () => {},
     }, abortHandler: () => { void session.abort(); }, onError: error => errors.push(error) });
     faux.setResponses(Array.from({ length: 32 }, () => async (context, { signal }) => {
       const text = context.messages.filter(message => message.role === 'user').at(-1)?.content;
@@ -91,10 +135,28 @@ async function fixture(t, { tasks = [makeTask(1, 'doing'), makeTask(2, 'todo')],
       calls.push(prompt);
       return fauxAssistantMessage(await respond(prompt, calls.length, signal));
     }));
-    return { session, calls, notices, errors, model };
+    const waitNotice = predicate => new Promise(resolve => {
+      const previous = notices.find(predicate);
+      if (previous) resolve(previous);
+      else pendingNotices.push([predicate, resolve]);
+    });
+    return { session, calls, notices, errors, model, waitNotice };
   }
   const status = (id, value) => { state.tasks.find(task => task.id === id).status = value; };
-  return { open, state, reads, status, locked: () => existsSync(join(agentDir, lockName)) };
+  const deliver = (id, { push = true, cleanup = true, provenance = true } = {}) => {
+    const branch = `task/factory-${project}-${id}`;
+    const location = join(workerRoot, String(id));
+    // Apply the prepared commit on the serial dev branch, changing its SHA as a rebase can.
+    const prepared = git(cwd, 'rev-parse', branch);
+    git(cwd, 'cherry-pick', branch);
+    if (!provenance) git(cwd, 'commit', '--amend', '-qm', 'Unlinked commit');
+    if (provenance) git(cwd, 'commit', '--amend', '--no-edit', '--trailer', `Factory-Prepared: ${prepared}`);
+    const sha = git(cwd, 'rev-parse', 'HEAD');
+    if (push) git(cwd, 'push', '-q', join(base, 'remote.git'), 'dev');
+    if (cleanup) { git(cwd, 'worktree', 'remove', location); git(cwd, 'branch', '-D', branch); }
+    return sha;
+  };
+  return { open, state, reads, status, deliver, worktree: id => join(workerRoot, String(id)), locked: () => existsSync(join(agentDir, lockName)) };
 }
 
 function settled(session) {
@@ -268,4 +330,149 @@ test('stop: discovery cancellation releases the project lock without loading a t
   assert.deepEqual(f.reads, [`/api/board?project=${project}`]);
   assert.equal(f.locked(), false);
   assert.deepEqual(s.errors, []);
+});
+
+const parallelOptions = { timeout: 20_000, skip: process.platform === 'win32' };
+
+test('parallel: five isolated workers per wave, then one verified delivery at a time', parallelOptions, async t => {
+  const f = await fixture(t, { parallel: true, tasks: [makeTask(1, 'todo'), makeTask(2, 'todo'),
+    makeTask(3, 'todo'), makeTask(4, 'todo'), makeTask(5, 'todo'), makeTask(6, 'doing'), makeTask(7, 'doing', true)] });
+  const firstWave = Promise.withResolvers(), active = new Set(), seen = [], delivered = [];
+  t.after(() => firstWave.resolve());
+  let peak = 0;
+  f.state.worker = async ({ id, pid, phase }) => {
+    if (phase !== 'prompt') return;
+    assert.ok(existsSync(join(f.worktree(id), '.git')));
+    active.add(pid);
+    seen.push(id);
+    peak = Math.max(peak, active.size);
+    if (seen.length === 5) {
+      f.state.tasks.push(makeTask(8, 'todo'));
+      firstWave.resolve();
+    }
+    if (id === 5) assert.deepEqual(delivered, [6, 1, 2, 3, 4]);
+    await firstWave.promise;
+    return 'ready';
+  };
+  const s = await f.open(prompt => {
+    const id = taskFor(prompt);
+    assert.match(prompt, /Factory parallel delivery/);
+    assert.match(prompt, /independently verify the exact delivered commit is on origin\/dev/);
+    for (const pid of active) assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+    active.clear();
+    assert.equal(seen.includes(id), true);
+    const sha = f.deliver(id);
+    f.status(id, 'review');
+    delivered.push(id);
+    return `Verified.\nFACTORY_DELIVERED ${sha}`;
+  });
+  await run(s.session, '/factory parallel');
+  assert.equal(peak, 5);
+  assert.deepEqual(seen.toSorted(), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(delivered, [6, 1, 2, 3, 4, 5]);
+  assert.deepEqual(s.errors, []);
+  assert.ok(s.notices.some(x => x.includes('6 handed off. Queue exhausted.')));
+  assert.equal(f.locked(), false);
+  assert.equal(s.session.thinkingLevel, 'low');
+});
+
+test('parallel: explicit prompt selects width two; stop reaps workers and retains their worktrees', parallelOptions, async t => {
+  const f = await fixture(t, { parallel: true, tasks: Array.from({ length: 5 }, (_, i) => makeTask(i + 1, 'todo')) });
+  const entered = Promise.withResolvers(), finish = Promise.withResolvers(), pids = [];
+  t.after(() => finish.resolve());
+  f.state.worker = async ({ pid, phase }) => {
+    if (phase !== 'prompt') return;
+    pids.push(pid);
+    if (pids.length === 2) entered.resolve();
+    await finish.promise;
+  };
+  const s = await f.open(() => assert.fail('no model turn after stop'));
+  const starting = s.session.prompt('factory run parallel 2');
+  await entered.promise;
+  assert.equal(f.locked(), true);
+  await s.session.prompt('/factory stop');
+  await starting;
+  assert.equal(pids.length, 2);
+  for (const pid of pids) assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+  assert.ok(existsSync(f.worktree(1)));
+  assert.ok(existsSync(f.worktree(2)));
+  assert.equal(existsSync(f.worktree(3)), false);
+  assert.deepEqual(s.calls, []);
+  assert.equal(f.locked(), false);
+  finish.resolve();
+});
+
+for (const problem of ['mismatch', 'interactive', 'uncommitted', 'pause']) {
+  test(`parallel: worker ${problem} prevents delivery and further waves`, parallelOptions, async t => {
+    const f = await fixture(t, { parallel: true, tasks: Array.from({ length: 3 }, (_, i) => makeTask(i + 1, 'todo')) });
+    const pids = new Set(), prompts = [];
+    f.state.worker = ({ id, pid, phase }) => {
+      pids.add(pid);
+      if (phase === 'state') return problem === 'mismatch' ? 'mismatch' : undefined;
+      prompts.push(id);
+      return problem;
+    };
+    const s = await f.open(() => assert.fail('no delivery on bad preparation'));
+    await s.session.prompt('/factory parallel 2');
+    await s.waitNotice(text => text.includes('Worktree retained if created.'));
+    // An immediate status command verifies no next turn was queued.
+    await s.session.prompt('/factory status');
+    assert.ok(pids.size > 0);
+    if (problem === 'mismatch') assert.equal(prompts.length, 0);
+    else assert.ok(prompts.length > 0);
+    const message = { mismatch: 'preserve the selected', interactive: 'interactive input',
+      uncommitted: 'clean candidate', pause: 'ready candidate' }[problem];
+    assert.ok(s.notices.some(x => x.includes(message)), s.notices.join('\n'));
+    for (const pid of pids) assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+    assert.equal(existsSync(f.worktree(3)), false);
+    assert.deepEqual(s.calls, []);
+    assert.equal(f.locked(), false);
+  });
+}
+
+for (const problem of ['not-reviewed', 'not-pushed', 'not-cleaned', 'unrelated-receipt']) {
+  test(`parallel: ${problem} readback stops before the next serial delivery`, parallelOptions, async t => {
+    const f = await fixture(t, { parallel: true, tasks: [makeTask(1, 'todo'), makeTask(2, 'todo'), makeTask(3, 'todo')] });
+    const s = await f.open(prompt => {
+      assert.equal(taskFor(prompt), 1);
+      if (problem !== 'not-reviewed') f.status(1, 'review');
+      const sha = f.deliver(1, { push: problem !== 'not-pushed', cleanup: problem !== 'not-cleaned', provenance: problem !== 'unrelated-receipt' });
+      return `Claimed.\nFACTORY_DELIVERED ${sha}`;
+    });
+    await run(s.session, '/factory parallel 2');
+    assert.equal(s.calls.length, 1);
+    assert.ok(s.notices.some(x => /not verified|Could not confirm/.test(x)), s.notices.join('\n'));
+    assert.ok(existsSync(f.worktree(2)));
+    assert.equal(existsSync(f.worktree(3)), false);
+    assert.equal(f.locked(), false);
+  });
+}
+
+test('parallel: invalid width is rejected without dispatch', parallelOptions, async t => {
+  const f = await fixture(t);
+  const s = await f.open(() => assert.fail('no turn allowed'));
+  await s.session.prompt('/factory parallel 6');
+  await s.session.prompt('factory run parallel 1');
+  assert.deepEqual(f.reads, []);
+  assert.equal(s.notices.filter(note => note.includes('Usage: /factory parallel [2-5]')).length, 2);
+});
+
+
+test('parallel: actual Pi RPC worker can prepare a committed candidate with a native faux model', parallelOptions, async t => {
+  const f = await fixture(t, { parallel: 'native', tasks: [makeTask(1, 'doing')] });
+  const s = await f.open(prompt => {
+    assert.equal(taskFor(prompt), 1);
+    assert.ok(existsSync(join(f.worktree(1), 'native-candidate.txt')));
+    const sha = f.deliver(1);
+    f.status(1, 'review');
+    return `Native worker delivered.\nFACTORY_DELIVERED ${sha}`;
+  });
+  const finished = Promise.race([
+    settled(s.session),
+    s.waitNotice(text => text.includes('Worktree retained if created.')).then(error => assert.fail(error)),
+  ]);
+  await s.session.prompt('/factory parallel 2');
+  await finished;
+  assert.deepEqual(s.calls.map(taskFor), [1]);
+  assert.equal(f.locked(), false);
 });
