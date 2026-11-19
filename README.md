@@ -23,6 +23,11 @@ run it with `MEGAI_REF=pi MEGAI_PI_RESET=1 MEGAI_REMOVE_OMP=1`. Reset/removal ar
 explicit options. Reinstallation of a clean profile reuses its pinned packages;
 Pi startup never updates packages or builds indexes automatically.
 
+## Opt-in Pi Factory mode
+
+Use [`/factory`](pi-defaults/opt-in/factory/README.md) to work through a repository’s
+Brokan `doing` and `todo` queue in one Pi session. It does not start automatically.
+
 ## Explicit task automation
 
 `megai task start|verify|ready|deliver` provides native isolated worktrees,
