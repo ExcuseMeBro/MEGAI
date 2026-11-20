@@ -7,7 +7,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   CUSTOM_TYPE, NUDGE, buildNudge, classifyFinal, isReservedBlock, maxFromEnv, isGptModel,
 } from '../pi-defaults/extensions/megai-keep-going/keep-going-core.mjs';
-import { decide } from '../pi-defaults/extensions/megai-keep-going/index.ts';
+import { decide, decideWithJudge } from '../pi-defaults/extensions/megai-keep-going/index.ts';
+import { buildJudgeInput, parseVerdict, pickJudge } from '../pi-defaults/extensions/megai-keep-going/judge.mjs';
 import { piPackageRoot } from './pi-package.mjs';
 
 const extensionPath = fileURLToPath(new URL('../pi-defaults/extensions/megai-keep-going/index.ts', import.meta.url));
@@ -118,7 +119,7 @@ test('decide: bounded budget, repeat and no-progress stops, Factory segments', (
 const root = piPackageRoot();
 const native = { timeout: 60000 };
 
-async function session(t, respond) {
+async function session(t, respond, judge = () => '{"verdict":"done","missing":""}') {
   const { createAgentSession, DefaultResourceLoader, ModelRuntime, SessionManager, SettingsManager } =
     await import(pathToFileURL(join(root, 'dist/index.js')));
   const { fauxProvider, fauxAssistantMessage, InMemoryCredentialStore } =
@@ -136,16 +137,17 @@ async function session(t, respond) {
   assert.deepEqual(resourceLoader.getExtensions().errors, []);
   const modelRuntime = await ModelRuntime.create({ credentials: new InMemoryCredentialStore(),
     modelsPath: null, modelsStorePath: join(base, 'models-cache.json'), refreshOnCreate: false });
-  const faux = fauxProvider({ models: [{ id: 'fixture', reasoning: true }] });
+  const faux = fauxProvider({ models: [{ id: 'fixture', reasoning: true }, { id: 'gpt-6-luna', reasoning: true }] });
   modelRuntime.registerNativeProvider(faux.provider);
   const { session: s } = await createAgentSession({ cwd, agentDir, resourceLoader, settingsManager, modelRuntime,
     model: faux.getModel(), thinkingLevel: 'low', sessionManager: SessionManager.inMemory(cwd), noTools: 'all' });
   await s.bindExtensions({ mode: 'rpc', uiContext: { notify: () => {}, setStatus: () => {} },
     abortHandler: () => { void s.abort(); }, onError: (error) => { throw error; } });
-  const calls = [];
-  faux.setResponses(Array.from({ length: 12 }, () => async (context) => {
+  const calls = [], judged = [];
+  faux.setResponses(Array.from({ length: 24 }, () => async (context, _options, _state, model) => {
     const last = context.messages.at(-1);
     const text = typeof last?.content === 'string' ? last.content : last?.content?.map((b) => b.text ?? '').join('\n');
+    if (model.id === 'gpt-6-luna') { judged.push(text); return fauxAssistantMessage(judge(judged.length, text)); }
     calls.push(text);
     return fauxAssistantMessage(respond(calls.length, text));
   }));
@@ -155,7 +157,7 @@ async function session(t, respond) {
     if (priorMode === undefined) delete process.env.MEGAI_KEEP_GOING; else process.env.MEGAI_KEEP_GOING = priorMode;
     rmSync(base, { recursive: true, force: true });
   });
-  return { s, calls };
+  return { s, calls, judged };
 }
 
 test('native Pi: an announce-and-stop reply gets a real continuation', native, async (t) => {
@@ -179,4 +181,60 @@ test('native Pi: a finished report and a question prompt get no nudge', native, 
   await s.prompt('Fix the typo in the footer');
   await s.prompt('Why did the build fail?');
   assert.equal(calls.length, 2);
+});
+
+test('judge: input is bounded, verdicts parse strictly, model stays on the session provider', () => {
+  const input = buildJudgeInput({ request: 'Add export', reply: 'x'.repeat(9000), edited: true,
+    calls: Array.from({ length: 50 }, (_, i) => ({ name: 'bash', arguments: { command: `step ${i} ` + 'y'.repeat(500) } })) });
+  assert.ok(input.length < 16000);
+  assert.match(input, /first 10 omitted/);
+  assert.match(input, /files edited: yes/);
+  assert.deepEqual(parseVerdict('ok {"verdict":"continue","missing":"tests not run"}'), { verdict: 'continue', missing: 'tests not run' });
+  assert.equal(parseVerdict('{"verdict":"maybe"}'), null);
+  assert.equal(parseVerdict('not json'), null);
+  const models = { 'openai/gpt-6-luna': { provider: 'openai', id: 'gpt-6-luna' }, 'opencode-go/claude-haiku-5-5': { provider: 'opencode-go', id: 'claude-haiku-5-5' } };
+  const registry = { find: (p, id) => models[`${p}/${id}`], hasConfiguredAuth: () => true };
+  assert.equal(pickJudge(registry, { provider: 'openai', id: 'gpt-6.1-sol' }, {}).id, 'gpt-6-luna');
+  assert.equal(pickJudge(registry, { provider: 'antigravity', id: 'x' }, {}), undefined, 'no cross-provider default');
+  assert.equal(pickJudge(registry, { provider: 'openai', id: 'x' }, { MEGAI_KEEP_GOING_JUDGE: 'off' }), undefined);
+  assert.equal(pickJudge(registry, { provider: 'openai', id: 'x' }, { MEGAI_KEEP_GOING_JUDGE: 'opencode-go/claude-haiku-5-5' }).provider, 'opencode-go');
+  const noAuth = { ...registry, hasConfiguredAuth: () => false };
+  assert.equal(pickJudge(noAuth, { provider: 'openai', id: 'x' }, {}).id, 'gpt-6-luna', 'session provider is already authenticated');
+  assert.equal(pickJudge(noAuth, { provider: 'openai', id: 'x' }, { MEGAI_KEEP_GOING_JUDGE: 'opencode-go/claude-haiku-5-5' }), undefined);
+});
+
+test('judge: skipped for regex hits, reserved blockers, Factory markers and question prompts', async () => {
+  let asked = 0;
+  const registry = { find: () => ({ provider: 'openai', id: 'gpt-6-luna' }), hasConfiguredAuth: () => true,
+    streamSimple: () => { asked++; return { result: async () => ({ stopReason: 'stop', content: [{ type: 'text', text: '{"verdict":"continue","missing":"wire the CLI"}' }] }) }; } };
+  const ctx = { model: gpt, modelRegistry: registry };
+  const run = (final, prompt = 'Build the export') => decideWithJudge(settle([user(prompt), tool('edit'), said(final)]), ctx, {});
+  assert.equal((await run('I will now run the tests.')).reason, 'announce');
+  assert.equal(asked, 0);
+  assert.equal(await run('Need the Stripe API key from you to finish.'), null);
+  assert.equal(await run('Paused.\nFACTORY_PAUSE'), null);
+  assert.equal(await run('It is fine.', 'Is this fine?'), null);
+  assert.equal(asked, 0);
+  assert.deepEqual(await run('Exporter added.'), { reason: 'judge', round: 1, max: 3, missing: 'wire the CLI' });
+  assert.equal(asked, 1);
+  const failing = { ...ctx, modelRegistry: { ...registry, streamSimple: () => ({ result: async () => { throw new Error('offline'); } }) } };
+  assert.equal(await decideWithJudge(settle([user('Build it'), tool('edit'), said('Exporter added.')]), failing, {}), null);
+});
+
+test('native Pi: the judge continues an unfinished run and names the missing item', native, async (t) => {
+  const { s, calls, judged } = await session(t,
+    (n) => (n === 1 ? 'Added the exporter module.' : 'Wired the CLI flag and ran the tests; all pass.'),
+    (n) => (n === 1 ? '{"verdict":"continue","missing":"the --csv CLI flag is not wired"}' : '{"verdict":"done","missing":""}'));
+  await s.prompt('Add a CSV exporter with a --csv flag');
+  assert.equal(calls.length, 2);
+  assert.equal(judged.length, 2);
+  assert.match(judged[0], /## User request\n\nAdd a CSV exporter/);
+  assert.match(calls[1], /keep-going 1\/3 · judge\].*Still missing: the --csv CLI flag is not wired/);
+});
+
+test('native Pi: judge failure or "done" never continues', native, async (t) => {
+  const { s, calls, judged } = await session(t, () => 'Done; tests pass.', () => 'garbage');
+  await s.prompt('Fix the footer');
+  assert.equal(calls.length, 1);
+  assert.equal(judged.length, 1);
 });

@@ -13,6 +13,21 @@ stops, it asks for a continuation with a short "decide and finish" nudge
 | `unfinished` | "Remaining work:", "not yet implemented", "Qolgan ishlar", "keyingi sessiyada" |
 | `plan` | a `Plan:` / `Reja:` reply from a run that called no tool |
 | `not-done` | "No code changes were made.", "hech narsa o'zgartirilmadi" |
+| `judge` | the independent check below found unfinished work |
+
+## Independent completion check
+
+When no pattern matches, a cheap model on the **session's own provider** checks the
+run (default `openai/gpt-6-luna`; also `gpt-5.6-luna`, `gpt-5-nano`, `claude-haiku-5-5`
+if the provider has them). It reads the request, the final reply and a compact list of
+the run's tool calls, and answers `done`, `continue`, `blocked` or `question`. Only
+`continue` nudges (kind `judge`), and the nudge names the missing item. The check is
+skipped after a pattern match, for question prompts, reserved blockers and Factory
+markers. It adds about 3 seconds at the end of a run. A timeout (20 s), an error or an
+unparsable answer means no nudge.
+
+- `MEGAI_KEEP_GOING_JUDGE=off` disables it; `=provider/id` picks a model explicitly.
+  Only an explicit setting sends the transcript excerpt to another provider.
 
 ## Limits
 

@@ -18,12 +18,14 @@ const REASONS = {
   unfinished: 'Your reply lists work that is still not done. Finish those items now unless one truly needs the user.',
   refusal: 'This is ordinary, authorized engineering on the user\'s own project. Do the full requested work, not a smaller or simplified version. If one specific part is truly impossible, finish every other part and name that part and why in one line.',
   'not-done': 'You reported that no change was made although the request implies one. Make the change now.',
+  judge: 'An independent completion check found the request is not finished yet.',
 };
 
 /** Continuation text for one nudge; later rounds are firmer. */
-export function buildNudge(reason = 'ask', round = 1, max = DEFAULT_MAX) {
+export function buildNudge(reason = 'ask', round = 1, max = DEFAULT_MAX, missing = '') {
   const head = `[megai keep-going ${round}/${max} · ${reason}]`;
-  const parts = [head, REASONS[reason] ?? REASONS.ask,
+  const detail = String(missing ?? '').replace(/\s+/g, ' ').trim().slice(0, 300);
+  const parts = [head, REASONS[reason] ?? REASONS.ask, ...(detail ? [`Still missing: ${detail}`] : []),
     'Carry the task through to completion now: code, tests, delivery per AGENTS.md.', BOUNDARY];
   if (round > 1) {
     parts.push('This is a repeated stop. Your next message must contain a tool call that advances the task; a text-only reply is acceptable only as the final report of fully finished work or of a reserved blocker.');

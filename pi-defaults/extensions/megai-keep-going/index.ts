@@ -1,7 +1,8 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import {
-  CUSTOM_TYPE, buildNudge, classifyFinal, fingerprint, isGptModel, isQuestionPrompt, maxFromEnv, modeFromEnv,
+  CUSTOM_TYPE, buildNudge, classifyFinal, fingerprint, isGptModel, isQuestionPrompt, isReservedBlock, maxFromEnv, modeFromEnv,
 } from './keep-going-core.mjs';
+import { buildJudgeInput, pickJudge, runJudge } from './judge.mjs';
 
 // When a (GPT) model ends a run early (asks for permission, announces the next step
 // without doing it, hands back a plan or a list of remaining work, soft-refuses, or
@@ -24,8 +25,20 @@ function textOf(content: unknown): string {
 const toolCalls = (m: any): any[] => (Array.isArray(m?.content) ? m.content.filter((c: any) => c?.type === 'toolCall') : []);
 const isOwn = (m: any) => m?.role === 'custom' && m.customType === CUSTOM_TYPE;
 
-/** Decide on one settle boundary. Exported for tests. */
-export function decide(event: any, model: any, env: NodeJS.ProcessEnv = process.env) {
+// Factory verifies these hand-offs itself from Brokan and Git.
+const FACTORY_MARKER = /^(?:FACTORY_PAUSE|FACTORY_READY|FACTORY_DELIVERED\b.*)$/m;
+
+type Verdict = { reason: string; round: number; max: number; missing?: string };
+type JudgeCase = { judge: { request: string; reply: string; calls: any[]; edited: boolean; round: number; max: number } };
+
+/** Regex verdict only (no model call). Exported for tests. */
+export function decide(event: any, model: any, env: NodeJS.ProcessEnv = process.env): Verdict | null {
+  const result = assess(event, model, env);
+  return result && 'reason' in result ? result : null;
+}
+
+/** Regex verdict, or the evidence for the judge when the regex found no early stop. */
+export function assess(event: any, model: any, env: NodeJS.ProcessEnv = process.env): Verdict | JudgeCase | null {
   const mode = modeFromEnv(env);
   if (mode === 'off') return null;
   if (mode === 'gpt' && !isGptModel(model)) return null;
@@ -75,14 +88,31 @@ export function decide(event: any, model: any, env: NodeJS.ProcessEnv = process.
   const calls = assistants.flatMap(toolCalls);
   const edited = calls.some((c: any) => EDIT_TOOLS.has(String(c.name ?? '').toLowerCase()));
   const reason = classifyFinal(finalText, { edited, toolsRan: calls.length > 0 });
-  if (!reason) return null;
-  return { reason, round: nudges + 1, max };
+  if (reason) return { reason, round: nudges + 1, max };
+  if (!finalText.trim() || isReservedBlock(finalText) || FACTORY_MARKER.test(finalText)) return null;
+  return { judge: { request: textOf(messages[start].content), reply: finalText, calls, edited, round: nudges + 1, max } };
+}
+
+/** Full decision: regex first, then the independent judge. Exported for tests. */
+export async function decideWithJudge(event: any, ctx: any, env: NodeJS.ProcessEnv = process.env): Promise<Verdict | null> {
+  const result = assess(event, ctx?.model, env);
+  if (!result) return null;
+  if ('reason' in result) return result;
+  const registry = ctx?.modelRegistry;
+  if (!registry) return null;
+  const judge = pickJudge(registry, ctx.model, env);
+  if (!judge) return null;
+  const verdict = await runJudge(registry, judge, buildJudgeInput(result.judge), ctx?.signal);
+  if (verdict?.verdict !== 'continue') return null;
+  return { reason: 'judge', round: result.judge.round, max: result.judge.max, missing: verdict.missing };
 }
 
 export default function (pi: ExtensionAPI) {
-  pi.on('agent_before_settle', (event: any, ctx: any) => {
+  pi.on('agent_before_settle', async (event: any, ctx: any) => {
     try {
-      const verdict = decide(event, ctx?.model);
+      const verdict = await decideWithJudge(event, ctx);
+      // Another handler may have continued or input may have arrived while the judge ran.
+      if (verdict && (event.continue || ctx?.hasPendingMessages?.())) return;
       if (process.env.MEGAI_KEEP_GOING_DEBUG) {
         console.error('[keep-going]', JSON.stringify({ outcome: event?.outcome, cont: event?.continue, pending: event?.context?.pendingMessages?.length, model: ctx?.model && { p: ctx.model.provider, id: ctx.model.id }, verdict }));
       }
@@ -90,7 +120,7 @@ export default function (pi: ExtensionAPI) {
       return {
         entries: [...(event.entries ?? []), {
           type: 'custom_message', customType: CUSTOM_TYPE, display: true,
-          content: buildNudge(verdict.reason, verdict.round, verdict.max),
+          content: buildNudge(verdict.reason, verdict.round, verdict.max, verdict.missing),
           details: verdict,
         }],
         continue: true,
