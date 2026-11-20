@@ -46,7 +46,7 @@ async function fixture(t, { tasks = [makeTask(1, 'doing'), makeTask(2, 'todo')],
     mkdirSync(join(cwd, '.pi'));
     writeFileSync(join(cwd, '.pi/project.json'), JSON.stringify({ brokanProject: configured }));
   }
-  const state = { tasks, failed: undefined, gate: undefined, worker: undefined };
+  const state = { tasks, failed: undefined, gate: undefined, worker: undefined, version: 1 };
   const git = (dir, ...args) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   const workerRoot = join(agentDir, 'factory-worktrees', project);
   if (parallel) {
@@ -91,7 +91,9 @@ exec ${[process.execPath, ...args].map(value => JSON.stringify(value)).join(' ')
     if (state.gate) await state.gate(path);
     if (path === state.failed) { res.writeHead(503).end(); return; }
     let body;
-    if (path === `/api/board?project=${project}`) {
+    if (path === '/api/changes') {
+      body = { changes: `token-${state.version}` };
+    } else if (path === `/api/board?project=${project}`) {
       body = { projects: [{ slug: project, archived: false, repos }, { slug: 'other', archived: false, repos: [] }], tasks: state.tasks };
     } else if (/^\/api\/tasks\/\d+$/.test(path)) {
       body = { task: state.tasks.find(task => task.id === Number(path.split('/').at(-1))) };
@@ -174,7 +176,7 @@ async function run(session, command = '/factory') {
 }
 
 const options = { timeout: 12_000 };
-test('queue: fixed snapshot, board order, eligible identity and fresh read before each handoff', options, async t => {
+test('queue: board order, eligible identity, fresh read before each handoff and a refresh when the batch runs dry', options, async t => {
   const f = await fixture(t, { tasks: [makeTask(2, 'todo'), makeTask(1, 'doing'), makeTask(3, 'todo', true),
     makeTask(4, 'review'), makeTask(5, 'todo')] });
   const s = await f.open((prompt, count) => {
@@ -188,10 +190,13 @@ test('queue: fixed snapshot, board order, eligible identity and fresh read befor
     return 'Handoff recorded.';
   });
   await run(s.session);
-  assert.deepEqual(s.calls.map(taskFor), [1, 2]);
-  assert.deepEqual(f.reads, [`/api/board?project=${project}`, '/api/tasks/1', '/api/tasks/1', '/api/tasks/2', '/api/tasks/2', '/api/tasks/5']);
+  // Task 6 was added mid-batch: the refresh picks it up; task 5 turned human and is skipped.
+  assert.deepEqual(s.calls.map(taskFor), [1, 2, 6]);
+  const board = `/api/board?project=${project}`;
+  assert.deepEqual(f.reads, [board, '/api/tasks/1', '/api/tasks/1', '/api/tasks/2', '/api/tasks/2', '/api/tasks/5',
+    board, '/api/tasks/6', '/api/tasks/6', board]);
   assert.deepEqual(s.errors, []);
-  assert.ok(s.notices.some(x => x.includes('2 handed off. Queue exhausted.')));
+  assert.ok(s.notices.some(x => x.includes('3 handed off. Queue exhausted.')));
   assert.equal(f.locked(), false);
   assert.equal(s.session.model.id, s.model.id);
   assert.equal(s.session.thinkingLevel, 'low');
@@ -368,10 +373,11 @@ test('parallel: five isolated workers per wave, then one verified delivery at a 
   });
   await run(s.session, '/factory parallel');
   assert.equal(peak, 5);
-  assert.deepEqual(seen.toSorted(), [1, 2, 3, 4, 5, 6]);
-  assert.deepEqual(delivered, [6, 1, 2, 3, 4, 5]);
+  // Task 8 was added during the first wave and runs in a wave after the snapshot.
+  assert.deepEqual(seen.toSorted((a, b) => a - b), [1, 2, 3, 4, 5, 6, 8]);
+  assert.deepEqual(delivered, [6, 1, 2, 3, 4, 5, 8]);
   assert.deepEqual(s.errors, []);
-  assert.ok(s.notices.some(x => x.includes('6 handed off. Queue exhausted.')));
+  assert.ok(s.notices.some(x => x.includes('7 handed off. Queue exhausted.')));
   assert.equal(f.locked(), false);
   assert.equal(s.session.thinkingLevel, 'low');
 });
@@ -474,5 +480,89 @@ test('parallel: actual Pi RPC worker can prepare a committed candidate with a na
   await s.session.prompt('/factory parallel 2');
   await finished;
   assert.deepEqual(s.calls.map(taskFor), [1]);
+  assert.equal(f.locked(), false);
+});
+
+const watchOptions = { timeout: 15_000 };
+async function until(predicate, label, ms = 5000) {
+  const end = Date.now() + ms;
+  while (!predicate()) {
+    if (Date.now() > end) assert.fail(`timed out waiting for ${label}`);
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+}
+function fastWatch(t) {
+  const prior = process.env.MEGAI_FACTORY_WATCH_SECONDS;
+  process.env.MEGAI_FACTORY_WATCH_SECONDS = '0.05';
+  t.after(() => { if (prior === undefined) delete process.env.MEGAI_FACTORY_WATCH_SECONDS; else process.env.MEGAI_FACTORY_WATCH_SECONDS = prior; });
+}
+const boards = reads => reads.filter(path => path.startsWith('/api/board')).length;
+
+test('watch: idle session starts tasks added later and reads the board only when Brokan changed', watchOptions, async t => {
+  fastWatch(t);
+  const f = await fixture(t, { tasks: [makeTask(1, 'doing')] });
+  const s = await f.open(prompt => { f.status(taskFor(prompt), 'review'); f.state.version++; return 'Handoff recorded.'; });
+  await s.session.prompt('/factory watch');
+  await until(() => s.calls.length === 1 && !f.locked() && f.reads.filter(p => p === '/api/changes').length >= 4, 'first task and idle polls');
+  const before = boards(f.reads);
+  await new Promise(resolve => setTimeout(resolve, 250));
+  assert.equal(boards(f.reads), before, 'no board read while the change token is unchanged');
+  f.state.tasks.push(makeTask(2, 'todo'));
+  f.state.version++;
+  await until(() => s.calls.length === 2, 'task added while watching');
+  assert.deepEqual(s.calls.map(taskFor), [1, 2]);
+  await until(() => !f.locked(), 'lock release after the batch');
+  await s.session.prompt('/factory status');
+  assert.ok(s.notices.some(x => x.startsWith('Factory: Watching, 0 skipped.')), s.notices.join('\n'));
+  await s.session.prompt('/factory stop');
+  assert.ok(s.notices.some(x => x.includes('Watch stopped.')));
+  const polls = f.reads.length;
+  await new Promise(resolve => setTimeout(resolve, 200));
+  assert.equal(f.reads.length, polls, 'no polling after stop');
+  assert.deepEqual(s.errors, []);
+  assert.equal(s.session.thinkingLevel, 'low');
+});
+
+test('watch: a blocked task is skipped until it changes while the rest of the queue continues', watchOptions, async t => {
+  fastWatch(t);
+  const f = await fixture(t, { tasks: [{ ...makeTask(1, 'doing'), updated_at: 'a', comments: 0 }, makeTask(2, 'todo')] });
+  let fixed = false;
+  const s = await f.open(prompt => {
+    const id = taskFor(prompt);
+    if (id === 1 && !fixed) return 'Needs the vendor key.\nFACTORY_PAUSE';
+    f.status(id, 'review');
+    f.state.version++;
+    return 'Handoff recorded.';
+  });
+  await s.session.prompt('factory watch');
+  await until(() => s.calls.length === 2 && !f.locked(), 'blocked task then the next one');
+  assert.deepEqual(s.calls.map(taskFor), [1, 2]);
+  assert.ok(s.notices.some(x => x.includes('#1 skipped until it changes')), s.notices.join('\n'));
+  await new Promise(resolve => setTimeout(resolve, 250));
+  assert.equal(s.calls.length, 2, 'unchanged blocked task is not retried');
+  fixed = true;
+  f.state.tasks[0].comments = 1; // A new comment alone re-enables the task.
+  f.state.version++;
+  await until(() => s.calls.length === 3, 'retry after the task changed');
+  assert.equal(taskFor(s.calls[2]), 1);
+  await s.session.prompt('/factory stop');
+  await until(() => !f.locked(), 'lock release');
+});
+
+test('watch: typed input ends watching; an invalid target never arms it', watchOptions, async t => {
+  fastWatch(t);
+  const f = await fixture(t, { tasks: [] });
+  const s = await f.open(() => 'Answer.');
+  await s.session.prompt(`/factory watch ${project}#2`);
+  assert.ok(s.notices.some(x => x.includes('Usage: /factory watch')));
+  assert.deepEqual(f.reads, []);
+  await s.session.prompt('/factory watch');
+  await until(() => f.reads.length >= 2, 'polling');
+  await s.session.prompt('Explain the build failure');
+  assert.ok(s.notices.some(x => x.includes('Watch stopped by new input')));
+  const polls = f.reads.length;
+  await new Promise(resolve => setTimeout(resolve, 200));
+  assert.equal(f.reads.length, polls);
+  assert.deepEqual(s.calls, ['Explain the build failure']);
   assert.equal(f.locked(), false);
 });

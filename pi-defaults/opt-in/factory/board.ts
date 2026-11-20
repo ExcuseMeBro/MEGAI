@@ -12,7 +12,7 @@ const SLUG = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const REPO = /^[\w.-]+\/[\w.-]+$/;
 
 export class FactoryError extends Error {}
-export type Task = { id: number; project: string; status: string; human: boolean };
+export type Task = { id: number; project: string; status: string; human: boolean; updated?: string };
 export const eligible = (task: Task) => !task.human && ['doing', 'todo'].includes(task.status);
 export const handedOff = (task: Task) => ['review', 'done'].includes(task.status);
 
@@ -22,7 +22,7 @@ export function selection(input: string): { project?: string; id?: number } {
   const id = Number(number);
   if (!SLUG.test(project) || extra !== undefined || project === 'all' ||
       (number !== undefined && (!/^[1-9]\d{0,15}$/.test(number) || !Number.isSafeInteger(id)))) {
-    throw new FactoryError('Usage: /factory [project | project#123 | status | stop]');
+    throw new FactoryError('Usage: /factory [project | project#123 | parallel [2-5] | watch [parallel [2-5]] | status | stop]');
   }
   return number === undefined ? { project } : { project, id };
 }
@@ -38,7 +38,9 @@ function parseTask(value: unknown, project: string): Task {
       typeof task.status !== 'string' || typeof task.human !== 'boolean') {
     throw new FactoryError('Brokan task identity or state mismatch.');
   }
-  return { id: task.id, project, status: task.status, human: task.human };
+  return { id: task.id, project, status: task.status, human: task.human,
+    // Comments do not move updated_at, so a new comment also counts as a change.
+    ...(typeof task.updated_at === 'string' ? { updated: `${task.updated_at}#${typeof task.comments === 'number' ? task.comments : ''}` } : {}) };
 }
 
 async function get(path: string, signal?: AbortSignal): Promise<Record<string, unknown>> {
@@ -71,6 +73,13 @@ export async function readTask(project: string, id: number, signal?: AbortSignal
   const task = parseTask((await get(`/api/tasks/${id}`, signal)).task, project);
   if (task.id !== id) throw new FactoryError('Brokan task ID mismatch.');
   return task;
+}
+
+/** Cheap board-wide change token; it moves on every Brokan write. */
+export async function changes(signal?: AbortSignal) {
+  const token = (await get('/api/changes', signal)).changes;
+  if (typeof token !== 'string' || !token || token.length > 256) throw new FactoryError('Invalid Brokan change token.');
+  return token;
 }
 
 export async function readQueue(project: string, repo: string, github: boolean, configured: boolean, signal?: AbortSignal) {
