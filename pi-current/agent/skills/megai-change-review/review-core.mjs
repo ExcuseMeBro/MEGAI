@@ -31,13 +31,16 @@ export const isGenerated = f => GENERATED.test(f);
 const SECRET = /-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(gh[pousr]_[A-Za-z0-9]{16,}|figd[_][A-Za-z0-9_-]{16,}|xox[abpr]-[A-Za-z0-9-]{10,}|sk-[A-Za-z0-9_-]{20,}|AIza[A-Za-z0-9_-]{20,})|\bBearer\s+[A-Za-z0-9._~+\/=-]{12,}|\b(api[_-]?key|secret|token|passw(or)?d|authorization)\b["']?\s*[:=]\s*["']?[A-Za-z0-9._~+\/=-]{12,}/i;
 
 const PEM_START = /-----BEGIN [A-Z ]*PRIVATE KEY-----/, PEM_END = /-----END [A-Z ]*PRIVATE KEY-----/;
+// Key-body lines seen without their delimiters (a hunk in the middle of a key): long mixed-case base64.
+const KEY_BODY = /^[+\- ]?[A-Za-z0-9+\/]{60,}={0,2}$/;
+const keyBody = line => KEY_BODY.test(line) && /[A-Z]/.test(line) && /[a-z]/.test(line) && /[0-9]/.test(line);
 
 /** Replace secret-looking lines (and whole private-key blocks) so they never reach the reviewer model. */
 export function redact(text) {
   let count = 0, inKey = false;
   const out = String(text).split('\n').map(line => {
     const start = PEM_START.test(line);
-    if (!(inKey || start || SECRET.test(line))) return line;
+    if (!(inKey || start || SECRET.test(line) || keyBody(line))) return line;
     if (start) inKey = true;
     if (inKey && PEM_END.test(line)) inKey = false;
     count++;
@@ -160,9 +163,11 @@ export function parseReport(text) {
   const [stackAt, blastAt, findAt] = [at('Change stack'), at('Blast radius'), at('Findings')];
   const sections = stackAt >= 0 && blastAt > stackAt && findAt > blastAt;
   const body = findAt >= 0 ? t.slice(findAt).split(/^Verdict:/m)[0] : '';
-  const heads = [...body.matchAll(/^###.*$/gm)].map(m => m[0]);
+  // Markdown allows up to three leading spaces before a heading; treat them as headings too.
+  const norm = body.replace(/^ {1,3}(#)/gm, '$1');
+  const heads = [...norm.matchAll(/^###.*$/gm)].map(m => m[0]);
   const findings = [], problems = [];
-  const blocks = body.split(/^(?=###)/m).filter(b => b.startsWith('###'));
+  const blocks = norm.split(/^(?=###)/m).filter(b => b.startsWith('###'));
   for (const block of blocks) {
     const head = block.split('\n')[0];
     const m = head.match(/^###\s*\[(critical|high|medium|low)\]\s+(\S.*)$/i);
@@ -175,7 +180,7 @@ export function parseReport(text) {
   if (none && findings.length) problems.push('"none" together with findings');
   if (!none && !findings.length) problems.push('no findings and no "### none"');
   if (findings.length > 8) problems.push('more than 8 findings');
-  if (/^#{1,6}\s*(critical|high)\b/im.test(body.replace(/^###\s*\[(critical|high|medium|low)\].*$/gim, ''))) problems.push('severity heading in the wrong form');
+  if (/^#{1,6}\s*(critical|high)\b/im.test(norm.replace(/^###\s*\[(critical|high|medium|low)\].*$/gim, ''))) problems.push('severity heading in the wrong form');
   return { risk, findings, verdict, problems, wellFormed: Boolean(risk && verdict && sections && !problems.length) };
 }
 

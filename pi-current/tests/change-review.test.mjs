@@ -44,6 +44,8 @@ test('review round: PEM blocks, goal and stat are redacted; packet has one hard 
   const pem = ['+-----BEGIN OPENSSH PRIVATE KEY-----', '+b3BlbnNzaC1rZXktdjEAAAAA', '+QUJDREVGR0hJSktMTU5P', '+-----END OPENSSH PRIVATE KEY-----', '+ok line'].join('\n');
   const r = redact(pem);
   assert.equal(r.count, 4); assert.ok(!/b3BlbnNz|QUJDREVG/.test(r.text)); assert.match(r.text, /ok line/);
+  const mid = redact(['@@ -10,3 +10,3 @@', ' MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKj', '-MIIEowIBAAKCAQEAu1SU1LfVLPHCozMxH2Mo4lgOEePzNm0tRgeLezV6ffAt0gun', '+Zm9vYmFyYmF6cXV4MTIzNDU2Nzg5MEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFla', ' 9b8c3f0a1d2e4f6a8b0c2d4e6f8a0b2c4d6e8f0a2b4c6d8e0f2a4b6c8d0e2f4a6'].join('\n'));
+  assert.equal(mid.count, 3, 'key body without delimiters'); assert.match(mid.text, /9b8c3f0a/, 'hex hashes are kept');
   const p = buildPacket({ base: 'b', head: 'h', goal: 'deploy token = abcdefghijklmnopqrstuvwxyz0123', stat: ' x | 1', files: ['x'], diff: '', dirty: false });
   assert.ok(!p.text.includes('abcdefghijklmnop')); assert.equal(p.redacted, 1);
   const many = Array.from({ length: 5000 }, (_, i) => `src/${'deep/'.repeat(20)}file${i}.mjs`);
@@ -88,6 +90,8 @@ test('packet carries template, goal, stack and diff; report parsing', () => {
   assert.equal(parseReport(shell('### none\n')).wellFormed, true);
   assert.equal(parseReport(shell('### none\n') + '### [high] Hidden\n- Where: a\n- Scenario: b\n- Tests: c\n- Fix: d\n').wellFormed, false, 'nothing may follow the verdict');
   assert.equal(parseReport(shell('### none\n') + 'Verdict: ship\n').wellFormed, false, 'exactly one verdict');
+  const indented = parseReport(shell('### none\n  ### [high] Indented\n- Where: a\n- Scenario: b\n- Tests: c\n- Fix: d\n'));
+  assert.equal(indented.wellFormed, false, 'indented heading is still a heading'); assert.ok(atLeast(indented.findings, 'high'));
   assert.equal(parseReport('Risk: Low — x\n## Findings\n### none\nVerdict: ship').wellFormed, false, 'missing sections');
 });
 

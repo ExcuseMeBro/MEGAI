@@ -31,6 +31,9 @@ if (!(opt.timeoutMin >= 1 && opt.timeoutMin <= 60)) fail('--timeout-min must be 
 const env = { ...process.env };
 for (const k of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR']) delete env[k];
 env.GIT_OPTIONAL_LOCKS = '0';
+env.GIT_NO_LAZY_FETCH = '1'; // a partial clone must not contact its promisor remote while we read
+// Never let an uncaught error print captured Git output (it may hold unredacted diff text).
+process.on('uncaughtException', e => { console.error(`review: ${String(e?.message ?? e).split('\n')[0].slice(0, 200)}`); process.exit(2); });
 // No repo-configured helpers (external diff, textconv, fsmonitor) run while building the packet.
 const git = (...a) => execFileSync('git', ['-c', 'core.fsmonitor=false', '-c', 'diff.external=', ...a], { env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 let root;
