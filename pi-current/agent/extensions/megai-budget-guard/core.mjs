@@ -20,6 +20,7 @@ export const DEFAULTS = Object.freeze({
   confirmTimeoutMs: 60000,
 });
 
+export const NOTICE_RESERVE = 600;
 const num = (v, min, max, dflt) => (typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max ? v : dflt);
 
 /** Merge config.json and env into a validated config. Invalid values fall back to defaults. */
@@ -30,7 +31,9 @@ export function resolveConfig(file = {}, env = {}) {
   const capChars = num(f.capChars, 2000, 1_000_000, DEFAULTS.capChars);
   let headChars = num(f.headChars, 200, capChars, DEFAULTS.headChars);
   let tailChars = num(f.tailChars, 0, capChars, DEFAULTS.tailChars);
-  if (headChars + tailChars > capChars) { headChars = Math.floor(capChars * 0.6); tailChars = Math.floor(capChars * 0.25); }
+  // Reserve room for the notice and file path so a capped result never exceeds capChars.
+  const room = capChars - NOTICE_RESERVE;
+  if (headChars + tailChars > room) { headChars = Math.floor(room * 0.7); tailChars = room - headChars; }
   const warnUsd = num(f.warnUsd, 0.01, 10_000, DEFAULTS.warnUsd);
   const b = f.baseline && typeof f.baseline === 'object' ? f.baseline : {};
   return {
@@ -74,7 +77,8 @@ export function capPlan(event, config) {
 export function cappedText(plan, config, path) {
   const head = plan.text.slice(0, config.headChars);
   const tail = config.tailChars ? plan.text.slice(plan.text.length - config.tailChars) : '';
-  const note = `[budget-guard: output was ${plan.total} chars; ${plan.omitted} chars omitted here. ` +
+  const omitted = plan.text.length - head.length - tail.length;
+  const note = `[budget-guard: output was ${plan.total} chars; ${omitted} chars omitted here. ` +
     `Full output: ${path} — read only the lines you need (read with offset/limit, or grep/rg) instead of printing it again.]`;
   return `${head}\n…\n${note}\n…\n${tail}`;
 }
@@ -87,26 +91,53 @@ export function cappedContent(content, text) {
 
 const modelKey = m => `${m?.provider ?? '?'}/${m?.model ?? m?.id ?? '?'}`;
 
-/** Sum assistant usage over session entries (all branches: spent money stays spent). */
+/**
+ * Sum billed usage over session entries, like Pi's own totals: assistant and tool-result
+ * messages, plus usage, compaction and branch-summary entries (all branches: spent money
+ * stays spent). Only assistant messages count as requests.
+ */
 export function usageTotals(entries) {
   const out = { usd: 0, requests: 0, byModel: {} };
   for (const e of Array.isArray(entries) ? entries : []) {
-    const m = e?.type === 'message' ? e.message : null;
-    if (!m || m.role !== 'assistant') continue;
-    addUsage(out, m);
+    if (e?.type === 'message' && e.message) addUsage(out, e.message);
+    else if (e && e.type !== 'custom' && e.usage) addUsage(out, { role: e.type, provider: e.provider, model: e.model, usage: e.usage });
   }
   return out;
 }
 
+const costOf = message => { const usd = Number(message?.usage?.cost?.total); return Number.isFinite(usd) && usd > 0 ? usd : 0; };
+
 export function addUsage(totals, message) {
-  const usd = Number(message?.usage?.cost?.total);
-  const cost = Number.isFinite(usd) && usd > 0 ? usd : 0;
-  totals.requests += 1;
+  const cost = costOf(message);
+  const request = message?.role === 'assistant';
+  if (!request && !cost) return totals;
+  if (request) totals.requests += 1;
   totals.usd += cost;
   const k = modelKey(message);
   const slot = totals.byModel[k] ??= { usd: 0, requests: 0 };
-  slot.usd += cost; slot.requests += 1;
+  slot.usd += cost; if (request) slot.requests += 1;
   return totals;
+}
+
+/** Totals from persisted entries, plus `message` when Pi has not persisted it yet. */
+export function totalsWith(entries, message) {
+  const t = usageTotals(entries);
+  if (message && !(Array.isArray(entries) && entries.some(e => e?.type === 'message' && e.message?.role === message.role &&
+    e.message?.timestamp === message.timestamp))) addUsage(t, message);
+  return t;
+}
+
+export const STATE_TYPE = 'megai-budget-guard';
+
+/** Latest persisted stop-limit decision in this session, if any. */
+export function restoredLimit(entries, dflt) {
+  let out = { limit: dflt, declined: false };
+  for (const e of Array.isArray(entries) ? entries : []) {
+    if (e?.type !== 'custom' || e.customType !== STATE_TYPE) continue;
+    const d = e.data ?? {};
+    if (typeof d.limit === 'number' && Number.isFinite(d.limit) && d.limit >= dflt) out = { limit: d.limit, declined: d.declined === true };
+  }
+  return out;
 }
 
 /** Price ratio of a model against the baseline, from its per-million input and cache-read prices. */
@@ -167,27 +198,32 @@ export function logRecord(session, fields, now = Date.now()) {
 /** Summarize log lines for the last `days` days. */
 export function summarize(lines, now = Date.now(), days = 7) {
   const since = now - days * 86400_000;
-  const s = { days, sessions: new Set(), caps: 0, capsApplied: 0, omitted: 0, kinds: {}, ended: 0, usd: 0, overWarn: 0, expensive: new Set() };
+  const s = { days, sessions: new Set(), caps: 0, capsApplied: 0, omitted: 0, omittedWould: 0, kinds: {}, ended: 0, usd: 0, expensive: new Set() };
+  const snapshots = new Map(); // cumulative per session: keep the latest, never sum reloads
   for (const line of lines) {
     let r; try { r = JSON.parse(line); } catch { continue; }
     const t = Date.parse(r?.ts);
     if (!Number.isFinite(t) || t < since) continue;
     s.sessions.add(r.s);
-    if (r.kind === 'cap') { s.caps++; if (r.applied) s.capsApplied++; s.omitted += r.omitted || 0; continue; }
-    if (r.kind === 'session') { s.ended++; s.usd += r.usd || 0; continue; }
+    if (r.kind === 'cap') { s.caps++; if (r.applied) { s.capsApplied++; s.omitted += r.omitted || 0; } else s.omittedWould += r.omitted || 0; continue; }
+    if (r.kind === 'session') { const prev = snapshots.get(r.s); if (!prev || t >= prev.t) snapshots.set(r.s, { t, usd: r.usd || 0 }); continue; }
     if (r.kind === 'model') s.expensive.add(r.s);
-    s.kinds[r.kind] = (s.kinds[r.kind] || 0) + 1;
+    const key = r.applied === false && r.kind === 'cost-stop' ? 'cost-stop:would' : r.kind;
+    s.kinds[key] = (s.kinds[key] || 0) + 1;
   }
+  s.ended = snapshots.size;
+  for (const v of snapshots.values()) s.usd += v.usd;
   return s;
 }
 
 export function formatWeek(s, mode) {
   const lines = [`Budget guard (${mode}) — last ${s.days} days, ${s.sessions.size} sessions logged`];
-  lines.push(`Large tool outputs: ${s.caps} ${s.capsApplied === s.caps ? 'capped' : `over the limit (${s.capsApplied} capped)`}; ~${k(s.omitted / 4)} tokens kept out of context.`);
-  const names = { 'cost-warn': 'cost warnings', 'cost-stop': 'cost stops', 'context-warn': 'context warnings', 'context-tier': 'contexts above the 2× price tier', requests: 'long-session warnings' };
+  lines.push(`Large tool outputs: ${s.caps} over the limit, ${s.capsApplied} capped; ~${k(s.omitted / 4)} tokens kept out of context` +
+    (s.omittedWould ? `, ~${k(s.omittedWould / 4)} more would have been in enforce mode.` : '.'));
+  const names = { 'cost-warn': 'cost warnings', 'cost-stop': 'cost stops', 'cost-stop:would': 'would-be cost stops (not enforced)', 'context-warn': 'context warnings', 'context-tier': 'contexts above the 2× price tier', requests: 'long-session warnings' };
   for (const [kind, label] of Object.entries(names)) if (s.kinds[kind]) lines.push(`${label}: ${s.kinds[kind]}`);
   if (s.expensive.size) lines.push(`Sessions on an expensive model: ${s.expensive.size}`);
-  if (s.ended) lines.push(`Finished sessions: ${s.ended}, total $${s.usd.toFixed(2)} (Pi-recorded cost).`);
+  if (s.ended) lines.push(`Sessions with recorded cost: ${s.ended}, total $${s.usd.toFixed(2)} (Pi-recorded, latest snapshot per session).`);
   if (mode === 'observe') lines.push('Observe mode changed nothing. Enable with MEGAI_BUDGET_GUARD=warn or =enforce, or "mode" in config.json.');
   return lines.join('\n');
 }

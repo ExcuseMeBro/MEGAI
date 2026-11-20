@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto';
-import { appendFileSync, chmodSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, closeSync, constants, lstatSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import {
-  addUsage, capPlan, cappedContent, cappedText, crossed, formatSession, formatWeek, logRecord, modelAdvice, overStop,
-  resolveConfig, sessionTag, summarize, usageTotals,
+  STATE_TYPE, capPlan, cappedContent, cappedText, crossed, formatSession, formatWeek, logRecord, modelAdvice, overStop,
+  resolveConfig, restoredLimit, sessionTag, summarize, totalsWith,
 } from './core.mjs';
 
 // Budget guard: keeps large tool outputs out of the context, reports session cost,
@@ -23,10 +23,14 @@ function loadFileConfig() {
 
 const agentDir = () => process.env.PI_CODING_AGENT_DIR || join(homedir(), '.pi', 'agent');
 
+/** A real directory (not a symlink), or nothing. */
+function realDir(path: string) {
+  try { const st = lstatSync(path); return st.isDirectory() && !st.isSymbolicLink(); } catch { return false; }
+}
+
 function privateDir(path: string) {
   mkdirSync(path, { recursive: true, mode: 0o700 });
-  const st = lstatSync(path);
-  if (!st.isDirectory() || st.isSymbolicLink()) throw new Error('unsafe directory');
+  if (!realDir(path)) throw new Error('unsafe directory');
   chmodSync(path, 0o700);
 }
 
@@ -40,18 +44,25 @@ export function registerBudgetGuard(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
     try {
       privateDir(root());
       const file = join(root(), 'events.jsonl');
-      try { if (statSync(file).size > LOG_MAX) renameSync(file, join(root(), 'events.1.jsonl')); } catch { /* no log yet */ }
-      appendFileSync(file, JSON.stringify(logRecord(state.id, { mode: config.mode, ...fields })) + '\n', { mode: 0o600 });
+      try { const st = lstatSync(file); if (st.isFile() && st.size > LOG_MAX) renameSync(file, join(root(), 'events.1.jsonl')); } catch { /* no log yet */ }
+      const fd = openSync(file, constants.O_WRONLY | constants.O_APPEND | constants.O_CREAT | constants.O_NOFOLLOW, 0o600);
+      try { writeSync(fd, JSON.stringify(logRecord(state.id, { mode: config.mode, ...fields })) + '\n'); } finally { closeSync(fd); }
     } catch { /* logging never breaks a run */ }
   };
   const visible = () => config.mode === 'warn' || config.mode === 'enforce';
   const tell = (ctx: any, message: string, level = 'warning') => { if (visible()) { try { ctx?.ui?.notify?.(message, level); } catch { /* no UI */ } } };
+  const entriesOf = (ctx: any) => { try { return ctx?.sessionManager?.getEntries?.() ?? []; } catch { return []; } };
+  const persist = (s: any) => { try { pi.appendEntry?.(STATE_TYPE, { limit: s.limit, declined: s.declined }); } catch { /* in-memory only */ } };
 
+  // Capped outputs exist only in enforce mode; never follow a linked store.
   function prune() {
+    if (config.mode !== 'enforce') return;
     try {
       const dir = join(root(), 'outputs');
+      if (!realDir(root()) || !realDir(dir)) return;
       const cutoff = Date.now() - config.retentionDays * 86400_000;
       for (const name of readdirSync(dir).slice(0, 500)) {
+        if (!/^[0-9a-f]{12}$/.test(name)) continue;
         const path = join(dir, name);
         const st = lstatSync(path);
         if (st.isDirectory() && !st.isSymbolicLink() && st.mtimeMs < cutoff) rmSync(path, { recursive: true, force: true });
@@ -64,17 +75,18 @@ export function registerBudgetGuard(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
   }
 
   function ensure(ctx: any) {
-    const sm = ctx?.sessionManager;
     let id: string;
-    try { id = sm?.getSessionId?.() || `ephemeral-${process.pid}`; } catch { id = `ephemeral-${process.pid}`; }
+    try { id = ctx?.sessionManager?.getSessionId?.() || `ephemeral-${process.pid}`; } catch { id = `ephemeral-${process.pid}`; }
     if (state?.id === id) return state;
     finish();
-    let totals;
-    try { totals = usageTotals(sm?.getEntries?.() ?? []); } catch { totals = usageTotals([]); }
-    state = { id, totals, tokens: 0, maxTokens: 0, seen: new Set<string>(), models: new Set<string>(), notes: { caps: 0, capsApplied: 0 },
-      limit: config.stopUsd, declined: false, confirming: null as Promise<boolean> | null };
+    const entries = entriesOf(ctx);
+    const saved = restoredLimit(entries, config.stopUsd);
+    state = { id, totals: totalsWith(entries), tokens: 0, maxTokens: 0, seen: new Set<string>(), models: new Set<string>(),
+      notes: { caps: 0, capsApplied: 0 }, limit: saved.limit, declined: saved.declined, confirming: null as Promise<boolean> | null };
     return state;
   }
+
+  function contextTokens(ctx: any) { try { return Number(ctx?.getContextUsage?.()?.tokens) || 0; } catch { return 0; } }
 
   function advise(ctx: any, model: any) {
     const advice = modelAdvice(model, config);
@@ -85,19 +97,27 @@ export function registerBudgetGuard(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
   }
 
   function check(ctx: any) {
-    for (const hit of crossed({ ...state.totals, tokens: state.tokens }, config, state.seen)) {
-      log({ kind: hit.kind, usd: state.totals.usd, tokens: state.tokens, requests: state.totals.requests, applied: visible() });
+    const s = state;
+    for (const hit of crossed({ ...s.totals, tokens: s.tokens }, config, s.seen)) {
+      log({ kind: hit.kind, usd: s.totals.usd, tokens: s.tokens, requests: s.totals.requests, applied: visible() });
       tell(ctx, hit.message);
+    }
+    // In observe/warn, record (once) that enforce mode would stop here.
+    if (config.mode !== 'enforce' && overStop(s.totals, s.limit) && !s.seen.has('cost-stop')) {
+      s.seen.add('cost-stop');
+      log({ kind: 'cost-stop', usd: s.totals.usd, requests: s.totals.requests, applied: false });
+      tell(ctx, `Session cost $${s.totals.usd.toFixed(2)} reached the $${s.limit} stop limit (enforced only in enforce mode).`);
     }
   }
 
   pi.on('session_start', (_event: any, ctx: any) => {
     if (config.mode === 'off') return;
     try {
-      ensure(ctx);
+      const s = ensure(ctx);
+      s.tokens = contextTokens(ctx); s.maxTokens = s.tokens;
       prune();
       advise(ctx, ctx?.model);
-      if (state.totals.requests) check(ctx);
+      if (s.totals.requests || s.tokens) check(ctx);
     } catch { /* fail open */ }
   });
 
@@ -107,17 +127,18 @@ export function registerBudgetGuard(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
   });
 
   pi.on('message_end', (event: any, ctx: any) => {
-    if (config.mode === 'off' || event?.message?.role !== 'assistant') return;
+    const message = event?.message;
+    if (config.mode === 'off' || message?.role !== 'assistant') return;
     try {
       const s = ensure(ctx);
-      addUsage(s.totals, event.message);
-      const u = event.message.usage ?? {};
+      s.totals = totalsWith(entriesOf(ctx), message);
+      // The message's own usage is the size of the context it was answered from.
+      const u = message.usage ?? {};
       const fromUsage = [u.input, u.cacheRead, u.cacheWrite, u.output].reduce((a: number, v: any) => a + (Number(v) || 0), 0);
-      let tokens = fromUsage;
-      try { tokens = Number(ctx?.getContextUsage?.()?.tokens) || fromUsage; } catch { /* use message usage */ }
-      s.tokens = tokens; s.maxTokens = Math.max(s.maxTokens, tokens);
+      s.tokens = fromUsage || contextTokens(ctx) || s.tokens;
+      s.maxTokens = Math.max(s.maxTokens, s.tokens);
       check(ctx);
-      if (visible()) { try { ctx?.ui?.setStatus?.('budget', `$${s.totals.usd.toFixed(2)} · ${Math.round(tokens / 1000)}k`); } catch { /* no UI */ } }
+      if (visible()) { try { ctx?.ui?.setStatus?.('budget', `$${s.totals.usd.toFixed(2)} · ${Math.round(s.tokens / 1000)}k`); } catch { /* no UI */ } }
     } catch { /* fail open */ }
   });
 
@@ -125,21 +146,27 @@ export function registerBudgetGuard(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
     if (config.mode !== 'enforce') return;
     try {
       const s = ensure(ctx);
+      // Entries are synced through the current assistant message here: count every billed entry.
+      s.totals = totalsWith(entriesOf(ctx));
       if (!overStop(s.totals, s.limit)) return;
       if (!s.declined) {
         s.confirming ??= (async () => {
+          const proposed = Math.max(s.limit, s.totals.usd) + config.stopUsd;
           log({ kind: 'cost-stop', usd: s.totals.usd, requests: s.totals.requests, applied: true });
-          if (!ctx?.hasUI) return false;
-          try {
-            return Boolean(await ctx.ui.confirm('Budget guard',
-              `This session has spent $${s.totals.usd.toFixed(2)} (limit $${s.limit}). Continue up to $${s.limit + config.stopUsd}?`,
-              { timeout: config.confirmTimeoutMs }));
-          } catch { return false; }
-        })();
-        const ok = await s.confirming;
-        s.confirming = null;
-        if (ok) { s.limit += config.stopUsd; return; }
-        s.declined = true;
+          let ok = false;
+          if (ctx?.hasUI) {
+            try {
+              ok = (await ctx.ui.confirm('Budget guard',
+                `This session has spent $${s.totals.usd.toFixed(2)} (limit $${s.limit}). Continue up to $${proposed.toFixed(2)}?`,
+                { timeout: config.confirmTimeoutMs })) === true;
+            } catch { ok = false; }
+          }
+          if (ok) s.limit = proposed; else s.declined = true;
+          persist(s);
+          return ok;
+        })().finally(() => { s.confirming = null; });
+        await s.confirming;
+        if (!overStop(s.totals, s.limit)) return;
       }
       return {
         block: true, terminate: true,
@@ -178,19 +205,22 @@ export function registerBudgetGuard(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
       const parts = String(input ?? '').trim().split(/\s+/).filter(Boolean);
       if (config.mode === 'off') { ctx.ui.notify('Budget guard is off (MEGAI_BUDGET_GUARD=off).', 'info'); return; }
       const s = ensure(ctx);
+      s.totals = totalsWith(entriesOf(ctx));
       if (!parts.length) {
-        try { s.tokens = Number(ctx?.getContextUsage?.()?.tokens) || s.tokens; } catch { /* keep */ }
+        s.tokens = contextTokens(ctx) || s.tokens;
         ctx.ui.notify(formatSession({ ...s.totals, tokens: s.tokens }, config, s.limit, s.notes), 'info');
         return;
       }
       if (parts[0] === 'week' && parts.length === 1) {
         let lines: string[] = [];
-        for (const f of ['events.1.jsonl', 'events.jsonl']) {
-          try {
-            const p = join(root(), f);
-            const st = lstatSync(p);
-            if (st.isFile() && st.size <= LOG_MAX * 2) lines = lines.concat(readFileSync(p, 'utf8').split('\n'));
-          } catch { /* missing */ }
+        if (realDir(root())) {
+          for (const f of ['events.1.jsonl', 'events.jsonl']) {
+            try {
+              const p = join(root(), f);
+              const st = lstatSync(p);
+              if (st.isFile() && st.size <= LOG_MAX * 2) lines = lines.concat(readFileSync(p, 'utf8').split('\n'));
+            } catch { /* missing */ }
+          }
         }
         ctx.ui.notify(formatWeek(summarize(lines), config.mode), 'info');
         return;
@@ -200,6 +230,7 @@ export function registerBudgetGuard(pi: ExtensionAPI, env: NodeJS.ProcessEnv = p
         if (!Number.isFinite(extra) || extra <= 0 || extra > 10_000) { ctx.ui.notify(HELP, 'error'); return; }
         s.limit = Math.max(s.limit, s.totals.usd) + extra;
         s.declined = false;
+        persist(s);
         log({ kind: 'allow', usd: s.limit });
         ctx.ui.notify(`Budget guard: stop limit for this session is now $${s.limit.toFixed(2)}.`, 'info');
         return;
