@@ -33,12 +33,16 @@ and generated files, cuts large diffs (20k chars per file, 120k diff, 140k packe
 and redacts secret-looking lines and private-key blocks in every section (goal, stat, diff). Packet and report are
 written `0600` into a fresh temp folder.
 
-Isolation: base and head are pinned to SHAs once; Git runs without external diff, textconv or fsmonitor helpers. The
-reviewer works in a clean `git archive` export of the pinned commit (no untracked, ignored or uncommitted files), with
-`--offline --no-approve --no-extensions --no-skills --no-context-files --no-mcp` and only `read,grep,find,ls`. The model
-must be an exact `provider/id` row in `pi --list-models`, so a fuzzy pattern can't pick a different reviewer.
-Residual risk: `read` still accepts absolute paths outside the export; the reviewer has no write, shell or network tool,
-and its provider is the one the author session already uses.
+Isolation: base and head are pinned to SHAs once; Git runs without external diff, textconv or fsmonitor helpers, and
+there is no worktree status check. The reviewer works in a clean `git archive` export of the pinned commit (no
+untracked, ignored or uncommitted files). The commit's own `.pi/` is renamed to `_pi_from_commit/` (readable, inert),
+and a review-only `.pi/APPEND_SYSTEM.md` replaces the author's global one, so no author rules, `AGENTS.md`, skills,
+extensions, MCP servers or project packages reach the reviewer (`--offline --approve --no-extensions --no-skills
+--no-context-files --no-prompt-templates --no-mcp`, tools `read,grep,find,ls`; system prompt ~2k chars instead of ~7k).
+The model must be an exact `provider/id` row in `pi --list-models`, checked with the same isolation.
+Residual risk (accepted): `read` still accepts absolute paths outside the export and can reopen a committed file whose
+secret was redacted in the packet. The reviewer has no write, shell or network tool, and its provider is the one the
+author session (with `bash`) already uses.
 
 Exit codes: `0` report written; `3` a finding at or above `--fail-on`; `2` setup error or malformed report (rerun once;
 if it fails again, review the diff yourself with the same template and say so).

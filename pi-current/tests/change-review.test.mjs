@@ -50,6 +50,11 @@ test('review round: PEM blocks, goal and stat are redacted; packet has one hard 
   const big = buildPacket({ base: 'b', head: 'h', goal: 'g', stat: many.map(f => ` ${f} | 1 +`).join('\n'), files: many, diff: '', dirty: false });
   assert.ok(big.text.length <= LIMITS.packet + 200, String(big.text.length));
   assert.match(big.text, /\+4960 more/);
+  const secretPath = 'config/ghp_abcdefghijklmnopqrstuvwx.json';
+  const pathPacket = buildPacket({ base: 'b', head: 'h', goal: 'g', stat: '', files: [secretPath, 'package-lock.json'], diff: fileDiff('package-lock.json', '+x') });
+  assert.ok(!pathPacket.text.includes('ghp_abcdef'), 'paths in summaries are redacted');
+  const order = boundDiff(fileDiff('a-docs.md', '+' + 'd'.repeat(300)) + fileDiff('z/schema.json', '+' + 's'.repeat(300)), { total: 450, perFile: 1000 });
+  assert.match(order.text, /z\/schema\.json/); assert.match(order.skipped[0], /a-docs\.md/, 'contracts outrank docs under the budget');
   const listing = 'provider  model        context\nopenai    gpt-6.2-sol-mini  272K\nopenai    gpt-6.2-sol  272K\n';
   assert.ok(modelListed(listing, 'openai/gpt-6.2-sol:high'));
   assert.ok(!modelListed('openai    gpt-6.2-sol-mini  272K', 'openai/gpt-6.2-sol'), 'no fuzzy match');
@@ -68,7 +73,7 @@ test('packet carries template, goal, stack and diff; report parsing', () => {
   assert.match(p.text, /independent code reviewer/);
   assert.match(p.text, /Cap outputs/);
   assert.match(p.text, /1\. core logic: a\.mjs/);
-  assert.match(p.text, /uncommitted changes; they are NOT part/);
+  assert.match(p.text, /uncommitted changes are not part of it/);
   const f = (sev, title) => `### [${sev}] ${title}\n- Where: a.mjs:3\n- Scenario: x → y\n- Tests: none\n- Fix: z\n`;
   const report = `Risk: High — touches auth\n\n## Change stack\ncore\n\n## Blast radius\nnone\n\n## Findings\n${f('high', 'Fallback picks max probability')}${f('low', 'Naming')}Verdict: fix first\n`;
   const r = parseReport(report);
@@ -81,6 +86,8 @@ test('packet carries template, goal, stack and diff; report parsing', () => {
   assert.equal(parseReport(shell('')).wellFormed, false, 'neither findings nor none');
   assert.equal(parseReport(shell(Array.from({ length: 9 }, (_, i) => f('low', 'n' + i)).join(''))).wellFormed, false, 'over 8 findings');
   assert.equal(parseReport(shell('### none\n')).wellFormed, true);
+  assert.equal(parseReport(shell('### none\n') + '### [high] Hidden\n- Where: a\n- Scenario: b\n- Tests: c\n- Fix: d\n').wellFormed, false, 'nothing may follow the verdict');
+  assert.equal(parseReport(shell('### none\n') + 'Verdict: ship\n').wellFormed, false, 'exactly one verdict');
   assert.equal(parseReport('Risk: Low — x\n## Findings\n### none\nVerdict: ship').wellFormed, false, 'missing sections');
 });
 
@@ -91,7 +98,9 @@ test('CLI runs a fresh read-only reviewer and maps findings to exit codes', t =>
   const sh = (...a) => execFileSync('git', a, { cwd: repo, encoding: 'utf8' });
   execFileSync('git', ['init', '-q', '-b', 'dev', repo]);
   sh('config', 'user.email', 't@example.invalid'); sh('config', 'user.name', 't');
-  writeFileSync(join(repo, 'a.mjs'), 'export const a = 1;\n'); sh('add', '.'); sh('commit', '-qm', 'base');
+  writeFileSync(join(repo, 'a.mjs'), 'export const a = 1;\n');
+  execFileSync('mkdir', ['-p', join(repo, '.pi')]); writeFileSync(join(repo, '.pi', 'settings.json'), '{"packages":["npm:evil"]}\n');
+  sh('add', '.'); sh('commit', '-qm', 'base');
   sh('switch', '-qc', 'task/x');
   writeFileSync(join(repo, 'a.mjs'), 'export const a = 2;\nconst key = "sk-abcdefghijklmnopqrstuvwxyz";\n'); sh('commit', '-qam', 'Change a');
   writeFileSync(join(repo, '.env'), 'SECRET=untracked\n');
@@ -105,10 +114,11 @@ test('CLI runs a fresh read-only reviewer and maps findings to exit codes', t =>
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 const args = process.argv.slice(2);
 appendFileSync(${JSON.stringify(argsLog)}, JSON.stringify(args) + '\\n');
-if (args[0] === '--list-models') { console.log('provider  model        context\\nopenai    gpt-6.2-sol  272K'); process.exit(0); }
+if (args.includes('--list-models')) { console.log('provider  model        context\\nopenai    gpt-6.2-sol  272K'); process.exit(0); }
 const packet = readFileSync(args.find(a => a.startsWith('@')).slice(1), 'utf8');
 if (packet.includes('sk-abc')) { console.log('LEAK'); process.exit(0); }
 if (existsSync('.env') || !existsSync('a.mjs') || !process.cwd().endsWith('/tree')) { console.log('NOT A CLEAN EXPORT'); process.exit(0); }
+if (!/independent code reviewer/.test(readFileSync('.pi/APPEND_SYSTEM.md', 'utf8')) || !existsSync('_pi_from_commit/settings.json')) { console.log('NO REVIEW PROMPT'); process.exit(0); }
 console.log(process.env.FAKE_REPORT);
 `);
   chmodSync(fake, 0o755);
@@ -121,7 +131,9 @@ console.log(process.env.FAKE_REPORT);
   assert.match(ok.stdout, /Risk: Low; findings: 0 .*verdict: ship/);
   assert.equal(existsSync(sentinel), false, 'textconv did not run');
   const args = JSON.parse(readFileSync(argsLog, 'utf8').trim().split('\n').find(l => !l.includes('--list-models')));
-  for (const flag of ['-p', '--no-session', '--no-extensions', '--no-mcp', '--no-context-files', '--no-approve', '--offline']) assert.ok(args.includes(flag), flag);
+  for (const flag of ['-p', '--no-session', '--no-extensions', '--no-mcp', '--no-context-files', '--no-skills', '--approve', '--offline']) assert.ok(args.includes(flag), flag);
+  const listArgs = JSON.parse(readFileSync(argsLog, 'utf8').trim().split('\n').find(l => l.includes('--list-models')));
+  for (const flag of ['--offline', '--no-extensions', '--no-mcp', '--approve']) assert.ok(listArgs.includes(flag), 'preflight isolated: ' + flag);
   assert.equal(args[args.indexOf('--tools') + 1], 'read,grep,find,ls');
   assert.equal(args[args.indexOf('--model') + 1], 'openai/gpt-6.2-sol:high');
   const reportPath = ok.stdout.match(/report: (\S+)/)[1];

@@ -6,10 +6,10 @@
 // Exit codes: 0 report written, 2 usage/setup error or malformed report, 3 findings at --fail-on.
 import { execFileSync, spawn } from 'node:child_process';
 import { rmSync } from 'node:fs';
-import { lstatSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DEFAULT_MODEL, LIMITS, READ_ONLY_TOOLS, atLeast, buildPacket, modelListed, parseReport, validModel, validRef } from './review-core.mjs';
+import { DEFAULT_MODEL, LIMITS, READ_ONLY_TOOLS, REVIEWER_SYSTEM, atLeast, buildPacket, modelListed, parseReport, validModel, validRef } from './review-core.mjs';
 
 const fail = msg => { console.error(`review: ${msg}`); process.exit(2); };
 const args = process.argv.slice(2);
@@ -60,7 +60,6 @@ const packet = buildPacket({
   base: `${base} (${baseSha.slice(0, 12)})`, head, goal, files,
   stat: git('diff', ...NOHELPERS, '--stat', range),
   diff: git('diff', ...NOHELPERS, '-U3', '--no-color', range),
-  dirty: git('status', '--porcelain').trim().length > 0,
 });
 const dir = mkdtempSync(join(tmpdir(), 'megai-review-'));
 const packetPath = join(dir, 'packet.md');
@@ -69,15 +68,21 @@ console.log(`packet: ${packetPath} (${packet.text.length} chars, ${files.length}
 if (opt.packetOnly) process.exit(0);
 
 const pi = process.env.MEGAI_REVIEW_PI || 'pi';
-// The model must exist exactly; never let a fuzzy pattern pick a different reviewer.
-let listing = '';
-try { listing = execFileSync(pi, ['--list-models', opt.model.split(':')[0].split('/')[1]], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 30_000 }); } catch (e) { listing = String(e.stdout ?? ''); }
-if (!modelListed(listing, opt.model)) fail(`model ${opt.model} is not an exact entry in \`${pi} --list-models\``);
 // The reviewer sees a clean export of the pinned commit, not the live worktree (no untracked or ignored files).
 const tree = join(dir, 'tree');
 execFileSync('/bin/sh', ['-c', 'mkdir -p "$1" && git -c core.fsmonitor=false archive --format=tar "$2" | tar -x -C "$1"', 'sh', tree, head], { cwd: root, env, stdio: ['ignore', 'ignore', 'pipe'] });
-const piArgs = ['-p', '--no-session', '--offline', '--no-approve', '--no-extensions', '--no-skills', '--no-prompt-templates', '--no-context-files', '--no-mcp',
-  '--tools', READ_ONLY_TOOLS, '--model', opt.model, `@${packetPath}`, 'Review this change now, in the required format.'];
+// Project-local .pi from the commit is kept readable but inert; our own .pi/APPEND_SYSTEM.md replaces the
+// author's global one (Pi uses the trusted project file instead of the agent-dir file), so no author rules leak in.
+if (existsSync(join(tree, '.pi'))) renameSync(join(tree, '.pi'), join(tree, '_pi_from_commit'));
+mkdirSync(join(tree, '.pi'), { mode: 0o700 });
+writeFileSync(join(tree, '.pi', 'APPEND_SYSTEM.md'), REVIEWER_SYSTEM, { mode: 0o600 });
+const isolation = ['--offline', '--approve', '--no-extensions', '--no-skills', '--no-prompt-templates', '--no-context-files', '--no-mcp'];
+// The model must exist exactly, checked with the same isolation; never let a fuzzy pattern pick another reviewer.
+let listing;
+try { listing = execFileSync(pi, [...isolation, '--list-models', opt.model.split(':')[0].split('/')[1]], { cwd: tree, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 30_000 }); }
+catch { fail(`\`${pi} --list-models\` failed`); }
+if (!modelListed(listing, opt.model)) fail(`model ${opt.model} is not an exact entry in \`${pi} --list-models\``);
+const piArgs = ['-p', '--no-session', ...isolation, '--tools', READ_ONLY_TOOLS, '--model', opt.model, `@${packetPath}`, 'Review this change now, in the required format.'];
 const child = spawn(pi, piArgs, { cwd: tree, env, stdio: ['ignore', 'pipe', 'pipe'] });
 let out = '', err = '';
 child.stdout.on('data', d => { if (out.length < 400_000) out += d; });
