@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import {
-  READ_ONLY_TOOLS, atLeast, boundDiff, buildPacket, changeStack, parseReport, redact, validModel, validRef,
+  LIMITS, READ_ONLY_TOOLS, atLeast, boundDiff, buildPacket, changeStack, modelListed, parseReport, redact, validModel, validRef,
 } from '../agent/skills/megai-change-review/review-core.mjs';
 
 const script = fileURLToPath(new URL('../agent/skills/megai-change-review/review.mjs', import.meta.url));
@@ -40,6 +40,21 @@ test('secret-looking lines are redacted before reaching the reviewer', () => {
   assert.match(r.text, /password: hunter2/, 'short values are not treated as secrets');
 });
 
+test('review round: PEM blocks, goal and stat are redacted; packet has one hard bound; exact model match', () => {
+  const pem = ['+-----BEGIN OPENSSH PRIVATE KEY-----', '+b3BlbnNzaC1rZXktdjEAAAAA', '+QUJDREVGR0hJSktMTU5P', '+-----END OPENSSH PRIVATE KEY-----', '+ok line'].join('\n');
+  const r = redact(pem);
+  assert.equal(r.count, 4); assert.ok(!/b3BlbnNz|QUJDREVG/.test(r.text)); assert.match(r.text, /ok line/);
+  const p = buildPacket({ base: 'b', head: 'h', goal: 'deploy token = abcdefghijklmnopqrstuvwxyz0123', stat: ' x | 1', files: ['x'], diff: '', dirty: false });
+  assert.ok(!p.text.includes('abcdefghijklmnop')); assert.equal(p.redacted, 1);
+  const many = Array.from({ length: 5000 }, (_, i) => `src/${'deep/'.repeat(20)}file${i}.mjs`);
+  const big = buildPacket({ base: 'b', head: 'h', goal: 'g', stat: many.map(f => ` ${f} | 1 +`).join('\n'), files: many, diff: '', dirty: false });
+  assert.ok(big.text.length <= LIMITS.packet + 200, String(big.text.length));
+  assert.match(big.text, /\+4960 more/);
+  const listing = 'provider  model        context\nopenai    gpt-6.2-sol-mini  272K\nopenai    gpt-6.2-sol  272K\n';
+  assert.ok(modelListed(listing, 'openai/gpt-6.2-sol:high'));
+  assert.ok(!modelListed('openai    gpt-6.2-sol-mini  272K', 'openai/gpt-6.2-sol'), 'no fuzzy match');
+});
+
 test('argument validation', () => {
   for (const ok of ['origin/dev', 'dev', 'origin/for-ustama', 'task/megai-1-x']) assert.ok(validRef(ok), ok);
   for (const bad of ['-x', '--output=/tmp/x', 'a..b', 'a b', '', 'x;rm']) assert.ok(!validRef(bad), bad);
@@ -54,11 +69,19 @@ test('packet carries template, goal, stack and diff; report parsing', () => {
   assert.match(p.text, /Cap outputs/);
   assert.match(p.text, /1\. core logic: a\.mjs/);
   assert.match(p.text, /uncommitted changes; they are NOT part/);
-  const report = 'Risk: High — touches auth\n\n## Findings\n### [high] Fallback picks max probability\n- Where: a.mjs:3\n### [low] Naming\nVerdict: fix first\n';
+  const f = (sev, title) => `### [${sev}] ${title}\n- Where: a.mjs:3\n- Scenario: x → y\n- Tests: none\n- Fix: z\n`;
+  const report = `Risk: High — touches auth\n\n## Change stack\ncore\n\n## Blast radius\nnone\n\n## Findings\n${f('high', 'Fallback picks max probability')}${f('low', 'Naming')}Verdict: fix first\n`;
   const r = parseReport(report);
   assert.equal(r.risk, 'High'); assert.equal(r.verdict, 'fix first'); assert.equal(r.findings.length, 2); assert.ok(r.wellFormed);
   assert.ok(atLeast(r.findings, 'high')); assert.ok(!atLeast(r.findings, 'critical'));
   assert.equal(parseReport('### none\nVerdict: ship').wellFormed, false, 'missing risk line is malformed');
+  const shell = body => `Risk: High — x\n## Change stack\na\n## Blast radius\nb\n## Findings\n${body}Verdict: fix first\n`;
+  assert.equal(parseReport(shell('### High: Authorization bypass\n- Where: a\n')).wellFormed, false, 'misformatted heading never passes');
+  assert.equal(parseReport(shell('### [high] No fields\n')).wellFormed, false, 'finding without fields');
+  assert.equal(parseReport(shell('')).wellFormed, false, 'neither findings nor none');
+  assert.equal(parseReport(shell(Array.from({ length: 9 }, (_, i) => f('low', 'n' + i)).join(''))).wellFormed, false, 'over 8 findings');
+  assert.equal(parseReport(shell('### none\n')).wellFormed, true);
+  assert.equal(parseReport('Risk: Low — x\n## Findings\n### none\nVerdict: ship').wellFormed, false, 'missing sections');
 });
 
 test('CLI runs a fresh read-only reviewer and maps findings to exit codes', t => {
@@ -71,37 +94,48 @@ test('CLI runs a fresh read-only reviewer and maps findings to exit codes', t =>
   writeFileSync(join(repo, 'a.mjs'), 'export const a = 1;\n'); sh('add', '.'); sh('commit', '-qm', 'base');
   sh('switch', '-qc', 'task/x');
   writeFileSync(join(repo, 'a.mjs'), 'export const a = 2;\nconst key = "sk-abcdefghijklmnopqrstuvwxyz";\n'); sh('commit', '-qam', 'Change a');
+  writeFileSync(join(repo, '.env'), 'SECRET=untracked\n');
+  // A repo-configured textconv driver must never run while building the packet.
+  const sentinel = join(root, 'textconv-ran');
+  writeFileSync(join(repo, '.git', 'info', 'attributes'), '*.mjs diff=evil\n');
+  sh('config', 'diff.evil.textconv', `sh -c 'touch ${sentinel}; cat "$0"'`);
   const argsLog = join(root, 'args.txt');
   const fake = join(root, 'fake-pi.mjs');
   writeFileSync(fake, `#!/usr/bin/env node
-import { appendFileSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 const args = process.argv.slice(2);
 appendFileSync(${JSON.stringify(argsLog)}, JSON.stringify(args) + '\\n');
+if (args[0] === '--list-models') { console.log('provider  model        context\\nopenai    gpt-6.2-sol  272K'); process.exit(0); }
 const packet = readFileSync(args.find(a => a.startsWith('@')).slice(1), 'utf8');
 if (packet.includes('sk-abc')) { console.log('LEAK'); process.exit(0); }
+if (existsSync('.env') || !existsSync('a.mjs') || !process.cwd().endsWith('/tree')) { console.log('NOT A CLEAN EXPORT'); process.exit(0); }
 console.log(process.env.FAKE_REPORT);
 `);
   chmodSync(fake, 0o755);
   const run = (report, extra = []) => spawnSync(process.execPath, [script, '--base', 'dev', ...extra], {
     cwd: repo, encoding: 'utf8', env: { ...process.env, MEGAI_REVIEW_PI: fake, FAKE_REPORT: report } });
 
-  const ok = run('Risk: Low — small\n### none\nVerdict: ship', ['--fail-on', 'high']);
+  const shell = body => `Risk: Low — small\n## Change stack\na\n## Blast radius\nb\n## Findings\n${body}Verdict: ship\n`;
+  const ok = run(shell('### none\n'), ['--fail-on', 'high']);
   assert.equal(ok.status, 0, ok.stderr);
   assert.match(ok.stdout, /Risk: Low; findings: 0 .*verdict: ship/);
-  const args = JSON.parse(readFileSync(argsLog, 'utf8').trim().split('\n')[0]);
-  for (const flag of ['-p', '--no-session', '--no-extensions', '--no-mcp', '--no-context-files']) assert.ok(args.includes(flag), flag);
+  assert.equal(existsSync(sentinel), false, 'textconv did not run');
+  const args = JSON.parse(readFileSync(argsLog, 'utf8').trim().split('\n').find(l => !l.includes('--list-models')));
+  for (const flag of ['-p', '--no-session', '--no-extensions', '--no-mcp', '--no-context-files', '--no-approve', '--offline']) assert.ok(args.includes(flag), flag);
   assert.equal(args[args.indexOf('--tools') + 1], 'read,grep,find,ls');
   assert.equal(args[args.indexOf('--model') + 1], 'openai/gpt-6.2-sol:high');
   const reportPath = ok.stdout.match(/report: (\S+)/)[1];
   assert.equal(statSync(reportPath).mode & 0o777, 0o600);
 
-  const high = run('Risk: High — x\n### [high] Bug\nVerdict: fix first', ['--fail-on', 'high']);
-  assert.equal(high.status, 3);
+  const high = run(shell('### [high] Bug\n- Where: a.mjs:1\n- Scenario: a → b\n- Tests: none\n- Fix: c\n'), ['--fail-on', 'high']);
+  assert.equal(high.status, 3, high.stderr);
+  assert.equal(run(shell('### High: Bug\n'), ['--fail-on', 'high']).status, 2, 'malformed high never passes the gate');
+  assert.equal(run('x', ['--model', 'openai/gpt-6.2']).status, 2, 'model must be an exact catalog entry');
   assert.equal(run('garbage').status, 2, 'malformed report');
   assert.equal(run('x', ['--model', 'nope']).status, 2);
   assert.equal(spawnSync(process.execPath, [script, '--base', '--evil'], { cwd: repo, encoding: 'utf8' }).status, 2);
   const packetOnly = run('', ['--packet-only']);
   assert.equal(packetOnly.status, 0);
   const packet = readFileSync(packetOnly.stdout.match(/packet: (\S+)/)[1], 'utf8');
-  assert.match(packet, /1 secret-looking diff lines were redacted/);
+  assert.match(packet, /1 secret-looking lines were redacted/);
 });

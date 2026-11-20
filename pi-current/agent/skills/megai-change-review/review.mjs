@@ -5,10 +5,11 @@
 //                   [--fail-on low|medium|high|critical] [--packet-only] [--timeout-min N]
 // Exit codes: 0 report written, 2 usage/setup error or malformed report, 3 findings at --fail-on.
 import { execFileSync, spawn } from 'node:child_process';
+import { rmSync } from 'node:fs';
 import { lstatSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DEFAULT_MODEL, LIMITS, READ_ONLY_TOOLS, atLeast, buildPacket, parseReport, validModel, validRef } from './review-core.mjs';
+import { DEFAULT_MODEL, LIMITS, READ_ONLY_TOOLS, atLeast, buildPacket, modelListed, parseReport, validModel, validRef } from './review-core.mjs';
 
 const fail = msg => { console.error(`review: ${msg}`); process.exit(2); };
 const args = process.argv.slice(2);
@@ -29,16 +30,21 @@ if (!(opt.timeoutMin >= 1 && opt.timeoutMin <= 60)) fail('--timeout-min must be 
 
 const env = { ...process.env };
 for (const k of ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR']) delete env[k];
-const git = (...a) => execFileSync('git', a, { env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+env.GIT_OPTIONAL_LOCKS = '0';
+// No repo-configured helpers (external diff, textconv, fsmonitor) run while building the packet.
+const git = (...a) => execFileSync('git', ['-c', 'core.fsmonitor=false', '-c', 'diff.external=', ...a], { env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 let root;
 try { root = git('rev-parse', '--show-toplevel').trim(); } catch { fail('run from inside a Git worktree'); }
 process.chdir(root);
 const exists = ref => { try { git('rev-parse', '--verify', '--quiet', `${ref}^{commit}`); return true; } catch { return false; } };
 const base = opt.base ?? ['origin/dev', 'dev', 'origin/main', 'main'].find(exists);
 if (!base || !validRef(base) || !exists(base)) fail(`base ref not found or invalid: ${base ?? '(none)'}`);
-const head = git('rev-parse', 'HEAD').trim();
-const range = `${base}...HEAD`;
-const files = git('diff', '--name-only', range).split('\n').filter(Boolean);
+// Pin both ends once so every later read describes the same snapshot.
+const head = git('rev-parse', '--verify', 'HEAD^{commit}').trim();
+const baseSha = git('rev-parse', '--verify', `${base}^{commit}`).trim();
+const range = `${baseSha}...${head}`;
+const NOHELPERS = ['--no-ext-diff', '--no-textconv'];
+const files = git('diff', ...NOHELPERS, '--name-only', range).split('\n').filter(Boolean);
 if (!files.length) fail(`no committed changes in ${range}`);
 let goal = '';
 if (opt.goalFile) {
@@ -48,12 +54,12 @@ if (opt.goalFile) {
     goal = readFileSync(opt.goalFile, 'utf8');
   } catch { fail('--goal-file must be a regular file under 32 KiB'); }
 } else {
-  goal = 'Commit messages:\n' + git('log', '--format=- %s%n%b', `${base}..HEAD`).slice(0, LIMITS.context);
+  goal = 'Commit messages:\n' + git('log', '--format=- %s%n%b', `${baseSha}..${head}`).slice(0, LIMITS.context);
 }
 const packet = buildPacket({
-  base, head, goal, files,
-  stat: git('diff', '--stat', range),
-  diff: git('diff', '-U3', '--no-color', range),
+  base: `${base} (${baseSha.slice(0, 12)})`, head, goal, files,
+  stat: git('diff', ...NOHELPERS, '--stat', range),
+  diff: git('diff', ...NOHELPERS, '-U3', '--no-color', range),
   dirty: git('status', '--porcelain').trim().length > 0,
 });
 const dir = mkdtempSync(join(tmpdir(), 'megai-review-'));
@@ -63,9 +69,16 @@ console.log(`packet: ${packetPath} (${packet.text.length} chars, ${files.length}
 if (opt.packetOnly) process.exit(0);
 
 const pi = process.env.MEGAI_REVIEW_PI || 'pi';
-const piArgs = ['-p', '--no-session', '--no-extensions', '--no-skills', '--no-prompt-templates', '--no-context-files', '--no-mcp',
+// The model must exist exactly; never let a fuzzy pattern pick a different reviewer.
+let listing = '';
+try { listing = execFileSync(pi, ['--list-models', opt.model.split(':')[0].split('/')[1]], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 30_000 }); } catch (e) { listing = String(e.stdout ?? ''); }
+if (!modelListed(listing, opt.model)) fail(`model ${opt.model} is not an exact entry in \`${pi} --list-models\``);
+// The reviewer sees a clean export of the pinned commit, not the live worktree (no untracked or ignored files).
+const tree = join(dir, 'tree');
+execFileSync('/bin/sh', ['-c', 'mkdir -p "$1" && git -c core.fsmonitor=false archive --format=tar "$2" | tar -x -C "$1"', 'sh', tree, head], { cwd: root, env, stdio: ['ignore', 'ignore', 'pipe'] });
+const piArgs = ['-p', '--no-session', '--offline', '--no-approve', '--no-extensions', '--no-skills', '--no-prompt-templates', '--no-context-files', '--no-mcp',
   '--tools', READ_ONLY_TOOLS, '--model', opt.model, `@${packetPath}`, 'Review this change now, in the required format.'];
-const child = spawn(pi, piArgs, { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] });
+const child = spawn(pi, piArgs, { cwd: tree, env, stdio: ['ignore', 'pipe', 'pipe'] });
 let out = '', err = '';
 child.stdout.on('data', d => { if (out.length < 400_000) out += d; });
 child.stderr.on('data', d => { if (err.length < 4000) err += d; });
@@ -73,6 +86,7 @@ const timer = setTimeout(() => child.kill('SIGTERM'), opt.timeoutMin * 60_000);
 child.on('error', e => fail(`cannot start ${pi}: ${e.message}`));
 child.on('close', code => {
   clearTimeout(timer);
+  try { rmSync(tree, { recursive: true, force: true }); } catch { /* temp */ }
   const reportPath = join(dir, 'report.md');
   writeFileSync(reportPath, out, { mode: 0o600 });
   const r = parseReport(out);
@@ -80,7 +94,7 @@ child.on('close', code => {
   console.log(`report: ${reportPath}`);
   console.log(`reviewer: ${opt.model} (fresh session, tools ${READ_ONLY_TOOLS}); base ${base}; head ${head}`);
   console.log(`Risk: ${r.risk ?? '?'}; findings: ${r.findings.length} (${bySev}); verdict: ${r.verdict ?? '?'}`);
-  if (code !== 0 || !r.wellFormed) { console.error(`review: reviewer exited ${code}; report ${r.wellFormed ? 'ok' : 'malformed'}. ${err.trim().slice(0, 500)}`); process.exit(2); }
+  if (code !== 0 || !r.wellFormed) { console.error(`review: reviewer exited ${code}; report ${r.wellFormed ? 'ok' : `malformed (${r.problems.slice(0, 3).join('; ') || 'missing risk, sections or verdict'})`}.`); process.exit(2); }
   if (opt.failOn && atLeast(r.findings, opt.failOn)) process.exit(3);
   process.exit(0);
 });

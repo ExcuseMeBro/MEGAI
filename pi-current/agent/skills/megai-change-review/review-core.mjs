@@ -2,7 +2,7 @@
 
 export const READ_ONLY_TOOLS = 'read,grep,find,ls';
 export const DEFAULT_MODEL = 'openai/gpt-6.2-sol:high';
-export const LIMITS = Object.freeze({ total: 120_000, perFile: 20_000, context: 8_000 });
+export const LIMITS = Object.freeze({ total: 120_000, perFile: 20_000, context: 8_000, listed: 40, statLines: 120, packet: 140_000 });
 
 export const LAYERS = [
   ['config & contracts', f => /(^|\/)(package\.json|tsconfig[^/]*\.json|[^/]*\.d\.ts|schema[^/]*|[^/]*\.proto|\.env\.example)$|(^|\/)(migrations?|schemas?|types?)\//i.test(f) || /\/config\.json$|^config\//i.test(f)],
@@ -30,16 +30,23 @@ export const isGenerated = f => GENERATED.test(f);
 
 const SECRET = /-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(gh[pousr]_[A-Za-z0-9]{16,}|figd_[A-Za-z0-9_-]{16,}|xox[abpr]-[A-Za-z0-9-]{10,}|sk-[A-Za-z0-9_-]{20,}|AIza[A-Za-z0-9_-]{20,})|\bBearer\s+[A-Za-z0-9._~+\/=-]{12,}|\b(api[_-]?key|secret|token|passw(or)?d|authorization)\b["']?\s*[:=]\s*["']?[A-Za-z0-9._~+\/=-]{12,}/i;
 
-/** Replace secret-looking diff lines so they never reach the reviewer model. */
+const PEM_START = /-----BEGIN [A-Z ]*PRIVATE KEY-----/, PEM_END = /-----END [A-Z ]*PRIVATE KEY-----/;
+
+/** Replace secret-looking lines (and whole private-key blocks) so they never reach the reviewer model. */
 export function redact(text) {
-  let count = 0;
-  const out = text.split('\n').map(line => {
-    if (!SECRET.test(line)) return line;
+  let count = 0, inKey = false;
+  const out = String(text).split('\n').map(line => {
+    const start = PEM_START.test(line);
+    if (!(inKey || start || SECRET.test(line))) return line;
+    if (start) inKey = true;
+    if (inKey && PEM_END.test(line)) inKey = false;
     count++;
     return `${line[0] === '+' || line[0] === '-' ? line[0] : ' '}[redacted secret-looking line]`;
   }).join('\n');
   return { text: out, count };
 }
+
+const listed = (items, max = LIMITS.listed) => items.length > max ? [...items.slice(0, max), `+${items.length - max} more`] : items;
 
 /** Split a unified diff into per-file chunks keyed by the b/ path. */
 export function splitDiff(diff) {
@@ -102,31 +109,69 @@ If there are no findings write "### none". End with one line: "Verdict: <ship | 
 export function buildPacket({ base, head, goal, stat, files, diff, dirty }) {
   const stack = changeStack(files);
   const bounded = boundDiff(diff);
+  // Every externally sourced section is redacted, not only the diff body.
   const red = redact(bounded.text);
-  const goalText = goal ? String(goal).slice(0, LIMITS.context) : 'Not given: infer it from commit messages and the diff, and say so.';
+  const goalRed = redact(goal ? String(goal).slice(0, LIMITS.context) : 'Not given: infer it from commit messages and the diff, and say so.');
+  const statLines = String(stat).trim().split('\n');
+  const statRed = redact((statLines.length > LIMITS.statLines ? [...statLines.slice(0, LIMITS.statLines - 1), `… ${statLines.length - LIMITS.statLines} more lines`, statLines.at(-1)] : statLines).join('\n'));
+  const goalText = goalRed.text;
   const lines = [
     TEMPLATE, '',
     `# Change under review`, `Base: ${base}  Head: ${head}`,
     dirty ? 'Note: the worktree has uncommitted changes; they are NOT part of this review.' : '',
     '', '## Goal and acceptance', goalText, '',
     '## Change stack (suggested reading order)',
-    ...stack.map((b, i) => `${i + 1}. ${b.name}: ${b.files.join(', ')}`), '',
-    '## Diff stat', '```', stat.trim(), '```',
-    bounded.skipped.length ? `\nNot shown: ${bounded.skipped.join('; ')}` : '',
-    red.count ? `\n${red.count} secret-looking diff lines were redacted before review.` : '',
+    ...stack.map((b, i) => `${i + 1}. ${b.name}: ${listed(b.files).join(', ')}`), '',
+    '## Diff stat', '```', statRed.text, '```',
+    bounded.skipped.length ? `\nNot shown: ${listed(bounded.skipped).join('; ')}` : '',
     '', '## Diff', '```diff', red.text, '```',
   ];
-  return { text: lines.filter(l => l !== '').join('\n') + '\n', stack, redacted: red.count, skipped: bounded.skipped };
+  const redacted = red.count + goalRed.count + statRed.count;
+  if (redacted) lines.splice(lines.length - 4, 0, `\n${redacted} secret-looking lines were redacted before review.`);
+  let text = lines.filter(l => l !== '').join('\n') + '\n';
+  if (text.length > LIMITS.packet) text = text.slice(0, LIMITS.packet) + '\n```\n[packet cut at its size limit; read the remaining files yourself]\n';
+  return { text, stack, redacted, skipped: bounded.skipped };
 }
 
 const RANK = { critical: 4, high: 3, medium: 2, low: 1 };
 
-/** Parse the reviewer's report header and findings. */
+/**
+ * Parse and validate the reviewer's report. Well-formed means: a risk line, the three
+ * sections in order, every finding heading in the "### [severity] title" form (or
+ * "### none" alone), at most 8 findings, each with Where/Scenario/Tests/Fix, and a verdict.
+ * A malformed report must never pass a severity gate.
+ */
 export function parseReport(text) {
-  const risk = (text.match(/^Risk:\s*(Low|Medium|High)\b/im) || [])[1] ?? null;
-  const findings = [...text.matchAll(/^###\s*\[(critical|high|medium|low)\]\s*(.+)$/gim)].map(m => ({ severity: m[1].toLowerCase(), title: m[2].trim() }));
-  const verdict = (text.match(/^Verdict:\s*(ship|fix first)/im) || [])[1]?.toLowerCase() ?? null;
-  return { risk, findings, verdict, wellFormed: Boolean(risk && verdict) };
+  const t = String(text ?? '');
+  const risk = (t.match(/^Risk:\s*(Low|Medium|High)\b/im) || [])[1] ?? null;
+  const verdict = (t.match(/^Verdict:\s*(ship|fix first)\s*$/im) || [])[1]?.toLowerCase() ?? null;
+  const at = h => t.search(new RegExp(`^## ${h}\\s*$`, 'm'));
+  const [stackAt, blastAt, findAt] = [at('Change stack'), at('Blast radius'), at('Findings')];
+  const sections = stackAt >= 0 && blastAt > stackAt && findAt > blastAt;
+  const body = findAt >= 0 ? t.slice(findAt).split(/^Verdict:/m)[0] : '';
+  const heads = [...body.matchAll(/^###.*$/gm)].map(m => m[0]);
+  const findings = [], problems = [];
+  const blocks = body.split(/^(?=###)/m).filter(b => b.startsWith('###'));
+  for (const block of blocks) {
+    const head = block.split('\n')[0];
+    const m = head.match(/^###\s*\[(critical|high|medium|low)\]\s+(\S.*)$/i);
+    if (/^###\s*none\s*$/i.test(head)) continue;
+    if (!m) { problems.push(`bad heading: ${head.slice(0, 60)}`); continue; }
+    findings.push({ severity: m[1].toLowerCase(), title: m[2].trim() });
+    for (const f of ['Where', 'Scenario', 'Tests', 'Fix']) if (!new RegExp(`^- ${f}:`, 'm').test(block)) problems.push(`finding without ${f}`);
+  }
+  const none = heads.some(h => /^###\s*none\s*$/i.test(h));
+  if (none && findings.length) problems.push('"none" together with findings');
+  if (!none && !findings.length) problems.push('no findings and no "### none"');
+  if (findings.length > 8) problems.push('more than 8 findings');
+  if (/^#{1,6}\s*(critical|high)\b/im.test(body.replace(/^###\s*\[(critical|high|medium|low)\].*$/gim, ''))) problems.push('severity heading in the wrong form');
+  return { risk, findings, verdict, problems, wellFormed: Boolean(risk && verdict && sections && !problems.length) };
+}
+
+/** Find an exact provider/id row in `pi --list-models <id>` output. */
+export function modelListed(listing, model) {
+  const [provider, id] = model.split(':')[0].split('/');
+  return String(listing).split('\n').some(line => { const [p, m] = line.trim().split(/\s+/); return p === provider && m === id; });
 }
 
 export const atLeast = (findings, level) => findings.some(f => RANK[f.severity] >= RANK[level]);

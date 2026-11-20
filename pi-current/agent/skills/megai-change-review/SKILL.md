@@ -29,8 +29,16 @@ node ~/.pi/agent/skills/megai-change-review/review.mjs --base <remote>/dev --goa
 - `--packet-only`: build the packet and stop (to inspect what the reviewer will see).
 
 The packet orders files into a change stack (contracts → core logic → wiring/I/O → UI → tests → docs), drops lockfiles
-and generated files, cuts large diffs (20k chars per file, 120k total; the reviewer reads the rest itself) and
-redacts secret-looking lines. Packet and report are written `0600` into a fresh temp folder.
+and generated files, cuts large diffs (20k chars per file, 120k diff, 140k packet; the reviewer reads the rest itself)
+and redacts secret-looking lines and private-key blocks in every section (goal, stat, diff). Packet and report are
+written `0600` into a fresh temp folder.
+
+Isolation: base and head are pinned to SHAs once; Git runs without external diff, textconv or fsmonitor helpers. The
+reviewer works in a clean `git archive` export of the pinned commit (no untracked, ignored or uncommitted files), with
+`--offline --no-approve --no-extensions --no-skills --no-context-files --no-mcp` and only `read,grep,find,ls`. The model
+must be an exact `provider/id` row in `pi --list-models`, so a fuzzy pattern can't pick a different reviewer.
+Residual risk: `read` still accepts absolute paths outside the export; the reviewer has no write, shell or network tool,
+and its provider is the one the author session already uses.
 
 Exit codes: `0` report written; `3` a finding at or above `--fail-on`; `2` setup error or malformed report (rerun once;
 if it fails again, review the diff yourself with the same template and say so).
