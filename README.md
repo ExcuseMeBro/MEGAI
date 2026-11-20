@@ -22,6 +22,10 @@ Tests: `node --experimental-strip-types --test pi-current/tests/*.test.mjs`. The
 
 [`/factory-flow`](pi-current/agent/extensions/megai-factory-flow/README.md) shows what needs a decision, what is ready for manual review, which checks belong to an exact commit, and how two comparable eval runs performed. It reads the local Brokan board without dispatching work or changing task state.
 
+## Independent change review for Pi
+
+[`megai-change-review`](pi-current/agent/skills/megai-change-review/SKILL.md) reviews a committed change in a fresh, read-only Pi session that never saw the author's reasoning: merge risk, a dependency-ordered reading order, a blast-radius trace from new inputs to sinks, and a short list of ranked findings with a concrete failing scenario and the missing test for each. `node ~/.pi/agent/skills/megai-change-review/review.mjs --base origin/dev --goal-file acceptance.md --fail-on high`.
+
 ## Budget guard for Pi
 
 [`megai-budget-guard`](pi-current/agent/extensions/megai-budget-guard/README.md) keeps large tool outputs out of the context, warns about session cost, context size and long sessions, and flags expensive models. It starts in `observe` mode, which only logs numbers; `/budget week` shows what it would have done.

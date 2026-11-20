@@ -47,6 +47,9 @@ FILES = {
     "extensions/megai-budget-guard/config.json": "agent/extensions/megai-budget-guard/config.json",
     "extensions/megai-budget-guard/README.md": "agent/extensions/megai-budget-guard/README.md",
     "skills/diff-security/SKILL.md": "agent/skills/diff-security/SKILL.md",
+    "skills/megai-change-review/SKILL.md": "agent/skills/megai-change-review/SKILL.md",
+    "skills/megai-change-review/review-core.mjs": "agent/skills/megai-change-review/review-core.mjs",
+    "skills/megai-change-review/review.mjs": "agent/skills/megai-change-review/review.mjs",
 }
 # Codex (GPT) autonomy: global instructions and the keep-going Stop hook only.
 # config.toml is deliberately excluded (MCP servers, hook trust state, local paths).
