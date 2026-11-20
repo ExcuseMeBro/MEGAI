@@ -75,12 +75,15 @@ export function capPlan(event, config) {
 
 /** Build the capped text shown to the model. */
 export function cappedText(plan, config, path) {
-  const head = plan.text.slice(0, config.headChars);
-  const tail = config.tailChars ? plan.text.slice(plan.text.length - config.tailChars) : '';
-  const omitted = plan.text.length - head.length - tail.length;
-  const note = `[budget-guard: output was ${plan.total} chars; ${omitted} chars omitted here. ` +
+  const noteFor = omitted => `[budget-guard: output was ${plan.total} chars; ${omitted} chars omitted here. ` +
     `Full output: ${path} — read only the lines you need (read with offset/limit, or grep/rg) instead of printing it again.]`;
-  return `${head}\n…\n${note}\n…\n${tail}`;
+  // Size the slices from the real notice so the whole result fits capChars.
+  const room = Math.max(0, config.capChars - noteFor(plan.total).length - 8);
+  let headLen = config.headChars, tailLen = config.tailChars;
+  if (headLen + tailLen > room) { headLen = Math.floor(room * headLen / (headLen + tailLen)); tailLen = room - headLen; }
+  const head = plan.text.slice(0, headLen);
+  const tail = tailLen ? plan.text.slice(plan.text.length - tailLen) : '';
+  return `${head}\n…\n${noteFor(plan.text.length - head.length - tail.length)}\n…\n${tail}`;
 }
 
 /** Replace text blocks with one capped block, keep non-text blocks (such as images). */

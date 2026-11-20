@@ -7,7 +7,8 @@ import {
   addUsage, capPlan, cappedContent, cappedText, crossed, formatWeek, logRecord, modelAdvice, priceRatio, resolveConfig,
   restoredLimit, sessionTag, summarize, totalsWith, usageTotals,
 } from '../agent/extensions/megai-budget-guard/core.mjs';
-import { registerBudgetGuard } from '../agent/extensions/megai-budget-guard/index.ts';
+import { agentDir, registerBudgetGuard } from '../agent/extensions/megai-budget-guard/index.ts';
+import { homedir } from 'node:os';
 
 const cfg = (file = {}, env = {}) => resolveConfig(file, env);
 const assistant = (usd, model = 'gpt-6.2-sol', provider = 'openai') => ({ type: 'message', message: { role: 'assistant', provider, model, usage: { input: 1000, cacheRead: 9000, output: 100, cost: { total: usd } } } });
@@ -273,7 +274,64 @@ test('review fixes: context from the answered message and on resume; observe rec
   resumed.handlers.session_start[0]({}, ctxWith([], { sessionManager: { getSessionId: () => 'r', getEntries: () => [] }, getContextUsage: () => ({ tokens: 300_000 }), ui: { notify: m => n2.push(m), setStatus: () => {} } }));
   assert.ok(n2.some(n => /2×/.test(n)));
   const obs = fakePi(); registerBudgetGuard(obs, {}, { mode: 'observe' });
-  obs.handlers.session_start[0]({}, ctxWith([assistant(16)], { sessionManager: { getSessionId: () => 'o', getEntries: () => [assistant(16)] } }));
+  const octx = ctxWith([assistant(16)], { sessionManager: { getSessionId: () => 'o', getEntries: () => [assistant(16)] } });
+  obs.handlers.session_start[0]({}, octx);
+  assert.ok(!existsSync(join(dir, 'budget-guard', 'events.jsonl')) || !/cost-stop/.test(readFileSync(join(dir, 'budget-guard', 'events.jsonl'), 'utf8')), 'no stop without a tool call');
+  obs.handlers.tool_call[0]({}, octx); obs.handlers.tool_call[0]({}, octx);
   const log = readFileSync(join(dir, 'budget-guard', 'events.jsonl'), 'utf8');
   assert.match(log, /"kind":"cost-stop","mode":"observe","applied":false/);
+  assert.equal(log.match(/cost-stop/g).length, 1, 'recorded once');
+});
+
+test('review round 2: allow writes nothing outside enforce; abort records no decision', async t => {
+  setDir(t, 'bg-r2-');
+  const entries = [assistant(20)];
+  const obs = fakePi(entries); registerBudgetGuard(obs, {}, { mode: 'observe' });
+  const notes = [];
+  const ctx = ctxWith(entries, { ui: { notify: m => notes.push(m), setStatus: () => {} } });
+  await obs.commands.budget.handler('allow 100', ctx);
+  assert.equal(entries.length, 1); assert.match(notes.at(-1), /nothing is blocked/);
+  const controller = new AbortController();
+  const enf = fakePi(entries); registerBudgetGuard(enf, {}, { mode: 'enforce', stopUsd: 15, warnUsd: 5 });
+  const actx = ctxWith(entries, { signal: controller.signal, ui: { notify: () => {}, setStatus: () => {}, confirm: async (_t, _m, o) => { controller.abort(); assert.equal(o.signal, controller.signal); return false; } } });
+  assert.equal((await enf.handlers.tool_call[0]({}, actx)).block, true);
+  assert.equal(entries.length, 1, 'cancelled run persists nothing');
+});
+
+test('review round 2: reused call ids get distinct files; long paths still fit', t => {
+  setDir(t, 'bg-r3-');
+  const pi = fakePi(); registerBudgetGuard(pi, {}, { mode: 'enforce' });
+  const ctx = ctxWith();
+  pi.handlers.session_start[0]({}, ctx);
+  const ev = { toolName: 'bash', toolCallId: 'call_0', content: [{ type: 'text', text: 'w'.repeat(9000) }] };
+  const a = pi.handlers.tool_result[0](ev, ctx), b = pi.handlers.tool_result[0](ev, ctx);
+  const pa = a.content[0].text.match(/Full output: (\S+)/)[1], pb = b.content[0].text.match(/Full output: (\S+)/)[1];
+  assert.notEqual(pa, pb); assert.equal(readFileSync(pb, 'utf8').length, 9000);
+  const c = cfg({ capChars: 8000, headChars: 6000, tailChars: 2000 });
+  const plan = capPlan({ toolName: 'bash', content: [{ type: 'text', text: 'q'.repeat(20000) }] }, c);
+  const longPath = '/' + 'p'.repeat(700) + '.txt';
+  const out = cappedText(plan, c, longPath);
+  assert.ok(out.length <= 8000, String(out.length)); assert.ok(out.includes(longPath));
+});
+
+test('review round 2: agent dir expands ~ like Pi; retention by file age; shutdown and week use fresh totals', async t => {
+  assert.equal(agentDir({ PI_CODING_AGENT_DIR: '~/pi-profile' }), join(homedir(), 'pi-profile'));
+  assert.equal(agentDir({}), join(homedir(), '.pi', 'agent'));
+  const dir = setDir(t, 'bg-r4-');
+  const sub = join(dir, 'budget-guard', 'outputs', 'abcdefabcdef');
+  mkdirSync(sub, { recursive: true });
+  writeFileSync(join(sub, 'old.txt'), 'x'); writeFileSync(join(sub, 'new.txt'), 'y');
+  const past = new Date(Date.now() - 30 * 86400_000); utimesSync(join(sub, 'old.txt'), past, past);
+  const entries = [assistant(2)];
+  const pi = fakePi(entries); registerBudgetGuard(pi, {}, { mode: 'enforce' });
+  const notes = [];
+  const ctx = ctxWith(entries, { ui: { notify: m => notes.push(m), setStatus: () => {}, confirm: async () => true } });
+  pi.handlers.session_start[0]({}, ctx);
+  assert.ok(!existsSync(join(sub, 'old.txt')) && existsSync(join(sub, 'new.txt')));
+  await pi.commands.budget.handler('week', ctx);
+  assert.match(notes.at(-1), /total \$2\.00/, 'running session included');
+  entries.push({ type: 'message', message: { role: 'toolResult', usage: { cost: { total: 1 } } } });
+  pi.handlers.session_shutdown[0]({}, ctx);
+  const log = readFileSync(join(dir, 'budget-guard', 'events.jsonl'), 'utf8');
+  assert.match(log, /"kind":"session","mode":"enforce","usd":3,/);
 });
