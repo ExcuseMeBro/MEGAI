@@ -28,6 +28,12 @@ Pi startup never updates packages or builds indexes automatically.
 Use [`/factory`](pi-defaults/opt-in/factory/README.md) to work through a repository’s
 Brokan `doing` and `todo` queue in one Pi session. It does not start automatically.
 
+## Opt-in Coordinator rollout pilot
+
+Run [local Coordinator rollouts](docs/coordinator-rollout.md) with synthetic Pi
+runtime, skill, plugin and managed-config bundles. The pilot exercises canary,
+bounded parallel waves and rollback without touching installed Pi or live hosts.
+
 ## Explicit task automation
 
 `megai task start|verify|ready|deliver` provides native isolated worktrees,
