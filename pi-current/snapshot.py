@@ -38,6 +38,10 @@ FILES = {
     "extensions/megai-lean-prompt/lean-core.mjs": "agent/extensions/megai-lean-prompt/lean-core.mjs",
     "extensions/megai-lean-prompt/config.json": "agent/extensions/megai-lean-prompt/config.json",
     "extensions/megai-lean-prompt/README.md": "agent/extensions/megai-lean-prompt/README.md",
+    "extensions/megai-factory-flow/index.ts": "agent/extensions/megai-factory-flow/index.ts",
+    "extensions/megai-factory-flow/core.mjs": "agent/extensions/megai-factory-flow/core.mjs",
+    "extensions/megai-factory-flow/reader.mjs": "agent/extensions/megai-factory-flow/reader.mjs",
+    "extensions/megai-factory-flow/README.md": "agent/extensions/megai-factory-flow/README.md",
     "skills/diff-security/SKILL.md": "agent/skills/diff-security/SKILL.md",
 }
 # Codex (GPT) autonomy: global instructions and the keep-going Stop hook only.
