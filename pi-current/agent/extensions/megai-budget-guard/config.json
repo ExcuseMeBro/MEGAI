@@ -1,0 +1,16 @@
+{
+  "mode": "observe",
+  "capTools": ["bash", "codemode", "ipython"],
+  "capChars": 8000,
+  "headChars": 5000,
+  "tailChars": 2000,
+  "warnUsd": 5,
+  "stopUsd": 15,
+  "contextWarnTokens": 120000,
+  "contextTierTokens": 272000,
+  "requestWarn": 150,
+  "expensiveRatio": 3,
+  "baseline": { "id": "openai/gpt-6.2-sol", "input": 2, "cacheRead": 0.1 },
+  "retentionDays": 7,
+  "confirmTimeoutMs": 60000
+}

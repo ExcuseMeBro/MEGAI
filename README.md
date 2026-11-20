@@ -16,8 +16,12 @@ Measured on one prompt (gpt-6.1-sol): system prompt 77.7k → 36k chars, input t
 - `agent/skills/diff-security/`: a 3k-char diff security checklist for every code change, replacing the full 22k-char `security-audit` load (159 loads in recent sessions); high-risk diffs still escalate to `security-audit` guidance plus one companion file.
 - `agent/APPEND_SYSTEM.md` "Default loop": scope → decide → build → focused tests → one review + `diff-security` → deliver → ≤10-line report, with speed rules (batch reads, no narration, no redundant reruns).
 
-Tests: `node --experimental-strip-types --test pi-current/tests/*.test.mjs`. The native Factory Flow test needs Pi 1.5.2 on `PATH` (or set `MEGAI_FACTORY_FLOW_TEST_PI` to that executable).
+Tests: `node --experimental-strip-types --test pi-current/tests/*.test.mjs`. The native Factory Flow and budget guard tests need Pi 1.5.2 on `PATH` (or set `MEGAI_FACTORY_FLOW_TEST_PI` / `MEGAI_BUDGET_GUARD_TEST_PI`).
 
 ## Factory Flow for Pi
 
 [`/factory-flow`](pi-current/agent/extensions/megai-factory-flow/README.md) shows what needs a decision, what is ready for manual review, which checks belong to an exact commit, and how two comparable eval runs performed. It reads the local Brokan board without dispatching work or changing task state.
+
+## Budget guard for Pi
+
+[`megai-budget-guard`](pi-current/agent/extensions/megai-budget-guard/README.md) keeps large tool outputs out of the context, warns about session cost, context size and long sessions, and flags expensive models. It starts in `observe` mode, which only logs numbers; `/budget week` shows what it would have done.

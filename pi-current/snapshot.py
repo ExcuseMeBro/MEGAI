@@ -42,6 +42,10 @@ FILES = {
     "extensions/megai-factory-flow/core.mjs": "agent/extensions/megai-factory-flow/core.mjs",
     "extensions/megai-factory-flow/reader.mjs": "agent/extensions/megai-factory-flow/reader.mjs",
     "extensions/megai-factory-flow/README.md": "agent/extensions/megai-factory-flow/README.md",
+    "extensions/megai-budget-guard/index.ts": "agent/extensions/megai-budget-guard/index.ts",
+    "extensions/megai-budget-guard/core.mjs": "agent/extensions/megai-budget-guard/core.mjs",
+    "extensions/megai-budget-guard/config.json": "agent/extensions/megai-budget-guard/config.json",
+    "extensions/megai-budget-guard/README.md": "agent/extensions/megai-budget-guard/README.md",
     "skills/diff-security/SKILL.md": "agent/skills/diff-security/SKILL.md",
 }
 # Codex (GPT) autonomy: global instructions and the keep-going Stop hook only.
