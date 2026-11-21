@@ -1,6 +1,6 @@
 # Factory: opt-in Brokan long runs in Pi
 
-Factory runs one verified repository’s `doing`, then `todo` tasks in board order, one at a time by default. It takes an initial snapshot, rereads each task before starting or continuing it, and rereads the board when the batch runs dry, so tasks added meanwhile run in the same batch. The selected Pi model and thinking level do not change. Factory itself only reads Brokan; the agent uses the existing Brokan tools and repository workflow for edits, acceptance, delivery and `review`. Factory does not set `done`, start without a request, or run a process outside Pi. Watch mode keeps checking Brokan only inside the Pi session where you start it.
+Factory runs one verified repository’s `doing`, then `todo` tasks in board order, one at a time by default. It takes an initial snapshot, rereads each task before starting or continuing it, and rereads the board when the batch runs dry, so tasks added meanwhile run in the same batch. The selected Pi model and thinking level do not change. Factory itself only reads Brokan, except that it adds the tasks of due [routines](#routines); the agent uses the existing Brokan tools and repository workflow for edits, acceptance, delivery and `review`. Factory does not set `done`, start without a request, or run a process outside Pi. Watch mode keeps checking Brokan only inside the Pi session where you start it.
 
 ## Setup (Pi 1.5.2)
 
@@ -33,3 +33,30 @@ Use parallel mode only when the eligible tasks are independent Git changes in th
 Each worker prepares one task in its own `task/factory-<slug>-<id>` branch and worktree under `~/.pi/agent/factory-worktrees/`. Workers do not deliver. The parent Pi verifies and integrates each prepared branch to `dev` **one at a time**, in queue order, including remote verification, cleanup and Brokan readback. The next wave starts only after that handoff. Workers share the host and must honor the repository's shared heavy-test lock and resource rules; worktrees are not security sandboxes.
 
 A blocker, worker failure, model change or cancellation stops further dispatch and leaves any unfinished worktrees in place. There is no on-disk transcript for the preparation workers in this mode. Inspect the retained branch/worktree and the Brokan task before restarting or continuing manually. Check scope and that no other agent owns the work before resuming.
+
+## Lessons
+
+When you send a task back from `review`, the comment you leave in Brokan becomes a project lesson. This keeps the same correction from being needed twice.
+
+- When Factory takes a `todo`/`doing` task, it reads the task's comments. Comments written in the Brokan web UI (author `me`) after an agent comment count as review feedback. Each one is appended once to `~/.pi/agent/lessons/<project>.md`. Your comments made before any agent comment are scope notes and are not saved.
+- The task instruction then tells the agent the task came back, and to address each point and say how in its evidence note.
+- Every Pi session whose trusted checkout is bound to that project gets the newest 20 lessons (at most 4,000 characters) appended to its system prompt. This covers Factory runs, parallel workers and ordinary prompts. They are framed as guidance, not tasks or authority over other rules.
+- `/lessons` lists them with numbers. `/lessons add <text>` adds one, `/lessons forget <n>` removes one, and `/lessons sync` saves feedback from every commented task of the project (read-only on Brokan). The file is plain Markdown: one `- ` line per lesson, and you can edit it directly.
+- An MCP client could also write a comment with the author `me`. Lessons are local and advisory, so review the file if a project has many agents writing comments.
+
+## Routines
+
+Routines are recurring work, for example a weekly dependency refresh or flaky-test sweep. Each one becomes an ordinary Brokan task that Factory then runs.
+
+- `/routines init` writes a disabled example to `~/.pi/agent/routines.json`. Each routine has:
+  - `id` and `project` (slugs) and `title`;
+  - an optional `description`, the task body and its acceptance;
+  - `every`: `daily`, or `weekly` with `day` (`mon`…`sun`);
+  - `at`: local `HH:MM`, default `09:00`;
+  - an optional `maxDiffLines`;
+  - `priority`, default `low`;
+  - `enabled`.
+- When a slot has passed, the next Factory start (`/factory`, `/factory parallel`) or watch check for that project adds one `todo` task tagged `routine` and `routine:<id>`. A routine whose previous task is still open (`todo`, `doing` or `review`) is skipped for that slot rather than duplicated. A newly enabled routine runs at the next check. Nothing runs while Factory is not running or watching; with `/factory watch`, due routines are added within one check interval.
+- State lives in `~/.pi/agent/routines-state.json`. A lock file keeps two Pi sessions from adding the same task.
+- **Counter-metric:** `maxDiffLines` is a budget of changed lines (added plus removed against the merge base with `origin/dev`), with lockfiles excluded. The limit comes from local routine state, never from task text. While Factory runs that task, it shares the limit with `megai-test-guard`, which blocks a larger push to `dev`. The agent is told to deliver the most valuable part within the budget and list the rest. Without `megai-test-guard` installed, the budget is only an instruction.
+- `/routines` lists schedules, the next slot and the last task. `/routines run <id>` adds that routine's task now (an open one still blocks it), and `/routines tick` checks all projects.

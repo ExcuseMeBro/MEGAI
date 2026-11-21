@@ -27,3 +27,11 @@ All 7 really removed or skipped tests (retired features, removed live tests).
   retries or pushes. A git error, an unknown ref or a path given as a variable
   (`cd "$repo"`, `"$SHA":refs/heads/dev`) lets the push through. This is a guard, not a
   CI gate.
+
+## Diff budget
+
+A second counter-metric limits change size. When a budget is active, a push to `dev` that changes more lines than it allows is blocked. The count is added plus removed lines in `git diff --numstat <merge-base>...<source>`, with lockfiles (`package-lock.json`, `Cargo.lock`, `go.sum`, …) and binaries excluded. The model is told to push the most valuable part within the budget, or nothing, and leave a note. A `Test-Change:` trailer does not lift it.
+
+- Factory sets the budget for a routine task with `maxDiffLines` while it runs that task (see the Factory README). It is shared in-process as `globalThis[Symbol.for('megai.diff-limit')]`.
+- `MEGAI_DIFF_LIMIT=<lines>` sets one for a manual session.
+- `MEGAI_TEST_GUARD=0` disables both checks. Errors fail open, as above.

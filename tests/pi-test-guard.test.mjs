@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync, unlinkSync
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { blockReason, checkPush, findDevPushes, findWeakening } from '../pi-defaults/extensions/megai-test-guard/guard.mjs';
+import { DIFF_LIMIT, blockReason, checkPush, checkSize, countChanged, diffLimit, findDevPushes, findWeakening, sizeReason } from '../pi-defaults/extensions/megai-test-guard/guard.mjs';
 import { piPackageRoot } from './pi-package.mjs';
 
 const extensionPath = fileURLToPath(new URL('../pi-defaults/extensions/megai-test-guard/index.ts', import.meta.url));
@@ -110,6 +110,28 @@ test('git range: weakening blocks, a Test-Change trailer or a clean range allows
   assert.deepEqual(checkPush(push), [], 'trailer anywhere in the pushed range covers it');
   assert.deepEqual(checkPush({ ...push, src: 'no-such-ref' }), [], 'unknown ref fails open');
   assert.deepEqual(checkPush({ ...push, dir: null }), [], 'unresolvable dir fails open');
+});
+
+test('diff budget: counts changed lines without lockfiles and blocks only over the active limit', (t) => {
+  assert.equal(countChanged('10\t2\tsrc/a.ts\n100\t50\tpackage-lock.json\n-\t-\timg.png\n3\t1\tsrc/{old => new}.ts\n5\t5\tx/{a => Cargo.lock}\n'), 16);
+  const prior = process.env.MEGAI_DIFF_LIMIT;
+  t.after(() => { delete globalThis[DIFF_LIMIT]; if (prior === undefined) delete process.env.MEGAI_DIFF_LIMIT; else process.env.MEGAI_DIFF_LIMIT = prior; });
+  delete process.env.MEGAI_DIFF_LIMIT;
+  assert.equal(diffLimit(), undefined);
+  process.env.MEGAI_DIFF_LIMIT = '40';
+  assert.deepEqual(diffLimit(), { lines: 40, label: 'MEGAI_DIFF_LIMIT' });
+  globalThis[DIFF_LIMIT] = { lines: 5, label: 'routine p/deps' };
+  assert.deepEqual(diffLimit(), { lines: 5, label: 'routine p/deps' }, 'Factory routine limit wins');
+  const { work, run } = repo(t);
+  const push = { dir: work, remote: 'origin', src: 'dev', dst: 'dev' };
+  writeFileSync(join(work, 'calc.py'), 'def add(a, b):\n    return a + b\n\n\ndef sub(a, b):\n    return a - b\n');
+  writeFileSync(join(work, 'package-lock.json'), `${'{}\n'.repeat(500)}`);
+  run('add', '-A'); run('commit', '-qm', 'sub');
+  assert.deepEqual(checkSize(push, { lines: 5, label: 'routine p/deps' }), [], '4 added lines fit; the lockfile is excluded');
+  const over = checkSize(push, { lines: 3, label: 'routine p/deps' });
+  assert.deepEqual(over, ['4 changed lines exceed the 3-line budget of routine p/deps (lockfiles excluded)']);
+  assert.match(sizeReason(over), /larger than this task allows/);
+  assert.deepEqual(checkSize({ ...push, src: 'no-such-ref' }, { lines: 1, label: 'x' }), [], 'unknown ref fails open');
 });
 
 // The installed Pi SDK runs a real bash tool call from a faux model through the hook.

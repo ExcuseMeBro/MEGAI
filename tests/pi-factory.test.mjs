@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import { mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync, existsSync, chmodSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync, existsSync, chmodSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
@@ -46,7 +46,7 @@ async function fixture(t, { tasks = [makeTask(1, 'doing'), makeTask(2, 'todo')],
     mkdirSync(join(cwd, '.pi'));
     writeFileSync(join(cwd, '.pi/project.json'), JSON.stringify({ brokanProject: configured }));
   }
-  const state = { tasks, failed: undefined, gate: undefined, worker: undefined, version: 1 };
+  const state = { tasks, comments: {}, failed: undefined, gate: undefined, worker: undefined, version: 1 };
   const git = (dir, ...args) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   const workerRoot = join(agentDir, 'factory-worktrees', project);
   if (parallel) {
@@ -96,7 +96,8 @@ exec ${[process.execPath, ...args].map(value => JSON.stringify(value)).join(' ')
     } else if (path === `/api/board?project=${project}`) {
       body = { projects: [{ slug: project, archived: false, repos }, { slug: 'other', archived: false, repos: [] }], tasks: state.tasks };
     } else if (/^\/api\/tasks\/\d+$/.test(path)) {
-      body = { task: state.tasks.find(task => task.id === Number(path.split('/').at(-1))) };
+      const id = Number(path.split('/').at(-1));
+      body = { task: state.tasks.find(task => task.id === id), comments: state.comments[id] ?? [] };
     } else { unexpected.push(path); res.writeHead(404).end(); return; }
     res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(body));
   });
@@ -111,7 +112,7 @@ exec ${[process.execPath, ...args].map(value => JSON.stringify(value)).join(' ')
   };
 
   async function open(respond) {
-    const calls = [], notices = [], errors = [], pendingNotices = [];
+    const calls = [], notices = [], errors = [], pendingNotices = [], systems = [];
     const settingsManager = SettingsManager.inMemory({ compaction: { enabled: false } }, { projectTrusted: trusted });
     const resourceLoader = new DefaultResourceLoader({ cwd, agentDir, settingsManager,
       additionalExtensionPaths: [extensionPath], noSkills: true, noContextFiles: true, noPromptTemplates: true, noThemes: true });
@@ -135,6 +136,8 @@ exec ${[process.execPath, ...args].map(value => JSON.stringify(value)).join(' ')
       const text = context.messages.filter(message => message.role === 'user').at(-1)?.content;
       const prompt = typeof text === 'string' ? text : text?.map(block => block.text).join('\n');
       calls.push(prompt);
+      // Pi 1.5 sends the system prompt as leading system messages.
+      systems.push(JSON.stringify(context.messages.filter(message => message.role === 'system')));
       return fauxAssistantMessage(await respond(prompt, calls.length, signal));
     }));
     const waitNotice = predicate => new Promise(resolve => {
@@ -142,7 +145,7 @@ exec ${[process.execPath, ...args].map(value => JSON.stringify(value)).join(' ')
       if (previous) resolve(previous);
       else pendingNotices.push([predicate, resolve]);
     });
-    return { session, calls, notices, errors, model, waitNotice };
+    return { session, calls, notices, errors, model, waitNotice, systems };
   }
   const status = (id, value) => { state.tasks.find(task => task.id === id).status = value; };
   const deliver = (id, { push = true, cleanup = true, provenance = true } = {}) => {
@@ -158,7 +161,7 @@ exec ${[process.execPath, ...args].map(value => JSON.stringify(value)).join(' ')
     if (cleanup) { git(cwd, 'worktree', 'remove', location); git(cwd, 'branch', '-D', branch); }
     return sha;
   };
-  return { open, state, reads, status, deliver, worktree: id => join(workerRoot, String(id)), locked: () => existsSync(join(agentDir, lockName)) };
+  return { open, state, reads, status, deliver, agentDir, worktree: id => join(workerRoot, String(id)), locked: () => existsSync(join(agentDir, lockName)) };
 }
 
 function settled(session) {
@@ -565,4 +568,80 @@ test('watch: typed input ends watching; an invalid target never arms it', watchO
   assert.equal(f.reads.length, polls);
   assert.deepEqual(s.calls, ['Explain the build failure']);
   assert.equal(f.locked(), false);
+});
+
+test('lessons: review feedback is saved, flagged on the returned task and shown to later sessions', options, async t => {
+  const f = await fixture(t, { tasks: [makeTask(1, 'todo')] });
+  f.state.comments[1] = [
+    { id: 10, author: 'me', body: 'Original scope note.', created_at: '2026-11-20T08:00:00Z' },
+    { id: 11, author: 'pi', body: 'Delivered abc.', created_at: '2026-11-20T09:00:00Z' },
+    { id: 12, author: 'me', body: 'Wrong: the  button must stay\nvisible on mobile.', created_at: '2026-11-21T10:00:00Z' },
+  ];
+  const s = await f.open(prompt => {
+    if (taskFor(prompt)) f.status(taskFor(prompt), 'review');
+    return 'Done.';
+  });
+  await run(s.session);
+  assert.match(s.calls[0], /came back after earlier work/);
+  const file = join(f.agentDir, 'lessons', `${project}.md`);
+  const text = readFileSync(file, 'utf8');
+  assert.match(text, /- 2026-11-21 · factory-fixture#1 \(c12\): Wrong: the button must stay visible on mobile\./);
+  assert.doesNotMatch(text, /Original scope note/);
+  assert.ok(s.notices.some(x => x.includes('saved to the project lessons')));
+  // A later ordinary prompt in the same repository carries the lesson in its system prompt.
+  await s.session.prompt('Hello');
+  assert.match(s.systems.at(-1), /# Project lessons \(factory-fixture\)[\s\S]*button must stay visible/);
+  // Factory saves it before the run starts, so the returned task's own run sees it as well.
+  assert.match(s.systems[0], /button must stay visible/);
+  // The same comment is not saved twice.
+  f.status(1, 'todo');
+  await run(s.session);
+  assert.equal(readFileSync(file, 'utf8'), text);
+});
+
+test('routines: a routine task carries its diff budget into the prompt and the shared guard limit', options, async t => {
+  const f = await fixture(t, { tasks: [makeTask(1, 'todo'), makeTask(2, 'todo')] });
+  writeFileSync(join(f.agentDir, 'routines-state.json'), JSON.stringify({ version: 1,
+    routines: { [`${project}/deps`]: { slot: '2026-11-16T09:00', task: 2, limit: 120 } } }));
+  const seen = [];
+  const s = await f.open(prompt => {
+    seen.push(globalThis[Symbol.for('megai.diff-limit')]);
+    f.status(taskFor(prompt), 'review');
+    return 'Done.';
+  });
+  await run(s.session);
+  assert.deepEqual(s.calls.map(taskFor), [1, 2]);
+  assert.doesNotMatch(s.calls[0], /counter-metric/);
+  assert.match(s.calls[1], /within 120 changed lines/);
+  assert.deepEqual(seen, [undefined, { lines: 120, label: `routine ${project}/deps` }]);
+  assert.equal(globalThis[Symbol.for('megai.diff-limit')], undefined);
+});
+
+test('commands: /lessons and /routines read and write only local files and never start a turn', options, async t => {
+  const f = await fixture(t);
+  const s = await f.open(() => assert.fail('no turn allowed'));
+  await s.session.prompt('/lessons');
+  assert.match(s.notices.at(-1), /Lessons: none yet for factory-fixture/);
+  await s.session.prompt('/lessons add Always run the migration check.');
+  await s.session.prompt('/lessons');
+  assert.match(s.notices.at(-1), /1\. \S+ · manual: Always run the migration check\./);
+  await s.session.prompt('/lessons forget 1');
+  assert.match(s.notices.at(-1), /removed: /);
+  await s.session.prompt('/lessons forget 1');
+  assert.match(s.notices.at(-1), /No lesson 1/);
+  await s.session.prompt('/routines');
+  assert.match(s.notices.at(-1), /Routines: none\. \/routines init/);
+  await s.session.prompt('/routines init');
+  const example = JSON.parse(readFileSync(join(f.agentDir, 'routines.json'), 'utf8'));
+  assert.equal(example.routines[0].enabled, false);
+  await s.session.prompt('/routines init');
+  assert.match(s.notices.at(-1), /already exists/);
+  await s.session.prompt('/routines');
+  assert.match(s.notices.at(-1), /your-project\/deps \(disabled\) · weekly on mon at 09:00 · ≤300 lines · next /);
+  await s.session.prompt('/routines tick');
+  assert.match(s.notices.at(-1), /nothing due/);
+  await s.session.prompt('/routines bogus');
+  assert.match(s.notices.at(-1), /Usage: \/routines/);
+  assert.deepEqual(s.calls, []);
+  assert.deepEqual(f.reads, []);
 });

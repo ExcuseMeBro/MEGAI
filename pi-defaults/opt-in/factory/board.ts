@@ -70,9 +70,23 @@ async function get(path: string, signal?: AbortSignal): Promise<Record<string, u
 }
 
 export async function readTask(project: string, id: number, signal?: AbortSignal) {
-  const task = parseTask((await get(`/api/tasks/${id}`, signal)).task, project);
+  return (await readDetails(project, id, signal)).task;
+}
+
+/** The task plus its raw comments (validated by lessons.mjs), from the same single read. */
+export async function readDetails(project: string, id: number, signal?: AbortSignal) {
+  const body = await get(`/api/tasks/${id}`, signal);
+  const task = parseTask(body.task, project);
   if (task.id !== id) throw new FactoryError('Brokan task ID mismatch.');
-  return task;
+  return { task, comments: Array.isArray(body.comments) ? body.comments : [] };
+}
+
+/** IDs of this project's tasks that have comments, for a lessons sync (read-only). */
+export async function commentedTasks(project: string, signal?: AbortSignal) {
+  const { tasks } = await get(`/api/board?project=${project}&done=all`, signal);
+  if (!Array.isArray(tasks)) throw new FactoryError('Invalid Brokan board response.');
+  return tasks.map(record).filter(task => task.project === project && typeof task.id === 'number' &&
+    Number.isSafeInteger(task.id) && typeof task.comments === 'number' && task.comments > 0).map(task => task.id as number);
 }
 
 /** Cheap board-wide change token; it moves on every Brokan write. */

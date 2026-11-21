@@ -168,23 +168,76 @@ function git(dir, args) {
  * Check one push. Returns findings to block on, or [] to allow.
  * Any git problem (unknown ref, no repo) allows the push: this is a guard, not a gate.
  */
+// The pushed range as [base, head] commits, or undefined when it cannot be read.
+function pushedRange(push) {
+  if (!push.dir || !existsSync(push.dir) || !statSync(push.dir).isDirectory()) return undefined;
+  let { src, dst } = push;
+  if (dst === '@current') {
+    dst = git(push.dir, ['rev-parse', '--abbrev-ref', 'HEAD']).trim();
+    if (!PROTECTED_TARGET.test(dst)) return undefined;
+  }
+  const head = git(push.dir, ['rev-parse', '--verify', '--quiet', `${src}^{commit}`]).trim();
+  const base = git(push.dir, ['rev-parse', '--verify', '--quiet', `refs/remotes/${push.remote}/${dst}^{commit}`]).trim();
+  if (!head || !base || head === base) return undefined;
+  return [base, head];
+}
+
 export function checkPush(push) {
-  if (!push.dir || !existsSync(push.dir) || !statSync(push.dir).isDirectory()) return [];
   try {
-    let { src, dst } = push;
-    if (dst === '@current') {
-      dst = git(push.dir, ['rev-parse', '--abbrev-ref', 'HEAD']).trim();
-      if (!PROTECTED_TARGET.test(dst)) return [];
-    }
-    const head = git(push.dir, ['rev-parse', '--verify', '--quiet', `${src}^{commit}`]).trim();
-    const base = git(push.dir, ['rev-parse', '--verify', '--quiet', `refs/remotes/${push.remote}/${dst}^{commit}`]).trim();
-    if (!head || !base || head === base) return [];
-    const range = `${base}..${head}`;
+    const range = pushedRange(push)?.join('..');
+    if (!range) return [];
     if (TRAILER.test(git(push.dir, ['log', '--format=%B', range]))) return [];
     return findWeakening(git(push.dir, ['diff', '--no-color', '--no-ext-diff', '-U0', range]));
   } catch {
     return [];
   }
+}
+
+// Generated lockfiles do not count toward a diff budget.
+const LOCKFILE = /(?:^|\/)(?:package-lock\.json|npm-shrinkwrap\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?|Cargo\.lock|go\.sum|poetry\.lock|uv\.lock|Pipfile\.lock|Gemfile\.lock|composer\.lock|Podfile\.lock|pubspec\.lock|gradle\.lockfile|flake\.lock)$/;
+export const DIFF_LIMIT = Symbol.for('megai.diff-limit');
+
+/** Changed lines (added + removed) in `git diff --numstat` output, lockfiles and binaries excluded. */
+export function countChanged(numstat) {
+  let total = 0;
+  for (const line of String(numstat).split('\n')) {
+    const [added, removed, ...path] = line.split('\t');
+    if (!path.length || LOCKFILE.test(path.join('\t').replace(/^.*=> /, '').replace(/}$/, ''))) continue;
+    total += (Number(added) || 0) + (Number(removed) || 0);
+  }
+  return total;
+}
+
+/**
+ * The active diff budget: set by Factory for a routine task (globalThis[DIFF_LIMIT] =
+ * { lines, label }), or MEGAI_DIFF_LIMIT=<lines> for a manual session.
+ */
+export function diffLimit(env = process.env) {
+  const active = globalThis[DIFF_LIMIT];
+  if (active && Number.isSafeInteger(active.lines) && active.lines > 0) return { lines: active.lines, label: String(active.label ?? 'Factory routine') };
+  const lines = Number(env.MEGAI_DIFF_LIMIT);
+  return Number.isSafeInteger(lines) && lines > 0 ? { lines, label: 'MEGAI_DIFF_LIMIT' } : undefined;
+}
+
+/** A finding when the pushed range (merge-base to source) changes more lines than `limit` allows. */
+export function checkSize(push, limit) {
+  try {
+    const range = pushedRange(push);
+    if (!range || !limit) return [];
+    const changed = countChanged(git(push.dir, ['diff', '--numstat', '--no-color', '--no-ext-diff', `${range[0]}...${range[1]}`]));
+    return changed > limit.lines ? [`${changed} changed lines exceed the ${limit.lines}-line budget of ${limit.label} (lockfiles excluded)`] : [];
+  } catch {
+    return [];
+  }
+}
+
+export function sizeReason(findings) {
+  return [
+    'megai-test-guard blocked this push to dev: the change is larger than this task allows.',
+    ...findings.map((f) => `- ${f}`),
+    'Keep the most valuable part within the budget and push that, or push nothing. List what is left in a Brokan task note',
+    'and move the task to review. Do not split the same change into several pushes to get around the budget.',
+  ].join('\n');
 }
 
 export function blockReason(findings) {
