@@ -11,9 +11,10 @@ workflow = (root / 'pi-defaults/skills/pi-workflow/SKILL.md').read_text()
 lifecycle = (root / 'skills/agent-worktree-lifecycle/SKILL.md').read_text()
 for text, required in (
     (profile, ('separate, verified task-owned worktree', 'never edit, stage or commit task source in the dev/main checkout',
-               'reserve integration targets through `megai queue`', 'Main/push/publishing still need separate explicit approval')),
-    (workflow, ('native `git worktree add`', 'Never edit/stage/commit task source on dev/main',
-                'Reserve integration targets through `megai queue`', 'Main promotion and push require separate explicit approval')),
+               'Main promotion and publishing require separate explicit approval',
+               'Task delivery to dev has STANDING APPROVAL', 'Still reserved for explicit approval: main')),
+    (workflow, ('task-owned worktree', 'Never edit, stage or commit source directly on dev/main',
+                'Main promotion and publishing require separate explicit approval', 'STANDING APPROVAL')),
     (lifecycle, ('Every Git source writer uses a separate task-owned worktree',
                 'If identity or exclusive ownership is uncertain, block Git writes',
                 'Reserve all integration targets atomically with `megai queue`',

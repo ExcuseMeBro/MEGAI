@@ -82,7 +82,12 @@ class RetiredDependency(unittest.TestCase):
             result = run("node", str(ROOT / "pi-skill/workspace-guard/identity.mjs"),
                          "--root", str(path))
             self.assertEqual(result.returncode, 2)
-            self.assertIn("Git metadata exists", result.stderr)
+            # Corrupt metadata must block: no identity is granted and git's own
+            # failure is surfaced. The message wording depends on which git
+            # fatal fires (gitfile vs repository probe), so assert the contract,
+            # not one exact message.
+            self.assertEqual(result.stdout, "")
+            self.assertIn("fatal:", result.stderr)
 
     def test_umbrella_does_not_adopt_foreign_symlinked_repository(self):
         with tempfile.TemporaryDirectory(prefix="pi-identity-foreign-") as folder:

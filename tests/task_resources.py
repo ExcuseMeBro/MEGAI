@@ -361,20 +361,26 @@ class SweepTests(unittest.TestCase):
 
 class TempClusterTests(unittest.TestCase):
     def test_orphan_only_inside_temp_and_old(self):
-        with tempfile.TemporaryDirectory() as inside:
-            keep = Path(tempfile.mkdtemp(dir="/tmp"))
+        # Synthetic sweep root: keeps the inside/outside relation deterministic
+        # instead of depending on the host's TMPDIR layout (macOS vs Linux).
+        with tempfile.TemporaryDirectory() as outside:
+            root = Path(tempfile.mkdtemp(dir=outside))
+            keep = Path(tempfile.mkdtemp(dir=root))
+            other = Path(tempfile.mkdtemp(dir=outside))
             try:
                 ps = "\n".join([
                     f"  10     1    02-13:14:54 /opt/postgres/bin/postgres -D {keep} -p 51105",
                     f"  11    42    02-13:14:54 /opt/postgres/bin/postgres -D {keep} -p 51106",
                     f"  12     1    00:05 /opt/postgres/bin/postgres -D {keep} -p 51107",
-                    f"  13     1    02-13:14:54 /opt/postgres/bin/postgres -D {inside} -p 51108",
+                    f"  13     1    02-13:14:54 /opt/postgres/bin/postgres -D {other} -p 51108",
                 ])
                 with patch.object(m, "run", return_value=ps):
-                    clusters = m.temp_clusters([Path("/tmp").resolve()])
+                    clusters = m.temp_clusters([root])
                 self.assertEqual([c["pid"] for c in clusters], [10])
             finally:
                 keep.rmdir()
+                root.rmdir()
+                other.rmdir()
 
     def test_apply_stops_and_removes(self):
         keep = Path(tempfile.mkdtemp(dir="/tmp"))
