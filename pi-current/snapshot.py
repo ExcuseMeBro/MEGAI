@@ -50,6 +50,9 @@ FILES = {
     "skills/megai-change-review/SKILL.md": "agent/skills/megai-change-review/SKILL.md",
     "skills/megai-change-review/review-core.mjs": "agent/skills/megai-change-review/review-core.mjs",
     "skills/megai-change-review/review.mjs": "agent/skills/megai-change-review/review.mjs",
+    "skills/sim-guard/SKILL.md": "agent/skills/sim-guard/SKILL.md",
+    "skills/sim-guard/sim-guard.sh": "agent/skills/sim-guard/sim-guard.sh",
+    "skills/sim-guard/LICENSE": "agent/skills/sim-guard/LICENSE",
 }
 # Codex (GPT) autonomy: global instructions and the keep-going Stop hook only.
 # config.toml is deliberately excluded (MCP servers, hook trust state, local paths).
