@@ -418,7 +418,8 @@ def temp_clusters(roots, min_age_hours=24.0):
             continue
         if hours < min_age_hours:
             continue
-        found.append({"pid": int(pid), "data": str(data), "hours": round(hours, 2)})
+        found.append({"pid": int(pid), "data": str(data), "arg": match.group(1),
+                      "hours": round(hours, 2)})
     return found
 
 
@@ -445,7 +446,10 @@ def sweep_temp(roots, min_age_hours=24.0, apply=False, emit=print):
                              "reason": "still-running"}))
             continue
         data = Path(cluster["data"])
-        if (not data.is_symlink() and data.exists()
+        # Guard the unresolved -D argument: the resolved data path can escape a
+        # symlink swap, and rmtree must follow the swap instead of the target.
+        raw = Path(cluster.get("arg", cluster["data"]))
+        if (not raw.is_symlink() and data.exists()
                 and any(data != root and data.is_relative_to(root) for root in roots)):
             shutil.rmtree(data)
         emit(json.dumps({"action": "remove", "kind": "temp-cluster", "pid": cluster["pid"],

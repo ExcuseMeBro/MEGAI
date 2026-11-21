@@ -294,8 +294,8 @@ grep -Fq 'Ruff returned invalid version output' "$ROOT/bin/megai"
 grep -Fq 'MEGAI_UPDATE=1 bash "$LIB/main.sh"' "$ROOT/bin/megai"
 ! grep -Eq 'uv tool upgrade ruff|pipx upgrade ruff' "$ROOT/lib/install_ruff.sh"
 grep -Fq 'install_ruff.sh' "$ROOT/lib/main.sh"
-grep -Fq '| [Ruff]' "$ROOT/README.md"
-grep -Fq 'Non-mutating Python' "$ROOT/README.md"
+grep -Fq '| 🐍 Ruff |' "$ROOT/README.md"
+grep -Fq 'Check changed Python without automatic fixes' "$ROOT/README.md"
 
 # ---- 16. Real Ruff fixture: --no-fix alone can mutate under fix-only=true ----
 # This reproduces the documented real-world behavior and asserts the canonical
