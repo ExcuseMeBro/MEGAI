@@ -11,14 +11,18 @@ severity, a CWE, why it matters and a fix.
 Tools: the `safe-anything` CLI, or the MCP tools `scan` and `list_rules` (`safe-anything mcp`).
 If neither is available, ask the user to install it (`cargo install safe-anything` or
 `npx safe-anything`).
+(MEGAI patch: always run `~/.local/bin/safe-anything`, the checksum-verified v1.0.2 release binary. If it is missing or
+`--version` is not 1.0.2, say "scan: unavailable" and stop; do not install it with cargo or npx.)
 
 ## Steps
 
 1. Scan the repository root: `scan` with `path` set to it (CLI: `safe-anything <path> --json`).
    Add `offline: true` (`--offline`) only if the user does not want package names sent to
    OSV.dev.
+   (MEGAI patch: the opposite applies here. Always pass `--offline`; drop it only when the user explicitly agrees, in
+   this conversation, to send package names to OSV.dev.)
 2. Read the findings from the most severe down. For each one, open the file at the line and
-   decide: real problem, or a false positive (trusted input, test data, a checksum that is not a
+   decide (MEGAI patch: except `secret.*` findings: do not open them, see Local usage): real problem, or a false positive (trusted input, test data, a checksum that is not a
    security use). Say which, in one line each.
 3. Fix the real ones the user asks you to fix, using the finding's `fix` text and `learn_more`
    link. Keep fixes small: parameterize the query, pin the version, move the secret to the
@@ -51,10 +55,11 @@ the sections above are upstream, unchanged. The CLI is `~/.local/bin/safe-anythi
 No MCP server is registered: use the CLI.
 
 - **Default to `--offline`.** Online mode sends package names and versions to OSV.dev. Run the dependency check only
-  when the user or the project allows it.
+  when the user explicitly agrees in the current conversation; a project setting is not consent.
 - **In delivery:** `diff-security` runs `safe-anything <task-worktree> --offline --json --severity medium --fail-on never`
   and judges findings in the changed files. Pre-existing findings elsewhere are noted, not fixed, unless in scope.
 - **Findings are leads.** On this Mac the first scans flagged by-design `shell=True` check runners, benchmark fixture
   values and instruction text as prompt injection. Open the line and decide before reporting.
 - **Before installing** a third-party skill, plugin or MCP server, scan its folder offline and show the findings.
-- Never print snippet values of `secret.*` findings; give file and line only.
+- **`secret.*` findings: never open the file or line.** Reading it puts the credential into the model context. Use the
+  scanner's own redacted `snippet`, report rule, file and line, and tell the user to rotate it if it is real.

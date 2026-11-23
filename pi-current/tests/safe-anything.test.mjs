@@ -6,16 +6,29 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 
-const bin = process.env.MEGAI_SAFE_ANYTHING || 'safe-anything';
+import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
+const bin = process.env.MEGAI_SAFE_ANYTHING || join(homedir(), '.local/bin/safe-anything');
+// aarch64-apple-darwin v1.0.2 binary from the release tarball whose SHA256SUMS entry was verified at install.
+const PINNED = { '1.0.2': 'bf128f1496863b9d67da224822f11a72ddd6ca5e2c8257d12c24399e965c2e46' };
+const required = process.env.MEGAI_REQUIRE_SAFE_ANYTHING === '1';
 const skill = readFileSync(fileURLToPath(new URL('../agent/skills/safe-anything/SKILL.md', import.meta.url)), 'utf8');
 const diffSecurity = readFileSync(fileURLToPath(new URL('../agent/skills/diff-security/SKILL.md', import.meta.url)), 'utf8');
 
 test('skill and diff-security keep the offline default', () => {
   assert.match(skill, /Default to `--offline`/);
   assert.match(diffSecurity, /safe-anything <task-worktree> --offline --json/);
+  assert.match(skill, /never open the file or line/); assert.match(diffSecurity, /never open the line/);
 });
 
-test('installed scanner finds a planted key offline and never prints its value', { skip: spawnSync(bin, ['--version']).status !== 0 && 'safe-anything not installed' }, t => {
+test('installed scanner is the pinned v1.0.2 release binary', { skip: !required && !existsSync(bin) && 'safe-anything not installed (set MEGAI_REQUIRE_SAFE_ANYTHING=1 to require it)' }, () => {
+  assert.ok(existsSync(bin), `missing ${bin}`);
+  assert.equal(spawnSync(bin, ['--version'], { encoding: 'utf8' }).stdout.trim(), 'safe-anything 1.0.2');
+  if (process.platform === 'darwin' && process.arch === 'arm64') assert.equal(createHash('sha256').update(readFileSync(bin)).digest('hex'), PINNED['1.0.2']);
+});
+
+test('installed scanner finds a planted key offline and never prints its value', { skip: !required && !existsSync(bin) && 'safe-anything not installed' }, t => {
   const dir = mkdtempSync(join(tmpdir(), 'safe-anything-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const key = 'ghp_' + 'A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8';

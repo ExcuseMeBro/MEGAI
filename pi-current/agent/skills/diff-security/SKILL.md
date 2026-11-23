@@ -19,9 +19,10 @@ same diff. If boundary code changed, note "SECURITY_CONTEXT.md may need sync".
 
 ## 0b. Pattern scan
 
-Run `safe-anything <task-worktree> --offline --json --severity medium --fail-on never` (skip with "scan: unavailable" if
-the CLI is missing). Open every finding in a changed file at its line and classify it real or false positive in one
-line; real ones go through section 3. Never print secret values. A clean scan is not proof of safety.
+Run `~/.local/bin/safe-anything <task-worktree> --offline --json --severity medium --fail-on never` (say "scan:
+unavailable" if it is missing or not v1.0.2). Open every non-secret finding in a changed file at its line and classify it
+real or false positive in one line; real ones go through section 3. For `secret.*` findings never open the line: report
+rule, file and line from the redacted snippet. A clean scan is not proof of safety.
 
 ## 1. Classify the diff (10 seconds)
 
