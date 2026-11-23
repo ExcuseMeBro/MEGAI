@@ -37,7 +37,7 @@ test('detect-drift: option-shaped or unknown commit and missing history fail clo
   t.after(() => rmSync(repo, { recursive: true, force: true }));
   const git = (...a) => execFileSync('git', a, { cwd: repo, encoding: 'utf8' }).trim();
   const run = () => spawnSync(process.execPath, [drift, repo], { encoding: 'utf8' });
-  const ctx = sha => writeFileSync(join(repo, 'SECURITY_CONTEXT.md'), `---\r\nschema_version: 1\r\nlast_synced_commit: ${sha}\r\n---\r\nbody\r\n`);
+  const ctx = (sha, vis = 'visibility: private\r\n') => writeFileSync(join(repo, 'SECURITY_CONTEXT.md'), `---\r\nschema_version: 1\r\n${vis}last_synced_commit: ${sha}\r\n---\r\nbody\r\n`);
   ctx('a'.repeat(40));
   assert.equal(run().status, 1, 'not a git repo is not clean');
   git('init', '-q'); git('config', 'user.email', 't@example.invalid'); git('config', 'user.name', 't');
@@ -47,4 +47,19 @@ test('detect-drift: option-shaped or unknown commit and missing history fail clo
   assert.ok(!existsSync(join(repo, 'pwned..HEAD')) && !existsSync(join(repo, 'pwned')), 'git wrote nothing');
   ctx('b'.repeat(40)); assert.equal(run().status, 2, 'unknown commit → drift');
   ctx(git('rev-parse', 'HEAD')); assert.equal(run().status, 0, 'CRLF frontmatter accepted');
+  ctx(git('rev-parse', 'HEAD'), ''); assert.equal(run().status, 1, 'missing visibility is malformed');
+});
+
+test('detect-drift: a zone policy watches zone-relative paths', t => {
+  const repo = mkdtempSync(join(tmpdir(), 'secctx-'));
+  t.after(() => rmSync(repo, { recursive: true, force: true }));
+  const git = (...a) => execFileSync('git', a, { cwd: repo, encoding: 'utf8' }).trim();
+  const zone = join(repo, 'services/auth');
+  git('init', '-q'); git('config', 'user.email', 't@example.invalid'); git('config', 'user.name', 't');
+  mkdirSync(join(zone, 'src/middleware'), { recursive: true }); writeFileSync(join(zone, 'src/middleware/jwt.ts'), 'a\n');
+  git('add', '.'); git('commit', '-qm', 'base');
+  writeFileSync(join(zone, 'SECURITY_CONTEXT.md'), `---\nschema_version: 1\nvisibility: private\nlast_synced_commit: ${git('rev-parse', 'HEAD')}\n---\n- Watch \`src/middleware/**\`\n`);
+  writeFileSync(join(zone, 'src/middleware/jwt.ts'), 'b\n'); git('add', '.'); git('commit', '-qm', 'mw');
+  const r = spawnSync(process.execPath, [drift, zone], { encoding: 'utf8' });
+  assert.equal(r.status, 2, r.stdout); assert.match(r.stdout, /"src\/middleware\/jwt\.ts"/);
 });

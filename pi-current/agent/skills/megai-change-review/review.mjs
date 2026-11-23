@@ -60,12 +60,24 @@ if (opt.goalFile) {
 } else {
   goal = 'Commit messages:\n' + git('log', '--format=- %s%n%b', `${baseSha}..${head}`).slice(0, LIMITS.context);
 }
-// SECURITY_CONTEXT.md from the approved base (merge-base) and the pinned head: blob reads, no checkout, no filters.
-const mergeBase = git('merge-base', baseSha, head).trim();
-const treeOf = c => git('ls-tree', '-r', '-z', '--name-only', c).split('\0').filter(Boolean);
-const blob = (c, path) => { try { return git('cat-file', 'blob', `${c}:${path}`); } catch { return null; } };
-const policy = securityContextsFor([...treeOf(mergeBase), ...treeOf(head)], files);
-const security = policy.selected.map(path => ({ path, base: blob(mergeBase, path), head: blob(head, path) }));
+// SECURITY_CONTEXT.md from the pinned base tip (the policy the merged code must obey) and the pinned head.
+// Presence comes from each tree; reads are blob-only, size-checked and quiet (no checkout, filters or stderr).
+const treeOf = c => new Set(git('ls-tree', '-r', '-z', '--name-only', c).split('\0').filter(Boolean));
+const baseTree = treeOf(baseSha), headTree = treeOf(head);
+const quiet = (...a) => execFileSync('git', ['-c', 'core.fsmonitor=false', ...a], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 2 * 1024 * 1024 });
+const blob = (c, tree, path) => {
+  if (!tree.has(path)) return { text: null };
+  try {
+    const spec = `${c}:${path}`;
+    if (quiet('cat-file', '-t', spec).trim() !== 'blob' || Number(quiet('cat-file', '-s', spec)) > 1024 * 1024) return { error: true };
+    return { text: quiet('cat-file', 'blob', spec) };
+  } catch { return { error: true }; }
+};
+const policy = securityContextsFor([...baseTree, ...headTree], files);
+const security = policy.selected.map(path => {
+  const b = blob(baseSha, baseTree, path), h = blob(head, headTree, path);
+  return { path, base: b.text, head: h.text, error: Boolean(b.error || h.error) };
+});
 const packet = buildPacket({ security, securityOmitted: policy.omitted,
   base: `${base} (${baseSha.slice(0, 12)})`, head, goal, files,
   stat: git('diff', ...NOHELPERS, '--stat', range),
@@ -111,5 +123,6 @@ child.on('close', code => {
   console.log(`Risk: ${r.risk ?? '?'}; findings: ${r.findings.length} (${bySev}); verdict: ${r.verdict ?? '?'}`);
   if (code !== 0 || !r.wellFormed) { console.error(`review: reviewer exited ${code}; report ${r.wellFormed ? 'ok' : `malformed (${r.problems.slice(0, 3).join('; ') || 'missing risk, sections or verdict'})`}.`); process.exit(2); }
   if (opt.failOn && atLeast(r.findings, opt.failOn)) process.exit(3);
+  if (opt.failOn && packet.securityIncomplete) { console.error('review: an approved SECURITY_CONTEXT.md was omitted, cut or unreadable; the policy check is unverified.'); process.exit(2); }
   process.exit(0);
 });

@@ -28,6 +28,11 @@ if (!fmMatch) {
 const fm = fmMatch[1];
 const shaMatch = fm.match(/^last_synced_commit:\s*["']?([^"'\s]+)["']?/m);
 const lastSha = shaMatch ? shaMatch[1] : null;
+// MEGAI patch: required fields must be present and valid before any git call.
+if (!/^schema_version:\s*1\s*$/m.test(fm) || !/^visibility:\s*(private|public)\b/m.test(fm) || !lastSha) {
+  console.error(JSON.stringify({ status: 'invalid', message: 'Frontmatter needs schema_version: 1, visibility: private|public and last_synced_commit' }));
+  process.exit(1);
+}
 // MEGAI patch: only a full commit hash or "uncommitted" may reach git (an option-shaped value could make git write files).
 if (lastSha && !/^([0-9a-f]{40}|[0-9a-f]{64}|uncommitted)$/.test(lastSha)) {
   console.error(JSON.stringify({ status: 'invalid', message: 'last_synced_commit must be a full commit hash or "uncommitted"' }));
@@ -101,7 +106,7 @@ let changedFiles = [];
 try {
   git(['rev-parse', '--verify', '--quiet', `${lastSha}^{commit}`]);
   // NUL-separated, unquoted names; no rename pairing, so both the old and the new path count.
-  const diffOut = execFileSync('git', ['-c', 'core.quotePath=false', 'diff', '--no-ext-diff', '--no-textconv', '--no-renames', '--name-only', '-z', lastSha, headSha, '--'],
+  const diffOut = execFileSync('git', ['-c', 'core.quotePath=false', 'diff', '--no-ext-diff', '--no-textconv', '--no-renames', '--relative', '--name-only', '-z', lastSha, headSha, '--'],
     { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 });
   changedFiles = diffOut.split('\0').filter(Boolean);
 } catch {

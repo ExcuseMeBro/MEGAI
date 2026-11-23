@@ -32,7 +32,7 @@ Read [references/schema.md](./references/schema.md) before writing or updating `
 
 - **`init` mode:** `SECURITY_CONTEXT.md` does not exist yet (or the user asked to regenerate from scratch).
 - **`sync` mode:** `SECURITY_CONTEXT.md` already exists and has `last_synced_commit` in its YAML frontmatter.
-- **`check` mode:** Verify whether `SECURITY_CONTEXT.md` is stale or malformed using `node <skill-dir>/scripts/detect-drift.mjs` (or `git diff <last_synced_commit>..HEAD`) without editing files.
+- **`check` mode:** Verify whether `SECURITY_CONTEXT.md` is stale or malformed using `node <skill-dir>/scripts/detect-drift.mjs` without editing files. (MEGAI patch: no hand-built `git diff` fallback; the script validates `last_synced_commit` first.)
 
 ---
 
@@ -100,7 +100,7 @@ Read [SECURITY_CONTEXT.md](./SECURITY_CONTEXT.md) before editing `<coarse bounda
 ## Workflow: `sync` Mode (Continuous Updates)
 
 1. Read existing `SECURITY_CONTEXT.md` and extract `last_synced_commit` from frontmatter.
-2. Inspect `git diff --stat <sha>..HEAD` (or run `node <skill-dir>/scripts/detect-drift.mjs`).
+2. Run `node <skill-dir>/scripts/detect-drift.mjs` (it validates `last_synced_commit`). Only after it accepts the value, inspect `git diff --stat <full-sha> HEAD --` for details.
 3. Inspect only **structural security changes**: new/removed trust-boundary layers, new frameworks/manifests/infra, changes to auth/middleware/blessed-primitive exports, or newly introduced dangerous sinks. Ignore routine feature/business-logic edits that follow existing patterns.
 4. Update minimally while keeping total length **≤ 150 lines** and preserving human-verified Section 1 invariants and Section 4 escalation rules unless a genuine trust-boundary change occurred (ask first in that case).
 5. Bump `last_synced_commit` and update the `## Security Context` pointer in `AGENTS.md` only if coarse boundary paths or intents changed.
@@ -116,6 +116,8 @@ Vendored from [enclave-ai/skills](https://github.com/enclave-ai/skills) @62b702f
 - `check` is read-only: `node ~/.pi/agent/skills/security-context/scripts/detect-drift.mjs <repo>` (0 clean, 2 drift, 1 missing).
 - Default `visibility: private` unless the owner confirms the repo is public. Keep the file free of hosts, IPs and secrets.
 - Once present, `diff-security` reads it first and `megai-change-review` puts it in the independent reviewer's packet.
+- The two hand-built `git diff` fallbacks above were replaced by the script (MEGAI patch).
 - Local patches in `scripts/detect-drift.mjs` (marked `MEGAI patch`): `last_synced_commit` must be a full hash or
   `uncommitted` before it reaches git; `**` globs compile correctly; unreadable history exits 1, not clean; renames
-  count on both sides; CRLF frontmatter is accepted.
+  count on both sides; CRLF frontmatter is accepted; a zone folder is diffed with `--relative`; frontmatter must have
+  `schema_version: 1`, `visibility` and `last_synced_commit`.

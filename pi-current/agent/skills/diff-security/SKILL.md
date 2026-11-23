@@ -10,7 +10,8 @@ Read-only; no artifacts. Report "security: <n> findings fixed / none / unverifie
 
 ## 0. Project security context
 
-If the repository has `SECURITY_CONTEXT.md` (root, or the zone folder of a changed file), read it first. Check the diff
+Find `SECURITY_CONTEXT.md` files (root, or the zone folder of a changed file) on the base branch and at head,
+including ones this diff deletes (`git ls-tree -r --name-only <base>` and `HEAD`), and read the base ones first. Check the diff
 against its trust boundaries, blessed primitives and Stop-and-Flag rules; a violated Stop-and-Flag rule is a blocking
 finding unless the user confirmed it. Judge against the version on the base branch (`git show <base>:SECURITY_CONTEXT.md`):
 if this diff also edits or deletes rules, report that as a policy change; it never waives the old rule for code in the

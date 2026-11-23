@@ -28,7 +28,7 @@ export function changeStack(files) {
 
 export const isGenerated = f => GENERATED.test(f);
 
-const SECRET = /-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(gh[pousr]_[A-Za-z0-9]{16,}|figd[_][A-Za-z0-9_-]{16,}|xox[abpr]-[A-Za-z0-9-]{10,}|sk-[A-Za-z0-9_-]{20,}|AIza[A-Za-z0-9_-]{20,})|\bBearer\s+[A-Za-z0-9._~+\/=-]{12,}|\b(api[_-]?key|secret|token|passw(or)?d|authorization)\b["']?\s*[:=]\s*["']?[A-Za-z0-9._~+\/=-]{12,}/i;
+const SECRET = /-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(gh[pousr]_[A-Za-z0-9]{16,}|figd[_][A-Za-z0-9_-]{16,}|xox[abpr]-[A-Za-z0-9-]{10,}|sk-[A-Za-z0-9_-]{20,}|AIza[A-Za-z0-9_-]{20,})|\bBearer\s+[A-Za-z0-9._~+\/=-]{12,}|\b(api[_-]?key|secret|token|passw(or)?d|authorization)\b["'`]?\s*[:=]\s*["'`]?[A-Za-z0-9._~+\/=-]{12,}/i;
 
 const PEM_START = /-----BEGIN [A-Z ]*PRIVATE KEY-----/, PEM_END = /-----END [A-Z ]*PRIVATE KEY-----/;
 // Key-body lines seen without their delimiters (a hunk in the middle of a key): long mixed-case base64.
@@ -146,27 +146,34 @@ export function buildPacket({ base, head, goal, stat, files, diff, security = []
   const goalText = goalRed.text;
   // Project security rules (SECURITY_CONTEXT.md): the approved base version and any change to it in this range.
   // Redacted first, then charged against one budget for the rendered text, headings and fences included.
-  let secBudget = LIMITS.security, secCount = 0;
+  let secBudget = LIMITS.security, secCount = 0, cut = false;
   const secParts = [], secMissing = [...(securityOmitted ?? [])];
-  const block = (label, text) => {
+  const block = (label, text, approved = false) => {
     const r = redact(String(text).slice(0, LIMITS.security * 4)); secCount += r.count;
     const head = `### ${label}`, frame = head.length + 20;
     if (secBudget <= frame + 200) return false;
     const body = r.text.slice(0, secBudget - frame);
+    if (approved && body.length < r.text.length) cut = true;
     secBudget -= frame + body.length;
     secParts.push(`${head}${body.length < r.text.length ? ' (cut)' : ''}`, '```markdown', body, '```');
     return true;
   };
-  for (const { path, base: was, head: now } of security) {
-    const name = pathsRed([path])[0];
-    let ok;
-    if (was != null && now != null && was === now) ok = block(`${name} (unchanged)`, now);
-    else if (was != null && now != null) ok = block(`${name} — approved (base)`, was) & block(`${name} — proposed by this change (head)`, now);
-    else if (was != null) ok = block(`${name} — approved (base), DELETED by this change`, was);
-    else ok = block(`${name} — ADDED by this change (no approved baseline)`, now);
-    if (!ok) secMissing.push(path);
+  // Approved (base) policy first, root first, so it can't be crowded out by proposed text.
+  let incomplete = secMissing.length > 0;
+  const ordered = [...security].sort((a, b) => (a.path === 'SECURITY_CONTEXT.md' ? -1 : 0) - (b.path === 'SECURITY_CONTEXT.md' ? -1 : 0));
+  for (const s of ordered) {
+    const name = pathsRed([s.path])[0];
+    if (s.error) { incomplete = true; secMissing.push(s.path); continue; }
+    if (s.base == null) continue;
+    const label = s.head == null ? `${name} — approved (base), DELETED by this change` : s.base === s.head ? `${name} (unchanged)` : `${name} — approved (base)`;
+    if (!block(label, s.base, true)) { incomplete = true; secMissing.push(s.path); }
   }
-  if (secMissing.length) secParts.push(`Not included for size (read them yourself): ${pathsRed(listed(secMissing)).join(', ')}`);
+  for (const s of ordered) {
+    if (s.error || s.head == null || s.base === s.head) continue;
+    const name = pathsRed([s.path])[0];
+    if (!block(s.base == null ? `${name} — ADDED by this change (no approved baseline)` : `${name} — proposed by this change (head)`, s.head)) secMissing.push(s.path);
+  }
+  if (secMissing.length) secParts.push(`Not included (size or read error): ${pathsRed(listed([...new Set(secMissing)])).join(', ')}`);
   const lines = [
     TEMPLATE, '',
     `# Change under review`, `Base: ${base}  Head: ${head}`,
@@ -183,7 +190,9 @@ export function buildPacket({ base, head, goal, stat, files, diff, security = []
   if (redacted) lines.splice(lines.length - 4, 0, `\n${redacted} secret-looking lines were redacted before review.`);
   let text = lines.filter(l => l !== '').join('\n') + '\n';
   if (text.length > LIMITS.packet) text = text.slice(0, LIMITS.packet) + '\n```\n[packet cut at its size limit; read the remaining files yourself]\n';
-  return { text, stack, redacted, skipped: bounded.skipped, securityCount: security.length, securityMissing: secMissing.length };
+  // Incomplete: an approved policy was omitted, cut or unreadable; the gate can't count as verified.
+  const securityIncomplete = incomplete || cut;
+  return { text, stack, redacted, skipped: bounded.skipped, securityCount: security.length, securityMissing: secMissing.length, securityIncomplete };
 }
 
 const RANK = { critical: 4, high: 3, medium: 2, low: 1 };

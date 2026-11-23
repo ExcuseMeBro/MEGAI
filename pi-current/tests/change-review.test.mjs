@@ -158,6 +158,11 @@ console.log(process.env.FAKE_REPORT);
   const packet = readFileSync(packetOnly.stdout.match(/packet: (\S+)/)[1], 'utf8');
   assert.match(packet, /1 secret-looking lines were redacted/);
   assert.match(packet, /NEVER call evalUnsafe/); assert.match(packet, /ADDED by this change/);
+  // An approved policy too large for the packet: a clean report still can't pass the gate.
+  sh('switch', '-q', 'dev'); writeFileSync(join(repo, 'SECURITY_CONTEXT.md'), 'rule\n'.repeat(10_000)); sh('add', 'SECURITY_CONTEXT.md'); sh('commit', '-qm', 'big policy');
+  sh('switch', '-q', 'task/x'); sh('merge', '-q', '--no-edit', 'dev', '-X', 'theirs');
+  const gated = run(shell('### none\n'), ['--fail-on', 'high']);
+  assert.equal(gated.status, 2, gated.stdout + gated.stderr); assert.match(gated.stderr, /policy check is unverified/);
 });
 
 test('security context: root keeps a slot, base governs, head edits are labelled, bounded and redacted', () => {
@@ -172,7 +177,16 @@ test('security context: root keeps a slot, base governs, head edits are labelled
   assert.match(p.text, /SECURITY_CONTEXT\.md — approved \(base\)[\s\S]*NEVER raw SQL[\s\S]*proposed by this change \(head\)/);
   assert.match(p.text, /a\/SECURITY_CONTEXT\.md — ADDED by this change/);
   assert.match(p.text, /b\/SECURITY_CONTEXT\.md \(unchanged\)/);
-  assert.match(p.text, /Not included for size \(read them yourself\): c\/SECURITY_CONTEXT\.md/);
+  assert.match(p.text, /Not included \(size or read error\): c\/SECURITY_CONTEXT\.md/);
+  assert.equal(p.securityIncomplete, true, 'an omitted approved zone policy makes the check unverified');
+  const tick = buildPacket({ base: 'b', head: 'h', goal: 'g', stat: '', files: ['a'], diff: '', security: [{ path: 'SECURITY_CONTEXT.md', base: 'api_key: `abcdefghijklmnopqrstuv`\n', head: 'api_key: `abcdefghijklmnopqrstuv`\n' }] });
+  assert.ok(!tick.text.includes('abcdefghijklmnop'), 'backtick-wrapped value redacted'); assert.equal(tick.securityIncomplete, false);
+  // Root deleted, long zone added: the approved root still renders first and in full.
+  const crowd = buildPacket({ base: 'b', head: 'h', goal: 'g', stat: '', files: ['z/a'], diff: '', security: [
+    { path: 'z/SECURITY_CONTEXT.md', base: null, head: 'y'.repeat(40_000) }, { path: 'SECURITY_CONTEXT.md', base: '- NEVER disable auth\n', head: null }] });
+  assert.match(crowd.text, /SECURITY_CONTEXT\.md — approved \(base\), DELETED by this change[\s\S]*NEVER disable auth/);
+  assert.equal(crowd.securityIncomplete, false, 'only proposed text was cut');
+  assert.equal(buildPacket({ base: 'b', head: 'h', goal: 'g', stat: '', files: ['a'], diff: '', security: [{ path: 'SECURITY_CONTEXT.md', error: true }] }).securityIncomplete, true);
   assert.ok(!p.text.includes('abcdefghijklmnop'), 'redacted');
   // Redaction expansion and headings are charged to the budget.
   const keyBody = ['-----BEGIN PRIVATE KEY-----', ...Array(3000).fill('x'), '-----END PRIVATE KEY-----'].join('\n');
