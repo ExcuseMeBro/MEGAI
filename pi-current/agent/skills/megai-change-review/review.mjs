@@ -47,7 +47,8 @@ const head = git('rev-parse', '--verify', 'HEAD^{commit}').trim();
 const baseSha = git('rev-parse', '--verify', `${base}^{commit}`).trim();
 const range = `${baseSha}...${head}`;
 const NOHELPERS = ['--no-ext-diff', '--no-textconv'];
-const files = git('diff', ...NOHELPERS, '--name-only', range).split('\n').filter(Boolean);
+// NUL-separated, unquoted names; no rename pairing, so a file moved out of a zone counts on both sides.
+const files = git('-c', 'core.quotePath=false', 'diff', ...NOHELPERS, '--no-renames', '--name-only', '-z', range).split('\0').filter(Boolean);
 if (!files.length) fail(`no committed changes in ${range}`);
 let goal = '';
 if (opt.goalFile) {
@@ -59,12 +60,13 @@ if (opt.goalFile) {
 } else {
   goal = 'Commit messages:\n' + git('log', '--format=- %s%n%b', `${baseSha}..${head}`).slice(0, LIMITS.context);
 }
-// SECURITY_CONTEXT.md files from the pinned head (blob reads: no checkout, no filters).
-const treePaths = git('ls-tree', '-r', '--name-only', head).split('\n').filter(Boolean);
-const security = securityContextsFor(treePaths, files).map(path => {
-  try { return { path, text: git('cat-file', 'blob', `${head}:${path}`) }; } catch { return null; }
-}).filter(Boolean);
-const packet = buildPacket({ security,
+// SECURITY_CONTEXT.md from the approved base (merge-base) and the pinned head: blob reads, no checkout, no filters.
+const mergeBase = git('merge-base', baseSha, head).trim();
+const treeOf = c => git('ls-tree', '-r', '-z', '--name-only', c).split('\0').filter(Boolean);
+const blob = (c, path) => { try { return git('cat-file', 'blob', `${c}:${path}`); } catch { return null; } };
+const policy = securityContextsFor([...treeOf(mergeBase), ...treeOf(head)], files);
+const security = policy.selected.map(path => ({ path, base: blob(mergeBase, path), head: blob(head, path) }));
+const packet = buildPacket({ security, securityOmitted: policy.omitted,
   base: `${base} (${baseSha.slice(0, 12)})`, head, goal, files,
   stat: git('diff', ...NOHELPERS, '--stat', range),
   diff: git('diff', ...NOHELPERS, '-U3', '--no-color', range),
@@ -72,7 +74,7 @@ const packet = buildPacket({ security,
 const dir = mkdtempSync(join(tmpdir(), 'megai-review-'));
 const packetPath = join(dir, 'packet.md');
 writeFileSync(packetPath, packet.text, { mode: 0o600 });
-console.log(`packet: ${packetPath} (${packet.text.length} chars, ${files.length} files, ${packet.redacted} redacted lines, ${packet.skipped.length} not shown${packet.security.length ? `, security context: ${packet.security.join(', ')}` : ''})`);
+console.log(`packet: ${packetPath} (${packet.text.length} chars, ${files.length} files, ${packet.redacted} redacted lines, ${packet.skipped.length} not shown${packet.securityCount ? `, security context files: ${packet.securityCount}${packet.securityMissing ? ` (${packet.securityMissing} not included, see packet)` : ''}` : ''})`);
 if (opt.packetOnly) process.exit(0);
 
 const pi = process.env.MEGAI_REVIEW_PI || 'pi';

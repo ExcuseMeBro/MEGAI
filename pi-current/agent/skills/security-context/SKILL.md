@@ -116,3 +116,6 @@ Vendored from [enclave-ai/skills](https://github.com/enclave-ai/skills) @62b702f
 - `check` is read-only: `node ~/.pi/agent/skills/security-context/scripts/detect-drift.mjs <repo>` (0 clean, 2 drift, 1 missing).
 - Default `visibility: private` unless the owner confirms the repo is public. Keep the file free of hosts, IPs and secrets.
 - Once present, `diff-security` reads it first and `megai-change-review` puts it in the independent reviewer's packet.
+- Local patches in `scripts/detect-drift.mjs` (marked `MEGAI patch`): `last_synced_commit` must be a full hash or
+  `uncommitted` before it reaches git; `**` globs compile correctly; unreadable history exits 1, not clean; renames
+  count on both sides; CRLF frontmatter is accepted.

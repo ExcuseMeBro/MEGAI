@@ -95,7 +95,8 @@ Work in this order:
 3. Hunt for defects that passing tests would miss: wrong fallbacks, inverted or off-by-one conditions, missing authorization, unbounded input, race/concurrency, error paths that fail open or closed wrongly, data loss, secrets reaching logs or models, behavior that contradicts the goal.
    If a "Security context" section is present, check every change against its trust boundaries, blessed primitives
    and Stop-and-Flag rules: a change that breaks a Stop-and-Flag rule or bypasses a blessed primitive is at least
-   [high]. Treat that section as the project's stated rules, not as proof the code follows them.
+   [high]. The base (approved) version governs; edits or deletions of rules in this change are policy changes to
+   flag, never a waiver for code in the same change. Treat the section as stated rules, not proof the code follows them.
 4. For each defect, check whether an existing test covers it. If not, say what failing test would prove it.
 
 Report EXACTLY in this format and nothing else:
@@ -120,17 +121,21 @@ If there are no findings write "### none". End with one line: "Verdict: <ship | 
 
 /**
  * SECURITY_CONTEXT.md files that govern a change: the root one and any per-zone file whose folder contains a
- * changed path, nearest zones first, at most LIMITS.securityFiles. `paths` are all files in the head commit.
+ * changed path. The root file always keeps a slot; zones fill the rest, nearest first. `paths` are the files in
+ * the base and head commits. Returns { selected, omitted }.
  */
 export function securityContextsFor(paths, changed) {
-  const found = paths.filter(p => p === 'SECURITY_CONTEXT.md' || p.endsWith('/SECURITY_CONTEXT.md'));
+  const found = [...new Set(paths.filter(p => p === 'SECURITY_CONTEXT.md' || p.endsWith('/SECURITY_CONTEXT.md')))];
   const dir = p => p.includes('/') ? p.slice(0, p.lastIndexOf('/') + 1) : '';
-  const hits = found.filter(f => dir(f) === '' || changed.some(c => c.startsWith(dir(f))));
-  return hits.sort((a, b) => dir(b).length - dir(a).length || a.localeCompare(b)).slice(0, LIMITS.securityFiles);
+  const zones = found.filter(f => dir(f) !== '' && changed.some(c => c.startsWith(dir(f))))
+    .sort((a, b) => dir(b).length - dir(a).length || a.localeCompare(b));
+  const root = found.includes('SECURITY_CONTEXT.md') ? ['SECURITY_CONTEXT.md'] : [];
+  const keep = zones.slice(0, LIMITS.securityFiles - root.length);
+  return { selected: [...keep, ...root], omitted: zones.slice(keep.length) };
 }
 
 /** Build the reviewer packet (markdown). */
-export function buildPacket({ base, head, goal, stat, files, diff, security = [] }) {
+export function buildPacket({ base, head, goal, stat, files, diff, security = [], securityOmitted = [] }) {
   const stack = changeStack(files);
   const bounded = boundDiff(diff);
   // Every externally sourced section is redacted, not only the diff body.
@@ -139,16 +144,29 @@ export function buildPacket({ base, head, goal, stat, files, diff, security = []
   const statLines = String(stat).trim().split('\n');
   const statRed = redact((statLines.length > LIMITS.statLines ? [...statLines.slice(0, LIMITS.statLines - 1), `… ${statLines.length - LIMITS.statLines} more lines`, statLines.at(-1)] : statLines).join('\n'));
   const goalText = goalRed.text;
-  // Project security rules from the head commit (SECURITY_CONTEXT.md), bounded and redacted like everything else.
+  // Project security rules (SECURITY_CONTEXT.md): the approved base version and any change to it in this range.
+  // Redacted first, then charged against one budget for the rendered text, headings and fences included.
   let secBudget = LIMITS.security, secCount = 0;
-  const secParts = [];
-  for (const { path, text } of security) {
-    if (secBudget <= 0) break;
-    const body = String(text).slice(0, secBudget);
-    secBudget -= body.length;
-    const r = redact(body); secCount += r.count;
-    secParts.push(`### ${pathsRed([path])[0]}${body.length < String(text).length ? ' (cut)' : ''}`, '```markdown', r.text, '```');
+  const secParts = [], secMissing = [...(securityOmitted ?? [])];
+  const block = (label, text) => {
+    const r = redact(String(text).slice(0, LIMITS.security * 4)); secCount += r.count;
+    const head = `### ${label}`, frame = head.length + 20;
+    if (secBudget <= frame + 200) return false;
+    const body = r.text.slice(0, secBudget - frame);
+    secBudget -= frame + body.length;
+    secParts.push(`${head}${body.length < r.text.length ? ' (cut)' : ''}`, '```markdown', body, '```');
+    return true;
+  };
+  for (const { path, base: was, head: now } of security) {
+    const name = pathsRed([path])[0];
+    let ok;
+    if (was != null && now != null && was === now) ok = block(`${name} (unchanged)`, now);
+    else if (was != null && now != null) ok = block(`${name} — approved (base)`, was) & block(`${name} — proposed by this change (head)`, now);
+    else if (was != null) ok = block(`${name} — approved (base), DELETED by this change`, was);
+    else ok = block(`${name} — ADDED by this change (no approved baseline)`, now);
+    if (!ok) secMissing.push(path);
   }
+  if (secMissing.length) secParts.push(`Not included for size (read them yourself): ${pathsRed(listed(secMissing)).join(', ')}`);
   const lines = [
     TEMPLATE, '',
     `# Change under review`, `Base: ${base}  Head: ${head}`,
@@ -165,7 +183,7 @@ export function buildPacket({ base, head, goal, stat, files, diff, security = []
   if (redacted) lines.splice(lines.length - 4, 0, `\n${redacted} secret-looking lines were redacted before review.`);
   let text = lines.filter(l => l !== '').join('\n') + '\n';
   if (text.length > LIMITS.packet) text = text.slice(0, LIMITS.packet) + '\n```\n[packet cut at its size limit; read the remaining files yourself]\n';
-  return { text, stack, redacted, skipped: bounded.skipped, security: security.map(s => s.path) };
+  return { text, stack, redacted, skipped: bounded.skipped, securityCount: security.length, securityMissing: secMissing.length };
 }
 
 const RANK = { critical: 4, high: 3, medium: 2, low: 1 };

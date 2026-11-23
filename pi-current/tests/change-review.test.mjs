@@ -153,24 +153,31 @@ console.log(process.env.FAKE_REPORT);
   writeFileSync(join(repo, 'SECURITY_CONTEXT.md'), '---\nschema_version: 1\n---\n## 4. Stop-and-Flag Rules\n- NEVER call evalUnsafe\n');
   sh('add', 'SECURITY_CONTEXT.md'); sh('commit', '-qm', 'Add security context');
   const packetOnly = run('', ['--packet-only']);
-  assert.match(packetOnly.stdout, /security context: SECURITY_CONTEXT\.md/);
+  assert.match(packetOnly.stdout, /security context files: 1/);
   assert.equal(packetOnly.status, 0);
   const packet = readFileSync(packetOnly.stdout.match(/packet: (\S+)/)[1], 'utf8');
   assert.match(packet, /1 secret-looking lines were redacted/);
-  assert.match(packet, /NEVER call evalUnsafe/);
+  assert.match(packet, /NEVER call evalUnsafe/); assert.match(packet, /ADDED by this change/);
 });
 
-test('security context: root and touched zones only, bounded and redacted in the packet', () => {
-  const tree = ['SECURITY_CONTEXT.md', 'api/SECURITY_CONTEXT.md', 'worker/SECURITY_CONTEXT.md', 'api/src/a.ts', 'docs/SECURITY_CONTEXT.md.bak'];
-  assert.deepEqual(securityContextsFor(tree, ['api/src/a.ts']), ['api/SECURITY_CONTEXT.md', 'SECURITY_CONTEXT.md']);
-  assert.deepEqual(securityContextsFor(['README.md'], ['README.md']), []);
-  const big = 'x'.repeat(20_000);
-  const p = buildPacket({ base: 'b', head: 'h', goal: 'g', stat: '', files: ['a'], diff: '',
-    security: [{ path: 'SECURITY_CONTEXT.md', text: '## 4. Stop-and-Flag\n- never raw SQL\napi_key = abcdefghijklmnopqrstuvwxyz\n' }, { path: 'api/SECURITY_CONTEXT.md', text: big }] });
-  assert.match(p.text, /## Security context \(project rules/);
-  assert.match(p.text, /never raw SQL/);
+test('security context: root keeps a slot, base governs, head edits are labelled, bounded and redacted', () => {
+  const tree = ['SECURITY_CONTEXT.md', 'a/SECURITY_CONTEXT.md', 'b/SECURITY_CONTEXT.md', 'c/SECURITY_CONTEXT.md', 'docs/SECURITY_CONTEXT.md.bak'];
+  const pick = securityContextsFor(tree, ['a/x.ts', 'b/y.ts', 'c/z.ts']);
+  assert.ok(pick.selected.includes('SECURITY_CONTEXT.md'), 'root never dropped'); assert.equal(pick.selected.length, 3); assert.equal(pick.omitted.length, 1);
+  assert.deepEqual(securityContextsFor(['README.md'], ['README.md']), { selected: [], omitted: [] });
+  const p = buildPacket({ base: 'b', head: 'h', goal: 'g', stat: '', files: ['a'], diff: '', securityOmitted: ['c/SECURITY_CONTEXT.md'],
+    security: [{ path: 'SECURITY_CONTEXT.md', base: '- NEVER raw SQL\n', head: '- raw SQL is fine\napi_key = abcdefghijklmnopqrstuvwxyz\n' },
+               { path: 'a/SECURITY_CONTEXT.md', base: null, head: 'new zone rules' },
+               { path: 'b/SECURITY_CONTEXT.md', base: 'same', head: 'same' }] });
+  assert.match(p.text, /SECURITY_CONTEXT\.md — approved \(base\)[\s\S]*NEVER raw SQL[\s\S]*proposed by this change \(head\)/);
+  assert.match(p.text, /a\/SECURITY_CONTEXT\.md — ADDED by this change/);
+  assert.match(p.text, /b\/SECURITY_CONTEXT\.md \(unchanged\)/);
+  assert.match(p.text, /Not included for size \(read them yourself\): c\/SECURITY_CONTEXT\.md/);
   assert.ok(!p.text.includes('abcdefghijklmnop'), 'redacted');
-  assert.match(p.text, /api\/SECURITY_CONTEXT\.md \(cut\)/);
-  assert.ok(p.text.split('x'.repeat(100)).length - 1 < 170, 'security section bounded');
+  // Redaction expansion and headings are charged to the budget.
+  const keyBody = ['-----BEGIN PRIVATE KEY-----', ...Array(3000).fill('x'), '-----END PRIVATE KEY-----'].join('\n');
+  const big = buildPacket({ base: 'b', head: 'h', goal: 'g', stat: '', files: ['a'], diff: '', security: [{ path: 'SECURITY_CONTEXT.md', base: keyBody, head: keyBody }] });
+  const sec = big.text.slice(big.text.indexOf('## Security context'), big.text.indexOf('## Change stack'));
+  assert.ok(sec.length <= LIMITS.security + 200, String(sec.length));
   assert.doesNotMatch(buildPacket({ base: 'b', head: 'h', goal: 'g', stat: '', files: ['a'], diff: '' }).text, /## Security context \(project/);
 });

@@ -12,7 +12,9 @@ Read-only; no artifacts. Report "security: <n> findings fixed / none / unverifie
 
 If the repository has `SECURITY_CONTEXT.md` (root, or the zone folder of a changed file), read it first. Check the diff
 against its trust boundaries, blessed primitives and Stop-and-Flag rules; a violated Stop-and-Flag rule is a blocking
-finding unless the user confirmed it. If boundary code changed, note "SECURITY_CONTEXT.md may need sync".
+finding unless the user confirmed it. Judge against the version on the base branch (`git show <base>:SECURITY_CONTEXT.md`):
+if this diff also edits or deletes rules, report that as a policy change; it never waives the old rule for code in the
+same diff. If boundary code changed, note "SECURITY_CONTEXT.md may need sync".
 
 ## 1. Classify the diff (10 seconds)
 

@@ -19,7 +19,7 @@ if (!fs.existsSync(contextPath)) {
 }
 
 const raw = fs.readFileSync(contextPath, 'utf8');
-const fmMatch = raw.match(/^---\n([\s\S]*?)\n---/);
+const fmMatch = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
 if (!fmMatch) {
   console.error(JSON.stringify({ status: 'invalid', message: 'Missing YAML frontmatter' }));
   process.exit(1);
@@ -28,6 +28,11 @@ if (!fmMatch) {
 const fm = fmMatch[1];
 const shaMatch = fm.match(/^last_synced_commit:\s*["']?([^"'\s]+)["']?/m);
 const lastSha = shaMatch ? shaMatch[1] : null;
+// MEGAI patch: only a full commit hash or "uncommitted" may reach git (an option-shaped value could make git write files).
+if (lastSha && !/^([0-9a-f]{40}|[0-9a-f]{64}|uncommitted)$/.test(lastSha)) {
+  console.error(JSON.stringify({ status: 'invalid', message: 'last_synced_commit must be a full commit hash or "uncommitted"' }));
+  process.exit(1);
+}
 
 // Extract security-relevant file paths & globs from SECURITY_CONTEXT.md body and AGENTS.md pointer block
 function extractPathGlobs(text) {
@@ -61,13 +66,17 @@ if (fs.existsSync(agentsPath)) {
 }
 const watchedPaths = [...new Set([...extractPathGlobs(body), ...extractPathGlobs(pointerBlock)])];
 
+// MEGAI patch: one pass, so "**" is never rewritten by the single-star rule.
 function globToRegex(glob) {
-  const escaped = glob
-    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*\*\//g, '(?:.*/)?')
-    .replace(/\*\*/g, '.*')
-    .replace(/\*/g, '[^/]*');
-  return new RegExp(`^${escaped}$`);
+  let out = '';
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i];
+    if (c === '*' && glob[i + 1] === '*') {
+      if (glob[i + 2] === '/') { out += '(?:.*/)?'; i += 2; } else { out += '.*'; i += 1; }
+    } else if (c === '*') out += '[^/]*';
+    else out += c.replace(/[.+^${}()|[\]\\?]/g, '\\$&');
+  }
+  return new RegExp(`^${out}$`);
 }
 
 function git(args) {
@@ -76,10 +85,11 @@ function git(args) {
 
 let headSha = 'uncommitted';
 try {
-  headSha = git(['rev-parse', 'HEAD']);
+  headSha = git(['rev-parse', '--verify', 'HEAD^{commit}']);
 } catch {
-  console.log(JSON.stringify({ status: 'no_git_commits', lastSha, headSha }));
-  process.exit(0);
+  // MEGAI patch: unreadable history is not a clean result.
+  console.error(JSON.stringify({ status: 'no_git_history', lastSha }));
+  process.exit(1);
 }
 
 if (!lastSha || lastSha === 'uncommitted') {
@@ -89,8 +99,11 @@ if (!lastSha || lastSha === 'uncommitted') {
 
 let changedFiles = [];
 try {
-  const diffOut = git(['diff', '--name-only', `${lastSha}..HEAD`]);
-  changedFiles = diffOut ? diffOut.split('\n').filter(Boolean) : [];
+  git(['rev-parse', '--verify', '--quiet', `${lastSha}^{commit}`]);
+  // NUL-separated, unquoted names; no rename pairing, so both the old and the new path count.
+  const diffOut = execFileSync('git', ['-c', 'core.quotePath=false', 'diff', '--no-ext-diff', '--no-textconv', '--no-renames', '--name-only', '-z', lastSha, headSha, '--'],
+    { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 });
+  changedFiles = diffOut.split('\0').filter(Boolean);
 } catch {
   console.log(JSON.stringify({ status: 'drift', reason: 'unknown_last_commit', lastSha, headSha }));
   process.exit(2);
