@@ -73,10 +73,12 @@ const blob = (c, tree, path) => {
     return { text: quiet('cat-file', 'blob', spec) };
   } catch { return { error: true }; }
 };
+const mergeBase = git('merge-base', baseSha, head).trim();
+const forkTree = treeOf(mergeBase);
 const policy = securityContextsFor([...baseTree, ...headTree], files);
 const security = policy.selected.map(path => {
-  const b = blob(baseSha, baseTree, path), h = blob(head, headTree, path);
-  return { path, base: b.text, head: h.text, error: Boolean(b.error || h.error) };
+  const b = blob(baseSha, baseTree, path), f = blob(mergeBase, forkTree, path), h = blob(head, headTree, path);
+  return { path, base: b.text, fork: f.text, head: h.text, error: Boolean(b.error || f.error || h.error) };
 });
 const packet = buildPacket({ security, securityOmitted: policy.omitted,
   base: `${base} (${baseSha.slice(0, 12)})`, head, goal, files,

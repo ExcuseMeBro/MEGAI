@@ -176,11 +176,17 @@ test('security context: root keeps a slot, base governs, head edits are labelled
                { path: 'b/SECURITY_CONTEXT.md', base: 'same', head: 'same' }] });
   assert.match(p.text, /SECURITY_CONTEXT\.md — approved \(base\)[\s\S]*NEVER raw SQL[\s\S]*proposed by this change \(head\)/);
   assert.match(p.text, /a\/SECURITY_CONTEXT\.md — ADDED by this change/);
-  assert.match(p.text, /b\/SECURITY_CONTEXT\.md \(unchanged\)/);
+  assert.match(p.text, /b\/SECURITY_CONTEXT\.md \(governing; not changed by this change\)/);
   assert.match(p.text, /Not included \(size or read error\): c\/SECURITY_CONTEXT\.md/);
   assert.equal(p.securityIncomplete, true, 'an omitted approved zone policy makes the check unverified');
   const tick = buildPacket({ base: 'b', head: 'h', goal: 'g', stat: '', files: ['a'], diff: '', security: [{ path: 'SECURITY_CONTEXT.md', base: 'api_key: `abcdefghijklmnopqrstuv`\n', head: 'api_key: `abcdefghijklmnopqrstuv`\n' }] });
-  assert.ok(!tick.text.includes('abcdefghijklmnop'), 'backtick-wrapped value redacted'); assert.equal(tick.securityIncomplete, false);
+  assert.ok(!tick.text.includes('abcdefghijklmnop'), 'backtick-wrapped value redacted'); assert.equal(tick.securityIncomplete, true, 'redacted approved text is unverified');
+  const md = redact('- **Password:** "hunter2hunter2hunter2"');
+  assert.equal(md.count, 1, 'markdown-formatted credential redacted');
+  const upstream = buildPacket({ base: 'b', head: 'h', goal: 'g', stat: '', files: ['a'], diff: '', security: [{ path: 'SECURITY_CONTEXT.md', base: '- NEVER x\n', fork: null, head: null }] });
+  assert.match(upstream.text, /\(governing; not changed by this change\)/); assert.doesNotMatch(upstream.text, /DELETED by this change/);
+  const clean = buildPacket({ base: 'b', head: 'h', goal: 'g', stat: '', files: ['a'], diff: '', security: [{ path: 'SECURITY_CONTEXT.md', base: '- NEVER x\n', head: '- NEVER x\n' }] });
+  assert.equal(clean.securityIncomplete, false);
   // Root deleted, long zone added: the approved root still renders first and in full.
   const crowd = buildPacket({ base: 'b', head: 'h', goal: 'g', stat: '', files: ['z/a'], diff: '', security: [
     { path: 'z/SECURITY_CONTEXT.md', base: null, head: 'y'.repeat(40_000) }, { path: 'SECURITY_CONTEXT.md', base: '- NEVER disable auth\n', head: null }] });

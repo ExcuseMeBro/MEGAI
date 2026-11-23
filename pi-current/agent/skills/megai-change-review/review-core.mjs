@@ -28,7 +28,7 @@ export function changeStack(files) {
 
 export const isGenerated = f => GENERATED.test(f);
 
-const SECRET = /-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(gh[pousr]_[A-Za-z0-9]{16,}|figd[_][A-Za-z0-9_-]{16,}|xox[abpr]-[A-Za-z0-9-]{10,}|sk-[A-Za-z0-9_-]{20,}|AIza[A-Za-z0-9_-]{20,})|\bBearer\s+[A-Za-z0-9._~+\/=-]{12,}|\b(api[_-]?key|secret|token|passw(or)?d|authorization)\b["'`]?\s*[:=]\s*["'`]?[A-Za-z0-9._~+\/=-]{12,}/i;
+const SECRET = /-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(gh[pousr]_[A-Za-z0-9]{16,}|figd[_][A-Za-z0-9_-]{16,}|xox[abpr]-[A-Za-z0-9-]{10,}|sk-[A-Za-z0-9_-]{20,}|AIza[A-Za-z0-9_-]{20,})|\bBearer\s+[A-Za-z0-9._~+\/=-]{12,}|\b(api[_-]?key|secret|token|passw(or)?d|authorization)\b[*_"'`]*\s*[:=]\s*[*_"'`\s]*[A-Za-z0-9._~+\/=-]{12,}/i;
 
 const PEM_START = /-----BEGIN [A-Z ]*PRIVATE KEY-----/, PEM_END = /-----END [A-Z ]*PRIVATE KEY-----/;
 // Key-body lines seen without their delimiters (a hunk in the middle of a key): long mixed-case base64.
@@ -149,7 +149,8 @@ export function buildPacket({ base, head, goal, stat, files, diff, security = []
   let secBudget = LIMITS.security, secCount = 0, cut = false;
   const secParts = [], secMissing = [...(securityOmitted ?? [])];
   const block = (label, text, approved = false) => {
-    const r = redact(String(text).slice(0, LIMITS.security * 4)); secCount += r.count;
+    const raw = String(text), r = redact(raw.slice(0, LIMITS.security * 4)); secCount += r.count;
+    if (approved && (r.count > 0 || raw.length > LIMITS.security * 4)) cut = true;
     const head = `### ${label}`, frame = head.length + 20;
     if (secBudget <= frame + 200) return false;
     const body = r.text.slice(0, secBudget - frame);
@@ -161,19 +162,25 @@ export function buildPacket({ base, head, goal, stat, files, diff, security = []
   // Approved (base) policy first, root first, so it can't be crowded out by proposed text.
   let incomplete = secMissing.length > 0;
   const ordered = [...security].sort((a, b) => (a.path === 'SECURITY_CONTEXT.md' ? -1 : 0) - (b.path === 'SECURITY_CONTEXT.md' ? -1 : 0));
+  // base = pinned base tip (governs the merged code); fork = merge base, so only the task's own edits count as its changes.
+  const fork = s => (s.fork === undefined ? s.base : s.fork);
+  const changed = s => s.head !== fork(s);
   for (const s of ordered) {
     const name = pathsRed([s.path])[0];
     if (s.error) { incomplete = true; secMissing.push(s.path); continue; }
     if (s.base == null) continue;
-    const label = s.head == null ? `${name} — approved (base), DELETED by this change` : s.base === s.head ? `${name} (unchanged)` : `${name} — approved (base)`;
+    const label = !changed(s) ? `${name} (governing; not changed by this change)`
+      : s.head == null ? `${name} — approved (base), DELETED by this change` : `${name} — approved (base)`;
     if (!block(label, s.base, true)) { incomplete = true; secMissing.push(s.path); }
   }
   for (const s of ordered) {
-    if (s.error || s.head == null || s.base === s.head) continue;
+    if (s.error || s.head == null || !changed(s) || s.head === s.base) continue;
     const name = pathsRed([s.path])[0];
-    if (!block(s.base == null ? `${name} — ADDED by this change (no approved baseline)` : `${name} — proposed by this change (head)`, s.head)) secMissing.push(s.path);
+    if (!block(fork(s) == null ? `${name} — ADDED by this change (no approved baseline)` : `${name} — proposed by this change (head)`, s.head)) secMissing.push(s.path);
   }
-  if (secMissing.length) secParts.push(`Not included (size or read error): ${pathsRed(listed([...new Set(secMissing)])).join(', ')}`);
+  // 7: the omission notice is short and counted.
+  const missing = [...new Set(secMissing)];
+  if (missing.length) secParts.push(`Not included (size or read error): ${pathsRed(missing.slice(0, 5)).map(p => p.slice(0, 200)).join(', ')}${missing.length > 5 ? ` and ${missing.length - 5} more` : ''}`);
   const lines = [
     TEMPLATE, '',
     `# Change under review`, `Base: ${base}  Head: ${head}`,

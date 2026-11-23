@@ -48,6 +48,10 @@ test('detect-drift: option-shaped or unknown commit and missing history fail clo
   ctx('b'.repeat(40)); assert.equal(run().status, 2, 'unknown commit → drift');
   ctx(git('rev-parse', 'HEAD')); assert.equal(run().status, 0, 'CRLF frontmatter accepted');
   ctx(git('rev-parse', 'HEAD'), ''); assert.equal(run().status, 1, 'missing visibility is malformed');
+  ctx(git('rev-parse', 'HEAD'), 'visibility: private-extra\r\n'); assert.equal(run().status, 1, 'bad visibility value');
+  ctx(git('rev-parse', 'HEAD'));
+  execFileSync('mkfifo', [join(repo, 'AGENTS.md')]);
+  assert.equal(run().status, 1, 'a FIFO AGENTS.md is rejected, not read');
 });
 
 test('detect-drift: a zone policy watches zone-relative paths', t => {
@@ -62,4 +66,16 @@ test('detect-drift: a zone policy watches zone-relative paths', t => {
   writeFileSync(join(zone, 'src/middleware/jwt.ts'), 'b\n'); git('add', '.'); git('commit', '-qm', 'mw');
   const r = spawnSync(process.execPath, [drift, zone], { encoding: 'utf8' });
   assert.equal(r.status, 2, r.stdout); assert.match(r.stdout, /"src\/middleware\/jwt\.ts"/);
+});
+
+test('detect-drift: tracked root-level files named in backticks are watched', t => {
+  const repo = mkdtempSync(join(tmpdir(), 'secctx-'));
+  t.after(() => rmSync(repo, { recursive: true, force: true }));
+  const git = (...a) => execFileSync('git', a, { cwd: repo, encoding: 'utf8' }).trim();
+  git('init', '-q'); git('config', 'user.email', 't@example.invalid'); git('config', 'user.name', 't');
+  writeFileSync(join(repo, 'middleware.ts'), 'a\n'); git('add', '.'); git('commit', '-qm', 'base');
+  writeFileSync(join(repo, 'SECURITY_CONTEXT.md'), `---\nschema_version: 1\nvisibility: private\nlast_synced_commit: ${git('rev-parse', 'HEAD')}\n---\n- Auth lives in \`middleware.ts\`; see \`README\` prose.\n`);
+  writeFileSync(join(repo, 'middleware.ts'), 'b\n'); git('commit', '-qam', 'mw');
+  const r = spawnSync(process.execPath, [drift, repo], { encoding: 'utf8' });
+  assert.equal(r.status, 2, r.stdout); assert.match(r.stdout, /middleware\.ts/);
 });

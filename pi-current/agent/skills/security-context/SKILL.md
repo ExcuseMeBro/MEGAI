@@ -120,4 +120,5 @@ Vendored from [enclave-ai/skills](https://github.com/enclave-ai/skills) @62b702f
 - Local patches in `scripts/detect-drift.mjs` (marked `MEGAI patch`): `last_synced_commit` must be a full hash or
   `uncommitted` before it reaches git; `**` globs compile correctly; unreadable history exits 1, not clean; renames
   count on both sides; CRLF frontmatter is accepted; a zone folder is diffed with `--relative`; frontmatter must have
-  `schema_version: 1`, `visibility` and `last_synced_commit`.
+  `schema_version: 1`, `visibility` and `last_synced_commit`; tracked root-level files named in backticks are watched;
+  inputs must be regular files under 1 MiB; git never lazy-fetches.
