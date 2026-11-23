@@ -53,6 +53,10 @@ FILES = {
     "skills/sim-guard/SKILL.md": "agent/skills/sim-guard/SKILL.md",
     "skills/sim-guard/sim-guard.sh": "agent/skills/sim-guard/sim-guard.sh",
     "skills/sim-guard/LICENSE": "agent/skills/sim-guard/LICENSE",
+    "skills/security-context/SKILL.md": "agent/skills/security-context/SKILL.md",
+    "skills/security-context/references/schema.md": "agent/skills/security-context/references/schema.md",
+    "skills/security-context/scripts/detect-drift.mjs": "agent/skills/security-context/scripts/detect-drift.mjs",
+    "skills/security-context/LICENSE": "agent/skills/security-context/LICENSE",
 }
 # Codex (GPT) autonomy: global instructions and the keep-going Stop hook only.
 # config.toml is deliberately excluded (MCP servers, hook trust state, local paths).

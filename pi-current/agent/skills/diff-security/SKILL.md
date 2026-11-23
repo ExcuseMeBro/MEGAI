@@ -8,6 +8,12 @@ description: Fast security review of your own code diff before delivery. Use for
 Review the complete changed-code diff once, after tests pass and before delivery.
 Read-only; no artifacts. Report "security: <n> findings fixed / none / unverified: X".
 
+## 0. Project security context
+
+If the repository has `SECURITY_CONTEXT.md` (root, or the zone folder of a changed file), read it first. Check the diff
+against its trust boundaries, blessed primitives and Stop-and-Flag rules; a violated Stop-and-Flag rule is a blocking
+finding unless the user confirmed it. If boundary code changed, note "SECURITY_CONTEXT.md may need sync".
+
 ## 1. Classify the diff (10 seconds)
 
 High-risk if it adds or changes any of: authentication, sessions, tokens, password or

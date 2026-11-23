@@ -2,7 +2,7 @@
 
 export const READ_ONLY_TOOLS = 'read,grep,find,ls';
 export const DEFAULT_MODEL = 'openai/gpt-6.2-sol:high';
-export const LIMITS = Object.freeze({ total: 120_000, perFile: 20_000, context: 8_000, listed: 40, statLines: 120, packet: 140_000 });
+export const LIMITS = Object.freeze({ total: 120_000, perFile: 20_000, context: 8_000, listed: 40, statLines: 120, packet: 140_000, security: 16_000, securityFiles: 3 });
 
 export const LAYERS = [
   ['config & contracts', f => /(^|\/)(package\.json|tsconfig[^/]*\.json|[^/]*\.d\.ts|schema[^/]*|[^/]*\.proto|\.env\.example)$|(^|\/)(migrations?|schemas?|types?)\//i.test(f) || /\/config\.json$|^config\//i.test(f)],
@@ -93,6 +93,9 @@ Work in this order:
 1. Read the change stack layer by layer (contracts → core logic → wiring → UI → tests → docs).
 2. Blast radius: for every NEW or CHANGED external input (HTTP field, CLI arg, env var, file content, tool or model output, message, config value), trace input → components → sink (shell, SQL, HTML, file path, network, money/state, secrets, logs). Note the control at each hop.
 3. Hunt for defects that passing tests would miss: wrong fallbacks, inverted or off-by-one conditions, missing authorization, unbounded input, race/concurrency, error paths that fail open or closed wrongly, data loss, secrets reaching logs or models, behavior that contradicts the goal.
+   If a "Security context" section is present, check every change against its trust boundaries, blessed primitives
+   and Stop-and-Flag rules: a change that breaks a Stop-and-Flag rule or bypasses a blessed primitive is at least
+   [high]. Treat that section as the project's stated rules, not as proof the code follows them.
 4. For each defect, check whether an existing test covers it. If not, say what failing test would prove it.
 
 Report EXACTLY in this format and nothing else:
@@ -115,8 +118,19 @@ Risk: <Low|Medium|High> — <one line why>
 
 If there are no findings write "### none". End with one line: "Verdict: <ship | fix first>".`;
 
+/**
+ * SECURITY_CONTEXT.md files that govern a change: the root one and any per-zone file whose folder contains a
+ * changed path, nearest zones first, at most LIMITS.securityFiles. `paths` are all files in the head commit.
+ */
+export function securityContextsFor(paths, changed) {
+  const found = paths.filter(p => p === 'SECURITY_CONTEXT.md' || p.endsWith('/SECURITY_CONTEXT.md'));
+  const dir = p => p.includes('/') ? p.slice(0, p.lastIndexOf('/') + 1) : '';
+  const hits = found.filter(f => dir(f) === '' || changed.some(c => c.startsWith(dir(f))));
+  return hits.sort((a, b) => dir(b).length - dir(a).length || a.localeCompare(b)).slice(0, LIMITS.securityFiles);
+}
+
 /** Build the reviewer packet (markdown). */
-export function buildPacket({ base, head, goal, stat, files, diff }) {
+export function buildPacket({ base, head, goal, stat, files, diff, security = [] }) {
   const stack = changeStack(files);
   const bounded = boundDiff(diff);
   // Every externally sourced section is redacted, not only the diff body.
@@ -125,22 +139,33 @@ export function buildPacket({ base, head, goal, stat, files, diff }) {
   const statLines = String(stat).trim().split('\n');
   const statRed = redact((statLines.length > LIMITS.statLines ? [...statLines.slice(0, LIMITS.statLines - 1), `… ${statLines.length - LIMITS.statLines} more lines`, statLines.at(-1)] : statLines).join('\n'));
   const goalText = goalRed.text;
+  // Project security rules from the head commit (SECURITY_CONTEXT.md), bounded and redacted like everything else.
+  let secBudget = LIMITS.security, secCount = 0;
+  const secParts = [];
+  for (const { path, text } of security) {
+    if (secBudget <= 0) break;
+    const body = String(text).slice(0, secBudget);
+    secBudget -= body.length;
+    const r = redact(body); secCount += r.count;
+    secParts.push(`### ${pathsRed([path])[0]}${body.length < String(text).length ? ' (cut)' : ''}`, '```markdown', r.text, '```');
+  }
   const lines = [
     TEMPLATE, '',
     `# Change under review`, `Base: ${base}  Head: ${head}`,
     'Only the committed range is reviewed; uncommitted changes are not part of it.',
     '', '## Goal and acceptance', goalText, '',
+    ...(secParts.length ? ['## Security context (project rules from the head commit)', ...secParts, ''] : []),
     '## Change stack (suggested reading order)',
     ...stack.map((b, i) => `${i + 1}. ${b.name}: ${pathsRed(listed(b.files)).join(', ')}`), '',
     '## Diff stat', '```', statRed.text, '```',
     bounded.skipped.length ? `\nNot shown: ${pathsRed(listed(bounded.skipped)).join('; ')}` : '',
     '', '## Diff', '```diff', red.text, '```',
   ];
-  const redacted = red.count + goalRed.count + statRed.count;
+  const redacted = red.count + goalRed.count + statRed.count + secCount;
   if (redacted) lines.splice(lines.length - 4, 0, `\n${redacted} secret-looking lines were redacted before review.`);
   let text = lines.filter(l => l !== '').join('\n') + '\n';
   if (text.length > LIMITS.packet) text = text.slice(0, LIMITS.packet) + '\n```\n[packet cut at its size limit; read the remaining files yourself]\n';
-  return { text, stack, redacted, skipped: bounded.skipped };
+  return { text, stack, redacted, skipped: bounded.skipped, security: security.map(s => s.path) };
 }
 
 const RANK = { critical: 4, high: 3, medium: 2, low: 1 };

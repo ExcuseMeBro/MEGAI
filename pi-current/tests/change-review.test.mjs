@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import {
-  LIMITS, READ_ONLY_TOOLS, atLeast, boundDiff, buildPacket, changeStack, modelListed, parseReport, redact, validModel, validRef,
+  LIMITS, READ_ONLY_TOOLS, atLeast, securityContextsFor, boundDiff, buildPacket, changeStack, modelListed, parseReport, redact, validModel, validRef,
 } from '../agent/skills/megai-change-review/review-core.mjs';
 
 const script = fileURLToPath(new URL('../agent/skills/megai-change-review/review.mjs', import.meta.url));
@@ -150,8 +150,27 @@ console.log(process.env.FAKE_REPORT);
   assert.equal(run('garbage').status, 2, 'malformed report');
   assert.equal(run('x', ['--model', 'nope']).status, 2);
   assert.equal(spawnSync(process.execPath, [script, '--base', '--evil'], { cwd: repo, encoding: 'utf8' }).status, 2);
+  writeFileSync(join(repo, 'SECURITY_CONTEXT.md'), '---\nschema_version: 1\n---\n## 4. Stop-and-Flag Rules\n- NEVER call evalUnsafe\n');
+  sh('add', 'SECURITY_CONTEXT.md'); sh('commit', '-qm', 'Add security context');
   const packetOnly = run('', ['--packet-only']);
+  assert.match(packetOnly.stdout, /security context: SECURITY_CONTEXT\.md/);
   assert.equal(packetOnly.status, 0);
   const packet = readFileSync(packetOnly.stdout.match(/packet: (\S+)/)[1], 'utf8');
   assert.match(packet, /1 secret-looking lines were redacted/);
+  assert.match(packet, /NEVER call evalUnsafe/);
+});
+
+test('security context: root and touched zones only, bounded and redacted in the packet', () => {
+  const tree = ['SECURITY_CONTEXT.md', 'api/SECURITY_CONTEXT.md', 'worker/SECURITY_CONTEXT.md', 'api/src/a.ts', 'docs/SECURITY_CONTEXT.md.bak'];
+  assert.deepEqual(securityContextsFor(tree, ['api/src/a.ts']), ['api/SECURITY_CONTEXT.md', 'SECURITY_CONTEXT.md']);
+  assert.deepEqual(securityContextsFor(['README.md'], ['README.md']), []);
+  const big = 'x'.repeat(20_000);
+  const p = buildPacket({ base: 'b', head: 'h', goal: 'g', stat: '', files: ['a'], diff: '',
+    security: [{ path: 'SECURITY_CONTEXT.md', text: '## 4. Stop-and-Flag\n- never raw SQL\napi_key = abcdefghijklmnopqrstuvwxyz\n' }, { path: 'api/SECURITY_CONTEXT.md', text: big }] });
+  assert.match(p.text, /## Security context \(project rules/);
+  assert.match(p.text, /never raw SQL/);
+  assert.ok(!p.text.includes('abcdefghijklmnop'), 'redacted');
+  assert.match(p.text, /api\/SECURITY_CONTEXT\.md \(cut\)/);
+  assert.ok(p.text.split('x'.repeat(100)).length - 1 < 170, 'security section bounded');
+  assert.doesNotMatch(buildPacket({ base: 'b', head: 'h', goal: 'g', stat: '', files: ['a'], diff: '' }).text, /## Security context \(project/);
 });

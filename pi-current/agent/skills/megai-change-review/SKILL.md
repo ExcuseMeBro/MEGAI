@@ -44,6 +44,10 @@ Residual risk (accepted): `read` still accepts absolute paths outside the export
 secret was redacted in the packet. The reviewer has no write, shell or network tool, and its provider is the one the
 author session (with `bash`) already uses.
 
+Security context: when the head commit has a `SECURITY_CONTEXT.md` (see the `security-context` skill) at the root
+or in a zone folder that contains a changed file, the packet includes it (up to 3 files, 16k chars, redacted), and
+the reviewer checks the change against its trust boundaries, blessed primitives and Stop-and-Flag rules.
+
 Exit codes: `0` report written; `3` a finding at or above `--fail-on`; `2` setup error or malformed report (rerun once;
 if it fails again, review the diff yourself with the same template and say so).
 

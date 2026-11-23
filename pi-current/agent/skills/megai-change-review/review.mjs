@@ -9,7 +9,7 @@ import { rmSync } from 'node:fs';
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { DEFAULT_MODEL, LIMITS, READ_ONLY_TOOLS, REVIEWER_SYSTEM, atLeast, buildPacket, modelListed, parseReport, validModel, validRef } from './review-core.mjs';
+import { DEFAULT_MODEL, LIMITS, READ_ONLY_TOOLS, REVIEWER_SYSTEM, atLeast, buildPacket, modelListed, parseReport, securityContextsFor, validModel, validRef } from './review-core.mjs';
 
 const fail = msg => { console.error(`review: ${msg}`); process.exit(2); };
 const args = process.argv.slice(2);
@@ -59,7 +59,12 @@ if (opt.goalFile) {
 } else {
   goal = 'Commit messages:\n' + git('log', '--format=- %s%n%b', `${baseSha}..${head}`).slice(0, LIMITS.context);
 }
-const packet = buildPacket({
+// SECURITY_CONTEXT.md files from the pinned head (blob reads: no checkout, no filters).
+const treePaths = git('ls-tree', '-r', '--name-only', head).split('\n').filter(Boolean);
+const security = securityContextsFor(treePaths, files).map(path => {
+  try { return { path, text: git('cat-file', 'blob', `${head}:${path}`) }; } catch { return null; }
+}).filter(Boolean);
+const packet = buildPacket({ security,
   base: `${base} (${baseSha.slice(0, 12)})`, head, goal, files,
   stat: git('diff', ...NOHELPERS, '--stat', range),
   diff: git('diff', ...NOHELPERS, '-U3', '--no-color', range),
@@ -67,7 +72,7 @@ const packet = buildPacket({
 const dir = mkdtempSync(join(tmpdir(), 'megai-review-'));
 const packetPath = join(dir, 'packet.md');
 writeFileSync(packetPath, packet.text, { mode: 0o600 });
-console.log(`packet: ${packetPath} (${packet.text.length} chars, ${files.length} files, ${packet.redacted} redacted lines, ${packet.skipped.length} not shown)`);
+console.log(`packet: ${packetPath} (${packet.text.length} chars, ${files.length} files, ${packet.redacted} redacted lines, ${packet.skipped.length} not shown${packet.security.length ? `, security context: ${packet.security.join(', ')}` : ''})`);
 if (opt.packetOnly) process.exit(0);
 
 const pi = process.env.MEGAI_REVIEW_PI || 'pi';
