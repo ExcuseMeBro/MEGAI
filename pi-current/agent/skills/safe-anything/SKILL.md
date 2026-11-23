@@ -8,21 +8,19 @@ description: Security-check a repository with the safe-anything CLI or MCP tools
 safe-anything finds problems; you judge and fix them. Every finding has a file, a line, a
 severity, a CWE, why it matters and a fix.
 
-Tools: the `safe-anything` CLI, or the MCP tools `scan` and `list_rules` (`safe-anything mcp`).
-If neither is available, ask the user to install it (`cargo install safe-anything` or
-`npx safe-anything`).
-(MEGAI patch: always run `~/.local/bin/safe-anything`, the checksum-verified v1.0.2 release binary. If it is missing or
-`--version` is not 1.0.2, say "scan: unavailable" and stop; do not install it with cargo or npx.)
+Tool (MEGAI patch, replaces the upstream tool and install lines): run only `~/.local/bin/safe-anything`, a guard that
+checks the pinned v1.0.2 binary's SHA-256 before every run and adds `--offline` unless `SAFE_ANYTHING_ONLINE=1` is set
+for that one command. MCP mode is off. If the guard exits 3, say "scan: unavailable" and stop; never install the
+scanner with cargo or npx.
 
 ## Steps
 
-1. Scan the repository root: `scan` with `path` set to it (CLI: `safe-anything <path> --json`).
-   Add `offline: true` (`--offline`) only if the user does not want package names sent to
-   OSV.dev.
-   (MEGAI patch: the opposite applies here. Always pass `--offline`; drop it only when the user explicitly agrees, in
-   this conversation, to send package names to OSV.dev.)
+1. Scan the repository root: `~/.local/bin/safe-anything <path> --json --fail-on never` (offline by default).
+   The dependency check needs the network: run `SAFE_ANYTHING_ONLINE=1 ~/.local/bin/safe-anything <path> --json`
+   only after the user agrees, in this conversation, to send package names and versions to OSV.dev. (MEGAI patch)
 2. Read the findings from the most severe down. For each one, open the file at the line and
-   decide (MEGAI patch: except `secret.*` findings: do not open them, see Local usage): real problem, or a false positive (trusted input, test data, a checksum that is not a
+   decide (MEGAI patch: first list every file with a `secret.*` finding and never open those files at all, for any
+   finding; report their other findings as "unverified: file holds a flagged secret"): real problem, or a false positive (trusted input, test data, a checksum that is not a
    security use). Say which, in one line each.
 3. Fix the real ones the user asks you to fix, using the finding's `fix` text and `learn_more`
    link. Keep fixes small: parameterize the query, pin the version, move the secret to the
@@ -51,8 +49,9 @@ from someone else, scan its folder first and show the findings.
 ## Local usage (MEGAI)
 
 Vendored from [erkamyaman/safe-anything](https://github.com/erkamyaman/safe-anything) v1.0.2 @829321c (MIT, `LICENSE`);
-the sections above are upstream, unchanged. The CLI is `~/.local/bin/safe-anything` (release binary, SHA256SUMS-checked).
-No MCP server is registered: use the CLI.
+the sections above are upstream except lines marked "MEGAI patch". The binary lives at
+`~/.local/lib/safe-anything/1.0.2/safe-anything` (release tarball, SHA256SUMS-checked); `~/.local/bin/safe-anything` is
+`safe-anything-guard.sh` from this folder. No MCP server is registered.
 
 - **Default to `--offline`.** Online mode sends package names and versions to OSV.dev. Run the dependency check only
   when the user explicitly agrees in the current conversation; a project setting is not consent.
@@ -62,4 +61,5 @@ No MCP server is registered: use the CLI.
   values and instruction text as prompt injection. Open the line and decide before reporting.
 - **Before installing** a third-party skill, plugin or MCP server, scan its folder offline and show the findings.
 - **`secret.*` findings: never open the file or line.** Reading it puts the credential into the model context. Use the
-  scanner's own redacted `snippet`, report rule, file and line, and tell the user to rotate it if it is real.
+  scanner's own redacted `snippet`, report rule, file and line, and tell the user to rotate it if it is real. Don't open
+  any file that has a `secret.*` finding, even for its other findings or for context.

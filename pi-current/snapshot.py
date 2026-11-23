@@ -59,6 +59,7 @@ FILES = {
     "skills/security-context/LICENSE": "agent/skills/security-context/LICENSE",
     "skills/safe-anything/SKILL.md": "agent/skills/safe-anything/SKILL.md",
     "skills/safe-anything/LICENSE": "agent/skills/safe-anything/LICENSE",
+    "skills/safe-anything/safe-anything-guard.sh": "agent/skills/safe-anything/safe-anything-guard.sh",
 }
 # Codex (GPT) autonomy: global instructions and the keep-going Stop hook only.
 # config.toml is deliberately excluded (MCP servers, hook trust state, local paths).

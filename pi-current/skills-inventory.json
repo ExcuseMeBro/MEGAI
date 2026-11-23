@@ -479,7 +479,7 @@
     "files": [
       {
         "path": "diff-security/SKILL.md",
-        "sha256": "d5dc474ec3ce6198acf686ce446d72fe8360990b87b7e5556b7f445e52bfc7ef"
+        "sha256": "1103a4999d3d5191420c34a3c31660c0b12061be2cddf26ab6f8f797242b76c5"
       }
     ]
   },
@@ -2197,6 +2197,23 @@
     ]
   },
   {
+    "name": "megai-change-review",
+    "files": [
+      {
+        "path": "megai-change-review/SKILL.md",
+        "sha256": "ed20d2133bb83c5af220c9939429f5d674271dd2b65de6245df0bfb6d2b92dde"
+      },
+      {
+        "path": "megai-change-review/review-core.mjs",
+        "sha256": "1949ee3bfc65c74ad7ea95f91df39659254db6687dc50b67cb801cc8a8a474f6"
+      },
+      {
+        "path": "megai-change-review/review.mjs",
+        "sha256": "ed5023ed0f36ad5ec355d5b8259c9a5ed6697339266cb009ea754fa206c7ed34"
+      }
+    ]
+  },
+  {
     "name": "messaging-streaming",
     "files": [
       {
@@ -2378,6 +2395,23 @@
     ]
   },
   {
+    "name": "safe-anything",
+    "files": [
+      {
+        "path": "safe-anything/LICENSE",
+        "sha256": "f7c6d76768cf5bdcd8fbc9f4df6b040789ed9802707e49987dd8357a6bd92759"
+      },
+      {
+        "path": "safe-anything/SKILL.md",
+        "sha256": "1b4ceca4bfd64cc76f1681c2389e68b2e3fb10b1393eedf4f0ba3e46fc24b30d"
+      },
+      {
+        "path": "safe-anything/safe-anything-guard.sh",
+        "sha256": "6371b9f5c472672b836ce810ece083512e253edc1c841164de1ca908940ed561"
+      }
+    ]
+  },
+  {
     "name": "scaling-evolution",
     "files": [
       {
@@ -2480,6 +2514,27 @@
     ]
   },
   {
+    "name": "security-context",
+    "files": [
+      {
+        "path": "security-context/LICENSE",
+        "sha256": "9f81017c98609a453b70eb755b28119d834de9c8a443394d8937635b22eb11dd"
+      },
+      {
+        "path": "security-context/SKILL.md",
+        "sha256": "90d62510a2a994b0ec3e4ffd6361f3ce829a16bbe76de21a18e86852ee50a06d"
+      },
+      {
+        "path": "security-context/references/schema.md",
+        "sha256": "a75c2d357cbd6e0bda7f8ed27f49597ac7fcf730b601f9d85c427812e01e97ec"
+      },
+      {
+        "path": "security-context/scripts/detect-drift.mjs",
+        "sha256": "74f8495e67f94a88e08e41b1d2414924b3dda43292c9858f2bf8e7b8961cc6c5"
+      }
+    ]
+  },
+  {
     "name": "sequencer",
     "files": [
       {
@@ -2559,6 +2614,23 @@
       {
         "path": "sharded-counters/references/providers/generic.md",
         "sha256": "c84f744db7dbb6736d3b42a37b96f821e1d34abb53d6cfa6f9ed87dbeb81cfd7"
+      }
+    ]
+  },
+  {
+    "name": "sim-guard",
+    "files": [
+      {
+        "path": "sim-guard/LICENSE",
+        "sha256": "baba64eb11dd6abc45969f74b4230eba375fcb943bb9f1a5dadaf37dd20ddc08"
+      },
+      {
+        "path": "sim-guard/SKILL.md",
+        "sha256": "69e74dd8655b5da25426253968597d957707cfe8beccd05aaf97720a08fb2524"
+      },
+      {
+        "path": "sim-guard/sim-guard.sh",
+        "sha256": "c1ff506d2eba1a163b997a7fc4228c71cbaa88b7394518397aa0ce119571ef69"
       }
     ]
   },
