@@ -17,6 +17,12 @@ finding unless the user confirmed it. Judge against the version on the base bran
 if this diff also edits or deletes rules, report that as a policy change; it never waives the old rule for code in the
 same diff. If boundary code changed, note "SECURITY_CONTEXT.md may need sync".
 
+## 0b. Pattern scan
+
+Run `safe-anything <task-worktree> --offline --json --severity medium --fail-on never` (skip with "scan: unavailable" if
+the CLI is missing). Open every finding in a changed file at its line and classify it real or false positive in one
+line; real ones go through section 3. Never print secret values. A clean scan is not proof of safety.
+
 ## 1. Classify the diff (10 seconds)
 
 High-risk if it adds or changes any of: authentication, sessions, tokens, password or

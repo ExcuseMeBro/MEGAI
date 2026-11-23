@@ -57,6 +57,8 @@ FILES = {
     "skills/security-context/references/schema.md": "agent/skills/security-context/references/schema.md",
     "skills/security-context/scripts/detect-drift.mjs": "agent/skills/security-context/scripts/detect-drift.mjs",
     "skills/security-context/LICENSE": "agent/skills/security-context/LICENSE",
+    "skills/safe-anything/SKILL.md": "agent/skills/safe-anything/SKILL.md",
+    "skills/safe-anything/LICENSE": "agent/skills/safe-anything/LICENSE",
 }
 # Codex (GPT) autonomy: global instructions and the keep-going Stop hook only.
 # config.toml is deliberately excluded (MCP servers, hook trust state, local paths).
