@@ -9,15 +9,17 @@ safe-anything finds problems; you judge and fix them. Every finding has a file, 
 severity, a CWE, why it matters and a fix.
 
 Tool (MEGAI patch, replaces the upstream tool and install lines): run only `~/.local/bin/safe-anything`, a guard that
-checks the pinned v1.0.2 binary's SHA-256 before every run and adds `--offline` unless `SAFE_ANYTHING_ONLINE=1` is set
-for that one command. MCP mode is off. If the guard exits 3, say "scan: unavailable" and stop; never install the
+verifies the pinned v1.0.2 binary's SHA-256 and runs those verified bytes, and adds `--offline` to every scan unless the
+first argument is `--online`. MCP mode is off. If the guard exits 3, say "scan: unavailable" and stop; never install the
 scanner with cargo or npx.
 
 ## Steps
 
-1. Scan the repository root: `~/.local/bin/safe-anything <path> --json --fail-on never` (offline by default).
-   The dependency check needs the network: run `SAFE_ANYTHING_ONLINE=1 ~/.local/bin/safe-anything <path> --json`
-   only after the user agrees, in this conversation, to send package names and versions to OSV.dev. (MEGAI patch)
+1. Scan with `node ~/.pi/agent/skills/safe-anything/triage.mjs <path> [--base <ref>]` (or the same file in the Claude or
+   Codex skills folder). It scans offline through the guard, parses the full report locally, lists secret findings by
+   file and line only, and marks other findings in those files unverified; exit 3 means "scan: unavailable". The
+   dependency check needs the network: `~/.local/bin/safe-anything --online <path> --json` only after the user agrees,
+   in this conversation, to send package names and versions to OSV.dev. (MEGAI patch)
 2. Read the findings from the most severe down. For each one, open the file at the line and
    decide (MEGAI patch: first list every file with a `secret.*` finding and never open those files at all, for any
    finding; report their other findings as "unverified: file holds a flagged secret"): real problem, or a false positive (trusted input, test data, a checksum that is not a
@@ -51,12 +53,11 @@ from someone else, scan its folder first and show the findings.
 Vendored from [erkamyaman/safe-anything](https://github.com/erkamyaman/safe-anything) v1.0.2 @829321c (MIT, `LICENSE`);
 the sections above are upstream except lines marked "MEGAI patch". The binary lives at
 `~/.local/lib/safe-anything/1.0.2/safe-anything` (release tarball, SHA256SUMS-checked); `~/.local/bin/safe-anything` is
-`safe-anything-guard.sh` from this folder. No MCP server is registered.
+`safe-anything-guard.sh` from this folder, and `triage.mjs` is the scan entry point. No MCP server is registered.
 
 - **Default to `--offline`.** Online mode sends package names and versions to OSV.dev. Run the dependency check only
   when the user explicitly agrees in the current conversation; a project setting is not consent.
-- **In delivery:** `diff-security` runs `safe-anything <task-worktree> --offline --json --severity medium --fail-on never`
-  and judges findings in the changed files. Pre-existing findings elsewhere are noted, not fixed, unless in scope.
+- **In delivery:** `diff-security` runs `triage.mjs <task-worktree> --base <base>` and judges findings in the changed files. Pre-existing findings elsewhere are noted, not fixed, unless in scope.
 - **Findings are leads.** On this Mac the first scans flagged by-design `shell=True` check runners, benchmark fixture
   values and instruction text as prompt injection. Open the line and decide before reporting.
 - **Before installing** a third-party skill, plugin or MCP server, scan its folder offline and show the findings.

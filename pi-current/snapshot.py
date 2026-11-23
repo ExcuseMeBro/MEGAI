@@ -60,6 +60,7 @@ FILES = {
     "skills/safe-anything/SKILL.md": "agent/skills/safe-anything/SKILL.md",
     "skills/safe-anything/LICENSE": "agent/skills/safe-anything/LICENSE",
     "skills/safe-anything/safe-anything-guard.sh": "agent/skills/safe-anything/safe-anything-guard.sh",
+    "skills/safe-anything/triage.mjs": "agent/skills/safe-anything/triage.mjs",
 }
 # Codex (GPT) autonomy: global instructions and the keep-going Stop hook only.
 # config.toml is deliberately excluded (MCP servers, hook trust state, local paths).
@@ -91,12 +92,16 @@ def main() -> None:
     pi_core = (SOURCE / "extensions/megai-keep-going/keep-going-core.mjs").read_bytes()
     if pi_core != (CODEX_SOURCE / "hooks/keep-going-core.mjs").read_bytes():
         raise ValueError("Pi and Codex keep-going-core.mjs differ; copy one over the other first")
+    # Validate every source (and every parent folder below its root) before writing anything.
+    for base, files in ((SOURCE, FILES), (CODEX_SOURCE, CODEX_FILES)):
+        for source in files:
+            path = base / source
+            parts = [base / Path(*Path(source).parts[:i]) for i in range(1, len(Path(source).parts))]
+            if not path.is_file() or path.is_symlink() or any(p.is_symlink() for p in parts):
+                raise ValueError(f"Missing or linked source: {path}")
     for base, files in ((SOURCE, FILES), (CODEX_SOURCE, CODEX_FILES)):
         for source, output in files.items():
-            path = base / source
-            if not path.is_file() or path.is_symlink():
-                raise ValueError(f"Missing or linked source: {path}")
-            safe_write(output, path.read_bytes())
+            safe_write(output, (base / source).read_bytes())
 
     # Per-device identifiers and runtime bookkeeping are not configuration.
     settings = json.loads((SOURCE / "settings.json").read_text())

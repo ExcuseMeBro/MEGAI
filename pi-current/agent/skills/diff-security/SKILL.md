@@ -19,11 +19,10 @@ same diff. If boundary code changed, note "SECURITY_CONTEXT.md may need sync".
 
 ## 0b. Pattern scan
 
-Run `~/.local/bin/safe-anything <task-worktree> --offline --json --severity medium --fail-on never` (a guard that checks
-the pinned binary; exit 3 means say "scan: unavailable"). First list files with `secret.*` findings: never open those
-files; report rule, file and line from the redacted snippet, and mark their other findings unverified. Open the remaining
-findings in changed files and classify each real or false positive in one line; real ones go through section 3. A clean
-scan is not proof of safety.
+Run `node ~/.pi/agent/skills/safe-anything/triage.mjs <task-worktree> --base <base>`. It scans offline through the
+pinned-binary guard and parses the complete report locally; exit 3 or a missing script means say "scan: unavailable",
+never "clean". Never open a file it lists under SECRET or marks unverified. Open the other findings at their line and
+classify each real or false positive in one line; real ones go through section 3. A clean scan is not proof of safety.
 
 ## 1. Classify the diff (10 seconds)
 

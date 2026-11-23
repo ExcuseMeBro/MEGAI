@@ -479,7 +479,7 @@
     "files": [
       {
         "path": "diff-security/SKILL.md",
-        "sha256": "1103a4999d3d5191420c34a3c31660c0b12061be2cddf26ab6f8f797242b76c5"
+        "sha256": "37c9eaebd0858c23decb1f50bab2a54f505ce45a82ed967f95cb6cb93267298a"
       }
     ]
   },
@@ -2403,11 +2403,15 @@
       },
       {
         "path": "safe-anything/SKILL.md",
-        "sha256": "1b4ceca4bfd64cc76f1681c2389e68b2e3fb10b1393eedf4f0ba3e46fc24b30d"
+        "sha256": "c008750495d3f63d35c878dfc8d47847ceae8eb9cd4532ff648710057210b03e"
       },
       {
         "path": "safe-anything/safe-anything-guard.sh",
-        "sha256": "6371b9f5c472672b836ce810ece083512e253edc1c841164de1ca908940ed561"
+        "sha256": "c1e1c5aecb8f34d2c340bf33e6656615ed65b4af34c58f7dfbafecfc05570243"
+      },
+      {
+        "path": "safe-anything/triage.mjs",
+        "sha256": "57f4a78664f7901a816ddaa6033681b5cf5fe729fff685a777bf9783fd852ed7"
       }
     ]
   },
