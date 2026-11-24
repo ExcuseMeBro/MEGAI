@@ -41,6 +41,13 @@ source-pinned check receipts and guarded, queue-serialized dev delivery. No daem
 automatic rebase, main push or Plane status changes. See [task flow](docs/task-runner.md)
 for caller attestations, installation boundaries and blocked-delivery recovery.
 
+## Same setup in Claude Code and Codex
+
+`megai-agent-sync` mirrors the working Pi profile into Claude Code and Codex: shared
+rules, Pi-enabled skills, prompts, MCP servers and the test-weakening push guard.
+Pi stays the source. Install with `python3 scripts/install_agent_sync.py --sync`; see
+[agent sync](docs/agent-sync.md).
+
 ## 🧰 Included tools
 
 | Default | Purpose |
