@@ -2,7 +2,12 @@
 
 A counter-metric for autonomous delivery. An agent judged only by green tests can get
 there by weakening the tests. This Pi `tool_call` hook checks every `bash` call that pushes
-to `dev`, including calls made from `codemode` scripts. It diffs the pushed range
+to `dev`, including calls made from `codemode` scripts, and every `ipython` cell whose
+visible shell commands push to `dev` (`bash('…')`, `os.system('…')`, subprocess argv lists
+such as `["git", "push", "origin", "dev"]`). Like the ipython action-boundary bridge this is
+advisory for cells: computed strings (f-strings, concatenation, `eval`) are not visible.
+Claude Code and Codex get the same check as a `PreToolUse` hook through
+`megai-agent-sync` (see `docs/agent-sync.md`). It diffs the pushed range
 (`<remote>/dev..<source>`) and blocks the push when the range:
 
 - adds a skip, focus or xfail marker to an existing test file (`it.skip`, `.only`, `xit`,

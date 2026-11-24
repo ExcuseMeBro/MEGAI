@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync, unlinkSync
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { DIFF_LIMIT, blockReason, checkPush, checkSize, countChanged, diffLimit, findDevPushes, findWeakening, sizeReason } from '../pi-defaults/extensions/megai-test-guard/guard.mjs';
+import { DIFF_LIMIT, blockReason, cellCommands, checkPush, checkSize, countChanged, diffLimit, findDevPushes, findWeakening, sizeReason, toolCommands } from '../pi-defaults/extensions/megai-test-guard/guard.mjs';
 import { piPackageRoot } from './pi-package.mjs';
 
 const extensionPath = fileURLToPath(new URL('../pi-defaults/extensions/megai-test-guard/index.ts', import.meta.url));
@@ -72,6 +72,24 @@ test('command parsing: dev pushes in common shapes, data and other targets ignor
   assert.deepEqual(pushes('cd "$repo" && git push origin dev'), ['null|origin|dev|dev']);
 });
 
+test('ipython cells: shell commands visible in the source are checked like bash', () => {
+  const cwd = '/work/repo';
+  const devPushes = (code) => cellCommands(code).flatMap((c) => findDevPushes(c, cwd)).map(({ dir, dst }) => `${dir}|${dst}`);
+  assert.deepEqual(devPushes("r = await bash('git push origin dev', timeout=600)\nprint(r.output)"), ['/work/repo|dev']);
+  assert.deepEqual(devPushes('import subprocess\nsubprocess.run(["git", "push", "origin", "dev"], check=True)'), ['/work/repo|dev']);
+  assert.deepEqual(devPushes('import os\nos.system("cd /other && git push origin HEAD:refs/heads/dev")'), ['/other|dev']);
+  assert.deepEqual(devPushes('bash("""git push -q origin dev""")'), ['/work/repo|dev']);
+  assert.deepEqual(devPushes("bash('echo \\'ok\\' && git push origin dev')"), ['/work/repo|dev']);
+  assert.deepEqual(devPushes('# git push origin dev\nprint(1)'), []);
+  assert.deepEqual(devPushes("bash('git push origin task/x')"), []);
+  assert.deepEqual(devPushes("print('push the button')"), []);
+  // Computed strings are not visible (same limit as the ipython action-boundary bridge).
+  assert.deepEqual(devPushes("b = 'dev'\nbash(f'git push origin {b}')"), []);
+  assert.deepEqual(toolCommands({ toolName: 'bash', input: { command: 'git push origin dev' } }), ['git push origin dev']);
+  assert.deepEqual(toolCommands({ toolName: 'ipython', input: { code: "bash('ls')" } }), ['ls']);
+  assert.deepEqual(toolCommands({ toolName: 'read', input: { path: 'git push origin dev' } }), []);
+});
+
 function repo(t) {
   const base = realpathSync(mkdtempSync(join(tmpdir(), 'pi-test-guard-')));
   t.after(() => rmSync(base, { recursive: true, force: true }));
@@ -136,10 +154,8 @@ test('diff budget: counts changed lines without lockfiles and blocks only over t
 
 // The installed Pi SDK runs a real bash tool call from a faux model through the hook.
 const root = piPackageRoot();
-test('native Pi: a bash push to dev that skips a test is blocked; the model sees why', { timeout: 60000 }, async (t) => {
-  const { work, run } = repo(t);
-  writeFileSync(join(work, 'tests/test_calc.py'), 'import pytest\n\n@pytest.mark.skip\ndef test_add():\n    assert 1 + 1 == 2\n');
-  run('commit', '-qam', 'skip');
+// A real Pi session with this extension (plus `extensions`) and a faux model.
+async function piSession(t, work, { tools, extensions = [] }) {
   const { createAgentSession, DefaultResourceLoader, ModelRuntime, SessionManager, SettingsManager } =
     await import(pathToFileURL(join(root, 'dist/index.js')));
   const { fauxProvider, fauxAssistantMessage, fauxToolCall, InMemoryCredentialStore } =
@@ -150,7 +166,7 @@ test('native Pi: a bash push to dev that skips a test is blocked; the model sees
   process.env.PI_CODING_AGENT_DIR = agentDir;
   const settingsManager = SettingsManager.inMemory({ compaction: { enabled: false } }, { projectTrusted: true });
   const resourceLoader = new DefaultResourceLoader({ cwd: work, agentDir, settingsManager,
-    additionalExtensionPaths: [extensionPath], noSkills: true, noContextFiles: true, noPromptTemplates: true, noThemes: true });
+    additionalExtensionPaths: [extensionPath, ...extensions], noSkills: true, noContextFiles: true, noPromptTemplates: true, noThemes: true });
   await resourceLoader.reload();
   assert.deepEqual(resourceLoader.getExtensions().errors, []);
   const modelRuntime = await ModelRuntime.create({ credentials: new InMemoryCredentialStore(),
@@ -158,11 +174,19 @@ test('native Pi: a bash push to dev that skips a test is blocked; the model sees
   const faux = fauxProvider({ models: [{ id: 'fixture' }] });
   modelRuntime.registerNativeProvider(faux.provider);
   const { session } = await createAgentSession({ cwd: work, agentDir, resourceLoader, settingsManager, modelRuntime,
-    model: faux.getModel(), thinkingLevel: 'low', sessionManager: SessionManager.inMemory(work), tools: ['bash'] });
+    model: faux.getModel(), thinkingLevel: 'low', sessionManager: SessionManager.inMemory(work), tools });
   t.after(() => {
     session.dispose();
     if (prior === undefined) delete process.env.PI_CODING_AGENT_DIR; else process.env.PI_CODING_AGENT_DIR = prior;
   });
+  return { session, faux, fauxAssistantMessage, fauxToolCall };
+}
+
+test('native Pi: a bash push to dev that skips a test is blocked; the model sees why', { timeout: 60000 }, async (t) => {
+  const { work, run } = repo(t);
+  writeFileSync(join(work, 'tests/test_calc.py'), 'import pytest\n\n@pytest.mark.skip\ndef test_add():\n    assert 1 + 1 == 2\n');
+  run('commit', '-qam', 'skip');
+  const { session, faux, fauxAssistantMessage, fauxToolCall } = await piSession(t, work, { tools: ['bash'] });
   let toolResult = '';
   faux.setResponses([
     fauxAssistantMessage(fauxToolCall('bash', { command: `cd ${JSON.stringify(work)} && git push -q origin dev` })),
@@ -175,6 +199,41 @@ test('native Pi: a bash push to dev that skips a test is blocked; the model sees
   await session.prompt('Deliver it');
   assert.match(toolResult, /megai-test-guard blocked this push/);
   assert.match(toolResult, /pytest/);
+  const remoteHead = execFileSync('git', ['-C', join(dirname(work), 'remote.git'), 'rev-parse', 'dev'], { encoding: 'utf8' }).trim();
+  assert.notEqual(remoteHead, run('rev-parse', 'HEAD'), 'the push did not happen');
+});
+
+// Pi-Bolt models also push from the ipython tool (`await bash('git push origin dev')`), which
+// bypassed a bash-only hook. A stand-in ipython tool really runs the cell with python3.
+test('native Pi: an ipython cell that pushes a skipped test to dev is blocked', { timeout: 60000 }, async (t) => {
+  const { work, run } = repo(t);
+  writeFileSync(join(work, 'tests/test_calc.py'), 'import pytest\n\n@pytest.mark.skip\ndef test_add():\n    assert 1 + 1 == 2\n');
+  run('commit', '-qam', 'skip');
+  const fakeIpython = join(dirname(work), 'fake-ipython.mjs');
+  writeFileSync(fakeIpython, `import { spawnSync } from 'node:child_process';
+const PRELUDE = 'import subprocess\\ndef bash(command, **_):\\n    return subprocess.run(command, shell=True, capture_output=True, text=True)\\n';
+export default function (pi) {
+  pi.registerTool({
+    name: 'ipython', label: 'ipython', description: 'Run Python code.',
+    parameters: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] },
+    async execute(_id, params, _signal, _update, ctx) {
+      const r = spawnSync('python3', ['-c', PRELUDE + params.code], { cwd: ctx?.cwd, encoding: 'utf8' });
+      return { content: [{ type: 'text', text: 'exit ' + r.status + ' ' + r.stdout + r.stderr }], details: {} };
+    },
+  });
+}
+`);
+  const { session, faux, fauxAssistantMessage, fauxToolCall } = await piSession(t, work, { tools: ['ipython'], extensions: [fakeIpython] });
+  let toolResult = '';
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('ipython', { code: "r = bash('git push -q origin dev')\nprint(r.returncode)" })),
+    async (context) => {
+      toolResult = (context.messages.at(-1)?.content ?? []).map((b) => b.text ?? '').join('\n');
+      return fauxAssistantMessage('Understood.');
+    },
+  ]);
+  await session.prompt('Deliver it');
+  assert.match(toolResult, /megai-test-guard blocked this push/);
   const remoteHead = execFileSync('git', ['-C', join(dirname(work), 'remote.git'), 'rev-parse', 'dev'], { encoding: 'utf8' }).trim();
   assert.notEqual(remoteHead, run('rev-parse', 'HEAD'), 'the push did not happen');
 });

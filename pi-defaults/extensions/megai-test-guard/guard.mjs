@@ -148,6 +148,69 @@ export function findDevPushes(command, cwd) {
   return pushes;
 }
 
+// ---- ipython cells ------------------------------------------------------
+
+/** Python string literals in a cell (comments skipped, escapes decoded), in source order. */
+function pythonStrings(code) {
+  const out = [];
+  const n = code.length;
+  let i = 0;
+  while (i < n) {
+    const ch = code[i];
+    if (ch === '#') { while (i < n && code[i] !== '\n') i++; continue; }
+    if (ch !== "'" && ch !== '"') { i++; continue; }
+    let p = i;
+    while (p > 0 && p > i - 2 && /[rRbBuUfF]/.test(code[p - 1])) p--;
+    if (p > 0 && /\w/.test(code[p - 1])) p = i; // part of an identifier, not a prefix
+    const raw = code.slice(p, i).toLowerCase().includes('r');
+    const q = code.startsWith(ch.repeat(3), i) ? ch.repeat(3) : ch;
+    let j = i + q.length;
+    let text = '';
+    while (j < n && !code.startsWith(q, j)) {
+      if (q.length === 1 && code[j] === '\n') break;
+      if (code[j] === '\\' && j + 1 < n) {
+        const e = code[j + 1];
+        text += raw ? code[j] + e : ({ n: '\n', t: '\t', '\\': '\\', "'": "'", '"': '"', '\n': '' }[e] ?? code[j] + e);
+        j += 2;
+        continue;
+      }
+      text += code[j++];
+    }
+    out.push({ start: p, end: Math.min(n, j + q.length), text });
+    i = j + q.length;
+  }
+  return out;
+}
+
+/**
+ * Shell commands visible in a Pi `ipython` cell: every string literal (bash('…'),
+ * os.system('…'), subprocess.run('…', shell=True)) and literal argv lists
+ * (subprocess.run(["git", "push", "origin", "dev"])). Computed strings are not visible.
+ * @returns {string[]}
+ */
+export function cellCommands(code) {
+  const strings = pythonStrings(String(code ?? ''));
+  const commands = new Set(strings.map((s) => s.text).filter((t) => t.trim()));
+  let masked = '';
+  let last = 0;
+  strings.forEach((s, k) => { masked += code.slice(last, s.start) + `\u0001${k}\u0001`; last = s.end; });
+  masked += code.slice(last);
+  const lit = '\u0001(\\d+)\u0001';
+  const list = new RegExp(`[\\[(]\\s*(${lit}(?:\\s*,\\s*${lit})+)\\s*,?\\s*[\\])]`, 'g');
+  for (const m of masked.matchAll(list)) {
+    const argv = [...m[1].matchAll(new RegExp(lit, 'g'))].map((x) => strings[Number(x[1])].text);
+    commands.add(argv.map((a) => (/^[\w@%+=:,./-]+$/.test(a) ? a : `'${a.replace(/'/g, "'\\''")}'`)).join(' '));
+  }
+  return [...commands];
+}
+
+/** Shell commands a Pi tool call runs: a bash command, or the commands visible in an ipython cell. */
+export function toolCommands(event) {
+  if (event?.toolName === 'bash') return [String(event.input?.command ?? '')];
+  if (event?.toolName === 'ipython') return cellCommands(String(event.input?.code ?? ''));
+  return [];
+}
+
 function resolveDir(path, base) {
   if (!path || base === null) return null;
   if (/[$`*?]|\$\(/.test(path)) return null; // Unresolvable: variables, globs, substitutions.
