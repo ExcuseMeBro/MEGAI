@@ -15,6 +15,14 @@ from slim_distribution import ROOT, Slim
 
 
 class TokenProfile(Slim):
+    def setUp(self):
+        super().setUp()
+        # RTK is only needed for the read-only --version preflight; a stub keeps
+        # the installer behaviour tests host-independent. Tests exercising
+        # missing/broken RTK still override it via RTK_BIN, which rtk_binary()
+        # prefers over PATH.
+        self.stub("rtk", 'case "$1" in --version) echo "rtk-test 0.0" ;; esac\nexit 0\n')
+
     def profile(self, *args, ok=True, env=None):
         return self.run_cmd(sys.executable, str(self.megai / "lib/pi_token_profile.py"),
                             *args, ok=ok, env=env)
