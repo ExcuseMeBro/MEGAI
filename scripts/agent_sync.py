@@ -49,8 +49,12 @@ PREFACE = """# Shared MEGAI rules ({agent})
 These are the user's global rules, shared with Pi. Where a rule names Pi, its
 sessions or its runtime, it applies to {agent} the same way. Pi-only mechanics
 that do not exist here: the `codemode` tool, Pi extensions (`/factory`,
-`/factory-flow`, lean-prompt, budget-guard), `!!` shell commands and the
-`tgrep` tool — use `rg` where a rule says tgrep. Shared state stays shared:
+`/factory-flow`, lean-prompt, budget-guard) and `!!` shell commands. Search
+with the `tgrep` CLI through the shell by default, as Pi does:
+`tgrep --no-index -nH --no-heading -S -m 5 -F -- PATTERN PATH` for literals
+(drop `-F` for regex) and `tgrep --no-index --files --glob GLOB PATH` for
+filenames. Never build an index or start `tgrep serve` unless the task asks.
+Use `rg` with the same flags only when tgrep is missing or fails. Shared state stays shared:
 Brokan MCP, `.pi/project.json` project bindings, the heavy-job slot
 `~/.pi/agent/.mac-heavy-test.lock`, and `~/.local/bin/megai-task-resources`.
 Pi's skills and the `/mdev`, `/prdev`, `/rwbrowser` prompts are installed here
