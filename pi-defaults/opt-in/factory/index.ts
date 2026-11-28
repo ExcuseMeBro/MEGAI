@@ -462,6 +462,9 @@ export default function factory(pi: ExtensionAPI) {
     const review = active.review!;
     const task = `${active.project}#${id}`;
     const where = await candidateAt(active.board.root, sha, base, signal);
+    // Review against the task's current scope and acceptance, not the one cached at dispatch.
+    const { brief } = await readDetails(active.project, id, signal);
+    active.goals.set(id, goalText(brief, task));
     if (!active.parallel) status(ctx, `Factory review · ${task} · ${sha.slice(0, 12)}`);
     const result = await runReview({ agentDir: getAgentDir(), cwd: where.cwd, base, model: review.model, config: review.config,
       goal: active.goals.get(id) ?? `Brokan ${task}`, signal });
@@ -761,7 +764,8 @@ export default function factory(pi: ExtensionAPI) {
         prompt = await nextDelivery(active, ctx);
         if (!prompt) notify(ctx, `${active.reviewed} handed off. Queue exhausted.`);
       } else if (!task.human && handedOff(task)) {
-        if (active.review && !active.resume) notify(ctx, `${key(active)} handed off without an independently reviewed Git candidate (runtime-only work needs none).`);
+        // The review gate blocked every unapproved dev push, so no unreviewed change reached dev.
+        if (active.review && !active.resume) notify(ctx, `${key(active)} handed off without a reviewed Git candidate; the gate kept any unreviewed change off dev. Check it was runtime-only.`, 'warning');
         active.reviewed++;
         prompt = await next(active, ctx);
         if (!prompt && !active.cancelled.signal.aborted && !ctx.signal?.aborted) {

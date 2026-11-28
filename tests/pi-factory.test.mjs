@@ -709,8 +709,9 @@ test('review: reject sends the report back, the repaired candidate is approved, 
       // An unreviewed dev push is blocked while the gate is active.
       const gate = guard.reviewGate();
       assert.deepEqual(gate.approved, []);
-      fetchDev(first.wt);
-      assert.match(guard.checkReviewed({ dir: first.wt, remote: 'origin', src: 'HEAD', dst: 'dev' }, gate)[0], /not a candidate the independent reviewer approved/);
+      assert.match(guard.checkReviewed({ dir: first.wt, remote: join(f.base, 'remote.git'), src: 'HEAD', dst: 'dev' }, gate)[0], /not a candidate the independent reviewer approved/);
+      // The acceptance changes while the writer works: the reviewer gets the current one.
+      f.state.tasks[0].description = 'Acceptance v2: parse() rejects null input.';
       return `Committed.\nFACTORY_READY ${first.sha}`;
     }
     if (count === 2) {
@@ -726,7 +727,7 @@ test('review: reject sends the report back, the repaired candidate is approved, 
     assert.match(prompt, new RegExp(`review: approved; Risk: Low.*head ${second.sha}`));
     const gate = guard.reviewGate();
     assert.equal(gate.approved.length, 1);
-    const push = { dir: second.wt, remote: 'origin', src: 'HEAD', dst: 'dev' };
+    const push = { dir: second.wt, remote: join(f.base, 'remote.git'), src: 'HEAD', dst: 'dev' };
     assert.deepEqual(guard.checkReviewed(push, gate), []);
     // dev moves; a clean rebase keeps the approval.
     writeFileSync(join(f.cwd, 'other.txt'), 'other\n');
@@ -755,6 +756,7 @@ test('review: reject sends the report back, the repaired candidate is approved, 
     assert.equal(call.opt['--model'], `${s.model.provider}/${s.model.id}:low`);
     assert.equal(call.opt['--fail-on'], 'high');
     assert.match(call.goal, /^Brokan factory-fixture#1: /);
+    assert.match(call.goal, /Acceptance v2: parse\(\) rejects null input\./);
   }
   assert.ok(s.notices.some(x => x.includes('review: rejected; Risk: High')));
   assert.ok(s.notices.some(x => x.includes('1 handed off. Queue exhausted.')));

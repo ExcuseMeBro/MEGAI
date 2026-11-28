@@ -145,6 +145,8 @@ export function findDevPushes(command, cwd) {
     }
     for (const spec of specs) {
       const clean = spec.replace(/^\+/, '');
+      // `git push origin HEAD` (or `@`) pushes the current branch to its namesake.
+      if (clean === 'HEAD' || clean === '@') { pushes.push({ dir: gitDir, remote, src: 'HEAD', dst: '@current' }); continue; }
       const [src, dstRaw] = clean.includes(':') ? clean.split(':', 2) : [clean, clean];
       const dst = dstRaw.replace(/^refs\/heads\//, '');
       if (PROTECTED_TARGET.test(dst) && src) pushes.push({ dir: gitDir, remote, src, dst });
@@ -225,9 +227,9 @@ function resolveDir(path, base) {
 
 // ---- git ------------------------------------------------------------------
 
-function git(dir, args) {
+function git(dir, args, maxBuffer = MAX_DIFF) {
   return execFileSync('git', ['-C', dir, ...args], {
-    encoding: 'utf8', timeout: 15_000, maxBuffer: MAX_DIFF, stdio: ['ignore', 'pipe', 'ignore'],
+    encoding: 'utf8', timeout: 15_000, maxBuffer, stdio: ['ignore', 'pipe', 'ignore'],
     env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
   });
 }
@@ -237,7 +239,9 @@ function git(dir, args) {
  * Any git problem (unknown ref, no repo) allows the push: this is a guard, not a gate.
  */
 // The pushed range as [base, head] commits, or undefined when it cannot be read.
-function pushedRange(push) {
+// With `remoteTip` the base is the destination's tip read from the remote itself, not the
+// local remote-tracking ref (which any process in the checkout can rewrite).
+function pushedRange(push, { remoteTip = false } = {}) {
   if (!push.dir || !existsSync(push.dir) || !statSync(push.dir).isDirectory()) return undefined;
   let { src, dst } = push;
   if (dst === '@current') {
@@ -245,9 +249,19 @@ function pushedRange(push) {
     if (!PROTECTED_TARGET.test(dst)) return undefined;
   }
   const head = git(push.dir, ['rev-parse', '--verify', '--quiet', `${src}^{commit}`]).trim();
-  const base = git(push.dir, ['rev-parse', '--verify', '--quiet', `refs/remotes/${push.remote}/${dst}^{commit}`]).trim();
+  const base = remoteTip ? remoteHead(push.dir, push.remote, dst)
+    : git(push.dir, ['rev-parse', '--verify', '--quiet', `refs/remotes/${push.remote}/${dst}^{commit}`]).trim();
   if (!head || !base || head === base) return undefined;
   return [base, head];
+}
+
+// The commit `refs/heads/<branch>` points at on the remote; it must already be in the local repository.
+function remoteHead(dir, remote, branch) {
+  const line = git(dir, ['ls-remote', '--', remote, `refs/heads/${branch}`]).split('\n').find((l) => l.endsWith(`\trefs/heads/${branch}`));
+  const sha = line?.split('\t')[0] ?? '';
+  if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(sha)) throw new Error('remote branch unreadable');
+  git(dir, ['cat-file', '-e', `${sha}^{commit}`]);
+  return sha;
 }
 
 export function checkPush(push) {
@@ -302,6 +316,7 @@ export function checkSize(push, limit) {
 // ---- Factory review gate ------------------------------------------------------
 
 export const REVIEW_GATE = Symbol.for('megai.review-gate');
+const PATCH_BUFFER = 64 * 1024 * 1024; // Same budget as Factory's patchId.
 const PATCH_DIFF = ['diff', '--no-color', '--no-ext-diff', '--no-textconv', '--no-renames', '--full-index', '--binary', '-U0'];
 
 /**
@@ -317,7 +332,7 @@ export function reviewGate(env = process.env) {
 
 /** Stable patch-id of `base...head` with no context lines; Factory computes approvals the same way. */
 export function patchIdOf(dir, base, head) {
-  const diff = git(dir, [...PATCH_DIFF, `${base}...${head}`]);
+  const diff = git(dir, [...PATCH_DIFF, `${base}...${head}`], PATCH_BUFFER);
   if (!diff.trim()) return '';
   const out = execFileSync('git', ['-C', dir, 'patch-id', '--stable'], {
     input: diff, encoding: 'utf8', timeout: 15_000, maxBuffer: 1024 * 1024, stdio: ['pipe', 'pipe', 'ignore'],
@@ -330,11 +345,13 @@ export function patchIdOf(dir, base, head) {
  * has the patch-id of a candidate the independent reviewer approved. Unlike the other checks this
  * fails closed: a dev push the gate cannot read is blocked.
  */
+// The base is the destination tip read from the remote, so a rewritten remote-tracking ref
+// cannot hide unreviewed commits under an approved change.
 export function checkReviewed(push, gate) {
   if (!gate) return [];
   if (!push.dir) return [`${gate.label}: the push runs in a directory given as a variable, so its change cannot be compared with the reviewed candidate`];
   try {
-    const range = pushedRange(push);
+    const range = pushedRange(push, { remoteTip: true });
     if (!range) return [];
     const id = patchIdOf(push.dir, range[0], range[1]);
     if (id && gate.approved.includes(id)) return [];

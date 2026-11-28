@@ -68,6 +68,8 @@ test('command parsing: dev pushes in common shapes, data and other targets ignor
   assert.deepEqual(pushes('(cd sub && git push)'), ['/work/repo/sub|origin|HEAD|@current']);
   assert.deepEqual(pushes('git push origin task/x'), []);
   assert.deepEqual(pushes('git push --all origin'), ['/work/repo|origin|dev|dev']);
+  assert.deepEqual(pushes('git push origin HEAD'), ['/work/repo|origin|HEAD|@current']);
+  assert.deepEqual(pushes('git push -u origin @'), ['/work/repo|origin|HEAD|@current']);
   assert.deepEqual(pushes('git push --mirror backup'), ['/work/repo|backup|dev|dev']);
   assert.deepEqual(pushes('git push origin --delete dev'), []);
   assert.deepEqual(pushes('echo "git push origin dev"'), []);
@@ -164,9 +166,24 @@ test('review gate: only an approved change reaches dev, by patch-id; a clean reb
   writeFileSync(join(work, 'calc.py'), 'def add(a, b):\n    return b + a + 0\n');
   run('commit', '-qam', 'after review');
   assert.equal(checkReviewed({ ...push, src: 'task/x' }, reviewGate({})).length, 1);
+  // A rewritten remote-tracking ref cannot hide an unreviewed commit under the approved change:
+  // the base is read from the remote. Build B -> M (unreviewed) -> P (approved patch).
+  const approvedTip = run('rev-parse', 'HEAD~1');
+  run('switch', '-qc', 'task/forged', 'origin/dev');
+  writeFileSync(join(work, 'backdoor.py'), 'print("unreviewed")\n');
+  run('add', 'backdoor.py'); run('commit', '-qm', 'unreviewed');
+  const forged = run('rev-parse', 'HEAD');
+  run('cherry-pick', approvedTip);
+  run('update-ref', 'refs/remotes/origin/dev', forged);
+  assert.equal(checkReviewed({ ...push, src: 'task/forged' }, reviewGate({})).length, 1);
+  run('update-ref', 'refs/remotes/origin/dev', run('rev-parse', 'task/forged'));
+  assert.equal(checkReviewed({ ...push, src: 'task/forged' }, reviewGate({})).length, 1, 'tracking ref equal to the tip is not "nothing to push"');
+  run('fetch', '-q', 'origin');
+  run('switch', '-q', 'task/x');
   // Unlike the other checks the gate fails closed.
   assert.equal(checkReviewed({ ...push, dir: null }, reviewGate({})).length, 1);
   assert.equal(checkReviewed({ ...push, src: 'no-such-ref' }, reviewGate({})).length, 1);
+  assert.equal(checkReviewed({ ...push, remote: join(base, 'missing.git') }, reviewGate({})).length, 1, 'an unreadable remote blocks');
   assert.deepEqual(checkReviewed({ ...push, src: 'origin/dev' }, reviewGate({})), [], 'nothing to push');
   // A preparation worker never pushes dev, even with an approval in its own process.
   assert.match(reviewGate({ MEGAI_FACTORY_PREP_WORKER: '1' }).label, /preparation worker/);
@@ -300,4 +317,15 @@ test('native Pi: with the Factory review gate active, an unapproved bash push to
   assert.match(toolResult, /independent review gate is active/);
   const remoteHead = execFileSync('git', ['-C', join(dirname(work), 'remote.git'), 'rev-parse', 'dev'], { encoding: 'utf8' }).trim();
   assert.notEqual(remoteHead, run('rev-parse', 'HEAD'), 'the push did not happen');
+});
+
+test('review gate: Factory and the guard agree on large diffs (up to their shared 64 MiB budget)', async (t) => {
+  const { work, run } = repo(t);
+  run('switch', '-qc', 'task/big');
+  writeFileSync(join(work, 'big.txt'), Array.from({ length: 180_000 }, (_, i) => `line ${i} ${'x'.repeat(40)}`).join('\n') + '\n');
+  run('add', 'big.txt'); run('commit', '-qm', 'big');
+  const id = await patchId(work, 'origin/dev', 'HEAD');
+  globalThis[REVIEW_GATE] = { label: 'Factory p', approved: [id] };
+  t.after(() => { delete globalThis[REVIEW_GATE]; });
+  assert.deepEqual(checkReviewed({ dir: work, remote: 'origin', src: 'task/big', dst: 'dev' }, reviewGate({})), []);
 });
