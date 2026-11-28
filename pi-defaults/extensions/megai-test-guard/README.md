@@ -40,3 +40,7 @@ A second counter-metric limits change size. When a budget is active, a push to `
 - Factory sets the budget for a routine task with `maxDiffLines` while it runs that task (see the Factory README). It is shared in-process as `globalThis[Symbol.for('megai.diff-limit')]`.
 - `MEGAI_DIFF_LIMIT=<lines>` sets one for a manual session.
 - `MEGAI_TEST_GUARD=0` disables both checks. Errors fail open, as above.
+
+## Factory review gate
+
+While Factory runs with its [independent review gate](../../opt-in/factory/README.md#independent-review-gate), it publishes the approved changes as `globalThis[Symbol.for('megai.review-gate')] = { label, approved: [patch-id] }`. A push to `dev` then passes only when the stable patch-id of its change (`git diff -U0 <remote>/dev...<source>`, no renames, full index) matches an approved one. A clean rebase keeps the id; anything changed after the review does not. Unlike the other checks this one fails closed: a dev push whose directory or range the guard cannot read is blocked. Inside a Factory preparation worker (`MEGAI_FACTORY_PREP_WORKER=1`) every dev push is blocked. Outside a gated Factory run nothing changes. `MEGAI_TEST_GUARD=0` disables this check too. Claude Code and Codex hooks run in a separate process and never see a gate.

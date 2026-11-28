@@ -1,6 +1,6 @@
 # Factory: opt-in Brokan long runs in Pi
 
-Factory runs one verified repository’s `doing`, then `todo` tasks in board order, one at a time by default. It takes an initial snapshot, rereads each task before starting or continuing it, and rereads the board when the batch runs dry, so tasks added meanwhile run in the same batch. The selected Pi model and thinking level do not change. Factory itself only reads Brokan, except that it adds the tasks of due [routines](#routines); the agent uses the existing Brokan tools and repository workflow for edits, acceptance, delivery and `review`. Factory does not set `done`, start without a request, or run a process outside Pi. Watch mode keeps checking Brokan only inside the Pi session where you start it.
+Factory runs one verified repository’s `doing`, then `todo` tasks in board order, one at a time by default. It takes an initial snapshot, rereads each task before starting or continuing it, and rereads the board when the batch runs dry, so tasks added meanwhile run in the same batch. The selected Pi model and thinking level do not change. Factory itself only reads Brokan, except that it adds the tasks of due [routines](#routines); the agent uses the existing Brokan tools and repository workflow for edits, acceptance, delivery and `review`, and an [independent reviewer](#independent-review-gate) approves each Git candidate before delivery. Factory does not set `done`, start without a request, or run a process outside Pi. Watch mode keeps checking Brokan only inside the Pi session where you start it.
 
 ## Setup (Pi 1.5.2)
 
@@ -16,6 +16,26 @@ Copy this directory to `~/.pi/agent/extensions/megai-factory/` (do not overwrite
 - `/factory status` shows the current task and queue; `/factory stop` stops. Esc also interrupts an active Pi turn; use `/factory stop` while the first parallel wave is preparing. User input mid-run takes over from Factory, and UI prompts halt automatic continuation.
 
 Factory skips human tasks, archived projects, and all other columns. It hands off on a readback of `review` or `done`, pauses on a real blocker or a board error, and gives an unfinished task at most three automatic continuations. A batch ends when the board has no eligible task it has not already tried in that batch; a task is not repeated within one batch. Other manual agents are not covered by the Factory lock: do not run it against work another agent is actively editing. A hard process kill can leave a lock under `~/.pi/agent/factory-locks/`; remove only that project's lock after verifying its recorded PID and that the owning run is no longer active. Reloading or restarting Pi never automatically resumes a batch.
+
+## Independent review gate
+
+The agent that wrote a change never approves it. With the gate on (the default), a Factory writer implements and tests in a task worktree, commits a clean candidate and ends its turn with `FACTORY_READY <full SHA>` instead of delivering. Factory then runs the installed `megai-change-review` skill's reviewer itself (`~/.pi/agent/skills/megai-change-review/review.mjs`): a fresh, read-only Pi process on a clean export of that commit, with the task title and description as its goal. The writer cannot skip, answer or edit the review.
+
+- **Approve** (reviewer exit 0: no finding at or above `failOn`): the writer is told to deliver, with the review line for its evidence note. The approved change is registered with `megai-test-guard` by patch-id.
+- **Reject** (exit 3): the report goes back to the writer as untrusted data with instructions to verify each finding, test first, fix or rebut, commit and end with `FACTORY_READY` again. After `repairs` rejected rounds the task pauses; the candidate stays in its worktree.
+- **Anything else** (reviewer missing, setup error twice, malformed report, a candidate that is not the clean HEAD of exactly one `task/*` worktree ahead of `origin/dev`, or a worktree changed during review) pauses the task. The gate never fails open.
+
+While a gated run is active, `megai-test-guard` blocks every push to `dev` whose change (merge-base to source, no context lines) does not match an approved patch-id. A clean rebase onto a newer `dev` keeps the approval; any other change needs another `FACTORY_READY` round. Parallel preparation workers never push `dev` at all. In parallel mode each prepared candidate is reviewed in its own worktree right after preparation; a rejection sends a fresh worker back to the same worktree with the report, and a candidate rejected past the limit is skipped (not delivered, worktree retained) while the rest of the wave continues. Work with no Git change (runtime-only configuration) needs no candidate and is handed off as before.
+
+Settings live in `~/.pi/agent/factory.json` (an invalid file stops Factory before it takes the lock):
+
+```json
+{ "review": { "enabled": true, "model": "opencode-go/kimi-k3.1-pro:high", "failOn": "high", "repairs": 2, "timeoutMin": 20 } }
+```
+
+- `model`: an exact `provider/id[:thinking]` from `pi --list-models` under the reviewer's isolation (no extensions). Default: the writer's own model and thinking level in a fresh context. A different model family catches different mistakes; set one here when your account has it.
+- `failOn`: `low`, `medium`, `high` (default) or `critical`. `repairs`: rejected rounds before a pause, 0–5 (default 2). `timeoutMin`: reviewer time limit, 1–60 (default 20).
+- `MEGAI_FACTORY_REVIEW=0` switches the gate off for a session; Factory then delivers in one session as before. `/factory status` shows whether the gate is on, the reviewer model and the approved/rejected counts.
 
 ## Watch mode
 

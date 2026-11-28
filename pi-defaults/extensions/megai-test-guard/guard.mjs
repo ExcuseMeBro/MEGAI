@@ -132,6 +132,11 @@ export function findDevPushes(command, cwd) {
     if (rest.some((w) => w === '--delete' || w === '-d')) continue;
     const args = rest.filter((w) => !w.startsWith('-'));
     const remote = args[0] ?? 'origin';
+    // `--all`/`--branches`/`--mirror` push every local branch, dev included.
+    if (rest.some((w) => w === '--all' || w === '--branches' || w === '--mirror')) {
+      pushes.push({ dir: gitDir, remote, src: 'dev', dst: 'dev' });
+      continue;
+    }
     const specs = args.slice(1);
     if (!specs.length) {
       // `git push` / `git push origin`: the current branch.
@@ -292,6 +297,61 @@ export function checkSize(push, limit) {
   } catch {
     return [];
   }
+}
+
+// ---- Factory review gate ------------------------------------------------------
+
+export const REVIEW_GATE = Symbol.for('megai.review-gate');
+const PATCH_DIFF = ['diff', '--no-color', '--no-ext-diff', '--no-textconv', '--no-renames', '--full-index', '--binary', '-U0'];
+
+/**
+ * The active independent-review gate: set by Factory while it runs with review on
+ * (globalThis[REVIEW_GATE] = { label, approved: [patch-id] }). A Factory preparation worker
+ * never pushes dev, so inside one every dev push is unapproved.
+ */
+export function reviewGate(env = process.env) {
+  if (env.MEGAI_FACTORY_PREP_WORKER === '1') return { label: 'Factory preparation worker (workers never push dev)', approved: [] };
+  const gate = globalThis[REVIEW_GATE];
+  return gate && Array.isArray(gate.approved) ? { label: String(gate.label ?? 'Factory'), approved: gate.approved } : undefined;
+}
+
+/** Stable patch-id of `base...head` with no context lines; Factory computes approvals the same way. */
+export function patchIdOf(dir, base, head) {
+  const diff = git(dir, [...PATCH_DIFF, `${base}...${head}`]);
+  if (!diff.trim()) return '';
+  const out = execFileSync('git', ['-C', dir, 'patch-id', '--stable'], {
+    input: diff, encoding: 'utf8', timeout: 15_000, maxBuffer: 1024 * 1024, stdio: ['pipe', 'pipe', 'ignore'],
+  });
+  return out.trim().split(/\s+/)[0] ?? '';
+}
+
+/**
+ * While a review gate is active, a push to dev passes only when its change (merge-base to source)
+ * has the patch-id of a candidate the independent reviewer approved. Unlike the other checks this
+ * fails closed: a dev push the gate cannot read is blocked.
+ */
+export function checkReviewed(push, gate) {
+  if (!gate) return [];
+  if (!push.dir) return [`${gate.label}: the push runs in a directory given as a variable, so its change cannot be compared with the reviewed candidate`];
+  try {
+    const range = pushedRange(push);
+    if (!range) return [];
+    const id = patchIdOf(push.dir, range[0], range[1]);
+    if (id && gate.approved.includes(id)) return [];
+    return [`${gate.label}: the pushed change${id ? ` (patch-id ${id.slice(0, 12)})` : ''} is not a candidate the independent reviewer approved`];
+  } catch {
+    return [`${gate.label}: could not read the pushed range to compare it with the reviewed candidate`];
+  }
+}
+
+export function reviewReason(findings) {
+  return [
+    'megai-test-guard blocked this push to dev: the independent review gate is active and this change was not approved.',
+    ...findings.map((f) => `- ${f}`),
+    'Commit the candidate on its task branch, stop before pushing, and end your answer with FACTORY_READY followed by a space and',
+    'the full candidate SHA. Factory runs the reviewer and tells you when to deliver. A clean rebase of an approved candidate keeps',
+    'its approval; push with a literal directory and ref so the guard can read the range.',
+  ].join('\n');
 }
 
 export function sizeReason(findings) {

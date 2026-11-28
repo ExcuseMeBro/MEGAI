@@ -5,7 +5,8 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync, unlinkSync
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { DIFF_LIMIT, blockReason, cellCommands, checkPush, checkSize, countChanged, diffLimit, findDevPushes, findWeakening, sizeReason, toolCommands } from '../pi-defaults/extensions/megai-test-guard/guard.mjs';
+import { DIFF_LIMIT, REVIEW_GATE, blockReason, cellCommands, checkPush, checkReviewed, checkSize, countChanged, diffLimit, findDevPushes, findWeakening, patchIdOf, reviewGate, reviewReason, sizeReason, toolCommands } from '../pi-defaults/extensions/megai-test-guard/guard.mjs';
+import { patchId } from '../pi-defaults/opt-in/factory/review.ts';
 import { piPackageRoot } from './pi-package.mjs';
 
 const extensionPath = fileURLToPath(new URL('../pi-defaults/extensions/megai-test-guard/index.ts', import.meta.url));
@@ -66,6 +67,8 @@ test('command parsing: dev pushes in common shapes, data and other targets ignor
   assert.deepEqual(pushes('GIT_TRACE=0 git -c core.x=1 push upstream abc123:dev 2>&1 | tail -3'), ['/work/repo|upstream|abc123|dev']);
   assert.deepEqual(pushes('(cd sub && git push)'), ['/work/repo/sub|origin|HEAD|@current']);
   assert.deepEqual(pushes('git push origin task/x'), []);
+  assert.deepEqual(pushes('git push --all origin'), ['/work/repo|origin|dev|dev']);
+  assert.deepEqual(pushes('git push --mirror backup'), ['/work/repo|backup|dev|dev']);
   assert.deepEqual(pushes('git push origin --delete dev'), []);
   assert.deepEqual(pushes('echo "git push origin dev"'), []);
   assert.deepEqual(pushes('rg "git push origin dev" docs'), []);
@@ -128,6 +131,46 @@ test('git range: weakening blocks, a Test-Change trailer or a clean range allows
   assert.deepEqual(checkPush(push), [], 'trailer anywhere in the pushed range covers it');
   assert.deepEqual(checkPush({ ...push, src: 'no-such-ref' }), [], 'unknown ref fails open');
   assert.deepEqual(checkPush({ ...push, dir: null }), [], 'unresolvable dir fails open');
+});
+
+test('review gate: only an approved change reaches dev, by patch-id; a clean rebase keeps the approval', async (t) => {
+  const { base, work, run } = repo(t);
+  t.after(() => { delete globalThis[REVIEW_GATE]; });
+  const push = { dir: work, remote: 'origin', src: 'HEAD', dst: 'dev' };
+  assert.equal(reviewGate({}), undefined, 'no gate outside a reviewed Factory run');
+  assert.deepEqual(checkReviewed(push, undefined), []);
+  run('switch', '-qc', 'task/x');
+  writeFileSync(join(work, 'calc.py'), 'def add(a, b):\n    return b + a\n');
+  run('commit', '-qam', 'candidate');
+  const approved = await patchId(work, 'origin/dev', 'HEAD');
+  assert.equal(approved, patchIdOf(work, 'refs/remotes/origin/dev', 'HEAD'), 'Factory and the guard compute the same id');
+  globalThis[REVIEW_GATE] = { label: 'Factory p', approved: [] };
+  const findings = checkReviewed({ ...push, src: 'task/x' }, reviewGate({}));
+  assert.equal(findings.length, 1);
+  assert.match(reviewReason(findings), /FACTORY_READY/);
+  globalThis[REVIEW_GATE].approved.push(approved);
+  assert.deepEqual(checkReviewed({ ...push, src: 'task/x' }, reviewGate({})), []);
+  // Someone else lands on dev; the rebased candidate (new SHA) still has the approved change.
+  const other = join(base, 'other');
+  execFileSync('git', ['clone', '-q', '-b', 'dev', join(base, 'remote.git'), other]);
+  writeFileSync(join(other, 'notes.txt'), 'unrelated\n');
+  execFileSync('git', ['-C', other, 'add', 'notes.txt']);
+  execFileSync('git', ['-C', other, '-c', 'user.email=o@example.invalid', '-c', 'user.name=O', 'commit', '-qm', 'notes']);
+  execFileSync('git', ['-C', other, 'push', '-q', 'origin', 'dev']);
+  run('fetch', '-q', 'origin');
+  run('rebase', '-q', 'origin/dev');
+  assert.deepEqual(checkReviewed({ ...push, src: 'task/x' }, reviewGate({})), []);
+  // Any further change needs another review.
+  writeFileSync(join(work, 'calc.py'), 'def add(a, b):\n    return b + a + 0\n');
+  run('commit', '-qam', 'after review');
+  assert.equal(checkReviewed({ ...push, src: 'task/x' }, reviewGate({})).length, 1);
+  // Unlike the other checks the gate fails closed.
+  assert.equal(checkReviewed({ ...push, dir: null }, reviewGate({})).length, 1);
+  assert.equal(checkReviewed({ ...push, src: 'no-such-ref' }, reviewGate({})).length, 1);
+  assert.deepEqual(checkReviewed({ ...push, src: 'origin/dev' }, reviewGate({})), [], 'nothing to push');
+  // A preparation worker never pushes dev, even with an approval in its own process.
+  assert.match(reviewGate({ MEGAI_FACTORY_PREP_WORKER: '1' }).label, /preparation worker/);
+  assert.equal(checkReviewed({ ...push, src: 'task/x' }, reviewGate({ MEGAI_FACTORY_PREP_WORKER: '1' })).length, 1);
 });
 
 test('diff budget: counts changed lines without lockfiles and blocks only over the active limit', (t) => {
@@ -234,6 +277,27 @@ export default function (pi) {
   ]);
   await session.prompt('Deliver it');
   assert.match(toolResult, /megai-test-guard blocked this push/);
+  const remoteHead = execFileSync('git', ['-C', join(dirname(work), 'remote.git'), 'rev-parse', 'dev'], { encoding: 'utf8' }).trim();
+  assert.notEqual(remoteHead, run('rev-parse', 'HEAD'), 'the push did not happen');
+});
+
+test('native Pi: with the Factory review gate active, an unapproved bash push to dev is blocked', { timeout: 60000 }, async (t) => {
+  const { work, run } = repo(t);
+  writeFileSync(join(work, 'calc.py'), 'def add(a, b):\n    return b + a\n');
+  run('commit', '-qam', 'unreviewed');
+  globalThis[REVIEW_GATE] = { label: 'Factory p', approved: [] };
+  t.after(() => { delete globalThis[REVIEW_GATE]; });
+  const { session, faux, fauxAssistantMessage, fauxToolCall } = await piSession(t, work, { tools: ['bash'] });
+  let toolResult = '';
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('bash', { command: `cd ${JSON.stringify(work)} && git push -q origin dev` })),
+    async (context) => {
+      toolResult = (context.messages.at(-1)?.content ?? []).map((b) => b.text ?? '').join('\n');
+      return fauxAssistantMessage('Understood.');
+    },
+  ]);
+  await session.prompt('Deliver it');
+  assert.match(toolResult, /independent review gate is active/);
   const remoteHead = execFileSync('git', ['-C', join(dirname(work), 'remote.git'), 'rev-parse', 'dev'], { encoding: 'utf8' }).trim();
   assert.notEqual(remoteHead, run('rev-parse', 'HEAD'), 'the push did not happen');
 });

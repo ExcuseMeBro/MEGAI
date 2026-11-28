@@ -20,7 +20,8 @@ Brokan writes by reading the task before any retry.
 Run focused acceptance checks and self-review the complete diff before handoff.
 Guarded safety/acceptance/installer changes retain their required formal gate;
 existing frozen acceptance criteria cannot be weakened. No mandatory extra agent
-or duplicate reviewer. Revalidate task and source before boundary writes.
+or duplicate reviewer in manual work; Factory gates each Git candidate through an
+independent read-only reviewer before dev. Revalidate task and source before boundary writes.
 Git delivery must be verified locally AND remotely before Brokan `review`, never
 local-only. Runtime-only work needs actual configuration verification, not invented
 Git delivery, and remains `review` until the user's completion decision.

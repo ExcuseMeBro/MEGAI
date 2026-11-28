@@ -1,9 +1,10 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import { blockReason, checkPush, checkSize, diffLimit, findDevPushes, guardEnabled, sizeReason, toolCommands } from './guard.mjs';
+import { blockReason, checkPush, checkReviewed, checkSize, diffLimit, findDevPushes, guardEnabled, reviewGate, reviewReason, sizeReason, toolCommands } from './guard.mjs';
 
 // Blocks a `git push` to dev whose commits weaken tests, unless a commit carries a
 // `Test-Change:` trailer, and a push larger than an active diff budget (a Factory routine's
-// maxDiffLines or MEGAI_DIFF_LIMIT). Codemode scripts reach bash through nested tool calls,
+// maxDiffLines or MEGAI_DIFF_LIMIT), and, while Factory's independent review gate is active, a
+// dev push whose change the reviewer did not approve (matched by patch-id). Codemode scripts reach bash through nested tool calls,
 // which pass through this hook too; `ipython` cells are checked through the shell commands
 // visible in their source (bash('…'), os.system, subprocess argv lists). It reads Git only;
 // it never edits, retries or pushes.
@@ -17,6 +18,9 @@ export default function (pi: ExtensionAPI) {
       const pushes = commands.flatMap(command => findDevPushes(command, cwd));
       const findings = pushes.flatMap(checkPush);
       if (findings.length) return { block: true, reason: blockReason(findings) };
+      const gate = reviewGate();
+      const unreviewed = gate ? pushes.flatMap(push => checkReviewed(push, gate)) : [];
+      if (unreviewed.length) return { block: true, reason: reviewReason(unreviewed) };
       const limit = diffLimit();
       const oversize = limit ? pushes.flatMap(push => checkSize(push, limit)) : [];
       if (oversize.length) return { block: true, reason: sizeReason(oversize) };

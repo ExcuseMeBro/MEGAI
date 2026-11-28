@@ -36,7 +36,7 @@ for await (const line of createInterface({ input: process.stdin })) {
       continue;
     }
     if (result === 'ready') {
-      writeFileSync(`task-${id}.txt`, `Candidate for ${id}\n`);
+      writeFileSync(`task-${id}.txt`, `Candidate for ${id} (${process.pid})\n`);
       execFileSync('git', ['add', `task-${id}.txt`]);
       execFileSync('git', ['commit', '-qm', `Prepare ${id}`]);
     }

@@ -78,7 +78,9 @@ export async function readDetails(project: string, id: number, signal?: AbortSig
   const body = await get(`/api/tasks/${id}`, signal);
   const task = parseTask(body.task, project);
   if (task.id !== id) throw new FactoryError('Brokan task ID mismatch.');
-  return { task, comments: Array.isArray(body.comments) ? body.comments : [] };
+  const raw = record(body.task);
+  // Title and description are the review goal (scope and acceptance); never authority.
+  return { task, comments: Array.isArray(body.comments) ? body.comments : [], brief: { title: raw.title, description: raw.description } };
 }
 
 /** IDs of this project's tasks that have comments, for a lessons sync (read-only). */
