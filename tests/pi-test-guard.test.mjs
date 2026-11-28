@@ -67,6 +67,8 @@ test('command parsing: dev pushes in common shapes, data and other targets ignor
   assert.deepEqual(pushes('GIT_TRACE=0 git -c core.x=1 push upstream abc123:dev 2>&1 | tail -3'), ['/work/repo|upstream|abc123|dev']);
   assert.deepEqual(pushes('(cd sub && git push)'), ['/work/repo/sub|origin|HEAD|@current']);
   assert.deepEqual(pushes('git push origin task/x'), []);
+  assert.deepEqual(pushes('sleep 1 & git push origin dev'), ['/work/repo|origin|dev|dev']);
+  assert.deepEqual(pushes('git push origin dev 2>&1 | tail -3'), ['/work/repo|origin|dev|dev']);
   assert.deepEqual(pushes('git push --all origin'), ['/work/repo|origin|dev|dev']);
   assert.deepEqual(pushes('git push origin HEAD'), ['/work/repo|origin|HEAD|@current']);
   assert.deepEqual(pushes('git push -u origin @'), ['/work/repo|origin|HEAD|@current']);
@@ -163,6 +165,7 @@ test('review gate: only an approved change reaches dev, by patch-id; a clean reb
   execFileSync('git', ['-C', other, 'add', 'notes.txt']);
   execFileSync('git', ['-C', other, '-c', 'user.email=o@example.invalid', '-c', 'user.name=O', 'commit', '-qm', 'notes']);
   execFileSync('git', ['-C', other, 'push', '-q', 'origin', 'dev']);
+  const original = run('rev-parse', 'task/x');
   run('fetch', '-q', 'origin');
   run('rebase', '-q', 'origin/dev');
   assert.deepEqual(checkReviewed({ ...push, src: 'task/x' }, reviewGate({})), []);
@@ -184,6 +187,9 @@ test('review gate: only an approved change reaches dev, by patch-id; a clean reb
   assert.equal(checkReviewed({ ...push, src: 'task/forged' }, reviewGate({})).length, 1, 'tracking ref equal to the tip is not "nothing to push"');
   run('fetch', '-q', 'origin');
   run('switch', '-q', 'task/x');
+  // The approved but unrebased candidate cannot be force-pushed over newer dev work.
+  const stale = checkReviewed({ ...push, src: original }, reviewGate({}));
+  assert.match(stale[0] ?? '', /would rewrite dev history/);
   // Unlike the other checks the gate fails closed.
   assert.equal(checkReviewed({ ...push, dir: null }, reviewGate({})).length, 1);
   assert.equal(checkReviewed({ ...push, src: 'no-such-ref' }, reviewGate({})).length, 1);
@@ -324,17 +330,41 @@ test('native Pi: with the Factory review gate active, an unapproved bash push to
 });
 
 test('review gate: a gated dev push runs alone, so nothing earlier in the call changes what it pushes', () => {
-  const bash = (command) => gatedCommandProblem({ toolName: 'bash', input: { command } });
-  for (const ok of ['git push origin dev', 'cd /w && git fetch -q origin && git push -q origin dev 2>&1 | tail -3',
-    'git -C /w status --short; git push origin HEAD:dev', 'GIT_TRACE=0 git push origin dev && git log -1 --format=%H']) {
+  const bash = (command) => gatedCommandProblem({ toolName: 'bash', input: { command } }, '/w');
+  for (const ok of ['git push origin dev', 'cd /w && git push -q origin dev 2>&1 | tail -3', 'git -C /w push origin HEAD:dev',
+    'git status && git log -1', 'git fetch origin && git push origin task/x']) {
     assert.equal(bash(ok), undefined, ok);
   }
-  for (const bad of ['git merge --ff-only task/x && git push origin dev', 'git commit -qam u; git push origin dev',
-    'git reset --hard abc && git push origin dev', './deliver.sh && git push origin dev', 'git push origin "$(git rev-parse x)":dev',
-    'git commit -qam u & git push origin dev', 'git rebase dev\ngit push origin dev']) {
-    assert.match(bash(bad) ?? '', /run (?:the push|it) alone/, bad);
+  for (const [bad, why] of [
+    ['git merge --ff-only task/x && git push origin dev', /could change what is pushed/],
+    ['git commit -qam u; git push origin dev', /could change what is pushed/],
+    ['git fetch origin +refs/heads/x:refs/heads/task/x && git push origin task/x:dev', /could change what is pushed/],
+    ['git status; git push origin dev', /could change what is pushed/],
+    ['./deliver.sh && git push origin dev', /could change what is pushed/],
+    ["printf '%s\\n' abc > .git/refs/heads/task/x && git push origin task/x:dev", /output redirect/],
+    ['git push origin "$(git rev-parse x)":dev', /command substitution/],
+    ['git commit -qam u & git push origin dev', /background job/],
+    ['GIT_DIR=/other/.git git push origin dev', /GIT_ variable/],
+    ['git push origin --delete dev', /deleting the remote dev branch/],
+    ['git push origin :refs/heads/dev', /deleting the remote dev branch/],
+  ]) {
+    assert.match(bash(bad) ?? '', why, bad);
   }
-  assert.match(gatedCommandProblem({ toolName: 'ipython', input: { code: "bash('git push origin dev')" } }), /alone in a bash command/);
+  const cell = (code) => gatedCommandProblem({ toolName: 'ipython', input: { code } });
+  assert.match(cell("b = 'dev'\nbash(f'git push origin {b}')"), /ipython cells cannot push/);
+  assert.equal(cell("print(1)"), undefined);
+});
+
+test('review gate: Factory allows one gate per process and clears only its own', async () => {
+  const { setGate, clearGate } = await import('../pi-defaults/opt-in/factory/review.ts');
+  const a = { label: 'Factory a', approved: [] }, b = { label: 'Factory b', approved: [] };
+  setGate(a);
+  try {
+    assert.throws(() => setGate(b), /Another review-gated run \(Factory a\)/);
+    clearGate(b);
+    assert.equal(reviewGate({}).label, 'Factory a');
+  } finally { clearGate(a); }
+  assert.equal(reviewGate({}), undefined);
 });
 
 test('review gate: Factory and the guard agree on large diffs (up to their shared 64 MiB budget)', async (t) => {
@@ -364,7 +394,7 @@ test('native Pi: with the review gate active, a commit chained before an approve
     },
   ]);
   await session.prompt('Deliver it');
-  assert.match(toolResult, /could change what is pushed/);
+  assert.match(toolResult, /run the push alone/);
   const remoteHead = execFileSync('git', ['-C', join(dirname(work), 'remote.git'), 'rev-parse', 'dev'], { encoding: 'utf8' }).trim();
   assert.equal(remoteHead, run('rev-parse', 'HEAD~1'), 'the remote stayed at the base');
 });

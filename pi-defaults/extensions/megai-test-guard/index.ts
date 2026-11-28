@@ -15,12 +15,13 @@ export default function (pi: ExtensionAPI) {
       const commands = toolCommands(event).filter(command => /\bpush\b/.test(command));
       if (!commands.length) return;
       const cwd = ctx?.cwd ?? process.cwd();
+      const gate = reviewGate();
+      const refused = gate ? gatedCommandProblem(event, cwd) : undefined;
+      if (refused) return { block: true, reason: reviewReason([`${gate!.label}: ${refused}`]) };
       const pushes = commands.flatMap(command => findDevPushes(command, cwd));
       const findings = pushes.flatMap(checkPush);
       if (findings.length) return { block: true, reason: blockReason(findings) };
-      const gate = reviewGate();
-      const isolated = gate && pushes.length ? gatedCommandProblem(event) : undefined;
-      const unreviewed = isolated ? [`${gate.label}: ${isolated}`] : gate ? pushes.flatMap(push => checkReviewed(push, gate)) : [];
+      const unreviewed = gate ? pushes.flatMap(push => checkReviewed(push, gate)) : [];
       if (unreviewed.length) return { block: true, reason: reviewReason(unreviewed) };
       const limit = diffLimit();
       const oversize = limit ? pushes.flatMap(push => checkSize(push, limit)) : [];

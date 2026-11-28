@@ -84,9 +84,16 @@ export function reviewerModel(config: ReviewConfig, writer: { provider: string; 
   return model;
 }
 
-export function setGate(gate: Gate | undefined) {
-  if (gate) (globalThis as any)[REVIEW_GATE] = gate;
-  else delete (globalThis as any)[REVIEW_GATE];
+/** Publish this run's gate. Only one gated run per process: a second one must not replace it. */
+export function setGate(gate: Gate) {
+  const current = (globalThis as any)[REVIEW_GATE];
+  if (current && current !== gate) throw new FactoryError(`Another review-gated run (${current.label}) is active in this Pi process.`);
+  (globalThis as any)[REVIEW_GATE] = gate;
+}
+
+/** Remove the gate only when it is this run's own. */
+export function clearGate(gate: Gate | undefined) {
+  if (gate && (globalThis as any)[REVIEW_GATE] === gate) delete (globalThis as any)[REVIEW_GATE];
 }
 
 /** `FACTORY_READY <sha>` on the last line: a committed candidate is waiting for review. */

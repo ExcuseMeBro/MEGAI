@@ -111,8 +111,9 @@ export function findDevPushes(command, cwd) {
   const pushes = [];
   let dir = cwd;
   // Heredoc bodies and quoted strings are data; strip heredocs before splitting.
-  const text = String(command).replace(/<<-?\s*['"]?(\w+)['"]?[\s\S]*?\n\1\b/g, ' ');
-  for (const raw of text.split(/&&|\|\||;|\n|\|/)) {
+  const text = String(command).replace(/<<-?\s*['"]?(\w+)['"]?[\s\S]*?\n\1\b/g, ' ').replace(/\d*>&\d*|&>/g, ' ');
+  // A single `&` (background job) separates commands too.
+  for (const raw of text.split(/&&|\|\||;|\n|\||&/)) {
     const words = tokens(raw.trim().replace(/^[({\s]+|[)}\s]+$/g, ''));
     if (!words.length) continue;
     if (words[0] === 'cd' && words[1]) { dir = resolveDir(words[1], dir); continue; }
@@ -353,6 +354,9 @@ export function checkReviewed(push, gate) {
   try {
     const range = pushedRange(push, { remoteTip: true });
     if (!range) return [];
+    // A force push of an unrebased candidate would drop commits from dev even with an approved patch.
+    try { git(push.dir, ['merge-base', '--is-ancestor', range[0], range[1]]); }
+    catch { return [`${gate.label}: the push would rewrite dev history (the remote tip is not an ancestor of the pushed commit); rebase onto it first`]; }
     const id = patchIdOf(push.dir, range[0], range[1]);
     if (id && gate.approved.includes(id)) return [];
     return [`${gate.label}: the pushed change${id ? ` (patch-id ${id.slice(0, 12)})` : ''} is not a candidate the independent reviewer approved`];
@@ -361,32 +365,59 @@ export function checkReviewed(push, gate) {
   }
 }
 
-// Read-only commands that may share a shell call with a gated dev push.
-const READ_ONLY_GIT = new Set(['fetch', 'status', 'log', 'rev-parse', 'merge-base', 'show', 'diff', 'ls-remote']);
-const READ_ONLY_TOOLS = new Set(['cd', 'echo', 'printf', 'true', 'tail', 'head', 'grep', 'wc', 'cat', 'sort']);
+// Pure text filters that may read a gated dev push's output in the same call.
+const OUTPUT_FILTERS = new Set(['tail', 'head', 'grep', 'wc', 'cat', 'sort']);
+
+/** True when `segment` is a `git push` that deletes the remote dev branch. */
+function deletesDev(words) {
+  const specs = words.filter((w) => !w.startsWith('-')).slice(1);
+  const del = words.some((w) => w === '--delete' || w === '-d');
+  return specs.some((spec) => {
+    const clean = spec.replace(/^\+/, '');
+    if (del) return PROTECTED_TARGET.test(clean.replace(/^refs\/heads\//, ''));
+    return clean.startsWith(':') && PROTECTED_TARGET.test(clean.slice(1).replace(/^refs\/heads\//, ''));
+  });
+}
 
 /**
- * The hook sees a shell call before it runs, so a ref change earlier in the same call
- * (`git merge … && git push origin dev`) would slip past the gate. While a gate is active a dev
- * push must therefore run as its own bash call, with only read-only commands beside it.
- * Returns why the call cannot be checked, or undefined.
+ * The hook sees a call before it runs, so anything else in the same call (a merge, commit,
+ * reset, a redirect into .git, a fetch refspec) could change what a checked dev push sends.
+ * While a gate is active a call that pushes or deletes dev must contain nothing but `cd`, the
+ * push itself and text filters on its output; ipython cells may not push at all (their strings
+ * can be computed). Returns why the call is refused, or undefined when it may be checked.
  */
-export function gatedCommandProblem(event) {
-  if (event?.toolName !== 'bash') return 'a dev push from this tool cannot be checked; run the `git push` to dev alone in a bash command';
+export function gatedCommandProblem(event, cwd = process.cwd()) {
+  if (event?.toolName === 'ipython') {
+    return toolCommands(event).some((c) => /\bpush\b/.test(c)) ? 'ipython cells cannot push while the gate is active; run the `git push` to dev alone in a bash command' : undefined;
+  }
+  if (event?.toolName !== 'bash') return undefined;
   const text = String(event.input?.command ?? '').replace(/<<-?\s*['"]?(\w+)['"]?[\s\S]*?\n\1\b/g, ' ');
-  if (/\$\(|`/.test(text)) return 'the dev push shares its call with a command substitution; run it alone';
-  if (/&(?!&)/.test(text.replace(/&&/g, '').replace(/\d*>&\d*|&>/g, ''))) return 'the dev push shares its call with a background job; run it alone';
-  for (const raw of text.split(/&&|\|\||;|\n|\|/)) {
+  const segments = text.replace(/\d*>&\d*|&>/g, ' ').split(/&&|\|\||;|\n|\||&/).map((raw) => {
     const words = tokens(raw.trim().replace(/^[({\s]+|[)}\s]+$/g, ''));
     let i = 0;
     while (i < words.length && (/^\w+=/.test(words[i]) || PREFIX.has(words[i]))) i++;
-    if (i >= words.length) continue;
-    if (words[i] === 'git' || words[i].endsWith('/git')) {
-      i++;
-      while (i < words.length && words[i].startsWith('-')) i += words[i] === '-C' || words[i] === '-c' ? 2 : 1;
-      if (words[i] === 'push' || READ_ONLY_GIT.has(words[i])) continue;
-    } else if (READ_ONLY_TOOLS.has(words[i])) continue;
-    return `\`${raw.trim().slice(0, 80)}\` runs in the same call as the dev push and could change what is pushed; run the push alone`;
+    let sub;
+    if (words[i] === 'git' || words[i]?.endsWith('/git')) {
+      let j = i + 1;
+      while (j < words.length && words[j].startsWith('-')) j += words[j] === '-C' || words[j] === '-c' ? 2 : 1;
+      sub = words.slice(j);
+    }
+    return { raw: raw.trim(), words, env: words.slice(0, i), tool: words[i], sub };
+  });
+  const pushes = segments.filter((s) => s.sub?.[0] === 'push');
+  if (!pushes.length) return undefined;
+  // A pushed ref built by substitution cannot be read before the call runs.
+  if (/\$\(|`/.test(text)) return 'a push shares its call with a command substitution; run the push alone with literal refs';
+  if (pushes.some((s) => deletesDev(s.sub))) return 'deleting the remote dev branch is never allowed during a gated run';
+  if (!findDevPushes(text, cwd).length) return undefined;
+  const stripped = text.replace(/&&/g, '').replace(/\d*>&\d+/g, '');
+  if (/&/.test(stripped)) return 'the dev push shares its call with a background job; run the push alone';
+  if (/>/.test(stripped)) return 'the dev push shares its call with an output redirect; run the push alone';
+  for (const s of segments) {
+    if (!s.words.length) continue;
+    if (s.env.some((w) => /^GIT_\w*=/.test(w))) return `\`${s.raw.slice(0, 80)}\` sets a GIT_ variable for the push; run the push alone`;
+    if (s.tool === 'cd' || s.sub?.[0] === 'push' || OUTPUT_FILTERS.has(s.tool)) continue;
+    return `\`${s.raw.slice(0, 80)}\` runs in the same call as the dev push and could change what is pushed; run the push alone`;
   }
   return undefined;
 }
@@ -397,7 +428,7 @@ export function reviewReason(findings) {
     ...findings.map((f) => `- ${f}`),
     'Commit the candidate on its task branch, stop before pushing, and end your answer with FACTORY_READY followed by a space and',
     'the full candidate SHA. Factory runs the reviewer and tells you when to deliver. A clean rebase of an approved candidate keeps',
-    'its approval; push with a literal directory and ref so the guard can read the range.',
+    'its approval. Run the dev push as its own bash call (only cd beside it) with a literal directory and ref.',
   ].join('\n');
 }
 
