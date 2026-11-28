@@ -154,6 +154,20 @@ export async function patchId(cwd: string, base: string, head: string, signal?: 
   return id;
 }
 
+/**
+ * Engine-side check after a handoff, independent of how a push was made: origin/dev may only
+ * have moved forward by exactly one approved change. Returns the new tip.
+ */
+export async function verifyDevAdvance(root: string, from: string, to: string, approved: string[], signal?: AbortSignal) {
+  if (to === from) return to;
+  const forward = await git(root, ['merge-base', '--is-ancestor', from, to], signal).then(() => true, () => false);
+  if (!forward) throw new FactoryError(`origin/dev was rewritten (${from.slice(0, 12)} is no longer an ancestor of ${to.slice(0, 12)}); inspect before continuing.`);
+  if (!approved.includes(await patchId(root, from, to, signal))) {
+    throw new FactoryError(`origin/dev moved ${from.slice(0, 12)}..${to.slice(0, 12)} with changes the independent reviewer did not approve; inspect before continuing.`);
+  }
+  return to;
+}
+
 /** Task title and description as the reviewer's goal (scope and acceptance, no comments). */
 export function goalText(task: { title?: unknown; description?: unknown }, key: string) {
   const title = typeof task.title === 'string' ? task.title : '';
@@ -219,7 +233,8 @@ export async function runReview(options: RunOptions): Promise<ReviewResult> {
       const reportPath = line('report:');
       const risk = line('Risk:');
       const full = reportPath ? await readFile(reportPath, 'utf8').catch(() => '') : '';
-      const report = full.slice(0, MAX_REPORT);
+      const report = full.length > MAX_REPORT
+        ? `${full.slice(0, MAX_REPORT)}\n[report cut at ${MAX_REPORT} characters; read the complete report at ${reportPath}]` : full;
       if (!reportPath || !risk || !/^Verdict:\s*(?:ship|fix first)\s*$/im.test(full)) {
         reason = 'reviewer output had no readable report with a verdict';
         continue;

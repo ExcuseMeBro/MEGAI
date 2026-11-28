@@ -730,20 +730,14 @@ test('review: reject sends the report back, the repaired candidate is approved, 
     assert.equal(gate.approved.length, 1);
     const push = { dir: second.wt, remote: join(f.base, 'remote.git'), src: 'HEAD', dst: 'dev' };
     assert.deepEqual(guard.checkReviewed(push, gate), []);
-    // dev moves; a clean rebase keeps the approval.
-    writeFileSync(join(f.cwd, 'other.txt'), 'other\n');
-    f.git(f.cwd, 'add', 'other.txt');
-    f.git(f.cwd, 'commit', '-qm', 'Other work');
-    f.git(f.cwd, 'push', '-q', join(f.base, 'remote.git'), 'dev');
-    fetchDev(second.wt);
-    f.git(second.wt, 'rebase', '-q', 'refs/remotes/origin/dev');
-    assert.deepEqual(guard.checkReviewed(push, gate), []);
-    // A change after the review is not approved.
+    // A change after the review is not approved (the guard's rebase cases are in pi-test-guard).
     writeFileSync(join(second.wt, 'late.txt'), 'late\n');
     f.git(second.wt, 'add', 'late.txt');
     f.git(second.wt, 'commit', '-qm', 'Late change');
     assert.equal(guard.checkReviewed(push, gate).length, 1);
     assert.equal(guard.checkReviewed({ ...push, dir: null }, gate).length, 1);
+    f.git(second.wt, 'reset', '-q', '--hard', 'HEAD~1');
+    f.git(second.wt, 'push', '-q', join(f.base, 'remote.git'), 'HEAD:dev');
     f.status(1, 'review');
     return 'Delivered and verified.';
   });
@@ -865,4 +859,27 @@ test('review: a parallel candidate rejected past the limit is skipped, the rest 
   assert.deepEqual(s.calls, []);
   assert.ok(existsSync(f.worktree(1)));
   await until(() => !f.locked(), 'lock release');
+});
+
+test('review: after a handoff, a dev change the reviewer did not approve stops the run', reviewOptions, async t => {
+  const f = await fixture(t, { parallel: true, tasks: [makeTask(1, 'doing'), makeTask(2, 'todo')], review: { plan: [0] } });
+  let candidate;
+  const s = await f.open((prompt, count) => {
+    assert.equal(taskFor(prompt), 1);
+    if (count === 1) {
+      candidate = commitCandidate(f, 1, 'reviewed\n');
+      return `Committed.\nFACTORY_READY ${candidate.sha}`;
+    }
+    // A push the hook could not see (computed in another tool) slips an extra commit in.
+    writeFileSync(join(candidate.wt, 'extra.txt'), 'unreviewed\n');
+    f.git(candidate.wt, 'add', 'extra.txt');
+    f.git(candidate.wt, 'commit', '-qm', 'Unreviewed extra');
+    f.git(candidate.wt, 'push', '-q', join(f.base, 'remote.git'), 'HEAD:dev');
+    f.status(1, 'review');
+    return 'Delivered.';
+  });
+  await run(s.session);
+  assert.equal(s.calls.length, 2, 'task 2 never starts');
+  assert.ok(s.notices.some(x => x.includes('with changes the independent reviewer did not approve')), s.notices.join('\n'));
+  assert.equal(f.locked(), false);
 });

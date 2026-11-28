@@ -366,7 +366,7 @@ export function checkReviewed(push, gate) {
 }
 
 // Pure text filters that may read a gated dev push's output in the same call.
-const OUTPUT_FILTERS = new Set(['tail', 'head', 'grep', 'wc', 'cat', 'sort']);
+const OUTPUT_FILTERS = new Set(['tail', 'head', 'grep', 'wc']);
 
 /** True when `segment` is a `git push` that deletes the remote dev branch. */
 function deletesDev(words) {
@@ -409,6 +409,9 @@ export function gatedCommandProblem(event, cwd = process.cwd()) {
   // A pushed ref built by substitution cannot be read before the call runs.
   if (/\$\(|`/.test(text)) return 'a push shares its call with a command substitution; run the push alone with literal refs';
   if (pushes.some((s) => deletesDev(s.sub))) return 'deleting the remote dev branch is never allowed during a gated run';
+  // Shell expansion or an upstream-configured push hides the real destination until the call runs.
+  if (/\$/.test(text)) return 'a push shares its call with shell expansion; run the push alone with a literal directory and refspec';
+  if (pushes.some((s) => s.sub.filter((w) => !w.startsWith('-')).length < 3)) return 'name the remote and refspec explicitly (for example `git push origin task/x:dev`) while the gate is active';
   if (!findDevPushes(text, cwd).length) return undefined;
   const stripped = text.replace(/&&/g, '').replace(/\d*>&\d+/g, '');
   if (/&/.test(stripped)) return 'the dev push shares its call with a background job; run the push alone';

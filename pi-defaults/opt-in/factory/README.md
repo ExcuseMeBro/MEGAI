@@ -27,6 +27,8 @@ The agent that wrote a change never approves it. With the gate on (the default),
 
 While a gated run is active, `megai-test-guard` blocks every push to `dev` whose change (merge-base to source, no context lines) does not match an approved patch-id. The dev push must run as its own `bash` call, so no commit, merge or reset in the same call can change what it pushes. A clean rebase onto a newer `dev` keeps the approval; any other change needs another `FACTORY_READY` round. Parallel preparation workers never push `dev` at all. In parallel mode each prepared candidate is reviewed in its own worktree right after preparation; a rejection sends a fresh worker back to the same worktree with the report, and a candidate rejected past the limit is skipped (not delivered, worktree retained) while the rest of the wave continues. Work with no Git change (runtime-only configuration) needs no candidate and is handed off as before.
 
+The push check runs before a tool call, so it can only see what the call shows. Factory therefore also checks the outcome itself: it records `origin/dev` when a gated run starts and, after every handoff, fetches it again. `dev` may only have moved forward by exactly one approved change. A rewrite, or a change no reviewer approved (for example a push hidden in computed `ipython` strings, or another session delivering to the same `dev` meanwhile), stops the run with a message to inspect. This detects such a push, it does not undo it. One delivery owner per repository `dev` (AGENTS.md) keeps it free of false alarms.
+
 Settings live in `~/.pi/agent/factory.json` (an invalid file stops Factory before it takes the lock):
 
 ```json

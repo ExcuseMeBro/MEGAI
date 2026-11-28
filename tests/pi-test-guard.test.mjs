@@ -347,6 +347,10 @@ test('review gate: a gated dev push runs alone, so nothing earlier in the call c
     ['GIT_DIR=/other/.git git push origin dev', /GIT_ variable/],
     ['git push origin --delete dev', /deleting the remote dev branch/],
     ['git push origin :refs/heads/dev', /deleting the remote dev branch/],
+    ['sort -o .git/refs/heads/task/x /tmp/sha && git push origin task/x:dev', /could change what is pushed/],
+    ['target=dev; git push origin HEAD:$target', /shell expansion/],
+    ['git push', /name the remote and refspec/],
+    ['git push origin', /name the remote and refspec/],
   ]) {
     assert.match(bash(bad) ?? '', why, bad);
   }

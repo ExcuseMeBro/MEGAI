@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { WORKER_ENV, deliveryReceipt, latestDev, parallelCount, prepared, runWorker, verifyDelivery, worktree, type Candidate, type ModelChoice } from './parallel.ts';
-import { candidateAt, goalText, patchId, readyReceipt, reviewConfig, reviewLine, reviewerModel, runReview, setGate, clearGate,
+import { candidateAt, goalText, patchId, readyReceipt, reviewConfig, reviewLine, reviewerModel, runReview, setGate, clearGate, verifyDevAdvance,
   type Gate, type ReviewConfig, type ReviewResult } from './review.ts';
 
 const TYPE = 'megai-factory';
@@ -44,7 +44,7 @@ type Parallel = {
   wave?: Promise<void>;
 };
 
-type Review = { config: ReviewConfig; model: string; gate: Gate };
+type Review = { config: ReviewConfig; model: string; gate: Gate; devTip?: string };
 
 type Run = {
   project: string;
@@ -454,6 +454,14 @@ export default function factory(pi: ExtensionAPI) {
     }
   }
 
+  // After a handoff in a gated run: dev may only have advanced by one approved change.
+  async function checkDev(active: Run) {
+    const review = active.review;
+    if (!review?.devTip) return;
+    const tip = await latestDev(active.board.root, active.board.origin, active.cancelled.signal);
+    review.devTip = await verifyDevAdvance(active.board.root, review.devTip, tip, review.gate.approved, active.cancelled.signal);
+  }
+
   const approvalNote = (active: Run) => `Its approved change is registered with megai-test-guard (reviewer ${active.review!.model}).`;
 
   // One independent review of `sha`. The candidate must still be the same clean commit
@@ -548,7 +556,11 @@ export default function factory(pi: ExtensionAPI) {
         retries: 0, reviewed: 0, cancelled: controller, release: unlock };
       if (width) active.parallel = { root: bound.root, origin: bound.url, width, candidates: [], model: writer };
       // Published before preparation: workers' approvals land in the same gate.
-      if (review) setGate(review.gate);
+      if (review) {
+        setGate(review.gate);
+        // The dev tip every later handoff is measured against.
+        review.devTip = await latestDev(bound.root, bound.url, controller.signal);
+      }
       const queue = (await readQueue(bound.project, bound.repo, bound.github, bound.configured, controller.signal))
         .filter(task => (target.id === undefined || task.id === target.id) && !skipped(task));
       active.pending = queue.map(task => task.id);
@@ -760,12 +772,14 @@ export default function factory(pi: ExtensionAPI) {
           return;
         }
         await verifyDelivery(active.parallel.root, active.parallel.origin, active.parallel.current!, active.parallel.base!, receipt, active.cancelled.signal);
+        await checkDev(active);
         active.reviewed++;
         prompt = await nextDelivery(active, ctx);
         if (!prompt) notify(ctx, `${active.reviewed} handed off. Queue exhausted.`);
       } else if (!task.human && handedOff(task)) {
         // The review gate blocked every unapproved dev push, so no unreviewed change reached dev.
-        if (active.review && !active.resume) notify(ctx, `${key(active)} handed off without a reviewed Git candidate; the gate kept any unreviewed change off dev. Check it was runtime-only.`, 'warning');
+        await checkDev(active);
+        if (active.review && !active.resume) notify(ctx, `${key(active)} handed off without a reviewed Git candidate; origin/dev did not move. Check it was runtime-only.`, 'warning');
         active.reviewed++;
         prompt = await next(active, ctx);
         if (!prompt && !active.cancelled.signal.aborted && !ctx.signal?.aborted) {
