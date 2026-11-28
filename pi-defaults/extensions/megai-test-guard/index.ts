@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import { blockReason, checkPush, checkReviewed, checkSize, diffLimit, findDevPushes, guardEnabled, reviewGate, reviewReason, sizeReason, toolCommands } from './guard.mjs';
+import { blockReason, checkPush, checkReviewed, checkSize, diffLimit, findDevPushes, gatedCommandProblem, guardEnabled, reviewGate, reviewReason, sizeReason, toolCommands } from './guard.mjs';
 
 // Blocks a `git push` to dev whose commits weaken tests, unless a commit carries a
 // `Test-Change:` trailer, and a push larger than an active diff budget (a Factory routine's
@@ -19,7 +19,8 @@ export default function (pi: ExtensionAPI) {
       const findings = pushes.flatMap(checkPush);
       if (findings.length) return { block: true, reason: blockReason(findings) };
       const gate = reviewGate();
-      const unreviewed = gate ? pushes.flatMap(push => checkReviewed(push, gate)) : [];
+      const isolated = gate && pushes.length ? gatedCommandProblem(event) : undefined;
+      const unreviewed = isolated ? [`${gate.label}: ${isolated}`] : gate ? pushes.flatMap(push => checkReviewed(push, gate)) : [];
       if (unreviewed.length) return { block: true, reason: reviewReason(unreviewed) };
       const limit = diffLimit();
       const oversize = limit ? pushes.flatMap(push => checkSize(push, limit)) : [];

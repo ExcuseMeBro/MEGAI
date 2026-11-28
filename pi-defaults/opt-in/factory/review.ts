@@ -95,10 +95,10 @@ export function readyReceipt(text: string) {
   return /^FACTORY_READY ([a-f0-9]{40}|[a-f0-9]{64})$/.exec(last ?? '')?.[1];
 }
 
-async function git(cwd: string, args: string[], signal?: AbortSignal, maxBuffer = 1024 * 1024) {
+async function git(cwd: string, args: string[], signal?: AbortSignal, maxBuffer = 1024 * 1024, raw = false) {
   const { stdout } = await gitFile('git', ['-c', 'core.fsmonitor=false', ...args], { cwd, signal, timeout: 30_000,
     maxBuffer, env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_OPTIONAL_LOCKS: '0' } });
-  return stdout.trim();
+  return raw ? stdout : stdout.trim();
 }
 
 /**
@@ -132,8 +132,8 @@ export async function candidateAt(root: string, sha: string, base: string, signa
  */
 export async function patchId(cwd: string, base: string, head: string, signal?: AbortSignal): Promise<string> {
   const diff = await git(cwd, ['diff', '--no-color', '--no-ext-diff', '--no-textconv', '--no-renames', '--full-index', '--binary',
-    '-U0', `${base}...${head}`], signal, 64 * 1024 * 1024).catch(() => { throw new FactoryError('Could not read the candidate diff.'); });
-  if (!diff) throw new FactoryError('Candidate has no changes against origin/dev.');
+    '-U0', `${base}...${head}`], signal, 64 * 1024 * 1024, true).catch(() => { throw new FactoryError('Could not read the candidate diff.'); });
+  if (!diff.trim()) throw new FactoryError('Candidate has no changes against origin/dev.');
   const id = await new Promise<string>((resolve, reject) => {
     const child = spawn('git', ['patch-id', '--stable'], { cwd, signal, stdio: ['pipe', 'pipe', 'ignore'] });
     let out = '';
@@ -141,7 +141,7 @@ export async function patchId(cwd: string, base: string, head: string, signal?: 
     child.on('error', reject);
     child.on('close', code => code === 0 ? resolve(out.trim().split(/\s+/)[0] ?? '') : reject(new Error('patch-id failed')));
     child.stdin.on('error', () => {});
-    child.stdin.end(`${diff}\n`);
+    child.stdin.end(diff);
   }).catch(() => '');
   if (!/^[a-f0-9]{40,64}$/.test(id)) throw new FactoryError('Could not compute the candidate patch-id.');
   return id;
@@ -200,21 +200,26 @@ export async function runReview(options: RunOptions): Promise<ReviewResult> {
   try {
     const goalPath = join(dir, 'goal.md');
     await writeFile(goalPath, options.goal, { mode: 0o600 });
-    let last = { code: null as number | null, out: '', err: '' };
+    let reason = '';
     for (let attempt = 0; attempt < 2; attempt++) {
-      last = await reviewOnce(options, goalPath);
-      if (last.code === 0 || last.code === 3) break;
+      const last = await reviewOnce(options, goalPath);
+      const line = (prefix: string) => last.out.split('\n').find(text => text.startsWith(prefix))?.slice(prefix.length).trim();
+      if (last.code !== 0 && last.code !== 3) {
+        reason = last.err.split('\n').find(text => text.trim())?.slice(0, 200) ?? `exit ${last.code}`;
+        continue;
+      }
+      // An exit code alone never approves: the reviewer must have written its report and verdict.
+      const reportPath = line('report:');
+      const risk = line('Risk:');
+      const full = reportPath ? await readFile(reportPath, 'utf8').catch(() => '') : '';
+      const report = full.slice(0, MAX_REPORT);
+      if (!reportPath || !risk || !/^Verdict:\s*(?:ship|fix first)\s*$/im.test(full)) {
+        reason = 'reviewer output had no readable report with a verdict';
+        continue;
+      }
+      return { approved: last.code === 0, summary: `Risk: ${risk}`, reportPath, report };
     }
-    const line = (prefix: string) => last.out.split('\n').find(text => text.startsWith(prefix))?.slice(prefix.length).trim();
-    if (last.code !== 0 && last.code !== 3) {
-      const reason = last.err.split('\n').find(text => text.trim())?.slice(0, 200) ?? `exit ${last.code}`;
-      throw new FactoryError(`Independent review could not complete (${reason}); candidate retained.`);
-    }
-    const reportPath = line('report:');
-    let report = '';
-    if (reportPath) report = await readFile(reportPath, 'utf8').then(text => text.slice(0, MAX_REPORT), () => '');
-    const summary = line('Risk:') ? `Risk: ${line('Risk:')}` : last.code === 0 ? 'approved' : 'rejected';
-    return { approved: last.code === 0, summary, reportPath, report };
+    throw new FactoryError(`Independent review could not complete (${reason}); candidate retained.`);
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {});
   }

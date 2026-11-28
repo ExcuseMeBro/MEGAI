@@ -361,6 +361,36 @@ export function checkReviewed(push, gate) {
   }
 }
 
+// Read-only commands that may share a shell call with a gated dev push.
+const READ_ONLY_GIT = new Set(['fetch', 'status', 'log', 'rev-parse', 'merge-base', 'show', 'diff', 'ls-remote']);
+const READ_ONLY_TOOLS = new Set(['cd', 'echo', 'printf', 'true', 'tail', 'head', 'grep', 'wc', 'cat', 'sort']);
+
+/**
+ * The hook sees a shell call before it runs, so a ref change earlier in the same call
+ * (`git merge … && git push origin dev`) would slip past the gate. While a gate is active a dev
+ * push must therefore run as its own bash call, with only read-only commands beside it.
+ * Returns why the call cannot be checked, or undefined.
+ */
+export function gatedCommandProblem(event) {
+  if (event?.toolName !== 'bash') return 'a dev push from this tool cannot be checked; run the `git push` to dev alone in a bash command';
+  const text = String(event.input?.command ?? '').replace(/<<-?\s*['"]?(\w+)['"]?[\s\S]*?\n\1\b/g, ' ');
+  if (/\$\(|`/.test(text)) return 'the dev push shares its call with a command substitution; run it alone';
+  if (/&(?!&)/.test(text.replace(/&&/g, '').replace(/\d*>&\d*|&>/g, ''))) return 'the dev push shares its call with a background job; run it alone';
+  for (const raw of text.split(/&&|\|\||;|\n|\|/)) {
+    const words = tokens(raw.trim().replace(/^[({\s]+|[)}\s]+$/g, ''));
+    let i = 0;
+    while (i < words.length && (/^\w+=/.test(words[i]) || PREFIX.has(words[i]))) i++;
+    if (i >= words.length) continue;
+    if (words[i] === 'git' || words[i].endsWith('/git')) {
+      i++;
+      while (i < words.length && words[i].startsWith('-')) i += words[i] === '-C' || words[i] === '-c' ? 2 : 1;
+      if (words[i] === 'push' || READ_ONLY_GIT.has(words[i])) continue;
+    } else if (READ_ONLY_TOOLS.has(words[i])) continue;
+    return `\`${raw.trim().slice(0, 80)}\` runs in the same call as the dev push and could change what is pushed; run the push alone`;
+  }
+  return undefined;
+}
+
 export function reviewReason(findings) {
   return [
     'megai-test-guard blocked this push to dev: the independent review gate is active and this change was not approved.',

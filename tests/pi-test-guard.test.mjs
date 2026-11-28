@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync, unlinkSync
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { DIFF_LIMIT, REVIEW_GATE, blockReason, cellCommands, checkPush, checkReviewed, checkSize, countChanged, diffLimit, findDevPushes, findWeakening, patchIdOf, reviewGate, reviewReason, sizeReason, toolCommands } from '../pi-defaults/extensions/megai-test-guard/guard.mjs';
+import { DIFF_LIMIT, REVIEW_GATE, blockReason, cellCommands, checkPush, checkReviewed, gatedCommandProblem, checkSize, countChanged, diffLimit, findDevPushes, findWeakening, patchIdOf, reviewGate, reviewReason, sizeReason, toolCommands } from '../pi-defaults/extensions/megai-test-guard/guard.mjs';
 import { patchId } from '../pi-defaults/opt-in/factory/review.ts';
 import { piPackageRoot } from './pi-package.mjs';
 
@@ -146,6 +146,10 @@ test('review gate: only an approved change reaches dev, by patch-id; a clean reb
   run('commit', '-qam', 'candidate');
   const approved = await patchId(work, 'origin/dev', 'HEAD');
   assert.equal(approved, patchIdOf(work, 'refs/remotes/origin/dev', 'HEAD'), 'Factory and the guard compute the same id');
+  writeFileSync(join(work, 'spaces.txt'), 'last line   \n');
+  run('add', 'spaces.txt'); run('commit', '-qm', 'trailing spaces');
+  assert.equal(await patchId(work, 'origin/dev', 'HEAD'), patchIdOf(work, 'refs/remotes/origin/dev', 'HEAD'), 'trailing whitespace hashes the same');
+  run('reset', '-q', '--hard', 'HEAD~1');
   globalThis[REVIEW_GATE] = { label: 'Factory p', approved: [] };
   const findings = checkReviewed({ ...push, src: 'task/x' }, reviewGate({}));
   assert.equal(findings.length, 1);
@@ -319,6 +323,20 @@ test('native Pi: with the Factory review gate active, an unapproved bash push to
   assert.notEqual(remoteHead, run('rev-parse', 'HEAD'), 'the push did not happen');
 });
 
+test('review gate: a gated dev push runs alone, so nothing earlier in the call changes what it pushes', () => {
+  const bash = (command) => gatedCommandProblem({ toolName: 'bash', input: { command } });
+  for (const ok of ['git push origin dev', 'cd /w && git fetch -q origin && git push -q origin dev 2>&1 | tail -3',
+    'git -C /w status --short; git push origin HEAD:dev', 'GIT_TRACE=0 git push origin dev && git log -1 --format=%H']) {
+    assert.equal(bash(ok), undefined, ok);
+  }
+  for (const bad of ['git merge --ff-only task/x && git push origin dev', 'git commit -qam u; git push origin dev',
+    'git reset --hard abc && git push origin dev', './deliver.sh && git push origin dev', 'git push origin "$(git rev-parse x)":dev',
+    'git commit -qam u & git push origin dev', 'git rebase dev\ngit push origin dev']) {
+    assert.match(bash(bad) ?? '', /run (?:the push|it) alone/, bad);
+  }
+  assert.match(gatedCommandProblem({ toolName: 'ipython', input: { code: "bash('git push origin dev')" } }), /alone in a bash command/);
+});
+
 test('review gate: Factory and the guard agree on large diffs (up to their shared 64 MiB budget)', async (t) => {
   const { work, run } = repo(t);
   run('switch', '-qc', 'task/big');
@@ -328,4 +346,25 @@ test('review gate: Factory and the guard agree on large diffs (up to their share
   globalThis[REVIEW_GATE] = { label: 'Factory p', approved: [id] };
   t.after(() => { delete globalThis[REVIEW_GATE]; });
   assert.deepEqual(checkReviewed({ dir: work, remote: 'origin', src: 'task/big', dst: 'dev' }, reviewGate({})), []);
+});
+
+test('native Pi: with the review gate active, a commit chained before an approved push is blocked', { timeout: 60000 }, async (t) => {
+  const { work, run } = repo(t);
+  writeFileSync(join(work, 'calc.py'), 'def add(a, b):\n    return b + a\n');
+  run('commit', '-qam', 'reviewed');
+  globalThis[REVIEW_GATE] = { label: 'Factory p', approved: [await patchId(work, 'origin/dev', 'HEAD')] };
+  t.after(() => { delete globalThis[REVIEW_GATE]; });
+  const { session, faux, fauxAssistantMessage, fauxToolCall } = await piSession(t, work, { tools: ['bash'] });
+  let toolResult = '';
+  faux.setResponses([
+    fauxAssistantMessage(fauxToolCall('bash', { command: `cd ${JSON.stringify(work)} && echo '# late' >> calc.py && git commit -qam late && git push -q origin dev` })),
+    async (context) => {
+      toolResult = (context.messages.at(-1)?.content ?? []).map((b) => b.text ?? '').join('\n');
+      return fauxAssistantMessage('Understood.');
+    },
+  ]);
+  await session.prompt('Deliver it');
+  assert.match(toolResult, /could change what is pushed/);
+  const remoteHead = execFileSync('git', ['-C', join(dirname(work), 'remote.git'), 'rev-parse', 'dev'], { encoding: 'utf8' }).trim();
+  assert.equal(remoteHead, run('rev-parse', 'HEAD~1'), 'the remote stayed at the base');
 });
